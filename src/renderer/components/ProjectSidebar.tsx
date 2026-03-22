@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useAtom, useSetAtom } from "jotai"
-import { toastErrorFromCatch } from "@/lib/toast-error"
-import { moveProjectBeforeOrAfterTarget, type ProjectDropPosition } from "@shared/project-order"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   projectsAtom,
   selectedProjectAtom,
@@ -22,10 +20,9 @@ import {
   unreadInboxCountAtom,
   workflowSidebarSeenRunIdsAtom,
   markWorkflowSidebarRunSeenAtom,
-  type WorkflowFile,
+  multiRunDashboardOpenAtom,
 } from "@/lib/store"
 import {
-  approvalRequestsAtom,
   clearWorkflowExecutionStateAtom,
   moveWorkflowExecutionStateAtom,
   pastRunsAtom,
@@ -33,9 +30,7 @@ import {
   workflowExecutionStatesAtom,
 } from "@/features/execution"
 import { cn } from "@/lib/cn"
-import { isEditableKeyboardTarget } from "@/lib/keyboard-shortcuts"
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "@/lib/sidebar-layout"
-import { MOTION_BASE_MS } from "@/lib/tokens"
 import {
   FolderOpen,
   Settings,
@@ -53,6 +48,7 @@ import {
   workflowHasActiveRunStatus,
 } from "@/components/sidebar/projectSidebarUtils"
 import { useProjectSidebarData } from "@/components/sidebar/useProjectSidebarData"
+import { useProjectSidebarInteractions } from "@/components/sidebar/useProjectSidebarInteractions"
 import { useSidebarResize } from "@/components/sidebar/useSidebarResize"
 import { useWorkflowCrud } from "@/components/sidebar/useWorkflowCrud"
 import { useProjectSidebarMetrics } from "@/components/sidebar/useProjectSidebarMetrics"
@@ -66,6 +62,7 @@ import { ProjectSidebarChrome } from "@/components/sidebar/ProjectSidebarChrome"
 import { SidebarNavItem } from "@/components/sidebar/SidebarNavItem"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import { Button } from "@/components/ui/button"
+import { resolveProjectRequiredContract } from "@/lib/entry-state-contracts"
 
 interface ProjectSidebarProps {
   collapsed?: boolean
@@ -83,8 +80,6 @@ export function ProjectSidebar({
   showVisibilityToggle = false,
 }: ProjectSidebarProps = {}) {
   const sidebarRef = useRef<HTMLElement | null>(null)
-  const scrollHideTimerRef = useRef<number | null>(null)
-  const projectReorderRequestIdRef = useRef(0)
   const [projects, setProjects] = useAtom(projectsAtom)
   const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
   const [expandedProjects, setExpandedProjects] = useAtom(expandedProjectsAtom)
@@ -100,9 +95,10 @@ export function ProjectSidebar({
   const [mainView, setMainView] = useAtom(mainViewAtom)
   const [workflowCreateContext] = useAtom(workflowCreateContextAtom)
   const [unreadInboxCount] = useAtom(unreadInboxCountAtom)
+  const runsDashboardOpen = useAtomValue(multiRunDashboardOpenAtom)
   const [workflowSidebarSeenRunIds] = useAtom(workflowSidebarSeenRunIdsAtom)
-  const [approvalRequests] = useAtom(approvalRequestsAtom)
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
+  const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
   const moveWorkflowExecutionState = useSetAtom(moveWorkflowExecutionStateAtom)
   const clearWorkflowExecutionState = useSetAtom(clearWorkflowExecutionStateAtom)
   const moveWorkflowTemplateContext = useSetAtom(moveWorkflowTemplateContextAtom)
@@ -111,15 +107,13 @@ export function ProjectSidebar({
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState("")
   const [expandedWorkflowLists, setExpandedWorkflowLists] = useState<Record<string, boolean>>({})
-  const [sidebarScrolling, setSidebarScrolling] = useState(false)
-  const [draggedProjectPath, setDraggedProjectPath] = useState<string | null>(null)
-  const [projectDropIndicator, setProjectDropIndicator] = useState<{
-    projectPath: string
-    position: ProjectDropPosition
-  } | null>(null)
   const [sidebarContextMenu, setSidebarContextMenu] = useState<SidebarContextMenuState | null>(null)
   const normalizedWorkflowSearchQuery = workflowSearchQuery.trim().toLowerCase()
   const hasWorkflowSearchQuery = normalizedWorkflowSearchQuery.length > 0
+  const projectRequired = resolveProjectRequiredContract({
+    resolvedProjectPath: selectedProject,
+    primaryActionLabel: "Open project",
+  })
 
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const workflowHasActiveRun = (workflowPath: string) => {
@@ -166,7 +160,6 @@ export function ProjectSidebar({
       workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery)
     )))
   const hasSearchResults = hasVisibleProjectResults || visibleGlobalWorkflows.length > 0
-  const pendingApprovalCount = approvalRequests.length
   const sidebarContentState = !hasProjects
     ? "empty_projects"
     : hasWorkflowSearchQuery
@@ -191,6 +184,7 @@ export function ProjectSidebar({
     requestDeleteWorkflow,
     commitDeleteWorkflow,
     duplicateWorkflow,
+    copyWorkflowToProject,
   } = useWorkflowCrud({
     selectedProject,
     setProjects,
@@ -225,16 +219,27 @@ export function ProjectSidebar({
     projectLatestRunsCache,
     workflowExecutionStates,
   })
+  const {
+    sidebarScrolling,
+    draggedProjectPath,
+    projectDropIndicator,
+    handleSidebarScroll,
+    clearProjectDragState,
+    handleProjectDragStart,
+    handleProjectDragOver,
+    handleProjectDragLeave,
+    handleProjectDrop,
+    handleSidebarKeyDown,
+  } = useProjectSidebarInteractions({
+    sidebarRef,
+    projects,
+    setProjects,
+    workflows,
+    projectWorkflowsCache,
+    requestRenameWorkflow,
+  })
 
   const { resizing, startResize, handleResizeKeyDown } = useSidebarResize(sidebarWidth, setSidebarWidth)
-
-  useEffect(() => {
-    return () => {
-      if (scrollHideTimerRef.current !== null) {
-        window.clearTimeout(scrollHideTimerRef.current)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (!selectedProject) return
@@ -285,174 +290,6 @@ export function ProjectSidebar({
     })
   }
 
-  const handleSidebarScroll = () => {
-    setSidebarScrolling(true)
-    if (scrollHideTimerRef.current !== null) {
-      window.clearTimeout(scrollHideTimerRef.current)
-    }
-    scrollHideTimerRef.current = window.setTimeout(() => {
-      setSidebarScrolling(false)
-      scrollHideTimerRef.current = null
-    }, MOTION_BASE_MS)
-  }
-
-  const clearProjectDragState = () => {
-    setDraggedProjectPath(null)
-    setProjectDropIndicator(null)
-  }
-
-  const resolveProjectDropPosition = (
-    event: React.DragEvent<HTMLElement>,
-  ): ProjectDropPosition => {
-    const bounds = event.currentTarget.getBoundingClientRect()
-    return event.clientY >= bounds.top + bounds.height / 2 ? "after" : "before"
-  }
-
-  const handleProjectDragStart = (
-    projectPath: string,
-    event: React.DragEvent<HTMLButtonElement>,
-  ) => {
-    if (projects.length < 2) {
-      event.preventDefault()
-      return
-    }
-
-    setDraggedProjectPath(projectPath)
-    event.dataTransfer.effectAllowed = "move"
-    event.dataTransfer.setData("text/plain", projectPath)
-  }
-
-  const handleProjectDragOver = (
-    projectPath: string,
-    event: React.DragEvent<HTMLDivElement>,
-  ) => {
-    if (!draggedProjectPath || draggedProjectPath === projectPath) {
-      if (projectDropIndicator) {
-        setProjectDropIndicator(null)
-      }
-      return
-    }
-
-    event.preventDefault()
-    event.dataTransfer.dropEffect = "move"
-    const position = resolveProjectDropPosition(event)
-    setProjectDropIndicator((current) => {
-      if (current?.projectPath === projectPath && current.position === position) {
-        return current
-      }
-      return { projectPath, position }
-    })
-  }
-
-  const handleProjectDragLeave = (
-    projectPath: string,
-    event: React.DragEvent<HTMLDivElement>,
-  ) => {
-    if (projectDropIndicator?.projectPath !== projectPath) return
-    const nextTarget = event.relatedTarget as Node | null
-    if (nextTarget && event.currentTarget.contains(nextTarget)) return
-    setProjectDropIndicator(null)
-  }
-
-  const handleProjectDrop = (
-    targetProjectPath: string,
-    event: React.DragEvent<HTMLDivElement>,
-  ) => {
-    event.preventDefault()
-
-    if (!draggedProjectPath || draggedProjectPath === targetProjectPath) {
-      clearProjectDragState()
-      return
-    }
-
-    const position = resolveProjectDropPosition(event)
-    const previousProjects = projects
-    const nextProjects = moveProjectBeforeOrAfterTarget(
-      projects,
-      draggedProjectPath,
-      targetProjectPath,
-      position,
-    )
-
-    clearProjectDragState()
-    if (nextProjects.every((projectPath, index) => projectPath === previousProjects[index])) {
-      return
-    }
-
-    const requestId = projectReorderRequestIdRef.current + 1
-    projectReorderRequestIdRef.current = requestId
-    setProjects(nextProjects)
-
-    void window.api.reorderProjects(nextProjects).then((persistedProjects) => {
-      if (projectReorderRequestIdRef.current !== requestId) return
-      setProjects(persistedProjects)
-    }).catch(async (error) => {
-      if (projectReorderRequestIdRef.current !== requestId) return
-      try {
-        const persistedProjects = await window.api.listProjects()
-        if (projectReorderRequestIdRef.current !== requestId) return
-        setProjects(persistedProjects)
-      } catch {
-        setProjects(previousProjects)
-      }
-      toastErrorFromCatch("Could not reorder projects", error)
-    })
-  }
-
-  const handleSidebarKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement | null
-    if (!target) return
-
-    if (isEditableKeyboardTarget(target)) return
-
-    // F2: rename focused workflow
-    if (event.key === "F2") {
-      const focusedEl = target.closest("[data-sidebar-item]") as HTMLElement | null
-      if (focusedEl && focusedEl.dataset.workflowPath) {
-        event.preventDefault()
-        const wf = workflows.find((w) => w.path === focusedEl.dataset.workflowPath)
-          || Object.values(projectWorkflowsCache).flat().find((w) => w.path === focusedEl.dataset.workflowPath)
-        if (wf) {
-          requestRenameWorkflow(wf)
-        }
-      }
-      return
-    }
-
-    if (
-      event.key !== "ArrowDown"
-      && event.key !== "ArrowUp"
-      && event.key !== "Home"
-      && event.key !== "End"
-    ) {
-      return
-    }
-
-    const root = sidebarRef.current
-    if (!root) return
-    const items = Array.from(
-      root.querySelectorAll<HTMLElement>('[data-sidebar-item="true"]:not([disabled])'),
-    ).filter((item) => item.offsetParent !== null)
-    if (items.length === 0) return
-
-    const currentIndex = items.findIndex((item) => item === document.activeElement)
-    let nextIndex = 0
-    if (event.key === "Home") {
-      nextIndex = 0
-    } else if (event.key === "End") {
-      nextIndex = items.length - 1
-    } else if (event.key === "ArrowDown") {
-      nextIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, items.length - 1)
-    } else {
-      nextIndex = currentIndex < 0 ? 0 : Math.max(currentIndex - 1, 0)
-    }
-
-    event.preventDefault()
-    const nextItem = items[nextIndex]
-    nextItem.focus()
-    nextItem.scrollIntoView({ block: "nearest" })
-  }
-
   return (
     <aside
       ref={sidebarRef}
@@ -467,12 +304,13 @@ export function ProjectSidebar({
     >
       <ProjectSidebarChrome
         mainView={mainView}
+        runsDashboardOpen={runsDashboardOpen}
         unreadInboxCount={unreadInboxCount}
-        pendingApprovalCount={pendingApprovalCount}
         hasProjects={hasProjects}
         workflowSearchQuery={workflowSearchQuery}
         showSearch={showSidebarSearch}
         onSearchChange={setWorkflowSearchQuery}
+        onOpenThread={() => setMainView("thread")}
         onOpenCreate={() => handleOpenWorkflowCreate()}
         onOpenStartingPoints={() => {
           if (mainView === "workflow_create") {
@@ -485,8 +323,10 @@ export function ProjectSidebar({
           }
           setMainView("templates")
         }}
+        onOpenArtifacts={() => setMainView("artifacts")}
         onOpenSkills={() => setMainView("skills")}
         onOpenInbox={() => setMainView("inbox")}
+        onOpenRunsDashboard={() => setMultiRunDashboardOpen(true)}
         onAddProject={() => { void addProject() }}
         onToggleVisibility={onToggleVisibility}
         showVisibilityToggle={showVisibilityToggle}
@@ -505,8 +345,8 @@ export function ProjectSidebar({
                 <FolderOpen size={17} />
               </div>
               <div className="space-y-1">
-                <h2 className="text-body-sm font-medium text-foreground">Open a project</h2>
-                <p className="text-body-sm text-muted-foreground">Add a project to start real work here.</p>
+                <h2 className="text-sidebar-item font-medium text-foreground">Project required</h2>
+                <p className="text-sidebar-item text-muted-foreground">{projectRequired.blockerStatement}</p>
                 <p className="text-sidebar-meta text-muted-foreground">No custom skills needed to start.</p>
               </div>
               <Button
@@ -516,7 +356,7 @@ export function ProjectSidebar({
                 data-sidebar-item="true"
                 onClick={() => void addProject()}
               >
-                Open project
+                {projectRequired.primaryActionLabel}
               </Button>
             </div>
           </section>
@@ -582,7 +422,6 @@ export function ProjectSidebar({
                       type="button"
                       data-sidebar-item="true"
                       draggable={projects.length > 1 && !hasWorkflowSearchQuery}
-                      aria-grabbed={projects.length > 1 && !hasWorkflowSearchQuery ? isDraggingProject : undefined}
                       className={cn(
                         "sidebar-project-row ui-pressable text-left text-sidebar-label",
                         projects.length > 1 && !hasWorkflowSearchQuery && "cursor-grab active:cursor-grabbing",
@@ -690,7 +529,7 @@ export function ProjectSidebar({
             {visibleGlobalWorkflows.length > 0 ? (
               <div className="mt-3 px-1.5">
                 <div className="px-1.5 pb-1 section-kicker text-muted-foreground">Global flows</div>
-                <div className="space-y-0.5 sidebar-list-group">
+                <div role="list" aria-label="Global flows" className="mt-0.5 ml-7 space-y-px sidebar-list-group">
                   {visibleGlobalWorkflows.map((workflow) => {
                     const isSelected = selectedWorkflowPath === workflow.path
                     const latestRun = latestRunsByWorkflow.get(workflow.path) || null
@@ -761,6 +600,8 @@ export function ProjectSidebar({
         selectedWorkflowPath={selectedWorkflowPath}
         workflowDirty={workflowDirty}
         commitDeleteWorkflow={commitDeleteWorkflow}
+        selectedProject={selectedProject}
+        copyWorkflowToProject={copyWorkflowToProject}
         pendingRemoveProject={pendingRemoveProject}
         setPendingRemoveProject={setPendingRemoveProject}
         removingSelectedDirtyProject={removingSelectedDirtyProject}
@@ -771,7 +612,7 @@ export function ProjectSidebar({
       />
 
       {/* Settings */}
-      <div className="px-1.5 pb-1.5">
+      <div className="border-t border-hairline px-1.5 pt-1.5 pb-1.5">
         <SidebarNavItem
           icon={Settings}
           label="Settings"

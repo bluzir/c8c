@@ -19,6 +19,7 @@ import { FactoryOperationsView } from "@/components/factory/FactoryOperationsVie
 import { GuidedPath } from "@/components/factory/GuidedPath"
 import { useFactoryData } from "@/components/factory/useFactoryData"
 import { useFactoryResources } from "@/components/factory/useFactoryResources"
+import { useFactoryWorkflowActions } from "@/components/factory/useFactoryWorkflowActions"
 import {
   buildBlueprintDraft,
   buildFactoryIdFromLabel,
@@ -68,7 +69,6 @@ import {
   workflowsAtom,
 } from "@/lib/store"
 import { workflowExecutionStatesAtom, pastRunsAtom, selectedPastRunAtom } from "@/features/execution"
-import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
 import { formatResultModeLabel } from "@/lib/result-mode-factory"
 import { buildRunProgressSummary, formatElapsedTime } from "@/lib/run-progress"
 import {
@@ -78,21 +78,15 @@ import {
   deriveTemplateJourneyStageLabel,
   deriveTemplatePackStagePath,
   formatArtifactContractLabel,
-  selectArtifactsForTemplateContracts,
 } from "@/lib/workflow-entry"
-import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { isRunInFlight, toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import type {
   ArtifactRecord,
   FactoryPlannedCase,
-  HumanTaskSummary,
   ProjectFactoryDefinition,
   ProjectFactoryBlueprint,
   ProjectFactoryState,
-  RunResult,
-  WorkflowTemplate,
 } from "@shared/types"
-import { taskSelectionKey, toContinuationRun } from "@/components/notifications/task-ui"
 
 export function FactoryPage() {
   const [selectedProject] = useAtom(selectedProjectAtom)
@@ -140,7 +134,6 @@ export function FactoryPage() {
   const [editingFactoryBlueprint, setEditingFactoryBlueprint] = useState(false)
   const [blueprintDraft, setBlueprintDraft] = useState<FactoryBlueprintDraft>(createEmptyBlueprintDraft())
   const [spawningCases, setSpawningCases] = useState(false)
-  const [launchingTemplateId, setLaunchingTemplateId] = useState<string | null>(null)
   const [draftFactoryId, setDraftFactoryId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"operations" | "setup">("operations")
   const [selectedFactoryId, setSelectedFactoryId] = useAtom(selectedFactoryIdAtom)
@@ -202,66 +195,6 @@ export function FactoryPage() {
   const focusCase = useCallback((caseId: string) => {
     setSelectedCaseId(caseId)
   }, [setSelectedCaseId])
-
-  const openWorkflowInThread = useCallback(async (
-    workflowPath: string,
-    options?: {
-      preserveInboxTask?: boolean
-      pastRun?: RunResult | null
-    },
-  ) => {
-    const workflow = await window.api.loadWorkflow(workflowPath)
-    setSelectedWorkflowPath(workflowPath)
-    setWorkflow(workflow)
-    setWorkflowSavedSnapshot(workflowSnapshot(workflow))
-    if (!options?.preserveInboxTask) {
-      setSelectedInboxTaskKey(null)
-    }
-    setSelectedPastRun(options?.pastRun ?? null)
-    setMainView("thread")
-    return workflow
-  }, [
-    setMainView,
-    setSelectedInboxTaskKey,
-    setSelectedPastRun,
-    setSelectedWorkflowPath,
-    setWorkflow,
-    setWorkflowSavedSnapshot,
-  ])
-
-  const openInboxTask = useCallback(async (task: HumanTaskSummary, caseId?: string) => {
-    if (caseId) {
-      setSelectedCaseId(caseId)
-    }
-
-    if (task.workflowPath) {
-      if (task.workflowPath !== selectedWorkflowPath && !(await confirmDiscard("open blocked work", workflowDirty))) {
-        return
-      }
-      try {
-        setSelectedInboxTaskKey(taskSelectionKey(task))
-        await openWorkflowInThread(task.workflowPath, {
-          preserveInboxTask: true,
-          pastRun: toContinuationRun(task),
-        })
-        return
-      } catch (error) {
-        toastErrorFromCatch("Could not open blocked work", error)
-        return
-      }
-    }
-
-    setSelectedInboxTaskKey(taskSelectionKey(task))
-    setMainView("inbox")
-  }, [
-    confirmDiscard,
-    openWorkflowInThread,
-    selectedWorkflowPath,
-    setMainView,
-    setSelectedCaseId,
-    setSelectedInboxTaskKey,
-    workflowDirty,
-  ])
   useEffect(() => {
     if (editingFactoryBlueprint) return
     setBlueprintDraft(buildBlueprintDraft(selectedFactoryDefinition, selectedPackRecipes))
@@ -394,167 +327,37 @@ export function FactoryPage() {
     spawnCandidateArtifact,
     spawnTemplateCandidate,
   ])
-
-  const launchPlannedCase = useCallback(async (plannedCase: FactoryPlannedCase) => {
-    if (!selectedProject || launchingTemplateId) return
-    const template = (plannedCase.templateId && templateById.get(plannedCase.templateId)) || spawnTemplateCandidate
-    if (!template) {
-      toastError("No next library flow is linked to this planned track yet")
-      return
-    }
-
-    const sourceArtifacts = plannedCase.sourceArtifactId
-      ? scopedArtifacts.filter((artifact) => artifact.id === plannedCase.sourceArtifactId)
-      : scopedArtifacts
-
-    setLaunchingTemplateId(template.id)
-    try {
-      const launch = await prepareTemplateStageLaunch({
-        projectPath: selectedProject,
-        template,
-        webSearchBackend,
-        artifacts: selectArtifactsForTemplateContracts(template.contractIn, sourceArtifacts),
-        factory: selectedFactoryDefinition
-          ? {
-            id: selectedFactoryDefinition.id,
-            label: selectedFactoryDefinition.label,
-          }
-          : null,
-        caseOverride: {
-          caseId: plannedCase.id,
-          caseLabel: plannedCase.title,
-        },
-        inputSeedPrefix: plannedCase.prompt || plannedCase.summary || plannedCase.title,
-      })
-
-      setWorkflows(launch.refreshedWorkflows)
-      setSelectedWorkflowPath(launch.filePath)
-      setWorkflow(launch.loadedWorkflow)
-      setWorkflowSavedSnapshot(launch.savedSnapshot)
-      setInputValue(launch.inputSeed)
-      setWorkflowEntryState(launch.entryState)
-      setWorkflowTemplateContextForKey({
-        key: toWorkflowExecutionKey(launch.filePath),
-        context: launch.templateContext,
-      })
-      setMainView("thread")
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          setInputAttachments(launch.artifactAttachments)
-        })
-      })
-      toast.success(`Opened ${template.name}`)
-    } catch (error) {
-      toastErrorFromCatch("Could not open the planned track", error)
-    } finally {
-      setLaunchingTemplateId(null)
-    }
-  }, [
+  const {
     launchingTemplateId,
-    scopedArtifacts,
-    selectedFactoryDefinition,
+    openInboxTask,
+    launchPlannedCase,
+    openWorkflow,
+    openArtifact,
+    openReport,
+    launchTemplate,
+  } = useFactoryWorkflowActions({
     selectedProject,
-    setInputAttachments,
-    setInputValue,
+    selectedWorkflowPath,
+    workflowDirty,
+    webSearchBackend,
+    selectedFactoryDefinition,
+    spawnTemplateCandidate,
+    scopedArtifacts,
+    templateById,
+    confirmDiscard,
     setMainView,
     setSelectedWorkflowPath,
     setWorkflow,
-    setWorkflowEntryState,
     setWorkflowSavedSnapshot,
-    setWorkflowTemplateContextForKey,
     setWorkflows,
-    spawnTemplateCandidate,
-    templateById,
-    webSearchBackend,
-  ])
-
-  const openWorkflow = useCallback(async (workflowPath: string | null) => {
-    if (!workflowPath) return
-    if (workflowPath === selectedWorkflowPath) {
-      setSelectedInboxTaskKey(null)
-      setSelectedPastRun(null)
-      setMainView("thread")
-      return
-    }
-    if (!(await confirmDiscard("open another flow", workflowDirty))) {
-      return
-    }
-
-    try {
-      await openWorkflowInThread(workflowPath)
-    } catch (error) {
-      toastErrorFromCatch("Could not open flow", error)
-    }
-  }, [
-    confirmDiscard,
-    openWorkflowInThread,
-    selectedWorkflowPath,
-    setMainView,
-    setSelectedInboxTaskKey,
+    setWorkflowEntryState,
+    setInputValue,
+    setInputAttachments,
     setSelectedPastRun,
-    workflowDirty,
-  ])
-
-  const openArtifact = async (artifact: ArtifactRecord) => {
-    const openError = await window.api.openPath(artifact.contentPath)
-    if (!openError) return
-    toastError("Could not open result", {
-      description: openError,
-    })
-  }
-
-  const openReport = async (reportPath: string | null) => {
-    if (!reportPath) return
-    const openError = await window.api.openReport(reportPath)
-    if (!openError) return
-    toastError("Could not open report", {
-      description: String(openError),
-    })
-  }
-
-  const launchTemplate = async (template: WorkflowTemplate, sourceArtifacts = scopedArtifacts) => {
-    if (!selectedProject || launchingTemplateId) return
-
-    setLaunchingTemplateId(template.id)
-    try {
-      const launch = await prepareTemplateStageLaunch({
-        projectPath: selectedProject,
-        template,
-        webSearchBackend,
-        artifacts: selectArtifactsForTemplateContracts(template.contractIn, sourceArtifacts),
-        factory: selectedFactoryDefinition
-          ? {
-            id: selectedFactoryDefinition.id,
-            label: selectedFactoryDefinition.label,
-          }
-          : null,
-      })
-
-      setWorkflows(launch.refreshedWorkflows)
-      setSelectedWorkflowPath(launch.filePath)
-      setWorkflow(launch.loadedWorkflow)
-      setWorkflowSavedSnapshot(launch.savedSnapshot)
-      setSelectedPastRun(null)
-      setSelectedInboxTaskKey(null)
-      setInputValue(launch.inputSeed)
-      setWorkflowEntryState(launch.entryState)
-      setWorkflowTemplateContextForKey({
-        key: toWorkflowExecutionKey(launch.filePath),
-        context: launch.templateContext,
-      })
-      setMainView("thread")
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          setInputAttachments(launch.artifactAttachments)
-        })
-      })
-      toast.success(`Opened ${template.name}`)
-    } catch (error) {
-      toastErrorFromCatch("Could not open the selected step", error)
-    } finally {
-      setLaunchingTemplateId(null)
-    }
-  }
+    setSelectedInboxTaskKey,
+    setSelectedCaseId,
+    setWorkflowTemplateContextForKey,
+  })
 
   if (!selectedProject) {
     return (
@@ -562,7 +365,7 @@ export function FactoryPage() {
         <PageShell>
           <PageHeader
             title="Lab"
-            subtitle="Choose a project in the sidebar to see live work, approvals, reusable results, and next steps."
+            subtitle="Choose a project in the sidebar to see live work, approvals, reusable artifacts, and next steps."
             actions={(
               <Button variant="outline" size="sm" onClick={() => setMainView("thread")}>
                 <FolderOpen size={14} />
