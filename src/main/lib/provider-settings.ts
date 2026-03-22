@@ -39,12 +39,24 @@ interface ElectronSafeStorageLike {
   decryptString(value: Buffer): string
 }
 
-const require = createRequire(import.meta.url)
-
-function getElectronBindings(): {
+interface ElectronBindingsLike {
   app?: ElectronAppLike
   safeStorage?: ElectronSafeStorageLike
-} {
+}
+
+const PROVIDER_SETTINGS_DIR_MODE = 0o700
+const PROVIDER_SETTINGS_FILE_MODE = 0o600
+const SECURE_STORAGE_UNAVAILABLE_MESSAGE =
+  "Secure credential storage is unavailable on this system. Clear the saved key and use CODEX_API_KEY in your environment instead."
+
+const require = createRequire(import.meta.url)
+let electronBindingsOverride: ElectronBindingsLike | null = null
+
+function getElectronBindings(): ElectronBindingsLike {
+  if (electronBindingsOverride) {
+    return electronBindingsOverride
+  }
+
   try {
     const electron = require("electron") as {
       app?: ElectronAppLike
@@ -84,7 +96,7 @@ function normalizeSafetyProfile(value: unknown): SafetyProfile | undefined {
     : undefined
 }
 
-function encodeSecret(secret: string): { encrypted?: string; plain?: string } {
+function encodeSecret(secret: string): { encrypted: string } {
   try {
     const storage = getElectronBindings().safeStorage
     if (storage?.isEncryptionAvailable()) {
@@ -93,10 +105,10 @@ function encodeSecret(secret: string): { encrypted?: string; plain?: string } {
       }
     }
   } catch {
-    // Fall back to plaintext storage outside Electron or before safeStorage is ready.
+    // Surface a clear error instead of silently degrading to plaintext storage.
   }
 
-  return { plain: secret }
+  throw new Error(SECURE_STORAGE_UNAVAILABLE_MESSAGE)
 }
 
 function decodeSecret(payload: PersistedProviderSettings): string | undefined {
@@ -147,7 +159,6 @@ async function loadProviderState(): Promise<ProviderSettingsState> {
 
 async function saveProviderState(state: ProviderSettingsState): Promise<void> {
   const path = providerSettingsPath()
-  await mkdir(dirname(path), { recursive: true })
   const encoded = state.codexApiKey ? encodeSecret(state.codexApiKey) : {}
   const payload: PersistedProviderSettings = {
     defaultProvider: state.settings.defaultProvider,
@@ -156,9 +167,9 @@ async function saveProviderState(state: ProviderSettingsState): Promise<void> {
       codexProvider: state.settings.features.codexProvider,
     },
     ...(encoded.encrypted ? { codexApiKeyEncrypted: encoded.encrypted } : {}),
-    ...(encoded.plain ? { codexApiKey: encoded.plain } : {}),
   }
-  await writeFileAtomic(path, JSON.stringify(payload, null, 2))
+  await mkdir(dirname(path), { recursive: true, mode: PROVIDER_SETTINGS_DIR_MODE })
+  await writeFileAtomic(path, JSON.stringify(payload, null, 2), { mode: PROVIDER_SETTINGS_FILE_MODE })
 }
 
 async function mutateProviderState<T>(
@@ -215,4 +226,8 @@ export async function clearCodexApiKey(): Promise<boolean> {
     state.codexApiKey = undefined
     return hadValue
   })
+}
+
+export function __setProviderSettingsTestBindings(bindings: ElectronBindingsLike | null): void {
+  electronBindingsOverride = bindings
 }

@@ -20,3 +20,11 @@ export async function runSerialTask<T>(key: string, task: () => Promise<T>): Pro
     }
   }
 }
+
+export function __resetSerialTaskQueuesForTests(): void {
+  serialQueues.clear()
+}
+
+export function __getSerialTaskQueueSizeForTests(): number {
+  return serialQueues.size
+}

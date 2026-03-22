@@ -16,12 +16,14 @@ async function assertProjectPath(projectPath: string): Promise<string> {
   return resolvedPath
 }
 
-function gitLsFiles(projectPath: string, query?: string): Promise<string[]> {
+export async function gitLsFiles(projectPath: string, query?: string): Promise<string[]> {
+  const safePath = await assertProjectPath(projectPath)
+
   return new Promise((resolve, reject) => {
     execFile(
       "git",
       ["ls-files", "--cached", "--others", "--exclude-standard"],
-      { cwd: projectPath, maxBuffer: 4 * 1024 * 1024, timeout: 10_000 },
+      { cwd: safePath, maxBuffer: 4 * 1024 * 1024, timeout: 10_000 },
       (error, stdout) => {
         if (error) {
           reject(error)

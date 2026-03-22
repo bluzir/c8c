@@ -8,10 +8,17 @@ function makeTempFilePath(filePath: string): string {
   )
 }
 
-export async function writeFileAtomic(filePath: string, content: string): Promise<void> {
+export async function writeFileAtomic(
+  filePath: string,
+  content: string,
+  options?: { mode?: number },
+): Promise<void> {
   const tempFilePath = makeTempFilePath(filePath)
   try {
-    await writeFile(tempFilePath, content, "utf-8")
+    await writeFile(tempFilePath, content, {
+      encoding: "utf-8",
+      mode: options?.mode,
+    })
     await rename(tempFilePath, filePath)
   } finally {
     await unlink(tempFilePath).catch(() => undefined)

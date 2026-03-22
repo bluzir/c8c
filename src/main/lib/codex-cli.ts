@@ -11,6 +11,55 @@ let codexExecSupportPromise: Promise<boolean> | null = null
 let codexShellEnvPromise: Promise<Record<string, string>> | null = null
 let codexExecutablePromise: Promise<string | null> | null = null
 
+const CODEX_ENV_PASSTHROUGH_KEYS = [
+  "HOME",
+  "USER",
+  "LOGNAME",
+  "USERPROFILE",
+  "SHELL",
+  "TMPDIR",
+  "TMP",
+  "TEMP",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TERM",
+  "TERM_PROGRAM",
+  "TERM_PROGRAM_VERSION",
+  "COLORTERM",
+  "NO_COLOR",
+  "FORCE_COLOR",
+  "CI",
+  "XDG_CONFIG_HOME",
+  "XDG_CACHE_HOME",
+  "XDG_STATE_HOME",
+  "XDG_DATA_HOME",
+  "XDG_RUNTIME_DIR",
+  "DISPLAY",
+  "WAYLAND_DISPLAY",
+  "XAUTHORITY",
+  "DBUS_SESSION_BUS_ADDRESS",
+  "SSH_AUTH_SOCK",
+  "SSH_AGENT_PID",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+  "NODE_EXTRA_CA_CERTS",
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "ALL_PROXY",
+  "NO_PROXY",
+  "http_proxy",
+  "https_proxy",
+  "all_proxy",
+  "no_proxy",
+  "SystemRoot",
+  "SYSTEMROOT",
+  "ComSpec",
+  "COMSPEC",
+  "APPDATA",
+  "LOCALAPPDATA",
+] as const
+
 function getProcessResourcesPath(): string | undefined {
   return (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
 }
@@ -73,14 +122,50 @@ export function buildCodexPath(existingPath: string | undefined): string {
   return [...new Set(merged.filter(Boolean))].join(delimiter)
 }
 
-function collectStringEnv(source: NodeJS.ProcessEnv | Record<string, string | undefined>): Record<string, string> {
+export function collectAllowedCodexEnv(
+  source: NodeJS.ProcessEnv | Record<string, string | undefined>,
+  options?: { includePath?: boolean },
+): Record<string, string> {
   const env: Record<string, string> = {}
-  for (const [key, value] of Object.entries(source)) {
-    if (typeof value === "string") {
+
+  for (const key of CODEX_ENV_PASSTHROUGH_KEYS) {
+    const value = source[key]
+    if (typeof value === "string" && value) {
       env[key] = value
     }
   }
+
+  if (options?.includePath) {
+    const pathValue = source.PATH
+    if (typeof pathValue === "string" && pathValue) {
+      env.PATH = pathValue
+    }
+  }
+
   return env
+}
+
+function collectExplicitCodexOverrides(
+  source: Record<string, string> | undefined,
+): Record<string, string> {
+  const env = collectAllowedCodexEnv(source || {})
+
+  if (source?.CODEX_API_KEY) {
+    env.CODEX_API_KEY = source.CODEX_API_KEY
+  }
+
+  if (source?.CODEX_PATH) {
+    env.CODEX_PATH = source.CODEX_PATH
+  }
+
+  return env
+}
+
+function buildCodexLookupEnv(source: NodeJS.ProcessEnv | Record<string, string | undefined>): NodeJS.ProcessEnv {
+  return {
+    ...collectAllowedCodexEnv(source),
+    PATH: buildCodexPath(source.PATH),
+  }
 }
 
 function parseNullDelimitedEnv(raw: string): Record<string, string> {
@@ -103,7 +188,7 @@ export async function getCodexShellEnv(): Promise<Record<string, string>> {
 
   codexShellEnvPromise = (async () => {
     if (process.platform === "win32") {
-      return collectStringEnv(process.env)
+      return collectAllowedCodexEnv(process.env, { includePath: true })
     }
 
     const shell = process.env.SHELL || "/bin/zsh"
@@ -112,13 +197,10 @@ export async function getCodexShellEnv(): Promise<Record<string, string>> {
       const { stdout } = await execFile(shell, ["-lc", "env -0"], {
         timeout: 5_000,
         maxBuffer: 1024 * 1024 * 8,
-        env: {
-          ...process.env,
-          PATH: buildCodexPath(process.env.PATH),
-        },
+        env: buildCodexLookupEnv(process.env),
       })
 
-      const parsed = parseNullDelimitedEnv(stdout)
+      const parsed = collectAllowedCodexEnv(parseNullDelimitedEnv(stdout), { includePath: true })
       if (Object.keys(parsed).length > 0) {
         return parsed
       }
@@ -126,33 +208,56 @@ export async function getCodexShellEnv(): Promise<Record<string, string>> {
       // Fall back to the current process environment.
     }
 
-    return collectStringEnv(process.env)
+    return collectAllowedCodexEnv(process.env, { includePath: true })
   })()
 
   return codexShellEnvPromise
 }
 
-export async function buildCodexEnv(
-  extraEnv?: Record<string, string>,
-): Promise<NodeJS.ProcessEnv> {
-  const bundledCodexPath = findBundledCodexExecutable()
+export function composeCodexEnv({
+  processEnv,
+  shellEnv,
+  extraEnv,
+  bundledCodexPath,
+  codexApiKey,
+}: {
+  processEnv: NodeJS.ProcessEnv | Record<string, string | undefined>
+  shellEnv: Record<string, string>
+  extraEnv?: Record<string, string>
+  bundledCodexPath?: string | null
+  codexApiKey?: string
+}): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
-    ...collectStringEnv(process.env),
-    ...(await getCodexShellEnv()),
-    PATH: buildCodexPath(process.env.PATH),
-    ...extraEnv,
+    ...collectAllowedCodexEnv(processEnv),
+    ...collectAllowedCodexEnv(shellEnv),
+    ...collectExplicitCodexOverrides(extraEnv),
+    PATH: buildCodexPath(shellEnv.PATH || processEnv.PATH),
   }
 
   if (bundledCodexPath && !env.CODEX_PATH) {
     env.CODEX_PATH = bundledCodexPath
   }
 
-  const codexApiKey = await getCodexApiKey()
   if (codexApiKey && !env.CODEX_API_KEY) {
     env.CODEX_API_KEY = codexApiKey
   }
 
   return env
+}
+
+export async function buildCodexEnv(
+  extraEnv?: Record<string, string>,
+): Promise<NodeJS.ProcessEnv> {
+  const bundledCodexPath = findBundledCodexExecutable()
+  const shellEnv = await getCodexShellEnv()
+  const codexApiKey = await getCodexApiKey()
+  return composeCodexEnv({
+    processEnv: process.env,
+    shellEnv,
+    extraEnv,
+    bundledCodexPath,
+    codexApiKey,
+  })
 }
 
 export function findCodexExecutable(): string | null {
@@ -195,7 +300,7 @@ async function resolveCodexExecutable(): Promise<string | null> {
       try {
         const { stdout } = await execFile("which", ["codex"], {
           encoding: "utf8",
-          env: { ...process.env, PATH: buildCodexPath(process.env.PATH) },
+          env: buildCodexLookupEnv(process.env),
         })
         return stdout.trim() || null
       } catch {

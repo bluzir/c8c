@@ -4,6 +4,22 @@ import { resolve } from "path"
 export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "packages/**/*.test.ts"],
+    testTimeout: 30_000,
+    hookTimeout: 15_000,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      thresholds: {
+        lines: 60,
+        branches: 55,
+        functions: 65,
+        statements: 60,
+      },
+      exclude: [
+        "**/*.test.ts",
+        "src/renderer/components/**",
+      ],
+    },
   },
   resolve: {
     alias: [

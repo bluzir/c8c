@@ -10,6 +10,15 @@ import { logInfo, logWarn } from "./structured-log"
 const execFile = promisify(execFileCb)
 const RUN_RESULT_FILE = "run-result.json"
 
+interface RunRecoveryBindings {
+  execFile: typeof execFile
+  kill: (pid: number, signal?: NodeJS.Signals | 0) => void
+  sleep: (ms: number) => Promise<void>
+  now: () => number
+}
+
+let runRecoveryBindingsOverride: Partial<RunRecoveryBindings> | null = null
+
 interface RunResultLike {
   status?: string
   completedAt?: number
@@ -43,9 +52,21 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function getRunRecoveryBindings(): RunRecoveryBindings {
+  return {
+    execFile,
+    kill: (pid: number, signal?: NodeJS.Signals | 0) => {
+      process.kill(pid, signal)
+    },
+    sleep,
+    now: () => Date.now(),
+    ...(runRecoveryBindingsOverride || {}),
+  }
+}
+
 function isProcessAlive(pid: number): boolean {
   try {
-    process.kill(pid, 0)
+    getRunRecoveryBindings().kill(pid, 0)
     return true
   } catch (error) {
     if (isProcessMissingError(error)) return false
@@ -78,7 +99,11 @@ async function writeRunResult(workspace: string, payload: RunResultLike): Promis
 async function looksLikeClaudeProcess(pid: number): Promise<boolean> {
   if (process.platform === "win32") return true
   try {
-    const { stdout } = await execFile("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf-8" })
+    const { stdout } = await getRunRecoveryBindings().execFile(
+      "ps",
+      ["-p", String(pid), "-o", "command="],
+      { encoding: "utf-8" },
+    )
     const command = String(stdout || "").trim().toLowerCase()
     if (!command) return false
     return command.includes("claude")
@@ -90,7 +115,7 @@ async function looksLikeClaudeProcess(pid: number): Promise<boolean> {
 
 async function terminateOrphanPid(pid: number): Promise<boolean> {
   try {
-    process.kill(pid, "SIGTERM")
+    getRunRecoveryBindings().kill(pid, "SIGTERM")
   } catch (error) {
     if (isProcessMissingError(error)) return true
     if (isPermissionError(error)) return false
@@ -98,18 +123,18 @@ async function terminateOrphanPid(pid: number): Promise<boolean> {
   }
 
   for (let i = 0; i < 6; i++) {
-    await sleep(150)
+    await getRunRecoveryBindings().sleep(150)
     if (!isProcessAlive(pid)) return true
   }
 
   try {
-    process.kill(pid, "SIGKILL")
+    getRunRecoveryBindings().kill(pid, "SIGKILL")
   } catch (error) {
     if (isProcessMissingError(error)) return true
     return false
   }
 
-  await sleep(150)
+  await getRunRecoveryBindings().sleep(150)
   return !isProcessAlive(pid)
 }
 
@@ -129,7 +154,7 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
     const pid = processEntry.pid
     if (!Number.isFinite(pid) || pid <= 0) {
       processEntry.active = false
-      processEntry.exitedAt = processEntry.exitedAt || Date.now()
+      processEntry.exitedAt = processEntry.exitedAt || getRunRecoveryBindings().now()
       processEntry.signal = processEntry.signal || "invalid_pid"
       changed = true
       continue
@@ -137,7 +162,7 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
 
     if (!isProcessAlive(pid)) {
       processEntry.active = false
-      processEntry.exitedAt = processEntry.exitedAt || Date.now()
+      processEntry.exitedAt = processEntry.exitedAt || getRunRecoveryBindings().now()
       processEntry.signal = processEntry.signal || "not_found"
       changed = true
       missing += 1
@@ -154,7 +179,7 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
     const terminated = await terminateOrphanPid(pid)
     if (terminated) {
       processEntry.active = false
-      processEntry.exitedAt = Date.now()
+      processEntry.exitedAt = getRunRecoveryBindings().now()
       processEntry.signal = "killed_by_recovery"
       processEntry.terminatedByRecovery = true
       changed = true
@@ -171,7 +196,7 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
   }
 
   if (changed) {
-    manifest.updatedAt = Date.now()
+    manifest.updatedAt = getRunRecoveryBindings().now()
     await writeFileAtomic(runPidManifestPath(workspace), JSON.stringify(manifest, null, 2))
   }
 
@@ -199,7 +224,7 @@ export async function recoverRuntimeState(roots?: string[]): Promise<RuntimeReco
       if (runResult?.status === "running") {
         runResult.status = "interrupted"
         if (!runResult.completedAt || runResult.completedAt <= 0) {
-          runResult.completedAt = Date.now()
+          runResult.completedAt = getRunRecoveryBindings().now()
         }
         await writeRunResult(workspace, runResult)
         summary.staleRunsUpdated += 1
@@ -222,4 +247,8 @@ export async function recoverRuntimeState(roots?: string[]): Promise<RuntimeReco
 
   logInfo("run-recovery", "startup_recovery_summary", { ...summary })
   return summary
+}
+
+export function __setRunRecoveryTestBindings(bindings: Partial<RunRecoveryBindings> | null): void {
+  runRecoveryBindingsOverride = bindings
 }
