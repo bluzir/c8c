@@ -62,7 +62,10 @@ async function assertWorkflowFilePath(filePath: string): Promise<string> {
 }
 
 function isOutsideAllowedWorkflowRootsError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes("outside allowed directories")
+  return (
+    error instanceof Error &&
+    error.message.includes("outside allowed directories")
+  )
 }
 
 function formatAllowedWorkflowRoots(roots: string[]): string {
@@ -81,9 +84,9 @@ async function withWorkflowRootGuidance<T>(
     }
     const roots = await allowedWorkflowRoots()
     throw new Error(
-      `${actionLabel} is limited to registered flow folders.\n\n`
-      + `Allowed flow folders:\n${formatAllowedWorkflowRoots(roots)}\n\n`
-      + "Move the flow file into one of these folders, or add/open the project first.",
+      `${actionLabel} is limited to registered flow folders.\n\n` +
+        `Allowed flow folders:\n${formatAllowedWorkflowRoots(roots)}\n\n` +
+        "Move the flow file into one of these folders, or add/open the project first.",
     )
   }
 }
@@ -106,7 +109,9 @@ async function saveWorkflowDefinition(
   return filePath
 }
 
-async function assertRegisteredProjectPath(projectPath: string): Promise<string> {
+async function assertRegisteredProjectPath(
+  projectPath: string,
+): Promise<string> {
   return assertRegisteredProjectRoot(projectPath)
 }
 
@@ -245,7 +250,7 @@ export function registerWorkflowsHandlers() {
   ipcMain.handle(
     "workflows:rename",
     async (_e, filePath: string, nextTitle: string) => {
-      const { rename, unlink } = await import("node:fs/promises")
+      const { unlink } = await import("node:fs/promises")
       const safeFilePath = await assertWorkflowFilePath(filePath)
       const dir = dirname(safeFilePath)
       const extension = extname(safeFilePath).toLowerCase()
@@ -260,20 +265,20 @@ export function registerWorkflowsHandlers() {
         `${toWorkflowFileStem(normalizedTitle)}.chain`,
       )
       await assertWorkflowFilePath(destinationPath)
-      if (destinationPath !== safeFilePath && (await pathExists(destinationPath))) {
+      if (
+        destinationPath !== safeFilePath &&
+        (await pathExists(destinationPath))
+      ) {
         throw new Error(`Flow "${normalizedTitle}" already exists`)
       }
 
-      if (extension === ".chain") {
-        if (destinationPath !== safeFilePath) {
-          await rename(safeFilePath, destinationPath)
-          await moveChatHistory(safeFilePath, destinationPath)
-        }
-        const workflow = await loadChain(destinationPath)
-        await saveChain(destinationPath, { ...workflow, name: normalizedTitle })
-      } else {
-        const workflow = await loadChainYaml(safeFilePath)
-        await saveChain(destinationPath, { ...workflow, name: normalizedTitle })
+      const workflow =
+        extension === ".chain"
+          ? await loadChain(safeFilePath)
+          : await loadChainYaml(safeFilePath)
+      await saveChain(destinationPath, { ...workflow, name: normalizedTitle })
+
+      if (destinationPath !== safeFilePath) {
         await moveChatHistory(safeFilePath, destinationPath)
         await unlink(safeFilePath)
       }
@@ -285,7 +290,10 @@ export function registerWorkflowsHandlers() {
   ipcMain.handle("workflows:duplicate", async (_e, filePath: string) => {
     const safeFilePath = await assertWorkflowFilePath(filePath)
     const dir = dirname(safeFilePath)
-    const extension = extname(safeFilePath).toLowerCase() as ".chain" | ".yaml" | ".yml"
+    const extension = extname(safeFilePath).toLowerCase() as
+      | ".chain"
+      | ".yaml"
+      | ".yml"
 
     if (extension === ".chain") {
       const workflow = await loadChain(safeFilePath)

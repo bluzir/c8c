@@ -12,16 +12,16 @@ North star: the user describes point B, c8c picks the best first step, then reve
 
 Canonical product decisions live in `docs/conventions/R2-CANON.md`. When writing or modifying user-facing strings, use these terms:
 
-| User sees | Code uses | Never in UI |
-|-----------|-----------|-------------|
-| **flow** | workflow | workflow, process, chain |
-| **step** | stage, phase | stage, phase |
-| **starting point** | template, entry route | template |
-| **skill** | skill ref | capability |
-| **check** | gate (auto-pass/auto-return) | gate |
-| **approval** | gate (human decision) | gate |
-| **flow rules** | policy | policy, autonomy, trust score |
-| typed result ("Review findings") | artifact | artifact |
+| User sees                        | Code uses                    | Never in UI                   |
+| -------------------------------- | ---------------------------- | ----------------------------- |
+| **flow**                         | workflow                     | workflow, process, chain      |
+| **step**                         | stage, phase                 | stage, phase                  |
+| **starting point**               | template, entry route        | template                      |
+| **skill**                        | skill ref                    | capability                    |
+| **check**                        | gate (auto-pass/auto-return) | gate                          |
+| **approval**                     | gate (human decision)        | gate                          |
+| **flow rules**                   | policy                       | policy, autonomy, trust score |
+| typed result ("Review findings") | artifact                     | artifact                      |
 
 Internal code (variable names, types, file names) keeps existing vocabulary. Only user-facing strings (JSX text, placeholders, labels, tooltips, toasts, errors) must follow this table.
 
@@ -66,6 +66,8 @@ Thresholds: ≤3 bordered containers, ≤5 clickable elements, 0 duplicate signa
 ```bash
 npm run dev          # Start Electron with hot reload
 npm run build        # Build for production
+npm run lint         # Run ESLint
+npm run format       # Format the repo with Prettier
 npm run canon:check  # Check renderer copy against canon vocabulary
 npm run test         # Run all tests (vitest)
 npm run test:watch   # Run tests in watch mode
@@ -90,6 +92,7 @@ Workflows are directed graphs, not linear chains. Defined in `src/shared/types.t
 **3 edge types**: `default`, `pass`, `fail` — evaluator nodes branch on pass/fail
 
 Key configs per node type:
+
 - **Skill**: `skillRef`, `prompt`, `model` (sonnet|opus|haiku), `outputMode`, `maxTurns`, `allowedTools[]`
 - **Evaluator**: `criteria`, `threshold` (1-10), `maxRetries`, `retryFrom` node
 - **Splitter**: `strategy`, `maxBranches` — fans out into parallel branches at runtime
@@ -101,6 +104,7 @@ Runtime expands the base graph — splitter nodes create parallel branches track
 ### State Management
 
 Jotai atoms in `src/renderer/lib/store.ts`. Key patterns:
+
 - `currentWorkflowAtom` holds the full graph (nodes + edges)
 - `workflowDirtyAtom` is a computed atom comparing current state against `workflowSavedSnapshotAtom`
 - Persistent atoms (sidebar width, main view, chat panel width) survive across sessions
@@ -115,6 +119,7 @@ Flow editing surfaces via `viewModeAtom`: `"list"` (linear chain builder) and `"
 ### IPC Pattern
 
 Main ↔ Renderer communication via `window.api` (defined in preload). Two patterns:
+
 1. **Invoke**: `window.api.runChain()`, `window.api.saveWorkflow()` — request/response
 2. **Events**: `window.api.onWorkflowEvent()`, `window.api.onBatchEvent()` — returns unsubscribe function
 
@@ -125,6 +130,7 @@ Main ↔ Renderer communication via `window.api` (defined in preload). Two patte
 ### Runtime shell constraint
 
 Resume/continuation state renders as a **compact header inside the existing runtime shell**, not as a separate mode or landing page. Rules:
+
 - No full-screen explainers — the header sits above the work surface, not in place of it
 - No text prologues — structured elements (badges, label+value grids, action buttons), not paragraphs
 - Max visual weight: badges row + title + 3-column status grid + action row. No additional expandable sections, history panels, or detail cards without explicit approval
@@ -143,11 +149,11 @@ Resume/continuation state renders as a **compact header inside the existing runt
 
 Use these for sidebar elements — not generic `text-body-sm` or `ui-meta-text`:
 
-| Token | Size | Weight | Purpose |
-|-------|------|--------|---------|
-| `text-sidebar-item` | 13px, lh 1rem | 400 | Nav items, flow names |
-| `text-sidebar-label` | 11px, lh 1rem | 500 | Project folder group headers |
-| `text-sidebar-meta` | 10px, lh 0.875rem | 400 | Timestamps, helper text |
+| Token                | Size              | Weight | Purpose                      |
+| -------------------- | ----------------- | ------ | ---------------------------- |
+| `text-sidebar-item`  | 13px, lh 1rem     | 400    | Nav items, flow names        |
+| `text-sidebar-label` | 11px, lh 1rem     | 500    | Project folder group headers |
+| `text-sidebar-meta`  | 10px, lh 0.875rem | 400    | Timestamps, helper text      |
 
 Sidebar layout defaults to `256px` width with a supported resize range of `224px` to `384px`.
 Sidebar nav items should preserve regular-weight `text-sidebar-item`; do not inherit heavier button typography.

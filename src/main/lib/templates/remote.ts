@@ -1,22 +1,15 @@
 import { net } from "electron"
-import YAML from "yaml"
-import type { WorkflowTemplate, WorkflowTemplateStage } from "@shared/types"
+import type { WorkflowTemplate } from "@shared/types"
 import { parseTemplate } from "./parse"
 
 const HUB_BASE_URL = "https://c8c.app/hub/"
 const MAX_BODY_SIZE = 512 * 1024 // 512 KB
 const FETCH_TIMEOUT_MS = 10_000
 
-const VALID_STAGES: WorkflowTemplateStage[] = [
-  "research",
-  "strategy",
-  "content",
-  "code",
-  "outreach",
-  "operations",
-]
-
-async function fetchTemplateFromUrl(url: string, notFoundMessage: string): Promise<WorkflowTemplate> {
+async function fetchTemplateFromUrl(
+  url: string,
+  notFoundMessage: string,
+): Promise<WorkflowTemplate> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
@@ -44,38 +37,24 @@ async function fetchTemplateFromUrl(url: string, notFoundMessage: string): Promi
     throw new Error("Library flow file is too large")
   }
 
-  // Validate YAML structure before passing to parseTemplate
-  let parsed: Record<string, unknown>
   try {
-    parsed = YAML.parse(body) as Record<string, unknown>
+    return parseTemplate(body)
   } catch {
     throw new Error("Invalid library flow format")
   }
-
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error("Invalid library flow format")
-  }
-
-  const { id, name, version, nodes, edges, stage, emoji, headline, steps } = parsed
-  if (!id || !name || !version || !Array.isArray(nodes) || !Array.isArray(edges)) {
-    throw new Error("Invalid library flow format")
-  }
-
-  if (typeof stage !== "string" || !VALID_STAGES.includes(stage as WorkflowTemplateStage)) {
-    throw new Error("Invalid library flow format")
-  }
-
-  if (!emoji || !headline || !Array.isArray(steps) || steps.length === 0) {
-    throw new Error("Invalid library flow format")
-  }
-
-  return parseTemplate(body)
 }
 
-export async function fetchRemoteTemplate(templateId: string): Promise<WorkflowTemplate> {
-  return fetchTemplateFromUrl(`${HUB_BASE_URL}${templateId}.yaml`, "Library flow not found on hub")
+export async function fetchRemoteTemplate(
+  templateId: string,
+): Promise<WorkflowTemplate> {
+  return fetchTemplateFromUrl(
+    `${HUB_BASE_URL}${templateId}.yaml`,
+    "Library flow not found on hub",
+  )
 }
 
-export async function fetchRemoteTemplateByUrl(url: string): Promise<WorkflowTemplate> {
+export async function fetchRemoteTemplateByUrl(
+  url: string,
+): Promise<WorkflowTemplate> {
   return fetchTemplateFromUrl(url, "Library flow not found")
 }

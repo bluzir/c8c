@@ -5,26 +5,20 @@ import { normalizeWorkflowTitle } from "@shared/workflow-name"
 import { writeFileAtomic } from "./atomic-write"
 import { logWarn } from "./structured-log"
 
-function stripCanvasWorkflowFields(workflow: Workflow): Workflow {
-  const { canvasLayout: _canvasLayout, ...rest } = workflow as Workflow & {
-    canvasLayout?: unknown
-  }
-  return rest
-}
-
 export async function loadChain(filePath: string): Promise<Workflow> {
   const content = await readFile(filePath, "utf-8")
-  return stripCanvasWorkflowFields(JSON.parse(content) as Workflow)
+  return JSON.parse(content) as Workflow
 }
 
-export async function saveChain(filePath: string, workflow: Workflow): Promise<void> {
-  const content = JSON.stringify(stripCanvasWorkflowFields(workflow), null, 2)
+export async function saveChain(
+  filePath: string,
+  workflow: Workflow,
+): Promise<void> {
+  const content = JSON.stringify(workflow, null, 2)
   await writeFileAtomic(filePath, content)
 }
 
-export async function listChainFiles(
-  dir: string,
-): Promise<WorkflowFile[]> {
+export async function listChainFiles(dir: string): Promise<WorkflowFile[]> {
   try {
     await mkdir(dir, { recursive: true })
     const entries = await readdir(dir, { withFileTypes: true })
@@ -37,13 +31,20 @@ export async function listChainFiles(
           const fallbackName = basename(entry.name, ".chain")
           let workflowName = fallbackName
           try {
-            const workflow = JSON.parse(await readFile(fullPath, "utf-8")) as Partial<Workflow>
-            const normalizedName = normalizeWorkflowTitle(typeof workflow.name === "string" ? workflow.name : "")
+            const workflow = JSON.parse(
+              await readFile(fullPath, "utf-8"),
+            ) as Partial<Workflow>
+            const normalizedName = normalizeWorkflowTitle(
+              typeof workflow.name === "string" ? workflow.name : "",
+            )
             if (normalizedName) {
               workflowName = normalizedName
             }
           } catch (error) {
-            logWarn("chain-io", "read_workflow_name_failed", { filePath: fullPath, error: String(error) })
+            logWarn("chain-io", "read_workflow_name_failed", {
+              filePath: fullPath,
+              error: String(error),
+            })
           }
           return {
             name: workflowName,
@@ -54,7 +55,10 @@ export async function listChainFiles(
     )
     return workflows
   } catch (error) {
-    logWarn("chain-io", "list_chain_files_failed", { dir, error: String(error) })
+    logWarn("chain-io", "list_chain_files_failed", {
+      dir,
+      error: String(error),
+    })
     return []
   }
 }

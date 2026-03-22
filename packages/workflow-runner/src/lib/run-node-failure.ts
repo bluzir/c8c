@@ -13,8 +13,15 @@ import type {
 } from "../schema.js"
 import type { RuntimeWorkflow } from "./runtime-graph.js"
 import type { NodeLifecycleEffect } from "./run-lifecycle.js"
-import { buildContinueOutput, buildErrorEnvelopeOutput, writeNodeOutputFile } from "./run-output.js"
-import { hasPartialSkillProgress, isMaxTurnsErrorText } from "./run-provider-execution.js"
+import {
+  buildContinueOutput,
+  buildErrorEnvelopeOutput,
+  writeNodeOutputFile,
+} from "./run-output.js"
+import {
+  hasPartialSkillProgress,
+  isMaxTurnsErrorText,
+} from "./run-provider-execution.js"
 
 export interface ResolvedRetryPolicy {
   enabled: boolean
@@ -30,7 +37,11 @@ export interface ResolvedRuntimePolicy {
 }
 
 interface FailureLogger {
-  warn?(component: string, event: string, context?: Record<string, unknown>): void
+  warn?(
+    component: string,
+    event: string,
+    context?: Record<string, unknown>,
+  ): void
 }
 
 interface FailureContext {
@@ -50,18 +61,34 @@ interface FailureContext {
   workspace: string
 }
 
-const RETRYABLE_ERROR_KINDS: ErrorKind[] = ["tool", "model", "timeout", "unknown", "policy", "network"]
+const RETRYABLE_ERROR_KINDS: ErrorKind[] = [
+  "tool",
+  "model",
+  "timeout",
+  "unknown",
+  "policy",
+  "network",
+]
+const RATE_LIMIT_RE =
+  /\b(?:rate limit(?:ed)?|too many requests|http\s*429|status\s*429|429\b|retry-after)\b/i
+const AUTOMATIC_RATE_LIMIT_RETRY_MAX_TRIES = 4
+const AUTOMATIC_RATE_LIMIT_RETRY_WAIT_MS = 1_000
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-function getNodeRuntimeConfig(node: WorkflowNode): NodeRuntimeConfig | undefined {
+function getNodeRuntimeConfig(
+  node: WorkflowNode,
+): NodeRuntimeConfig | undefined {
   const config = node.config as { runtime?: NodeRuntimeConfig }
   return config.runtime
 }
 
-export function resolveRuntimePolicy(node: WorkflowNode, isRuntimeClone?: boolean): ResolvedRuntimePolicy {
+export function resolveRuntimePolicy(
+  node: WorkflowNode,
+  isRuntimeClone?: boolean,
+): ResolvedRuntimePolicy {
   const runtime = getNodeRuntimeConfig(node)
   const retry = runtime?.retry
   const configuredRetryOn = retry?.retryOn?.filter(Boolean)
@@ -73,17 +100,56 @@ export function resolveRuntimePolicy(node: WorkflowNode, isRuntimeClone?: boolea
       maxTries: Math.max(1, Math.floor(retry?.maxTries ?? 1)),
       waitMs: Math.max(0, Math.floor(retry?.waitMs ?? 0)),
       backoff: retry?.backoff || "none",
-      retryOn: new Set(configuredRetryOn && configuredRetryOn.length > 0 ? configuredRetryOn : RETRYABLE_ERROR_KINDS),
+      retryOn: new Set(
+        configuredRetryOn && configuredRetryOn.length > 0
+          ? configuredRetryOn
+          : RETRYABLE_ERROR_KINDS,
+      ),
     },
   }
 }
 
-export function computeRetryDelayMs(policy: ResolvedRetryPolicy, retriesUsed: number): number {
+export function computeRetryDelayMs(
+  policy: ResolvedRetryPolicy,
+  retriesUsed: number,
+): number {
   const base = Math.max(0, policy.waitMs)
   if (base === 0) return 0
   if (policy.backoff === "linear") return base * Math.max(1, retriesUsed)
-  if (policy.backoff === "exponential") return base * (2 ** Math.max(0, retriesUsed - 1))
+  if (policy.backoff === "exponential")
+    return base * 2 ** Math.max(0, retriesUsed - 1)
   return base
+}
+
+function isRateLimitError(text: string): boolean {
+  return RATE_LIMIT_RE.test(text)
+}
+
+function resolveEffectiveRetryPolicy(
+  policy: ResolvedRetryPolicy,
+  errorKind: ErrorKind,
+  errorText: string,
+): (ResolvedRetryPolicy & { automaticRateLimitBackoff?: boolean }) | null {
+  const configuredRetryAllowed = policy.enabled && policy.retryOn.has(errorKind)
+  const automaticRateLimitBackoff =
+    errorKind === "policy" && isRateLimitError(errorText)
+  if (!configuredRetryAllowed && !automaticRateLimitBackoff) {
+    return null
+  }
+
+  if (!automaticRateLimitBackoff) {
+    return policy
+  }
+
+  return {
+    ...policy,
+    enabled: true,
+    maxTries: Math.max(policy.maxTries, AUTOMATIC_RATE_LIMIT_RETRY_MAX_TRIES),
+    waitMs: Math.max(policy.waitMs, AUTOMATIC_RATE_LIMIT_RETRY_WAIT_MS),
+    backoff: "exponential",
+    retryOn: new Set([...policy.retryOn, "policy"]),
+    automaticRateLimitBackoff: true,
+  }
 }
 
 async function defaultSleep(ms: number): Promise<void> {
@@ -92,9 +158,11 @@ async function defaultSleep(ms: number): Promise<void> {
 }
 
 function isTimedOutError(text: string): boolean {
-  return text.includes("timed out")
-    || text.includes("ETIMEDOUT")
-    || text.includes("timeout")
+  return (
+    text.includes("timed out") ||
+    text.includes("ETIMEDOUT") ||
+    text.includes("timeout")
+  )
 }
 
 export async function handleNodeExecutionFailure(
@@ -133,18 +201,24 @@ export async function handleNodeExecutionFailure(
   state.errorKind = classifyError(error, isTimedOutError(errorText))
 
   if (
-    node.type === "skill"
-    && isMaxTurnsErrorText(errorText)
-    && hasPartialSkillProgress(state.log, partialOutput)
+    node.type === "skill" &&
+    isMaxTurnsErrorText(errorText) &&
+    hasPartialSkillProgress(state.log, partialOutput)
   ) {
     const output = buildContinueOutput(node, incomingContent, partialOutput)
     const recoveryLog: LogEntry = {
       type: "text",
-      content: "[runtime-recovery] max turns reached after partial progress; continuing with recovered output\n",
+      content:
+        "[runtime-recovery] max turns reached after partial progress; continuing with recovered output\n",
       timestamp: Date.now(),
     }
     state.log.push(recoveryLog)
-    await emitEvent({ type: "node-log", runId, nodeId: node.id, entry: recoveryLog })
+    await emitEvent({
+      type: "node-log",
+      runId,
+      nodeId: node.id,
+      entry: recoveryLog,
+    })
 
     state.status = "completed"
     state.error = undefined
@@ -159,12 +233,20 @@ export async function handleNodeExecutionFailure(
     return
   }
 
-  const canRetry = runtimePolicy.retry.enabled
-    && state.retriesUsed! < runtimePolicy.retry.maxTries - 1
-    && runtimePolicy.retry.retryOn.has(state.errorKind)
-  if (canRetry) {
+  const effectiveRetryPolicy = resolveEffectiveRetryPolicy(
+    runtimePolicy.retry,
+    state.errorKind,
+    errorText,
+  )
+  const canRetry =
+    effectiveRetryPolicy &&
+    state.retriesUsed! < effectiveRetryPolicy.maxTries - 1
+  if (canRetry && effectiveRetryPolicy) {
     state.retriesUsed = (state.retriesUsed || 0) + 1
-    const retryDelayMs = computeRetryDelayMs(runtimePolicy.retry, state.retriesUsed)
+    const retryDelayMs = computeRetryDelayMs(
+      effectiveRetryPolicy,
+      state.retriesUsed,
+    )
     const retryErrorKind = state.errorKind
     state.status = "pending"
     state.error = undefined
@@ -172,11 +254,16 @@ export async function handleNodeExecutionFailure(
     state.completedAt = undefined
     const retryLog: LogEntry = {
       type: "text",
-      content: `[runtime-retry] attempt ${state.retriesUsed + 1}/${runtimePolicy.retry.maxTries} in ${retryDelayMs}ms after ${retryErrorKind} error\n`,
+      content: `[runtime-retry] attempt ${state.retriesUsed + 1}/${effectiveRetryPolicy.maxTries} in ${retryDelayMs}ms after ${retryErrorKind} error${effectiveRetryPolicy.automaticRateLimitBackoff ? " (automatic rate-limit backoff)" : ""}\n`,
       timestamp: Date.now(),
     }
     state.log.push(retryLog)
-    await emitEvent({ type: "node-log", runId, nodeId: node.id, entry: retryLog })
+    await emitEvent({
+      type: "node-log",
+      runId,
+      nodeId: node.id,
+      entry: retryLog,
+    })
     state.attempts = Math.max(0, state.attempts - 1)
     await (context.sleep || defaultSleep)(retryDelayMs)
     return retryNode(node.id)
@@ -197,15 +284,33 @@ export async function handleNodeExecutionFailure(
           error: errorMessage(writeError),
         })
       }
-      await emitEvent({ type: "node-done", runId, nodeId: node.id, output: partialOutput })
+      await emitEvent({
+        type: "node-done",
+        runId,
+        nodeId: node.id,
+        output: partialOutput,
+      })
     }
-    await emitEvent({ type: "node-error", runId, nodeId: node.id, error: errorText })
+    await emitEvent({
+      type: "node-error",
+      runId,
+      nodeId: node.id,
+      error: errorText,
+    })
     return
   }
 
-  const output = onError === "continue_error_output"
-    ? buildErrorEnvelopeOutput(node, incomingContent, partialOutput, state.errorKind, errorText, state.attempts)
-    : buildContinueOutput(node, incomingContent, partialOutput)
+  const output =
+    onError === "continue_error_output"
+      ? buildErrorEnvelopeOutput(
+          node,
+          incomingContent,
+          partialOutput,
+          state.errorKind,
+          errorText,
+          state.attempts,
+        )
+      : buildContinueOutput(node, incomingContent, partialOutput)
 
   state.status = "completed"
   state.output = output
@@ -222,5 +327,10 @@ export async function handleNodeExecutionFailure(
     context.activatedEdges.add(edge.id)
   }
   await emitEvent({ type: "node-done", runId, nodeId: node.id, output })
-  await emitEvent({ type: "node-error", runId, nodeId: node.id, error: errorText })
+  await emitEvent({
+    type: "node-error",
+    runId,
+    nodeId: node.id,
+    error: errorText,
+  })
 }

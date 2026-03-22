@@ -16,11 +16,13 @@ describe("yaml-io", () => {
   it("loads valid workflow YAML objects", async () => {
     workspace = await mkdtemp(join(tmpdir(), "yaml-io-test-"))
     const filePath = join(workspace, "workflow.yaml")
-    await writeFile(filePath, [
-      "name: Test workflow",
-      "nodes: []",
-      "edges: []",
-    ].join("\n"), "utf-8")
+    await writeFile(
+      filePath,
+      ["name: Test workflow", "version: 1", "nodes: []", "edges: []"].join(
+        "\n",
+      ),
+      "utf-8",
+    )
 
     await expect(loadChainYaml(filePath)).resolves.toEqual(
       expect.objectContaining({
@@ -37,23 +39,52 @@ describe("yaml-io", () => {
     await writeFile(filePath, "[]", "utf-8")
 
     await expect(loadChainYaml(filePath)).rejects.toThrow(
-      "Invalid workflow YAML: expected an object",
+      "Invalid workflow YAML",
     )
   })
 
   it("rejects legacy step-based YAML workflows", async () => {
     workspace = await mkdtemp(join(tmpdir(), "yaml-io-test-"))
     const filePath = join(workspace, "legacy.yaml")
-    await writeFile(filePath, [
-      "description: Legacy workflow",
-      "steps:",
-      "  - key: draft",
-      "    agent: writer",
-      "    prompt: Write",
-    ].join("\n"), "utf-8")
+    await writeFile(
+      filePath,
+      [
+        "description: Legacy workflow",
+        "steps:",
+        "  - key: draft",
+        "    agent: writer",
+        "    prompt: Write",
+      ].join("\n"),
+      "utf-8",
+    )
 
     await expect(loadChainYaml(filePath)).rejects.toThrow(
-      "Invalid workflow YAML: missing nodes or edges array",
+      "Invalid workflow YAML",
+    )
+  })
+
+  it("rejects malformed graph nodes at the parse boundary", async () => {
+    workspace = await mkdtemp(join(tmpdir(), "yaml-io-test-"))
+    const filePath = join(workspace, "bad-node.yaml")
+    await writeFile(
+      filePath,
+      [
+        "name: Bad workflow",
+        "version: 1",
+        "nodes:",
+        "  - id: input-1",
+        "    type: input",
+        "    position:",
+        "      x: nope",
+        "      y: 0",
+        "    config: {}",
+        "edges: []",
+      ].join("\n"),
+      "utf-8",
+    )
+
+    await expect(loadChainYaml(filePath)).rejects.toThrow(
+      "Invalid workflow YAML at nodes[0].position.x",
     )
   })
 })

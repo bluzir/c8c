@@ -21,7 +21,13 @@ import type {
   WorkflowInput,
   WorkflowNode,
 } from "../schema.js"
-import { approvalTaskId, getWorkflowHilTask, markWorkflowHilTaskConsumed, upsertApprovalHilTask, upsertHumanHilTask } from "../hil-store.js"
+import {
+  approvalTaskId,
+  getWorkflowHilTask,
+  markWorkflowHilTaskConsumed,
+  upsertApprovalHilTask,
+  upsertHumanHilTask,
+} from "../hil-store.js"
 import { buildEvaluatorPrompt, parseEvaluatorOutput } from "./evaluator.js"
 import { getOutgoingEdges } from "./graph-engine.js"
 import { LogParser } from "./log-parser.js"
@@ -35,10 +41,19 @@ import {
 } from "./node-executors/splitter.js"
 import type { NodeLifecycleEffect } from "./run-lifecycle.js"
 import { readApprovalDecision } from "./run-interrupts.js"
-import { collapseSplitterExpansion, expandSplitter, type RuntimeWorkflow, type Subtask } from "./runtime-graph.js"
+import {
+  collapseSplitterExpansion,
+  expandSplitter,
+  type RuntimeWorkflow,
+  type Subtask,
+} from "./runtime-graph.js"
 
 interface RunNodeLogger {
-  warn?(component: string, event: string, context?: Record<string, unknown>): void
+  warn?(
+    component: string,
+    event: string,
+    context?: Record<string, unknown>,
+  ): void
 }
 
 interface ResolvedSkillContext {
@@ -87,7 +102,10 @@ export interface RunNodeExecutorHelpers {
     effectiveInput: string,
     partialOnError?: boolean,
   ) => Promise<NodeInput>
-  collectMetrics: (logParser: LogParser, startedAt: number) => NodeState["metrics"]
+  collectMetrics: (
+    logParser: LogParser,
+    startedAt: number,
+  ) => NodeState["metrics"]
   collectUpstreamIds: (
     nodeId: string,
     edges: { source: string; target: string }[],
@@ -110,7 +128,10 @@ export interface RunNodeExecutorHelpers {
     state: NodeState | undefined,
   ) => string | undefined
   getDefaultModelForProvider: (providerId: ProviderId) => string
-  hasPartialSkillProgress: (log: LogEntry[], partialOutput: NodeInput | undefined) => boolean
+  hasPartialSkillProgress: (
+    log: LogEntry[],
+    partialOutput: NodeInput | undefined,
+  ) => boolean
   normalizedSkillRef: (value: string | undefined) => string
   pickPassThroughMetadata: (
     input: NodeInput | null | undefined,
@@ -126,7 +147,10 @@ export interface RunNodeExecutorHelpers {
   runGitCommand: (args: string[], cwd: string) => Promise<string>
   sanitizeInvalidUnicode: (value: string) => string
   sanitizeNodeId: (nodeId: string) => string
-  serializeLogExcerpt: (log: LogEntry[] | undefined, maxLength?: number) => string
+  serializeLogExcerpt: (
+    log: LogEntry[] | undefined,
+    maxLength?: number,
+  ) => string
   spawnProviderTracked: (
     providerId: ProviderId,
     options: AgentRunOptions,
@@ -148,7 +172,11 @@ export interface RunNodeExecutorHelpers {
     },
   ) => Promise<AgentExecutionSummary>
   writeFileAtomic: (path: string, content: string) => Promise<void>
-  writeNodeOutputFile: (workspace: string, nodeId: string, content: string) => Promise<void>
+  writeNodeOutputFile: (
+    workspace: string,
+    nodeId: string,
+    content: string,
+  ) => Promise<void>
 }
 
 export interface RunNodeExecutionContext {
@@ -178,7 +206,10 @@ export interface RunNodeExecutionContext {
   }
   beginNodeExecution: () => Promise<void>
   persistCheckpoint: () => Promise<void>
-  resolveNodeProviderId: (node: WorkflowNode, workflow: Workflow) => Promise<ProviderId>
+  resolveNodeProviderId: (
+    node: WorkflowNode,
+    workflow: Workflow,
+  ) => Promise<ProviderId>
   resolveSkillContext: (input: {
     skillRefs?: string[]
     skillPaths?: string[]
@@ -189,7 +220,11 @@ export interface RunNodeExecutionContext {
     nodeId: string,
     timeoutMinutes?: number,
     timeoutAction?: "auto_approve" | "auto_reject" | "skip",
-  ) => Promise<{ approved: boolean; editedContent?: string; timedOut?: boolean }>
+  ) => Promise<{
+    approved: boolean
+    editedContent?: string
+    timedOut?: boolean
+  }>
   waitForEvalOverride: (
     runId: string,
     nodeId: string,
@@ -206,12 +241,38 @@ export interface RunNodeExecutionResult {
   runtimeWorkflow?: RuntimeWorkflow
 }
 
+export class RecoverableNodeExecutionError extends Error {
+  readonly recoverOutputOnError?: () => Promise<NodeInput | undefined>
+
+  constructor(
+    message: string,
+    options: {
+      recoverOutputOnError?: () => Promise<NodeInput | undefined>
+      cause?: unknown
+    } = {},
+  ) {
+    super(message, options.cause ? { cause: options.cause } : undefined)
+    this.name = "RecoverableNodeExecutionError"
+    this.recoverOutputOnError = options.recoverOutputOnError
+  }
+}
+
+export function getRecoverOutputOnError(
+  error: unknown,
+): (() => Promise<NodeInput | undefined>) | undefined {
+  if (!(error instanceof RecoverableNodeExecutionError)) return undefined
+  return error.recoverOutputOnError
+}
+
 async function executeInputNode(
   context: RunNodeExecutionContext,
 ): Promise<RunNodeExecutionResult> {
   await context.beginNodeExecution()
   return {
-    output: context.helpers.createNodeOutput(context.node, context.inputContent),
+    output: context.helpers.createNodeOutput(
+      context.node,
+      context.inputContent,
+    ),
   }
 }
 
@@ -220,9 +281,13 @@ async function executeOutputNode(
 ): Promise<RunNodeExecutionResult> {
   await context.beginNodeExecution()
   return {
-    output: context.helpers.createNodeOutput(context.node, context.incomingContent, {
-      ...context.helpers.pickPassThroughMetadata(context.incomingInput),
-    }),
+    output: context.helpers.createNodeOutput(
+      context.node,
+      context.incomingContent,
+      {
+        ...context.helpers.pickPassThroughMetadata(context.incomingInput),
+      },
+    ),
   }
 }
 
@@ -233,13 +298,20 @@ async function executeSkillNode(
   const state = context.state
   const config = node.config as SkillNodeConfig
   const skillRef = context.helpers.normalizedSkillRef(config.skillRef)
-  const nodeProviderId = await context.resolveNodeProviderId(node, context.workflow)
+  const nodeProviderId = await context.resolveNodeProviderId(
+    node,
+    context.workflow,
+  )
   const meta = context.runtimeWorkflow.runtimeMeta?.[node.id]
   const effectiveInputRaw = meta
     ? `Subtask: ${meta.subtaskKey}\n\n${meta.subtaskContent}\n\n--- Original Content ---\n${context.incomingContent}`
     : context.incomingContent
-  const effectiveInput = context.helpers.sanitizeInvalidUnicode(effectiveInputRaw)
-  const contentFile = join(context.workspace, `content-${context.helpers.sanitizeNodeId(node.id)}.md`)
+  const effectiveInput =
+    context.helpers.sanitizeInvalidUnicode(effectiveInputRaw)
+  const contentFile = join(
+    context.workspace,
+    `content-${context.helpers.sanitizeNodeId(node.id)}.md`,
+  )
   await context.helpers.writeFileAtomic(contentFile, effectiveInput)
 
   const workdir = context.projectPath || context.workspace
@@ -273,37 +345,58 @@ async function executeSkillNode(
   )
   const manifestLines: string[] = []
   for (const upstreamId of upstreamIds) {
-    const upstreamNode = context.runtimeWorkflow.nodes.find((candidate) => candidate.id === upstreamId)
-    const label = (upstreamNode?.config as Record<string, unknown>)?.label || upstreamNode?.type || upstreamId
-    manifestLines.push(`- outputs/${context.helpers.sanitizeNodeId(upstreamId)}.md  (${label})`)
+    const upstreamNode = context.runtimeWorkflow.nodes.find(
+      (candidate) => candidate.id === upstreamId,
+    )
+    const label =
+      (upstreamNode?.config as Record<string, unknown>)?.label ||
+      upstreamNode?.type ||
+      upstreamId
+    manifestLines.push(
+      `- outputs/${context.helpers.sanitizeNodeId(upstreamId)}.md  (${label})`,
+    )
   }
 
   const skillContext = await context.resolveSkillContext({
     skillRefs: skillRef ? [skillRef] : undefined,
     skillPaths: config.skillPaths,
   })
-  const additionalSkillDirs = [...new Set(
-    skillContext.skillPaths
-      .map((path) => (path.endsWith(".md") ? dirname(path) : path))
-      .filter(Boolean),
-  )]
+  const additionalSkillDirs = [
+    ...new Set(
+      skillContext.skillPaths
+        .map((path) => (path.endsWith(".md") ? dirname(path) : path))
+        .filter(Boolean),
+    ),
+  ]
 
-  const prompt = context.helpers.sanitizeInvalidUnicode([
-    `Workspace: ${context.workspace}`,
-    `Content file: ${contentFile}`,
-    "",
-    ...(manifestLines.length > 0 ? ["Available upstream outputs:", ...manifestLines, ""] : []),
-    ...(retryFeedback ? [retryFeedback] : []),
-    ...(skillContext.text ? ["Skill instructions:", skillContext.text, ""] : []),
-    config.prompt,
-  ].join("\n"))
-  const skillModel = context.workflow.defaults?.model || context.helpers.getDefaultModelForProvider(nodeProviderId)
+  const prompt = context.helpers.sanitizeInvalidUnicode(
+    [
+      `Workspace: ${context.workspace}`,
+      `Content file: ${contentFile}`,
+      "",
+      ...(manifestLines.length > 0
+        ? ["Available upstream outputs:", ...manifestLines, ""]
+        : []),
+      ...(retryFeedback ? [retryFeedback] : []),
+      ...(skillContext.text
+        ? ["Skill instructions:", skillContext.text, ""]
+        : []),
+      config.prompt,
+    ].join("\n"),
+  )
+  const skillModel =
+    context.workflow.defaults?.model ||
+    context.helpers.getDefaultModelForProvider(nodeProviderId)
   let skillBackend: AgentExecutionSummary["backend"]
   let skillProviderSessionId: string | null | undefined
 
   const updateSkillMetricsAndMeta = () => {
     const metrics = context.helpers.collectMetrics(logParser, state.startedAt!)
-    metrics.cost_usd = context.helpers.estimateCost(skillModel, metrics.tokens_in, metrics.tokens_out)
+    metrics.cost_usd = context.helpers.estimateCost(
+      skillModel,
+      metrics.tokens_in,
+      metrics.tokens_out,
+    )
     state.metrics = metrics
     state.meta = context.helpers.buildNodeMeta(
       prompt,
@@ -318,7 +411,12 @@ async function executeSkillNode(
     const remaining = logParser.flush()
     for (const entry of remaining) {
       state.log.push(entry)
-      await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+      await context.runtime.emitEvent({
+        type: "node-log",
+        runId: context.runId,
+        nodeId: node.id,
+        entry,
+      })
     }
     updateSkillMetricsAndMeta()
     return context.helpers.buildSkillNodeOutput(
@@ -334,24 +432,30 @@ async function executeSkillNode(
 
   const effectivePermissionMode: PermissionMode =
     config.permissionMode ?? context.workflow.defaults?.permissionMode ?? "edit"
-  const mergedAllowed = [...new Set([
-    ...(context.workflow.defaults?.allowedTools || []),
-    ...(config.allowedTools || []),
-  ])]
-  const planDisallowed = effectivePermissionMode === "plan"
-    ? ["Edit", "Write", "NotebookEdit"]
-    : []
-  const mergedDisallowed = [...new Set([
-    ...(context.workflow.defaults?.disallowedTools || []),
-    ...(config.disallowedTools || []),
-    ...planDisallowed,
-  ])]
+  const mergedAllowed = [
+    ...new Set([
+      ...(context.workflow.defaults?.allowedTools || []),
+      ...(config.allowedTools || []),
+    ]),
+  ]
+  const planDisallowed =
+    effectivePermissionMode === "plan" ? ["Edit", "Write", "NotebookEdit"] : []
+  const mergedDisallowed = [
+    ...new Set([
+      ...(context.workflow.defaults?.disallowedTools || []),
+      ...(config.disallowedTools || []),
+      ...planDisallowed,
+    ]),
+  ]
 
   let preRunHead = ""
   let isGitRepo = false
   if (effectivePermissionMode === "edit") {
     try {
-      await context.helpers.runGitCommand(["rev-parse", "--is-inside-work-tree"], workdir)
+      await context.helpers.runGitCommand(
+        ["rev-parse", "--is-inside-work-tree"],
+        workdir,
+      )
       isGitRepo = true
     } catch {
       isGitRepo = false
@@ -360,14 +464,20 @@ async function executeSkillNode(
 
   if (isGitRepo) {
     try {
-      preRunHead = await context.helpers.runGitCommand(["rev-parse", "HEAD"], workdir)
+      preRunHead = await context.helpers.runGitCommand(
+        ["rev-parse", "HEAD"],
+        workdir,
+      )
     } catch {
       // Best effort only.
     }
   }
 
   let skillStderr = ""
-  const skillResumeSessionId = context.helpers.getClaudeResumeSessionId(nodeProviderId, state)
+  const skillResumeSessionId = context.helpers.getClaudeResumeSessionId(
+    nodeProviderId,
+    state,
+  )
   if (skillResumeSessionId) {
     const resumeEntry = {
       type: "text" as const,
@@ -375,7 +485,12 @@ async function executeSkillNode(
       timestamp: Date.now(),
     }
     state.log.push(resumeEntry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry: resumeEntry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry: resumeEntry,
+    })
   }
   const result = await context.helpers.spawnProviderTracked(
     nodeProviderId,
@@ -391,7 +506,8 @@ async function executeSkillNode(
       mcpConfigPath: context.mcpConfigPath,
       addDirs: additionalSkillDirs.length > 0 ? additionalSkillDirs : undefined,
       allowedTools: mergedAllowed.length > 0 ? mergedAllowed : undefined,
-      disallowedTools: mergedDisallowed.length > 0 ? mergedDisallowed : undefined,
+      disallowedTools:
+        mergedDisallowed.length > 0 ? mergedDisallowed : undefined,
       abortSignal: context.runtime.controller.signal,
       timeout: (context.workflow.defaults?.timeout_minutes || 30) * 60 * 1000,
     },
@@ -413,16 +529,30 @@ async function executeSkillNode(
       onLogEntry: async (entry) => {
         logParser.appendEntry(entry)
         state.log.push(entry)
-        await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+        await context.runtime.emitEvent({
+          type: "node-log",
+          runId: context.runId,
+          nodeId: node.id,
+          entry,
+        })
       },
       onUsage: (usage) => {
         logParser.applyUsage(usage)
       },
       onStderr: async (text) => {
         skillStderr += text
-        const entry = { type: "error" as const, content: text, timestamp: Date.now() }
+        const entry = {
+          type: "error" as const,
+          content: text,
+          timestamp: Date.now(),
+        }
         state.log.push(entry)
-        await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+        await context.runtime.emitEvent({
+          type: "node-log",
+          runId: context.runId,
+          nodeId: node.id,
+          entry,
+        })
       },
     },
   )
@@ -431,19 +561,33 @@ async function executeSkillNode(
 
   for (const entry of logParser.flush()) {
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
   updateSkillMetricsAndMeta()
 
   if (isGitRepo && preRunHead) {
     try {
-      const postRunHead = await context.helpers.runGitCommand(["rev-parse", "HEAD"], workdir)
+      const postRunHead = await context.helpers.runGitCommand(
+        ["rev-parse", "HEAD"],
+        workdir,
+      )
       if (postRunHead !== preRunHead) {
         const revisionRange = `${preRunHead}..${postRunHead}`
-        const postRunDiff = await context.helpers.runGitCommand(["diff", revisionRange], workdir)
+        const postRunDiff = await context.helpers.runGitCommand(
+          ["diff", revisionRange],
+          workdir,
+        )
         if (postRunDiff.trim()) {
-          const fileLines = await context.helpers.runGitCommand(["diff", "--name-only", revisionRange], workdir)
+          const fileLines = await context.helpers.runGitCommand(
+            ["diff", "--name-only", revisionRange],
+            workdir,
+          )
           const diffEntry = {
             type: "diff" as const,
             content: postRunDiff,
@@ -451,7 +595,12 @@ async function executeSkillNode(
             timestamp: Date.now(),
           }
           state.log.push(diffEntry)
-          await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry: diffEntry })
+          await context.runtime.emitEvent({
+            type: "node-log",
+            runId: context.runId,
+            nodeId: node.id,
+            entry: diffEntry,
+          })
         }
       }
     } catch {
@@ -460,8 +609,15 @@ async function executeSkillNode(
   }
 
   if (!result.success && !context.runtime.controller.signal.aborted) {
-    const detail = context.helpers.buildAgentFailureDetail(nodeProviderId, result, logParser, skillStderr)
-    throw new Error(`Skill node failed: ${detail}`)
+    const detail = context.helpers.buildAgentFailureDetail(
+      nodeProviderId,
+      result,
+      logParser,
+      skillStderr,
+    )
+    throw new RecoverableNodeExecutionError(`Skill node failed: ${detail}`, {
+      recoverOutputOnError,
+    })
   }
 
   return {
@@ -485,19 +641,32 @@ async function executeEvaluatorNode(
   const evalConfig = node.config as EvaluatorNodeConfig
   const logParser = new LogParser()
   let evaluatorStderr = ""
-  const evalSkillContext = await context.resolveSkillContext({ skillRefs: evalConfig.skillRefs })
+  const evalSkillContext = await context.resolveSkillContext({
+    skillRefs: evalConfig.skillRefs,
+  })
   const evalProviderId = context.workflowProviderId
   const evalPrompt = context.helpers.sanitizeInvalidUnicode(
-    buildEvaluatorPrompt(evalConfig.criteria, context.incomingContent, evalSkillContext.text),
+    buildEvaluatorPrompt(
+      evalConfig.criteria,
+      context.incomingContent,
+      evalSkillContext.text,
+    ),
   )
-  const evalAdditionalDirs = [...new Set(
-    evalSkillContext.skillPaths
-      .map((path) => (path.endsWith(".md") ? dirname(path) : path))
-      .filter(Boolean),
-  )]
+  const evalAdditionalDirs = [
+    ...new Set(
+      evalSkillContext.skillPaths
+        .map((path) => (path.endsWith(".md") ? dirname(path) : path))
+        .filter(Boolean),
+    ),
+  ]
 
-  const evalModel = context.workflow.defaults?.model || context.helpers.getDefaultModelForProvider(evalProviderId)
-  const evalResumeSessionId = context.helpers.getClaudeResumeSessionId(evalProviderId, state)
+  const evalModel =
+    context.workflow.defaults?.model ||
+    context.helpers.getDefaultModelForProvider(evalProviderId)
+  const evalResumeSessionId = context.helpers.getClaudeResumeSessionId(
+    evalProviderId,
+    state,
+  )
   const evalSpawnResult = await context.helpers.spawnProviderTracked(
     evalProviderId,
     {
@@ -536,32 +705,63 @@ async function executeEvaluatorNode(
       onLogEntry: async (entry) => {
         logParser.appendEntry(entry)
         state.log.push(entry)
-        await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+        await context.runtime.emitEvent({
+          type: "node-log",
+          runId: context.runId,
+          nodeId: node.id,
+          entry,
+        })
       },
       onUsage: (usage) => {
         logParser.applyUsage(usage)
       },
       onStderr: async (text) => {
         evaluatorStderr += text
-        const entry = { type: "error" as const, content: text, timestamp: Date.now() }
+        const entry = {
+          type: "error" as const,
+          content: text,
+          timestamp: Date.now(),
+        }
         state.log.push(entry)
-        await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+        await context.runtime.emitEvent({
+          type: "node-log",
+          runId: context.runId,
+          nodeId: node.id,
+          entry,
+        })
       },
     },
   )
 
   if (!evalSpawnResult.success && !context.runtime.controller.signal.aborted) {
-    const detail = context.helpers.buildAgentFailureDetail(evalProviderId, evalSpawnResult, logParser, evaluatorStderr)
+    const detail = context.helpers.buildAgentFailureDetail(
+      evalProviderId,
+      evalSpawnResult,
+      logParser,
+      evaluatorStderr,
+    )
     throw new Error(`Evaluator node failed: ${detail}`)
   }
 
   for (const entry of logParser.flush()) {
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
-  const evalMetrics = context.helpers.collectMetrics(logParser, state.startedAt!)
-  evalMetrics.cost_usd = context.helpers.estimateCost(evalModel, evalMetrics.tokens_in, evalMetrics.tokens_out)
+  const evalMetrics = context.helpers.collectMetrics(
+    logParser,
+    state.startedAt!,
+  )
+  evalMetrics.cost_usd = context.helpers.estimateCost(
+    evalModel,
+    evalMetrics.tokens_in,
+    evalMetrics.tokens_out,
+  )
   state.metrics = evalMetrics
   state.meta = context.helpers.buildNodeMeta(
     evalPrompt,
@@ -574,7 +774,9 @@ async function executeEvaluatorNode(
   const evalResult = parseEvaluatorOutput(state.log)
   if (!evalResult) {
     const rawExcerpt = context.helpers.serializeLogExcerpt(state.log)
-    throw new Error(`Evaluator output parse failed. Expected JSON with numeric 'score' field. Actual output: ${rawExcerpt}`)
+    throw new Error(
+      `Evaluator output parse failed. Expected JSON with numeric 'score' field. Actual output: ${rawExcerpt}`,
+    )
   }
 
   const score = evalResult.score
@@ -605,9 +807,14 @@ async function executeEvaluatorNode(
   }
 
   if (passed) {
-    const output = context.helpers.createNodeOutput(node, context.incomingContent, evalMetadata)
+    const output = context.helpers.createNodeOutput(
+      node,
+      context.incomingContent,
+      evalMetadata,
+    )
     for (const edge of getOutgoingEdges(context.runtimeWorkflow, node.id)) {
-      if (edge.type === "pass" || edge.type === "default") context.activatedEdges.add(edge.id)
+      if (edge.type === "pass" || edge.type === "default")
+        context.activatedEdges.add(edge.id)
     }
     return { output }
   }
@@ -617,14 +824,23 @@ async function executeEvaluatorNode(
     const retryTargetState = context.nodeStates[retryTargetId]
 
     if (!retryTargetState || retryTargetState.status === "running") {
-      const output = context.helpers.createNodeOutput(node, context.incomingContent, evalMetadata)
+      const output = context.helpers.createNodeOutput(
+        node,
+        context.incomingContent,
+        evalMetadata,
+      )
       for (const edge of getOutgoingEdges(context.runtimeWorkflow, node.id)) {
-        if (edge.type === "pass" || edge.type === "default") context.activatedEdges.add(edge.id)
+        if (edge.type === "pass" || edge.type === "default")
+          context.activatedEdges.add(edge.id)
       }
       return { output }
     }
 
-    state.output = context.helpers.createNodeOutput(node, context.incomingContent, evalMetadata)
+    state.output = context.helpers.createNodeOutput(
+      node,
+      context.incomingContent,
+      evalMetadata,
+    )
 
     const toReset = new Set<string>()
     const resetQueue = [retryTargetId]
@@ -642,7 +858,8 @@ async function executeEvaluatorNode(
         context.activatedEdges.delete(edge.id)
       }
       if (context.nodeStates[id]) {
-        const preservedMeta = id === retryTargetId ? context.nodeStates[id].meta : undefined
+        const preservedMeta =
+          id === retryTargetId ? context.nodeStates[id].meta : undefined
         context.nodeStates[id] = {
           status: "pending",
           attempts: context.nodeStates[id].attempts,
@@ -674,27 +891,47 @@ async function executeEvaluatorNode(
     attempt: state.attempts,
   })
 
-  const overridden = await context.waitForEvalOverride(context.runId, node.id, context.runtime.controller.signal)
+  const overridden = await context.waitForEvalOverride(
+    context.runId,
+    node.id,
+    context.runtime.controller.signal,
+  )
 
   if (overridden) {
-    await context.runtime.emitEvent({ type: "eval-overridden", runId: context.runId, nodeId: node.id })
-    const output = context.helpers.createNodeOutput(node, context.incomingContent, {
-      ...evalMetadata,
-      overridden: true,
+    await context.runtime.emitEvent({
+      type: "eval-overridden",
+      runId: context.runId,
+      nodeId: node.id,
     })
+    const output = context.helpers.createNodeOutput(
+      node,
+      context.incomingContent,
+      {
+        ...evalMetadata,
+        overridden: true,
+      },
+    )
     for (const edge of getOutgoingEdges(context.runtimeWorkflow, node.id)) {
-      if (edge.type === "pass" || edge.type === "default") context.activatedEdges.add(edge.id)
+      if (edge.type === "pass" || edge.type === "default")
+        context.activatedEdges.add(edge.id)
     }
     return { output }
   }
 
-  const output = context.helpers.createNodeOutput(node, context.incomingContent, evalMetadata)
-  const failEdges = getOutgoingEdges(context.runtimeWorkflow, node.id).filter((edge) => edge.type === "fail")
+  const output = context.helpers.createNodeOutput(
+    node,
+    context.incomingContent,
+    evalMetadata,
+  )
+  const failEdges = getOutgoingEdges(context.runtimeWorkflow, node.id).filter(
+    (edge) => edge.type === "fail",
+  )
   if (failEdges.length > 0) {
     for (const edge of failEdges) context.activatedEdges.add(edge.id)
   } else {
     for (const edge of getOutgoingEdges(context.runtimeWorkflow, node.id)) {
-      if (edge.type === "pass" || edge.type === "default") context.activatedEdges.add(edge.id)
+      if (edge.type === "pass" || edge.type === "default")
+        context.activatedEdges.add(edge.id)
     }
   }
   return { output }
@@ -706,13 +943,24 @@ async function executeSplitterNode(
   const node = context.node
   const state = context.state
   const splitterConfig = node.config as SplitterNodeConfig
-  const splitterProviderId = await context.resolveNodeProviderId(node, context.workflow)
-  const splitterModel = context.workflow.defaults?.model || context.helpers.getDefaultModelForProvider(splitterProviderId)
+  const splitterProviderId = await context.resolveNodeProviderId(
+    node,
+    context.workflow,
+  )
+  const splitterModel =
+    context.workflow.defaults?.model ||
+    context.helpers.getDefaultModelForProvider(splitterProviderId)
   const maxBranches = splitterConfig.maxBranches || 8
-  const splitterMaxTurns = Math.max(2, Math.min(4, context.workflow.defaults?.maxTurns || 4))
+  const splitterMaxTurns = Math.max(
+    2,
+    Math.min(4, context.workflow.defaults?.maxTurns || 4),
+  )
   const splitterAllowedTools = context.workflow.defaults?.allowedTools
   const splitterDisallowedTools = context.workflow.defaults?.disallowedTools
-  const splitterResumeSessionId = context.helpers.getClaudeResumeSessionId(splitterProviderId, state)
+  const splitterResumeSessionId = context.helpers.getClaudeResumeSessionId(
+    splitterProviderId,
+    state,
+  )
   const splitterPrompts: string[] = []
   let splitterBackend: AgentExecutionSummary["backend"]
   let splitterProviderSessionId: string | null | undefined
@@ -733,11 +981,16 @@ async function executeSplitterNode(
         model: splitterModel,
         maxTurns: splitterMaxTurns,
         persistSession: splitterProviderId === "claude",
-        resumeSessionId: splitterPrompts.length === 1 ? splitterResumeSessionId : undefined,
+        resumeSessionId:
+          splitterPrompts.length === 1 ? splitterResumeSessionId : undefined,
         executionMode: context.workflow.defaults?.permissionMode,
         mcpConfigPath: context.mcpConfigPath,
-        allowedTools: splitterAllowedTools?.length ? splitterAllowedTools : undefined,
-        disallowedTools: splitterDisallowedTools?.length ? splitterDisallowedTools : undefined,
+        allowedTools: splitterAllowedTools?.length
+          ? splitterAllowedTools
+          : undefined,
+        disallowedTools: splitterDisallowedTools?.length
+          ? splitterDisallowedTools
+          : undefined,
         addDirs: [],
         abortSignal: context.runtime.controller.signal,
         timeout: 2 * 60 * 1000,
@@ -766,15 +1019,29 @@ async function executeSplitterNode(
         onLogEntry: async (entry) => {
           logParser.appendEntry(entry)
           state.log.push(entry)
-          await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+          await context.runtime.emitEvent({
+            type: "node-log",
+            runId: context.runId,
+            nodeId: node.id,
+            entry,
+          })
         },
         onUsage: (usage) => {
           logParser.applyUsage(usage)
         },
         onStderr: async (text) => {
-          const entry = { type: "error" as const, content: text, timestamp: Date.now() }
+          const entry = {
+            type: "error" as const,
+            content: text,
+            timestamp: Date.now(),
+          }
           state.log.push(entry)
-          await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+          await context.runtime.emitEvent({
+            type: "node-log",
+            runId: context.runId,
+            nodeId: node.id,
+            entry,
+          })
         },
       },
     )
@@ -782,13 +1049,25 @@ async function executeSplitterNode(
 
     for (const entry of logParser.flush()) {
       state.log.push(entry)
-      await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+      await context.runtime.emitEvent({
+        type: "node-log",
+        runId: context.runId,
+        nodeId: node.id,
+        entry,
+      })
     }
 
-    const attemptMetrics = context.helpers.collectMetrics(logParser, state.startedAt!)
+    const attemptMetrics = context.helpers.collectMetrics(
+      logParser,
+      state.startedAt!,
+    )
     totalTokensIn += attemptMetrics.tokens_in
     totalTokensOut += attemptMetrics.tokens_out
-    totalCostUsd += context.helpers.estimateCost(splitterModel, attemptMetrics.tokens_in, attemptMetrics.tokens_out)
+    totalCostUsd += context.helpers.estimateCost(
+      splitterModel,
+      attemptMetrics.tokens_in,
+      attemptMetrics.tokens_out,
+    )
 
     if (context.runtime.controller.signal.aborted) {
       throw new Error("Splitter aborted")
@@ -801,19 +1080,40 @@ async function executeSplitterNode(
         timestamp: Date.now(),
       }
       state.log.push(entry)
-      await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+      await context.runtime.emitEvent({
+        type: "node-log",
+        runId: context.runId,
+        nodeId: node.id,
+        entry,
+      })
     }
     splitterBackend = result.backend
     return logParser.textContent
   }
 
   let subtasks: Subtask[]
-  const splitterPrompt = buildSplitterPrompt(splitterConfig.strategy, context.incomingContent, maxBranches)
+  const splitterPrompt = buildSplitterPrompt(
+    splitterConfig.strategy,
+    context.incomingContent,
+    maxBranches,
+  )
   let splitterRawOutput = await runSplitterAttempt(splitterPrompt)
   subtasks = parseSplitterOutput(splitterRawOutput)
 
-  if (maxBranches > 1 && shouldRetrySplitter(subtasks, splitterRawOutput, context.incomingContent, maxBranches)) {
-    const recoveryPrompt = buildSplitterRecoveryPrompt(splitterConfig.strategy, context.incomingContent, maxBranches)
+  if (
+    maxBranches > 1 &&
+    shouldRetrySplitter(
+      subtasks,
+      splitterRawOutput,
+      context.incomingContent,
+      maxBranches,
+    )
+  ) {
+    const recoveryPrompt = buildSplitterRecoveryPrompt(
+      splitterConfig.strategy,
+      context.incomingContent,
+      maxBranches,
+    )
     splitterRawOutput = await runSplitterAttempt(recoveryPrompt)
     subtasks = parseSplitterOutput(splitterRawOutput)
   }
@@ -827,11 +1127,23 @@ async function executeSplitterNode(
       timestamp: Date.now(),
     }
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
-  const shouldFallbackToHeuristic = subtasks.length === 0
-    || (maxBranches > 1 && shouldRetrySplitter(subtasks, splitterRawOutput, context.incomingContent, maxBranches))
+  const shouldFallbackToHeuristic =
+    subtasks.length === 0 ||
+    (maxBranches > 1 &&
+      shouldRetrySplitter(
+        subtasks,
+        splitterRawOutput,
+        context.incomingContent,
+        maxBranches,
+      ))
   if (shouldFallbackToHeuristic) {
     subtasks = heuristicSplitInput(context.incomingContent, maxBranches)
     const entry = {
@@ -840,7 +1152,12 @@ async function executeSplitterNode(
       timestamp: Date.now(),
     }
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
   const totalSubtasks = subtasks.length
@@ -852,7 +1169,12 @@ async function executeSplitterNode(
       timestamp: Date.now(),
     }
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
   state.metrics = {
@@ -869,7 +1191,11 @@ async function executeSplitterNode(
     splitterProviderSessionId,
   )
 
-  const collapsed = collapseSplitterExpansion(context.runtimeWorkflow, context.workflow, node.id)
+  const collapsed = collapseSplitterExpansion(
+    context.runtimeWorkflow,
+    context.workflow,
+    node.id,
+  )
   let nextRuntimeWorkflow = collapsed.workflow
   const removedCloneIds = collapsed.removedIds
   for (const id of removedCloneIds) {
@@ -880,10 +1206,22 @@ async function executeSplitterNode(
   nextRuntimeWorkflow = expanded
 
   const newNodeIds: string[] = []
-  const runtimeMeta: Record<string, { subtaskKey: string; branchIndex: number; totalBranches: number; templateId: string }> = {}
+  const runtimeMeta: Record<
+    string,
+    {
+      subtaskKey: string
+      branchIndex: number
+      totalBranches: number
+      templateId: string
+    }
+  > = {}
   for (const runtimeNode of expanded.nodes) {
     if (!context.nodeStates[runtimeNode.id]) {
-      context.nodeStates[runtimeNode.id] = { status: "pending", attempts: 0, log: [] }
+      context.nodeStates[runtimeNode.id] = {
+        status: "pending",
+        attempts: 0,
+        log: [],
+      }
       newNodeIds.push(runtimeNode.id)
       if (expanded.runtimeMeta[runtimeNode.id]) {
         runtimeMeta[runtimeNode.id] = {
@@ -901,12 +1239,15 @@ async function executeSplitterNode(
     runId: context.runId,
     newNodeIds,
     runtimeMeta,
-    nodes: expanded.nodes.map((runtimeNode) => ({
-      id: runtimeNode.id,
-      type: runtimeNode.type,
-      position: runtimeNode.position,
-      config: runtimeNode.config,
-    }) as WorkflowNode),
+    nodes: expanded.nodes.map(
+      (runtimeNode) =>
+        ({
+          id: runtimeNode.id,
+          type: runtimeNode.type,
+          position: runtimeNode.position,
+          config: runtimeNode.config,
+        }) as WorkflowNode,
+    ),
     edges: expanded.edges.map((edge) => ({
       id: edge.id,
       source: edge.source,
@@ -916,11 +1257,15 @@ async function executeSplitterNode(
   })
 
   return {
-    output: context.helpers.createNodeOutput(node, JSON.stringify(usedSubtasks), {
-      splitter_total_subtasks: totalSubtasks,
-      splitter_used_subtasks: usedSubtasks.length,
-      splitter_truncated: totalSubtasks > usedSubtasks.length,
-    }),
+    output: context.helpers.createNodeOutput(
+      node,
+      JSON.stringify(usedSubtasks),
+      {
+        splitter_total_subtasks: totalSubtasks,
+        splitter_used_subtasks: usedSubtasks.length,
+        splitter_truncated: totalSubtasks > usedSubtasks.length,
+      },
+    ),
     runtimeWorkflow: nextRuntimeWorkflow,
   }
 }
@@ -931,7 +1276,9 @@ async function executeMergerNode(
   const node = context.node
   const state = context.state
   const mergerConfig = node.config as MergerNodeConfig
-  const incomingEdges = context.runtimeWorkflow.edges.filter((edge) => edge.target === node.id)
+  const incomingEdges = context.runtimeWorkflow.edges.filter(
+    (edge) => edge.target === node.id,
+  )
   const branchOutputs: NodeInput[] = []
   for (const edge of incomingEdges) {
     const sourceState = context.nodeStates[edge.source]
@@ -941,7 +1288,9 @@ async function executeMergerNode(
     throw new Error("Merger has no branch outputs to combine")
   }
 
-  const failedBranches = incomingEdges.filter((edge) => context.nodeStates[edge.source]?.status === "failed")
+  const failedBranches = incomingEdges.filter(
+    (edge) => context.nodeStates[edge.source]?.status === "failed",
+  )
   if (failedBranches.length > 0) {
     const entry = {
       type: "text" as const,
@@ -949,32 +1298,54 @@ async function executeMergerNode(
       timestamp: Date.now(),
     }
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
   if (mergerConfig.strategy === "concatenate") {
     await context.beginNodeExecution()
-    const mergerModel = context.workflow.defaults?.model || context.helpers.getDefaultModelForProvider(context.workflowProviderId)
+    const mergerModel =
+      context.workflow.defaults?.model ||
+      context.helpers.getDefaultModelForProvider(context.workflowProviderId)
     state.metrics = {
       tokens_in: 0,
       tokens_out: 0,
       cost_usd: 0,
       latency_ms: Date.now() - state.startedAt!,
     }
-    state.meta = context.helpers.buildNodeMeta("[merger concatenate]", mergerModel)
+    state.meta = context.helpers.buildNodeMeta(
+      "[merger concatenate]",
+      mergerModel,
+    )
     return {
-      output: context.helpers.createNodeOutput(node, mergeResults(branchOutputs, "concatenate")),
+      output: context.helpers.createNodeOutput(
+        node,
+        mergeResults(branchOutputs, "concatenate"),
+      ),
     }
   }
 
   const mergePrompt = context.helpers.sanitizeInvalidUnicode(
-    buildMergerPrompt(branchOutputs, mergerConfig.strategy, mergerConfig.prompt),
+    buildMergerPrompt(
+      branchOutputs,
+      mergerConfig.strategy,
+      mergerConfig.prompt,
+    ),
   )
   const logParser = new LogParser()
   let mergerStderr = ""
   const mergerProviderId = context.workflowProviderId
-  const mergerModel = context.workflow.defaults?.model || context.helpers.getDefaultModelForProvider(mergerProviderId)
-  const mergerResumeSessionId = context.helpers.getClaudeResumeSessionId(mergerProviderId, state)
+  const mergerModel =
+    context.workflow.defaults?.model ||
+    context.helpers.getDefaultModelForProvider(mergerProviderId)
+  const mergerResumeSessionId = context.helpers.getClaudeResumeSessionId(
+    mergerProviderId,
+    state,
+  )
 
   const result = await context.helpers.spawnProviderTracked(
     mergerProviderId,
@@ -1014,32 +1385,63 @@ async function executeMergerNode(
       onLogEntry: async (entry) => {
         logParser.appendEntry(entry)
         state.log.push(entry)
-        await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+        await context.runtime.emitEvent({
+          type: "node-log",
+          runId: context.runId,
+          nodeId: node.id,
+          entry,
+        })
       },
       onUsage: (usage) => {
         logParser.applyUsage(usage)
       },
       onStderr: async (text) => {
         mergerStderr += text
-        const entry = { type: "error" as const, content: text, timestamp: Date.now() }
+        const entry = {
+          type: "error" as const,
+          content: text,
+          timestamp: Date.now(),
+        }
         state.log.push(entry)
-        await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+        await context.runtime.emitEvent({
+          type: "node-log",
+          runId: context.runId,
+          nodeId: node.id,
+          entry,
+        })
       },
     },
   )
 
   for (const entry of logParser.flush()) {
     state.log.push(entry)
-    await context.runtime.emitEvent({ type: "node-log", runId: context.runId, nodeId: node.id, entry })
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry,
+    })
   }
 
   if (!result.success && !context.runtime.controller.signal.aborted) {
-    const detail = context.helpers.buildAgentFailureDetail(mergerProviderId, result, logParser, mergerStderr)
+    const detail = context.helpers.buildAgentFailureDetail(
+      mergerProviderId,
+      result,
+      logParser,
+      mergerStderr,
+    )
     throw new Error(`Merger failed: ${detail}`)
   }
 
-  const mergerMetrics = context.helpers.collectMetrics(logParser, state.startedAt!)
-  mergerMetrics.cost_usd = context.helpers.estimateCost(mergerModel, mergerMetrics.tokens_in, mergerMetrics.tokens_out)
+  const mergerMetrics = context.helpers.collectMetrics(
+    logParser,
+    state.startedAt!,
+  )
+  mergerMetrics.cost_usd = context.helpers.estimateCost(
+    mergerModel,
+    mergerMetrics.tokens_in,
+    mergerMetrics.tokens_out,
+  )
   state.metrics = mergerMetrics
   state.meta = context.helpers.buildNodeMeta(
     mergePrompt,
@@ -1061,7 +1463,9 @@ async function executeApprovalNode(
   await context.beginNodeExecution()
   const approvalConfig = node.config as ApprovalNodeConfig
   state.status = "waiting_approval"
-  const approvalContent = approvalConfig.show_content ? context.incomingContent : ""
+  const approvalContent = approvalConfig.show_content
+    ? context.incomingContent
+    : ""
   let decision = await readApprovalDecision(context.workspace, node.id)
   const approvalTask = !decision
     ? await upsertApprovalHilTask({
@@ -1157,9 +1561,13 @@ async function executeApprovalNode(
       await markWorkflowHilTaskConsumed(context.workspace, approvalTask.taskId)
     }
     return {
-      output: context.helpers.createNodeOutput(node, decision.editedContent ?? context.incomingContent, {
-        ...context.helpers.pickPassThroughMetadata(context.incomingInput),
-      }),
+      output: context.helpers.createNodeOutput(
+        node,
+        decision.editedContent ?? context.incomingContent,
+        {
+          ...context.helpers.pickPassThroughMetadata(context.incomingInput),
+        },
+      ),
     }
   }
 
@@ -1168,7 +1576,12 @@ async function executeApprovalNode(
   state.error = decision.timedOut
     ? `Approval timed out (${approvalConfig.timeout_action ?? "auto_reject"})`
     : "Rejected by user"
-  await context.runtime.emitEvent({ type: "node-error", runId: context.runId, nodeId: node.id, error: state.error })
+  await context.runtime.emitEvent({
+    type: "node-error",
+    runId: context.runId,
+    nodeId: node.id,
+    error: state.error,
+  })
   if (approvalTask) {
     await markWorkflowHilTaskConsumed(context.workspace, approvalTask.taskId)
   }
@@ -1186,10 +1599,17 @@ async function executeHumanNode(
   await context.beginNodeExecution()
   const humanConfig = node.config as HumanNodeConfig
   state.status = "waiting_human"
-  const resolvedTask = await context.helpers.readHumanTaskResponse(context.workspace, node.id)
+  const resolvedTask = await context.helpers.readHumanTaskResponse(
+    context.workspace,
+    node.id,
+  )
 
   if (!resolvedTask) {
-    const taskRequest = context.helpers.buildHumanTaskRequest(node, humanConfig, context.incomingContent)
+    const taskRequest = context.helpers.buildHumanTaskRequest(
+      node,
+      humanConfig,
+      context.incomingContent,
+    )
     const taskRecord = await upsertHumanHilTask({
       workspace: context.workspace,
       runId: context.runId,
@@ -1231,38 +1651,44 @@ async function executeHumanNode(
 
   state.humanTask = {
     taskId: resolvedTask.taskId,
-    status: resolvedTask.resolution === "submitted"
-      ? "answered"
-      : resolvedTask.resolution,
+    status:
+      resolvedTask.resolution === "submitted"
+        ? "answered"
+        : resolvedTask.resolution,
   }
 
-  const buildHumanEnvelope = (ok: boolean) => context.helpers.createNodeOutput(
-    node,
-    JSON.stringify({
-      ok,
-      taskId: resolvedTask.taskId,
-      resolution: resolvedTask.resolution,
-      answers: resolvedTask.answers,
-    }, null, 2),
-    {
-      ...context.helpers.pickPassThroughMetadata(context.incomingInput),
-    },
-  )
+  const buildHumanEnvelope = (ok: boolean) =>
+    context.helpers.createNodeOutput(
+      node,
+      JSON.stringify(
+        {
+          ok,
+          taskId: resolvedTask.taskId,
+          resolution: resolvedTask.resolution,
+          answers: resolvedTask.answers,
+        },
+        null,
+        2,
+      ),
+      {
+        ...context.helpers.pickPassThroughMetadata(context.incomingInput),
+      },
+    )
 
   if (resolvedTask.resolution === "submitted") {
     await markWorkflowHilTaskConsumed(context.workspace, resolvedTask.taskId)
     return { output: buildHumanEnvelope(true) }
   }
   if (
-    resolvedTask.resolution === "rejected"
-    && humanConfig.rejectAction === "complete_with_reject_response"
+    resolvedTask.resolution === "rejected" &&
+    humanConfig.rejectAction === "complete_with_reject_response"
   ) {
     await markWorkflowHilTaskConsumed(context.workspace, resolvedTask.taskId)
     return { output: buildHumanEnvelope(false) }
   }
   if (
-    resolvedTask.resolution === "timed_out"
-    && humanConfig.timeoutAction === "complete_with_timeout_response"
+    resolvedTask.resolution === "timed_out" &&
+    humanConfig.timeoutAction === "complete_with_timeout_response"
   ) {
     await markWorkflowHilTaskConsumed(context.workspace, resolvedTask.taskId)
     return { output: buildHumanEnvelope(false) }
@@ -1270,10 +1696,16 @@ async function executeHumanNode(
 
   state.status = "failed"
   state.completedAt = Date.now()
-  state.error = resolvedTask.resolution === "timed_out"
-    ? "Human task timed out"
-    : "Rejected by human reviewer"
-  await context.runtime.emitEvent({ type: "node-error", runId: context.runId, nodeId: node.id, error: state.error })
+  state.error =
+    resolvedTask.resolution === "timed_out"
+      ? "Human task timed out"
+      : "Rejected by human reviewer"
+  await context.runtime.emitEvent({
+    type: "node-error",
+    runId: context.runId,
+    nodeId: node.id,
+    error: state.error,
+  })
   await markWorkflowHilTaskConsumed(context.workspace, resolvedTask.taskId)
   return { shortCircuit: true }
 }
@@ -1299,6 +1731,8 @@ export async function executeNodeByType(
     case "output":
       return executeOutputNode(context)
     default:
-      throw new Error(`Node executor not yet extracted for ${context.node.type}`)
+      throw new Error(
+        `Node executor not yet extracted for ${context.node.type}`,
+      )
   }
 }

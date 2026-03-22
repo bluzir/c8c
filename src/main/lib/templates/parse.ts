@@ -1,4 +1,8 @@
 import YAML from "yaml"
+import {
+  formatSchemaValidationError,
+  templateDocumentSchema,
+} from "@shared/workflow-schemas"
 import type {
   ArtifactContract,
   ExecutionPolicyTag,
@@ -27,7 +31,7 @@ interface FlatExecutionPolicyProfile {
   summary?: string
   description?: string
   tags?: ExecutionPolicyTag[]
-  notes?: string[]
+  notes?: Array<string | Record<string, string>>
 }
 
 interface FlatTemplate {
@@ -71,7 +75,9 @@ type TemplateOverrides = Partial<
   >
 >
 
-function normalizePackMetadata(pack?: FlatTemplatePackMetadata): WorkflowTemplatePackMetadata | undefined {
+function normalizePackMetadata(
+  pack?: FlatTemplatePackMetadata,
+): WorkflowTemplatePackMetadata | undefined {
   if (!pack) return undefined
   return {
     id: pack.id,
@@ -82,18 +88,36 @@ function normalizePackMetadata(pack?: FlatTemplatePackMetadata): WorkflowTemplat
   }
 }
 
-function normalizeExecutionPolicy(policy?: FlatExecutionPolicyProfile): WorkflowExecutionPolicyProfile | undefined {
+function normalizeExecutionPolicy(
+  policy?: FlatExecutionPolicyProfile,
+): WorkflowExecutionPolicyProfile | undefined {
   if (!policy) return undefined
   return {
     profileId: policy.profileId ?? policy.profile_id,
     summary: policy.summary,
     description: policy.description,
     tags: policy.tags,
-    notes: policy.notes,
+    notes: policy.notes?.map((note) =>
+      typeof note === "string"
+        ? note
+        : Object.entries(note)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(" "),
+    ),
   }
 }
 
-export function parseTemplate(raw: string, overrides: TemplateOverrides = {}): WorkflowTemplate {
+export function parseTemplate(
+  raw: string,
+  overrides: TemplateOverrides = {},
+): WorkflowTemplate {
+  const parsed = templateDocumentSchema.safeParse(YAML.parse(raw))
+  if (!parsed.success) {
+    throw new Error(
+      formatSchemaValidationError("Invalid template YAML", parsed.error),
+    )
+  }
+
   const {
     id,
     stage,
@@ -114,7 +138,7 @@ export function parseTemplate(raw: string, overrides: TemplateOverrides = {}): W
     execution_policy,
     credits,
     ...workflow
-  } = YAML.parse(raw) as FlatTemplate
+  } = parsed.data as FlatTemplate
   return {
     id: overrides.id || id,
     name: workflow.name,
@@ -130,7 +154,9 @@ export function parseTemplate(raw: string, overrides: TemplateOverrides = {}): W
     pack: normalizePackMetadata(pack),
     contractIn: contractIn ?? contract_in,
     contractOut: contractOut ?? contract_out,
-    executionPolicy: normalizeExecutionPolicy(executionPolicy ?? execution_policy),
+    executionPolicy: normalizeExecutionPolicy(
+      executionPolicy ?? execution_policy,
+    ),
     credits,
     workflow,
     ...overrides,

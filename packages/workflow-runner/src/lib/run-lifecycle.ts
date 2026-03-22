@@ -1,6 +1,11 @@
 import { findReadyNodes, isRunComplete } from "./graph-engine.js"
 import type { RuntimeWorkflow } from "./runtime-graph.js"
-import type { NodeInput, NodeState, RunStatus, WorkflowEvent } from "../schema.js"
+import type {
+  NodeInput,
+  NodeState,
+  RunStatus,
+  WorkflowEvent,
+} from "../schema.js"
 
 export interface NodeLifecycleEffect {
   suspendedForApproval?: boolean
@@ -22,7 +27,7 @@ export interface RunExecutionLoopParams {
   runId: string
   controller: AbortController
   nodeStates: Record<string, NodeState>
-  runtimeWorkflow: RuntimeWorkflow
+  getRuntimeWorkflow: () => RuntimeWorkflow
   activatedEdges: Set<string>
   maxParallel: number
   stallTimeoutMs: number
@@ -53,7 +58,9 @@ export function applyNodeLifecycleEffect(
   if (effect.blockedByNodeId) state.blockedByNodeId = effect.blockedByNodeId
 }
 
-export async function runExecutionLoop(params: RunExecutionLoopParams): Promise<RunLifecycleState> {
+export async function runExecutionLoop(
+  params: RunExecutionLoopParams,
+): Promise<RunLifecycleState> {
   const lifecycle = createInitialRunLifecycleState()
   const runningPromises = new Map<string, Promise<void>>()
   let activeSplitterNodeId: string | null = null
@@ -62,9 +69,18 @@ export async function runExecutionLoop(params: RunExecutionLoopParams): Promise<
   while (!params.controller.signal.aborted) {
     await params.waitIfPaused(params.runId, params.controller.signal)
     if (params.controller.signal.aborted) break
-    if ((lifecycle.suspendedForApproval || lifecycle.blockedForHuman) && runningPromises.size === 0) break
+    if (
+      (lifecycle.suspendedForApproval || lifecycle.blockedForHuman) &&
+      runningPromises.size === 0
+    )
+      break
 
-    const readyNodes = findReadyNodes(params.runtimeWorkflow, params.nodeStates, params.activatedEdges)
+    const runtimeWorkflow = params.getRuntimeWorkflow()
+    const readyNodes = findReadyNodes(
+      runtimeWorkflow,
+      params.nodeStates,
+      params.activatedEdges,
+    )
     const newReady = readyNodes.filter((node) => !runningPromises.has(node.id))
     if (newReady.length === 0 && runningPromises.size === 0) break
 
@@ -81,11 +97,16 @@ export async function runExecutionLoop(params: RunExecutionLoopParams): Promise<
 
       if (params.nodeStates[node.id]?.status === "pending") {
         params.nodeStates[node.id].status = "queued"
-        await params.emitEvent({ type: "node-queued", runId: params.runId, nodeId: node.id })
+        await params.emitEvent({
+          type: "node-queued",
+          runId: params.runId,
+          nodeId: node.id,
+        })
       }
 
       if (node.type === "splitter") activeSplitterNodeId = node.id
-      const promise = params.processNode(node.id)
+      const promise = params
+        .processNode(node.id)
         .then((effect) => {
           applyNodeLifecycleEffect(lifecycle, effect)
         })
@@ -104,11 +125,16 @@ export async function runExecutionLoop(params: RunExecutionLoopParams): Promise<
         for (const stalledNodeId of runningPromises.keys()) {
           const stalledState = params.nodeStates[stalledNodeId]
           if (!stalledState) continue
-          const stallError = `${params.describeStalledNode(stalledNodeId)} stopped responding after ${Math.round(((stalledState.startedAt ? Date.now() - stalledState.startedAt : Date.now() - lastProgressAt)) / 60_000)} minutes. Run was stopped.`
+          const stallError = `${params.describeStalledNode(stalledNodeId)} stopped responding after ${Math.round((stalledState.startedAt ? Date.now() - stalledState.startedAt : Date.now() - lastProgressAt) / 60_000)} minutes. Run was stopped.`
           stalledState.status = "failed"
           stalledState.completedAt = Date.now()
           stalledState.error = stallError
-          await params.emitEvent({ type: "node-error", runId: params.runId, nodeId: stalledNodeId, error: stallError })
+          await params.emitEvent({
+            type: "node-error",
+            runId: params.runId,
+            nodeId: stalledNodeId,
+            error: stallError,
+          })
         }
         params.controller.abort()
       }
@@ -127,11 +153,11 @@ export async function skipUnfinishedNodes(
 ): Promise<void> {
   for (const [nodeId, state] of Object.entries(nodeStates)) {
     if (
-      state.status === "pending"
-      || state.status === "queued"
-      || state.status === "running"
-      || state.status === "waiting_approval"
-      || state.status === "waiting_human"
+      state.status === "pending" ||
+      state.status === "queued" ||
+      state.status === "running" ||
+      state.status === "waiting_approval" ||
+      state.status === "waiting_human"
     ) {
       state.status = "skipped"
       await emitEvent({
@@ -150,15 +176,19 @@ export function deriveRunStatus(
   lifecycle: RunLifecycleState,
   aborted: boolean,
 ): RunStatus {
-  const criticalNodeFailed = Object.entries(nodeStates).some(([nodeId, state]) => {
-    if (state.status !== "failed") return false
-    if (runtimeWorkflow.runtimeMeta?.[nodeId]) return false
-    return true
-  })
+  const criticalNodeFailed = Object.entries(nodeStates).some(
+    ([nodeId, state]) => {
+      if (state.status !== "failed") return false
+      if (runtimeWorkflow.runtimeMeta?.[nodeId]) return false
+      return true
+    },
+  )
 
   if (lifecycle.blockedForHuman) return "blocked"
   if (lifecycle.suspendedForApproval) return "paused"
   if (lifecycle.approvalRejected) return "cancelled"
   if (aborted) return "cancelled"
-  return isRunComplete(nodeStates) && !criticalNodeFailed ? "completed" : "failed"
+  return isRunComplete(nodeStates) && !criticalNodeFailed
+    ? "completed"
+    : "failed"
 }

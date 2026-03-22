@@ -9,8 +9,10 @@
   "description": "Open-source skill operations for Claude Code",
   "main": "out/main/index.js",
   "scripts": {
-    "build:shared": "npm run build -w @claude-tools/mcp-search-proxy && npm run build -w @claude-tools/runner",
+    "build:shared": "node scripts/build-shared-if-needed.mjs",
+    "build:shared:force": "node scripts/build-shared-if-needed.mjs --force",
     "postinstall": "node scripts/patch-electron-name.js && node scripts/patch-acp-stack.mjs",
+    "prepare": "husky",
     "predev": "npm run build:shared",
     "dev": "electron-vite dev",
     "dev:telemetry": "C8C_TELEMETRY_LOCAL_TEST=1 electron-vite dev",
@@ -22,6 +24,11 @@
     "pretest": "npm run build:shared",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --max-warnings=0 --quiet --ignore-pattern '**/dist/**' --ignore-pattern '**/out/**' --ignore-pattern '**/coverage/**' --ignore-pattern '**/release/**'",
+    "lint:fix": "eslint . --fix --ignore-pattern '**/dist/**' --ignore-pattern '**/out/**' --ignore-pattern '**/coverage/**' --ignore-pattern '**/release/**'",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "canon:check": "node scripts/check-canon-vocabulary.mjs",
     "smoke:electron": "npm run build:test-mode && node scripts/run-electron-smoke.mjs",
     "smoke:electron:ci": "npm run build:test-mode && node scripts/run-electron-smoke.mjs --json --no-keep-artifacts-on-success",
@@ -63,25 +70,50 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "yaml": "^2.7.0"
+    "yaml": "^2.7.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
     "@electron-toolkit/preload": "^3.0.1",
-    "@types/d3-hierarchy": "^3.1.7",
     "@types/node": "^20.17.50",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^4.1.0",
     "autoprefixer": "^10.4.20",
     "electron": "~39.4.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
+    "eslint": "^9.38.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.14.0",
+    "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
+    "lint-staged": "^15.5.2",
     "postcss": "^8.5.1",
+    "prettier": "^3.6.2",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.4.5",
+    "typescript-eslint": "^8.46.2",
     "vite": "^6.3.4",
     "vitest": "^4.0.18"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,html,yaml,yml}": "prettier --write"
+  },
+  "overrides": {
+    "@types/node": "^20.17.50",
+    "typescript": "^5.4.5",
+    "vitest": "^4.0.18",
+    "zod": "^4.3.6"
   },
   "build": {
     "appId": "app.c8c",

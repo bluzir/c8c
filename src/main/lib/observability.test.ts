@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { classifyError, estimateCost, collectMetrics, buildNodeMeta } from "./observability"
+import {
+  classifyError,
+  estimateCost,
+  collectMetrics,
+  buildNodeMeta,
+} from "./observability"
 import { LogParser } from "./log-parser"
 
 describe("classifyError", () => {
@@ -8,11 +13,20 @@ describe("classifyError", () => {
   })
 
   it("classifies exit code errors as tool", () => {
-    expect(classifyError(new Error("Skill node failed: exit code 1"), false)).toBe("tool")
+    expect(
+      classifyError(new Error("Skill node failed: exit code 1"), false),
+    ).toBe("tool")
   })
 
   it("classifies null exit code (CLI not found) as tool", () => {
-    expect(classifyError(new Error("Skill node failed: Could not start Claude CLI — check that 'claude' is in your PATH and accessible"), false)).toBe("tool")
+    expect(
+      classifyError(
+        new Error(
+          "Skill node failed: Could not start Claude CLI — check that 'claude' is in your PATH and accessible",
+        ),
+        false,
+      ),
+    ).toBe("tool")
   })
 
   it("classifies ENOENT as tool", () => {
@@ -24,15 +38,25 @@ describe("classifyError", () => {
   })
 
   it("classifies unparseable output as model", () => {
-    expect(classifyError(new Error("Evaluator output unparseable"), false)).toBe("model")
+    expect(
+      classifyError(new Error("Evaluator output unparseable"), false),
+    ).toBe("model")
   })
 
   it("classifies empty output as model", () => {
-    expect(classifyError(new Error("empty output from Claude"), false)).toBe("model")
+    expect(classifyError(new Error("empty output from Claude"), false)).toBe(
+      "model",
+    )
   })
 
   it("classifies budget exceeded as policy", () => {
     expect(classifyError(new Error("budget exceeded"), false)).toBe("policy")
+  })
+
+  it("classifies network failures as network", () => {
+    expect(classifyError(new Error("fetch failed: ETIMEDOUT"), false)).toBe(
+      "network",
+    )
   })
 
   it("classifies rate limit as policy", () => {
@@ -40,20 +64,26 @@ describe("classifyError", () => {
   })
 
   it("classifies usage limit as policy", () => {
-    expect(classifyError(new Error("Claude usage limit reached"), false)).toBe("policy")
+    expect(classifyError(new Error("Claude usage limit reached"), false)).toBe(
+      "policy",
+    )
   })
 
   it("classifies skill errors that include usage limit as policy", () => {
     expect(
       classifyError(
-        new Error("Skill node failed: Claude usage limit reached: exceeded your usage limit"),
+        new Error(
+          "Skill node failed: Claude usage limit reached: exceeded your usage limit",
+        ),
         false,
       ),
     ).toBe("policy")
   })
 
   it("returns unknown for unrecognized errors", () => {
-    expect(classifyError(new Error("something unexpected"), false)).toBe("unknown")
+    expect(classifyError(new Error("something unexpected"), false)).toBe(
+      "unknown",
+    )
   })
 
   it("handles non-Error values", () => {
@@ -94,14 +124,18 @@ describe("estimateCost", () => {
 describe("collectMetrics", () => {
   it("extracts usage from log parser", () => {
     const parser = new LogParser()
-    parser.feed(JSON.stringify({
-      type: "message_start",
-      message: { usage: { input_tokens: 200, output_tokens: 0 } },
-    }))
-    parser.feed(JSON.stringify({
-      type: "message_delta",
-      usage: { output_tokens: 300 },
-    }))
+    parser.feed(
+      JSON.stringify({
+        type: "message_start",
+        message: { usage: { input_tokens: 200, output_tokens: 0 } },
+      }),
+    )
+    parser.feed(
+      JSON.stringify({
+        type: "message_delta",
+        usage: { output_tokens: 300 },
+      }),
+    )
 
     const metrics = collectMetrics(parser, Date.now() - 1500)
     expect(metrics.tokens_in).toBe(200)
@@ -113,7 +147,9 @@ describe("collectMetrics", () => {
 
   it("returns zeros when no usage events", () => {
     const parser = new LogParser()
-    parser.feed(JSON.stringify({ type: "assistant", subtype: "text", content: "hi" }))
+    parser.feed(
+      JSON.stringify({ type: "assistant", subtype: "text", content: "hi" }),
+    )
 
     const metrics = collectMetrics(parser, Date.now() - 100)
     expect(metrics.tokens_in).toBe(0)
@@ -130,14 +166,25 @@ describe("buildNodeMeta", () => {
   })
 
   it("includes skill_ref when provided", () => {
-    const meta = buildNodeMeta("Write content", "opus", "marketing/writer", "claude_sdk")
+    const meta = buildNodeMeta(
+      "Write content",
+      "opus",
+      "marketing/writer",
+      "claude_sdk",
+    )
     expect(meta.model_id).toBe("opus")
     expect(meta.skill_ref).toBe("marketing/writer")
     expect(meta.backend).toBe("claude_sdk")
   })
 
   it("includes provider_session_id when provided", () => {
-    const meta = buildNodeMeta("Resume this review", "sonnet", undefined, "claude_sdk", "session-123")
+    const meta = buildNodeMeta(
+      "Resume this review",
+      "sonnet",
+      undefined,
+      "claude_sdk",
+      "session-123",
+    )
     expect(meta.provider_session_id).toBe("session-123")
   })
 

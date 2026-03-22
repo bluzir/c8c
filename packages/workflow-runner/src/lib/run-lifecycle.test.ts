@@ -9,7 +9,10 @@ import {
 } from "./run-lifecycle"
 import type { RuntimeWorkflow } from "./runtime-graph"
 
-function state(status: NodeState["status"], overrides: Partial<NodeState> = {}): NodeState {
+function state(
+  status: NodeState["status"],
+  overrides: Partial<NodeState> = {},
+): NodeState {
   return {
     status,
     attempts: status === "completed" ? 1 : 0,
@@ -24,7 +27,12 @@ function createRuntimeWorkflow(): RuntimeWorkflow {
     name: "Test flow",
     nodes: [
       { id: "input", type: "input", position: { x: 0, y: 0 }, config: {} },
-      { id: "approve", type: "approval", position: { x: 100, y: 0 }, config: { message: "approve" } },
+      {
+        id: "approve",
+        type: "approval",
+        position: { x: 100, y: 0 },
+        config: { message: "approve" },
+      },
       { id: "report", type: "output", position: { x: 200, y: 0 }, config: {} },
     ],
     edges: [
@@ -68,7 +76,7 @@ describe("run-lifecycle", () => {
       runId: "run-1",
       controller: new AbortController(),
       nodeStates,
-      runtimeWorkflow,
+      getRuntimeWorkflow: () => runtimeWorkflow,
       activatedEdges: new Set(["e1"]),
       maxParallel: 4,
       stallTimeoutMs: 10_000,
@@ -85,7 +93,10 @@ describe("run-lifecycle", () => {
       emitEvent: async (event) => {
         events.push(event)
       },
-      buildSkippedOutput: (nodeId): NodeInput => ({ content: "", metadata: { source: nodeId, skipped: true } }),
+      buildSkippedOutput: (nodeId): NodeInput => ({
+        content: "",
+        metadata: { source: nodeId, skipped: true },
+      }),
       describeStalledNode: (nodeId) => `Node ${nodeId}`,
     })
 
@@ -112,7 +123,10 @@ describe("run-lifecycle", () => {
       async (event) => {
         events.push(event)
       },
-      (nodeId) => ({ content: "", metadata: { source: nodeId, skipped: true } }),
+      (nodeId) => ({
+        content: "",
+        metadata: { source: nodeId, skipped: true },
+      }),
     )
 
     expect(nodeStates.approve.status).toBe("skipped")
@@ -123,40 +137,82 @@ describe("run-lifecycle", () => {
   it("derives paused, blocked, cancelled, completed, and failed statuses from one contract", () => {
     const runtimeWorkflow = createRuntimeWorkflow()
 
-    expect(deriveRunStatus(
-      { input: state("completed"), approve: state("waiting_approval"), report: state("pending") },
-      runtimeWorkflow,
-      { suspendedForApproval: true, blockedForHuman: false, approvalRejected: false },
-      false,
-    )).toBe("paused")
+    expect(
+      deriveRunStatus(
+        {
+          input: state("completed"),
+          approve: state("waiting_approval"),
+          report: state("pending"),
+        },
+        runtimeWorkflow,
+        {
+          suspendedForApproval: true,
+          blockedForHuman: false,
+          approvalRejected: false,
+        },
+        false,
+      ),
+    ).toBe("paused")
 
-    expect(deriveRunStatus(
-      { input: state("completed"), approve: state("waiting_human"), report: state("pending") },
-      runtimeWorkflow,
-      { suspendedForApproval: false, blockedForHuman: true, approvalRejected: false },
-      false,
-    )).toBe("blocked")
+    expect(
+      deriveRunStatus(
+        {
+          input: state("completed"),
+          approve: state("waiting_human"),
+          report: state("pending"),
+        },
+        runtimeWorkflow,
+        {
+          suspendedForApproval: false,
+          blockedForHuman: true,
+          approvalRejected: false,
+        },
+        false,
+      ),
+    ).toBe("blocked")
 
-    expect(deriveRunStatus(
-      { input: state("completed"), approve: state("failed"), report: state("pending") },
-      runtimeWorkflow,
-      { suspendedForApproval: false, blockedForHuman: false, approvalRejected: true },
-      false,
-    )).toBe("cancelled")
+    expect(
+      deriveRunStatus(
+        {
+          input: state("completed"),
+          approve: state("failed"),
+          report: state("pending"),
+        },
+        runtimeWorkflow,
+        {
+          suspendedForApproval: false,
+          blockedForHuman: false,
+          approvalRejected: true,
+        },
+        false,
+      ),
+    ).toBe("cancelled")
 
-    expect(deriveRunStatus(
-      { input: state("completed"), approve: state("completed"), report: state("completed") },
-      runtimeWorkflow,
-      createInitialRunLifecycleState(),
-      false,
-    )).toBe("completed")
+    expect(
+      deriveRunStatus(
+        {
+          input: state("completed"),
+          approve: state("completed"),
+          report: state("completed"),
+        },
+        runtimeWorkflow,
+        createInitialRunLifecycleState(),
+        false,
+      ),
+    ).toBe("completed")
 
-    expect(deriveRunStatus(
-      { input: state("completed"), approve: state("failed"), report: state("pending") },
-      runtimeWorkflow,
-      createInitialRunLifecycleState(),
-      false,
-    )).toBe("failed")
+    expect(
+      deriveRunStatus(
+        {
+          input: state("completed"),
+          approve: state("failed"),
+          report: state("pending"),
+        },
+        runtimeWorkflow,
+        createInitialRunLifecycleState(),
+        false,
+      ),
+    ).toBe("failed")
   })
 
   it("ignores failed runtime clone branches when deciding overall run completion", () => {
@@ -173,16 +229,18 @@ describe("run-lifecycle", () => {
       },
     }
 
-    expect(deriveRunStatus(
-      {
-        input: state("completed"),
-        approve: state("completed"),
-        report: state("completed"),
-        "approve::branch-1": state("failed"),
-      },
-      runtimeWorkflow,
-      createInitialRunLifecycleState(),
-      false,
-    )).toBe("completed")
+    expect(
+      deriveRunStatus(
+        {
+          input: state("completed"),
+          approve: state("completed"),
+          report: state("completed"),
+          "approve::branch-1": state("failed"),
+        },
+        runtimeWorkflow,
+        createInitialRunLifecycleState(),
+        false,
+      ),
+    ).toBe("completed")
   })
 })

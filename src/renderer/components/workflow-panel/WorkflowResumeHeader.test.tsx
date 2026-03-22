@@ -1,0 +1,100 @@
+// @vitest-environment jsdom
+
+import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { describe, expect, it, vi } from "vitest"
+import { WorkflowResumeHeader } from "./WorkflowPanelInlineSections"
+
+const baseEntry = {
+  workflowPath: "/tmp/project/.c8c/ship.chain",
+  workflowName: "Ship flow",
+  source: "template" as const,
+  title: "Ship flow",
+  summary: "Ship the release",
+  contractLabel: "Requested result",
+  contractText: "Shipped release",
+  inputText: "Verification report",
+  outputText: "Release decision",
+  readinessText: "Ready to continue",
+  routing: {
+    source: "agent" as const,
+    reason: "Best next step for the current result.",
+  },
+}
+
+describe("WorkflowResumeHeader", () => {
+  it("renders resume copy for ready saved work and fires the primary action", async () => {
+    const user = userEvent.setup()
+    const onPrimaryAction = vi.fn()
+
+    render(
+      <WorkflowResumeHeader
+        entry={baseEntry}
+        displayTitle="Ship flow"
+        readyToRun
+        startApprovalRequired={false}
+        stageLabel="Verify"
+        resumeSummary={{
+          workLabel: "Verification",
+          currentStepLabel: "Verify",
+          readyBecauseText: "Ready because Verification Report is saved.",
+          checksText: "No blocking checks or approvals.",
+          attachText: "Verification Report",
+          latestResultText: "Latest result: Verification Report.",
+          continueLabel: "Continue to Verify",
+          primaryArtifact: null,
+        }}
+        blockedResumeSummary={null}
+        nextStepLabel="Continue to Verify."
+        inputLabels={[]}
+        onPrimaryAction={onPrimaryAction}
+        primaryActionLabel="Continue"
+      />,
+    )
+
+    expect(screen.getByText("Saved work · Verify")).toBeTruthy()
+    expect(screen.getByText("Continue to Verify.")).toBeTruthy()
+    expect(
+      screen.getByText("Status: No blocking checks or approvals."),
+    ).toBeTruthy()
+
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    expect(onPrimaryAction).toHaveBeenCalledTimes(1)
+  })
+
+  it("renders blocked resume details when a saved step is waiting on approval", () => {
+    render(
+      <WorkflowResumeHeader
+        entry={baseEntry}
+        displayTitle="Ship flow"
+        readyToRun={false}
+        startApprovalRequired
+        stageLabel="Ship"
+        resumeSummary={null}
+        blockedResumeSummary={{
+          workLabel: "Release",
+          currentStepLabel: "Ship",
+          statusText: "Approval is still required before Ship can continue.",
+          reasonText: "Legal review required.",
+          attachText: "Verification Report",
+          latestResultText: "Previous: Verification Report",
+          findings: [],
+          primaryArtifact: null,
+          primaryActionLabel: "Open task",
+        }}
+        nextStepLabel="Review the result."
+        inputLabels={[]}
+        onPrimaryAction={() => undefined}
+        primaryActionLabel="Open task"
+      />,
+    )
+
+    expect(
+      screen.getByText("Approval is still required before Ship can continue."),
+    ).toBeTruthy()
+    expect(
+      screen.getByText("Previous: Previous: Verification Report"),
+    ).toBeTruthy()
+    expect(screen.getByText("Status: Legal review required.")).toBeTruthy()
+  })
+})

@@ -16,7 +16,13 @@ import {
   toWorkflowExecutionKey,
   type ExecutionRunStatus,
 } from "@/lib/workflow-execution"
-import type { InputAttachment, PermissionMode, ProviderId, RunResult, Workflow } from "@shared/types"
+import type {
+  InputAttachment,
+  PermissionMode,
+  ProviderId,
+  RunResult,
+  Workflow,
+} from "@shared/types"
 import {
   DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
   prepareWorkflowForExecution,
@@ -54,7 +60,11 @@ interface UseExecutionCommandsArgs {
 type ExecutionStartWarningMode = "default" | "skip_token_budget"
 
 export function canStartManualContinuation(runStatus: ExecutionRunStatus) {
-  return runStatus !== "starting" && runStatus !== "running" && runStatus !== "cancelling"
+  return (
+    runStatus !== "starting" &&
+    runStatus !== "running" &&
+    runStatus !== "cancelling"
+  )
 }
 
 export function filterExecutionStartWarnings(
@@ -91,170 +101,205 @@ export function useExecutionCommands({
   const setProviderAvailability = useSetAtom(providerAvailabilityAtom)
   const setProviderAuthStatus = useSetAtom(providerAuthStatusAtom)
   const setValidationErrors = useSetAtom(validationErrorsAtom)
-  const recordExecutionError = useCallback((title: string, description?: string) => {
-    addNotification({
-      title,
-      description,
-      level: "error",
-      source: "workflow",
-    })
-  }, [addNotification])
-  const stopLateStartedRun = useCallback(async (startedRunId: string, title: string) => {
-    const description = "Run started after the UI had already cancelled or rolled back start. It may still be running in the background."
-
-    try {
-      const cancelled = await withIpcTimeout(
-        window.api.cancelRun(startedRunId),
-        DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Late-started run cancel timed out. Check the main flow and try again.",
-      )
-      if (cancelled) return
-    } catch (error) {
-      console.warn("[useChainExecution] late-started run cancel failed:", error)
-    }
-
-    toastError(title, {
-      description,
-    })
-    recordExecutionError(title, description)
-  }, [recordExecutionError])
-
-  const preflightExecutionStart = useCallback(async (
-    workflowForRun: Workflow,
-    fallbackTitle: string,
-    options?: {
-      warningMode?: ExecutionStartWarningMode
+  const recordExecutionError = useCallback(
+    (title: string, description?: string) => {
+      addNotification({
+        title,
+        description,
+        level: "error",
+        source: "workflow",
+      })
     },
-  ): Promise<{ effectiveProvider: ProviderId } | null> => {
-    try {
-      const preflight = await loadExecutionStartPreflight(window.api, workflowForRun)
-      setProviderSettings(preflight.snapshot.diagnostics.settings)
-      setProviderAvailability(preflight.snapshot.diagnostics.health)
-      setProviderAuthStatus(preflight.snapshot.diagnostics.auth)
+    [addNotification],
+  )
+  const stopLateStartedRun = useCallback(
+    async (startedRunId: string, title: string) => {
+      const description =
+        "Run started after the UI had already cancelled or rolled back start. It may still be running in the background."
 
-      if (!preflight.ok) {
-        const title = formatExecutionPreflightTitle(preflight.effectiveProvider, preflight.reason) || fallbackTitle
-        toastError(title, {
-          description: preflight.message,
-        })
-        recordExecutionError(title, preflight.message)
-        return null
+      try {
+        const cancelled = await withIpcTimeout(
+          window.api.cancelRun(startedRunId),
+          DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+          "Late-started run cancel timed out. Check the main flow and try again.",
+        )
+        if (cancelled) return
+      } catch (error) {
+        console.warn(
+          "[useChainExecution] late-started run cancel failed:",
+          error,
+        )
       }
 
-      // Surface non-blocking warnings (e.g. token budget) before proceeding
-      const visibleWarnings = filterExecutionStartWarnings(
-        preflight.warnings,
-        options?.warningMode ?? "default",
-      )
-      if (visibleWarnings.length > 0 && onPreflightWarningsRef.current) {
-        const confirmed = await onPreflightWarningsRef.current(visibleWarnings)
-        if (!confirmed) return null
-      }
+      toastError(title, {
+        description,
+      })
+      recordExecutionError(title, description)
+    },
+    [recordExecutionError],
+  )
 
-      return {
-        effectiveProvider: preflight.effectiveProvider,
-      }
-    } catch (error) {
-      console.warn("[useChainExecution] execution preflight failed:", error)
-      return {
-        effectiveProvider: resolveEffectiveExecutionProvider(workflowForRun, providerSettings),
-      }
-    }
-  }, [
-    providerSettings,
-    recordExecutionError,
-    setProviderAuthStatus,
-    setProviderAvailability,
-    setProviderSettings,
-  ])
-
-  const run = useCallback(async (executionMode: PermissionMode = "edit") => {
-    if (isRunInFlight(runStatus)) return
-    if (!workflow.nodes.length) return
-
-    const resolvedInput = resolveExecutionInput(workflow, inputValue)
-    if (!resolvedInput.valid) return
-
-    const assembledValue = await assembleInputWithAttachments(
-      resolvedInput.value,
-      resolvedInput.type !== "text" ? requestedResult : "",
-      attachments,
-      selectedProject,
-      {
-        readFileContent: window.api.readFileContent,
-        loadRunResult: window.api.loadRunResult,
+  const preflightExecutionStart = useCallback(
+    async (
+      workflowForRun: Workflow,
+      fallbackTitle: string,
+      options?: {
+        warningMode?: ExecutionStartWarningMode
       },
-    )
+    ): Promise<{ effectiveProvider: ProviderId } | null> => {
+      try {
+        const preflight = await loadExecutionStartPreflight(
+          window.api,
+          workflowForRun,
+        )
+        setProviderSettings(preflight.snapshot.diagnostics.settings)
+        setProviderAvailability(preflight.snapshot.diagnostics.health)
+        setProviderAuthStatus(preflight.snapshot.diagnostics.auth)
 
-    const { workflowForRun, workflowForExecution } = prepareWorkflowForExecution(
-      workflow,
-      webSearchBackend,
-      executionMode,
-    )
-    const preflight = await preflightExecutionStart(workflowForRun, "Could not start run")
-    if (!preflight) return
-    const startHandle = controller.beginExecution(
-      workflowForRun,
-      selectedWorkflowPath ?? null,
-      selectedProject ?? null,
-    )
-    setActiveExecutionProvider(preflight.effectiveProvider)
-
-    try {
-      const result = await withIpcTimeout(
-        window.api.runChain(
-          workflowForExecution,
-          { type: resolvedInput.type, value: assembledValue },
-          selectedProject ?? undefined,
-          selectedWorkflowPath ?? undefined,
-          webSearchBackend,
-        ),
-        DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Run start timed out. Check the main flow and try again.",
-      )
-
-      const { startedRunId, errorMessage, validationIssues } = resolveExecutionStartResult(
-        result,
-        "No active window is available for execution.",
-      )
-
-      if (!startedRunId) {
-        if (validationIssues.length > 0) {
-          setValidationErrors(groupValidationIssuesByNode(validationIssues))
+        if (!preflight.ok) {
+          const title =
+            formatExecutionPreflightTitle(
+              preflight.effectiveProvider,
+              preflight.reason,
+            ) || fallbackTitle
+          toastError(title, {
+            description: preflight.message,
+          })
+          recordExecutionError(title, preflight.message)
+          return null
         }
-        toastError("Could not start run", {
-          description: errorMessage || undefined,
-        })
-        recordExecutionError("Could not start run", errorMessage || undefined)
+
+        // Surface non-blocking warnings (e.g. token budget) before proceeding
+        const visibleWarnings = filterExecutionStartWarnings(
+          preflight.warnings,
+          options?.warningMode ?? "default",
+        )
+        if (visibleWarnings.length > 0 && onPreflightWarningsRef.current) {
+          const confirmed =
+            await onPreflightWarningsRef.current(visibleWarnings)
+          if (!confirmed) return null
+        }
+
+        return {
+          effectiveProvider: preflight.effectiveProvider,
+        }
+      } catch (error) {
+        console.warn("[useChainExecution] execution preflight failed:", error)
+        return {
+          effectiveProvider: resolveEffectiveExecutionProvider(
+            workflowForRun,
+            providerSettings,
+          ),
+        }
+      }
+    },
+    [
+      providerSettings,
+      recordExecutionError,
+      setProviderAuthStatus,
+      setProviderAvailability,
+      setProviderSettings,
+    ],
+  )
+
+  const run = useCallback(
+    async (executionMode: PermissionMode = "edit") => {
+      if (isRunInFlight(runStatus)) return
+      if (!workflow.nodes.length) return
+
+      const resolvedInput = resolveExecutionInput(workflow, inputValue)
+      if (!resolvedInput.valid) return
+
+      const assembledValue = await assembleInputWithAttachments(
+        resolvedInput.value,
+        resolvedInput.type !== "text" ? requestedResult : "",
+        attachments,
+        selectedProject,
+        {
+          readFileContent: window.api.readFileContent,
+          loadRunResult: window.api.loadRunResult,
+        },
+      )
+
+      const { workflowForRun, workflowForExecution } =
+        prepareWorkflowForExecution(workflow, webSearchBackend, executionMode)
+      const preflight = await preflightExecutionStart(
+        workflowForRun,
+        "Could not start run",
+      )
+      if (!preflight) return
+      const startHandle = controller.beginExecution(
+        workflowForRun,
+        selectedWorkflowPath ?? null,
+        selectedProject ?? null,
+      )
+      if (!startHandle) return
+      setActiveExecutionProvider(preflight.effectiveProvider)
+
+      try {
+        const result = await withIpcTimeout(
+          window.api.runChain(
+            workflowForExecution,
+            { type: resolvedInput.type, value: assembledValue },
+            selectedProject ?? undefined,
+            selectedWorkflowPath ?? undefined,
+            webSearchBackend,
+          ),
+          DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+          "Run start timed out. Check the main flow and try again.",
+        )
+
+        const { startedRunId, errorMessage, validationIssues } =
+          resolveExecutionStartResult(
+            result,
+            "No active window is available for execution.",
+          )
+
+        if (!startedRunId) {
+          if (validationIssues.length > 0) {
+            setValidationErrors(groupValidationIssuesByNode(validationIssues))
+          }
+          toastError("Could not start run", {
+            description: errorMessage || undefined,
+          })
+          recordExecutionError("Could not start run", errorMessage || undefined)
+          controller.rollbackExecutionStart(startHandle)
+          return
+        }
+        const finishResult = controller.finishStartWithRunId(
+          startedRunId,
+          startHandle,
+        )
+        if (!finishResult.accepted && finishResult.shouldCancelRun) {
+          await stopLateStartedRun(
+            startedRunId,
+            "Could not finish starting run",
+          )
+        }
+      } catch (error) {
+        console.error("[useChainExecution] runChain failed:", error)
+        toastErrorFromCatch("Could not start run", error)
+        recordExecutionError("Could not start run", errorToUserMessage(error))
         controller.rollbackExecutionStart(startHandle)
-        return
       }
-      const finishResult = controller.finishStartWithRunId(startedRunId, startHandle)
-      if (!finishResult.accepted && finishResult.shouldCancelRun) {
-        await stopLateStartedRun(startedRunId, "Could not finish starting run")
-      }
-    } catch (error) {
-      console.error("[useChainExecution] runChain failed:", error)
-      toastErrorFromCatch("Could not start run", error)
-      recordExecutionError("Could not start run", errorToUserMessage(error))
-      controller.rollbackExecutionStart(startHandle)
-    }
-  }, [
-    attachments,
-    controller,
-    inputValue,
-    requestedResult,
-    preflightExecutionStart,
-    runStatus,
-    selectedProject,
-    selectedWorkflowPath,
-    setActiveExecutionProvider,
-    setValidationErrors,
-    stopLateStartedRun,
-    webSearchBackend,
-    workflow,
-    recordExecutionError,
-  ])
+    },
+    [
+      attachments,
+      controller,
+      inputValue,
+      requestedResult,
+      preflightExecutionStart,
+      runStatus,
+      selectedProject,
+      selectedWorkflowPath,
+      setActiveExecutionProvider,
+      setValidationErrors,
+      stopLateStartedRun,
+      webSearchBackend,
+      workflow,
+      recordExecutionError,
+    ],
+  )
 
   const cancel = useCallback(async () => {
     const executionKey = toWorkflowExecutionKey(selectedWorkflowPath ?? null)
@@ -288,7 +333,11 @@ export function useExecutionCommands({
       if (!cancelled) {
         toastError("Could not cancel run")
         recordExecutionError("Could not cancel run")
-        controller.rollbackCancellation(executionKey, previousRunStatus, currentRunId)
+        controller.rollbackCancellation(
+          executionKey,
+          previousRunStatus,
+          currentRunId,
+        )
         return
       }
       controller.cancelExecution(executionKey, currentRunId)
@@ -296,247 +345,305 @@ export function useExecutionCommands({
       console.error("[useChainExecution] cancelRun failed:", error)
       toastErrorFromCatch("Could not cancel run", error)
       recordExecutionError("Could not cancel run", errorToUserMessage(error))
-      controller.rollbackCancellation(executionKey, previousRunStatus, currentRunId)
+      controller.rollbackCancellation(
+        executionKey,
+        previousRunStatus,
+        currentRunId,
+      )
     }
   }, [controller, recordExecutionError, selectedWorkflowPath])
 
-  const rerunFrom = useCallback(async (
-    fromNodeId: string,
-    options?: { workspace?: string | null },
-  ) => {
-    if (isRunInFlight(runStatus)) return
-    const rerunWorkspace = options?.workspace ?? workspace
-    if (!rerunWorkspace || !workflow.nodes.length) return
+  const rerunFrom = useCallback(
+    async (fromNodeId: string, options?: { workspace?: string | null }) => {
+      if (isRunInFlight(runStatus)) return
+      const rerunWorkspace = options?.workspace ?? workspace
+      if (!rerunWorkspace || !workflow.nodes.length) return
 
-    const workflowKeyForRun = toWorkflowExecutionKey(selectedWorkflowPath ?? null)
-    const workflowForRun = controller.getExecutionState(workflowKeyForRun).workflowSnapshot ?? workflow
-    const preflight = await preflightExecutionStart(
-      workflowForRun,
-      "Could not restart from selected node",
-      {
-        // Resume-from-step only runs the downstream tail, so full-flow worst-case
-        // estimates are misleading here. Keep blocking preflight checks, skip the
-        // generic token-budget warning.
-        warningMode: "skip_token_budget",
-      },
-    )
-    if (!preflight) return
-    const startHandle = controller.beginExecution(
-      workflowForRun,
-      selectedWorkflowPath ?? null,
-      selectedProject ?? null,
-      {
-        preserveExecutionSnapshot: true,
-      },
-    )
-    setActiveExecutionProvider(preflight.effectiveProvider)
-    const { workflowForExecution } = prepareWorkflowForExecution(
-      workflowForRun,
-      webSearchBackend,
-    )
-
-    try {
-      const result = await withIpcTimeout(
-        window.api.rerunFrom(
-          fromNodeId,
-          workflowForExecution,
-          rerunWorkspace,
-          selectedProject ?? undefined,
-          selectedWorkflowPath ?? undefined,
-          webSearchBackend,
-        ),
-        DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Restart timed out. Check the main flow and try again.",
+      const workflowKeyForRun = toWorkflowExecutionKey(
+        selectedWorkflowPath ?? null,
+      )
+      const workflowForRun =
+        controller.getExecutionState(workflowKeyForRun).workflowSnapshot ??
+        workflow
+      const preflight = await preflightExecutionStart(
+        workflowForRun,
+        "Could not restart from selected node",
+        {
+          // Resume-from-step only runs the downstream tail, so full-flow worst-case
+          // estimates are misleading here. Keep blocking preflight checks, skip the
+          // generic token-budget warning.
+          warningMode: "skip_token_budget",
+        },
+      )
+      if (!preflight) return
+      const startHandle = controller.beginExecution(
+        workflowForRun,
+        selectedWorkflowPath ?? null,
+        selectedProject ?? null,
+        {
+          preserveExecutionSnapshot: true,
+        },
+      )
+      if (!startHandle) return
+      setActiveExecutionProvider(preflight.effectiveProvider)
+      const { workflowForExecution } = prepareWorkflowForExecution(
+        workflowForRun,
+        webSearchBackend,
       )
 
-      const { startedRunId, errorMessage, validationIssues } = resolveExecutionStartResult(result, "")
-      if (startedRunId) {
-        const finishResult = controller.finishStartWithRunId(startedRunId, startHandle)
-        if (!finishResult.accepted && finishResult.shouldCancelRun) {
-          await stopLateStartedRun(startedRunId, "Could not finish restarting run")
+      try {
+        const result = await withIpcTimeout(
+          window.api.rerunFrom(
+            fromNodeId,
+            workflowForExecution,
+            rerunWorkspace,
+            selectedProject ?? undefined,
+            selectedWorkflowPath ?? undefined,
+            webSearchBackend,
+          ),
+          DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+          "Restart timed out. Check the main flow and try again.",
+        )
+
+        const { startedRunId, errorMessage, validationIssues } =
+          resolveExecutionStartResult(result, "")
+        if (startedRunId) {
+          const finishResult = controller.finishStartWithRunId(
+            startedRunId,
+            startHandle,
+          )
+          if (!finishResult.accepted && finishResult.shouldCancelRun) {
+            await stopLateStartedRun(
+              startedRunId,
+              "Could not finish restarting run",
+            )
+          }
+          return
         }
-        return
+
+        if (errorMessage) {
+          if (validationIssues.length > 0) {
+            setValidationErrors(groupValidationIssuesByNode(validationIssues))
+          }
+          toastError("Could not restart from selected node", {
+            description: errorMessage,
+          })
+          recordExecutionError(
+            "Could not restart from selected node",
+            errorMessage,
+          )
+          controller.rollbackExecutionStart(startHandle)
+          return
+        }
+        toastError("Could not restart from selected node")
+        recordExecutionError("Could not restart from selected node")
+      } catch (error) {
+        console.error("[useChainExecution] rerunFrom failed:", error)
+        toastErrorFromCatch("Could not restart from selected node", error)
+        recordExecutionError(
+          "Could not restart from selected node",
+          errorToUserMessage(error),
+        )
       }
 
-      if (errorMessage) {
+      controller.rollbackExecutionStart(startHandle)
+    },
+    [
+      controller,
+      preflightExecutionStart,
+      runStatus,
+      selectedProject,
+      selectedWorkflowPath,
+      setActiveExecutionProvider,
+      setValidationErrors,
+      stopLateStartedRun,
+      webSearchBackend,
+      workflow,
+      workspace,
+      recordExecutionError,
+    ],
+  )
+
+  const continueWithWorkflow = useCallback(
+    async (
+      runToContinue: RunResult,
+      workflowForRun: Workflow,
+      workflowPathForRun: string | null,
+    ) => {
+      if (!canStartManualContinuation(runStatus)) return false
+      if (!runToContinue.workspace) {
+        toastError("Could not continue run", {
+          description: "Run workspace is missing.",
+        })
+        recordExecutionError(
+          "Could not continue run",
+          "Run workspace is missing.",
+        )
+        return false
+      }
+      if (!workflowForRun.nodes.length) {
+        toastError("Could not continue run", {
+          description: "Flow has no steps.",
+        })
+        recordExecutionError("Could not continue run", "Flow has no steps.")
+        return false
+      }
+
+      const preflight = await preflightExecutionStart(
+        workflowForRun,
+        "Could not continue run",
+      )
+      if (!preflight) return false
+      const startHandle = controller.beginExecution(
+        workflowForRun,
+        workflowPathForRun,
+        selectedProject ?? null,
+        {
+          preserveExecutionSnapshot: true,
+        },
+      )
+      if (!startHandle) return false
+      setActiveExecutionProvider(preflight.effectiveProvider)
+      controller.updateExecutionForKey(startHandle.workflowKey, (previous) => ({
+        ...previous,
+        workspace: runToContinue.workspace,
+      }))
+
+      const { workflowForExecution } = prepareWorkflowForExecution(
+        workflowForRun,
+        webSearchBackend,
+      )
+
+      try {
+        const result = await withIpcTimeout(
+          window.api.continueRun(
+            workflowForExecution,
+            runToContinue.workspace,
+            selectedProject ?? undefined,
+            workflowPathForRun ?? undefined,
+            webSearchBackend,
+          ),
+          DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+          "Continue run timed out. Check the main flow and try again.",
+        )
+
+        const { startedRunId, errorMessage, validationIssues } =
+          resolveExecutionStartResult(
+            result,
+            "No active window is available for execution.",
+          )
+
+        if (startedRunId) {
+          setCurrentWorkflow(workflowForRun)
+          setSelectedWorkflowPath(workflowPathForRun)
+          const finishResult = controller.finishStartWithRunId(
+            startedRunId,
+            startHandle,
+          )
+          if (!finishResult.accepted && finishResult.shouldCancelRun) {
+            await stopLateStartedRun(
+              startedRunId,
+              "Could not finish continuing run",
+            )
+            return false
+          }
+          return true
+        }
+
         if (validationIssues.length > 0) {
           setValidationErrors(groupValidationIssuesByNode(validationIssues))
         }
-        toastError("Could not restart from selected node", {
-          description: errorMessage,
+        toastError("Could not continue run", {
+          description: errorMessage || undefined,
         })
-        recordExecutionError("Could not restart from selected node", errorMessage)
-        controller.rollbackExecutionStart(startHandle)
+        recordExecutionError(
+          "Could not continue run",
+          errorMessage || undefined,
+        )
+      } catch (error) {
+        console.error("[useChainExecution] continueRun failed:", error)
+        toastErrorFromCatch("Could not continue run", error)
+        recordExecutionError(
+          "Could not continue run",
+          errorToUserMessage(error),
+        )
+      }
+
+      controller.rollbackExecutionStart(startHandle)
+      return false
+    },
+    [
+      controller,
+      preflightExecutionStart,
+      recordExecutionError,
+      runStatus,
+      selectedProject,
+      setActiveExecutionProvider,
+      setCurrentWorkflow,
+      setSelectedWorkflowPath,
+      setValidationErrors,
+      stopLateStartedRun,
+      webSearchBackend,
+    ],
+  )
+
+  const continueRun = useCallback(
+    async (runToContinue: RunResult) => {
+      if (!canStartManualContinuation(runStatus)) return
+      if (!runToContinue.workspace) {
+        toastError("Could not continue run", {
+          description: "Run workspace is missing.",
+        })
+        recordExecutionError(
+          "Could not continue run",
+          "Run workspace is missing.",
+        )
         return
       }
-      toastError("Could not restart from selected node")
-      recordExecutionError("Could not restart from selected node")
-    } catch (error) {
-      console.error("[useChainExecution] rerunFrom failed:", error)
-      toastErrorFromCatch("Could not restart from selected node", error)
-      recordExecutionError("Could not restart from selected node", errorToUserMessage(error))
-    }
 
-    controller.rollbackExecutionStart(startHandle)
-  }, [
-    controller,
-    preflightExecutionStart,
-    runStatus,
-    selectedProject,
-    selectedWorkflowPath,
-    setActiveExecutionProvider,
-    setValidationErrors,
-    stopLateStartedRun,
-    webSearchBackend,
-    workflow,
-    workspace,
-    recordExecutionError,
-  ])
+      let workflowForRun = workflow
+      let workflowPathForRun = selectedWorkflowPath ?? null
 
-  const continueWithWorkflow = useCallback(async (
-    runToContinue: RunResult,
-    workflowForRun: Workflow,
-    workflowPathForRun: string | null,
-  ) => {
-    if (!canStartManualContinuation(runStatus)) return false
-    if (!runToContinue.workspace) {
-      toastError("Could not continue run", {
-        description: "Run workspace is missing.",
-      })
-      recordExecutionError("Could not continue run", "Run workspace is missing.")
-      return false
-    }
-    if (!workflowForRun.nodes.length) {
-      toastError("Could not continue run", {
-        description: "Flow has no steps.",
-      })
-      recordExecutionError("Could not continue run", "Flow has no steps.")
-      return false
-    }
-
-    const preflight = await preflightExecutionStart(workflowForRun, "Could not continue run")
-    if (!preflight) return false
-    const startHandle = controller.beginExecution(
-      workflowForRun,
-      workflowPathForRun,
-      selectedProject ?? null,
-      {
-        preserveExecutionSnapshot: true,
-      },
-    )
-    setActiveExecutionProvider(preflight.effectiveProvider)
-    controller.updateExecutionForKey(startHandle.workflowKey, (previous) => ({
-      ...previous,
-      workspace: runToContinue.workspace,
-    }))
-
-    const { workflowForExecution } = prepareWorkflowForExecution(
-      workflowForRun,
-      webSearchBackend,
-    )
-
-    try {
-      const result = await withIpcTimeout(
-        window.api.continueRun(
-          workflowForExecution,
-          runToContinue.workspace,
-          selectedProject ?? undefined,
-          workflowPathForRun ?? undefined,
-          webSearchBackend,
-        ),
-        DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Continue run timed out. Check the main flow and try again.",
-      )
-
-      const { startedRunId, errorMessage, validationIssues } = resolveExecutionStartResult(
-        result,
-        "No active window is available for execution.",
-      )
-
-      if (startedRunId) {
-        setCurrentWorkflow(workflowForRun)
-        setSelectedWorkflowPath(workflowPathForRun)
-        const finishResult = controller.finishStartWithRunId(startedRunId, startHandle)
-        if (!finishResult.accepted && finishResult.shouldCancelRun) {
-          await stopLateStartedRun(startedRunId, "Could not finish continuing run")
-          return false
-        }
-        return true
+      try {
+        const resolvedContinuation = await resolveContinuationWorkflow(
+          runToContinue,
+          workflow,
+          selectedWorkflowPath,
+          (workflowPath) => window.api.loadWorkflow(workflowPath),
+        )
+        workflowForRun = resolvedContinuation.workflowForRun
+        workflowPathForRun = resolvedContinuation.workflowPathForRun
+      } catch (error) {
+        toastErrorFromCatch("Could not continue run", error)
+        recordExecutionError(
+          "Could not continue run",
+          errorToUserMessage(error, "Could not load flow file."),
+        )
+        return
       }
 
-      if (validationIssues.length > 0) {
-        setValidationErrors(groupValidationIssuesByNode(validationIssues))
+      if (!workflowForRun.nodes.length) {
+        toastError("Could not continue run", {
+          description: "Flow has no steps.",
+        })
+        recordExecutionError("Could not continue run", "Flow has no steps.")
+        return
       }
-      toastError("Could not continue run", {
-        description: errorMessage || undefined,
-      })
-      recordExecutionError("Could not continue run", errorMessage || undefined)
-    } catch (error) {
-      console.error("[useChainExecution] continueRun failed:", error)
-      toastErrorFromCatch("Could not continue run", error)
-      recordExecutionError("Could not continue run", errorToUserMessage(error))
-    }
 
-    controller.rollbackExecutionStart(startHandle)
-    return false
-  }, [
-    controller,
-    preflightExecutionStart,
-    recordExecutionError,
-    runStatus,
-    selectedProject,
-    setActiveExecutionProvider,
-    setCurrentWorkflow,
-    setSelectedWorkflowPath,
-    setValidationErrors,
-    stopLateStartedRun,
-    webSearchBackend,
-  ])
-
-  const continueRun = useCallback(async (runToContinue: RunResult) => {
-    if (!canStartManualContinuation(runStatus)) return
-    if (!runToContinue.workspace) {
-      toastError("Could not continue run", {
-        description: "Run workspace is missing.",
-      })
-      recordExecutionError("Could not continue run", "Run workspace is missing.")
-      return
-    }
-
-    let workflowForRun = workflow
-    let workflowPathForRun = selectedWorkflowPath ?? null
-
-    try {
-      const resolvedContinuation = await resolveContinuationWorkflow(
+      await continueWithWorkflow(
         runToContinue,
-        workflow,
-        selectedWorkflowPath,
-        (workflowPath) => window.api.loadWorkflow(workflowPath),
+        workflowForRun,
+        workflowPathForRun,
       )
-      workflowForRun = resolvedContinuation.workflowForRun
-      workflowPathForRun = resolvedContinuation.workflowPathForRun
-    } catch (error) {
-      toastErrorFromCatch("Could not continue run", error)
-      recordExecutionError("Could not continue run", errorToUserMessage(error, "Could not load flow file."))
-      return
-    }
-
-    if (!workflowForRun.nodes.length) {
-      toastError("Could not continue run", {
-        description: "Flow has no steps.",
-      })
-      recordExecutionError("Could not continue run", "Flow has no steps.")
-      return
-    }
-
-    await continueWithWorkflow(runToContinue, workflowForRun, workflowPathForRun)
-  }, [
-    continueWithWorkflow,
-    recordExecutionError,
-    runStatus,
-    selectedWorkflowPath,
-    workflow,
-  ])
+    },
+    [
+      continueWithWorkflow,
+      recordExecutionError,
+      runStatus,
+      selectedWorkflowPath,
+      workflow,
+    ],
+  )
 
   return {
     run,

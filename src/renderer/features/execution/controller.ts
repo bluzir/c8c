@@ -8,17 +8,34 @@ import {
   type ExecutionRunStatus,
   type WorkflowExecutionState,
 } from "@/lib/workflow-execution"
-import type { ActiveWorkflowRun, ApprovalWorkflowNode, RunResult, Workflow, WorkflowEvent, WorkflowNode } from "@shared/types"
+import type {
+  ActiveWorkflowRun,
+  ApprovalWorkflowNode,
+  RunResult,
+  Workflow,
+  WorkflowEvent,
+  WorkflowNode,
+} from "@shared/types"
 
 type UpdateValue<T> = T | ((prev: T) => T)
 
 interface WorkflowExecutionControllerDeps {
-  commitExecutionState: (workflowKey: string, nextState: WorkflowExecutionState) => void
+  commitExecutionState: (
+    workflowKey: string,
+    nextState: WorkflowExecutionState,
+  ) => void
   updateApprovalRequests: (update: UpdateValue<ApprovalRequest[]>) => void
   setPastRuns: (runs: RunResult[]) => void
   listRuns: (projectPath: string) => Promise<RunResult[]>
-  onRunFailed: (args: { workflowKey: string; state: WorkflowExecutionState; message: string }) => void
-  onRunFinished?: (args: { workflowKey: string; state: WorkflowExecutionState }) => void
+  onRunFailed: (args: {
+    workflowKey: string
+    state: WorkflowExecutionState
+    message: string
+  }) => void
+  onRunFinished?: (args: {
+    workflowKey: string
+    state: WorkflowExecutionState
+  }) => void
   onError: (scope: string, error: unknown) => void
 }
 
@@ -57,7 +74,10 @@ export class WorkflowExecutionController {
   private approvalRequests: ApprovalRequest[] = []
   private readonly runWorkflowKeys = new Map<string, string>()
   private readonly bufferedEvents = new Map<string, BufferedWorkflowEvents>()
-  private readonly previousExecutionSnapshots = new Map<string, WorkflowExecutionState>()
+  private readonly previousExecutionSnapshots = new Map<
+    string,
+    WorkflowExecutionState
+  >()
   private readonly workflowSnapshots = new Map<string, Workflow>()
   private readonly pendingStarts = new Map<string, PendingExecutionStart>()
   private nextStartAttemptId = 0
@@ -65,24 +85,31 @@ export class WorkflowExecutionController {
 
   constructor(private readonly deps: WorkflowExecutionControllerDeps) {}
 
-  sync({ workflowExecutionStates, selectedProject }: SyncExecutionControllerArgs) {
+  sync({
+    workflowExecutionStates,
+    selectedProject,
+  }: SyncExecutionControllerArgs) {
     this.workflowExecutionStates = workflowExecutionStates
     this.selectedProject = selectedProject
     this.reconcileApprovalRequests()
   }
 
   getExecutionState(workflowKey: string): WorkflowExecutionState {
-    return this.workflowExecutionStates[workflowKey] ?? createEmptyWorkflowExecutionState()
+    return (
+      this.workflowExecutionStates[workflowKey] ??
+      createEmptyWorkflowExecutionState()
+    )
   }
 
   updateExecutionForKey(
     workflowKey: string,
-    update: WorkflowExecutionState | ((previous: WorkflowExecutionState) => WorkflowExecutionState),
+    update:
+      | WorkflowExecutionState
+      | ((previous: WorkflowExecutionState) => WorkflowExecutionState),
   ) {
     const previousState = this.getExecutionState(workflowKey)
-    const nextState = typeof update === "function"
-      ? update(previousState)
-      : update
+    const nextState =
+      typeof update === "function" ? update(previousState) : update
 
     this.workflowExecutionStates = {
       ...this.workflowExecutionStates,
@@ -96,13 +123,16 @@ export class WorkflowExecutionController {
     if (!this.selectedProject) return
 
     const requestId = ++this.listRunsRequestId
-    this.deps.listRuns(this.selectedProject).then((runs) => {
-      if (this.listRunsRequestId !== requestId) return
-      this.deps.setPastRuns(runs)
-    }).catch((error) => {
-      if (this.listRunsRequestId !== requestId) return
-      this.deps.onError("listRuns", error)
-    })
+    this.deps
+      .listRuns(this.selectedProject)
+      .then((runs) => {
+        if (this.listRunsRequestId !== requestId) return
+        this.deps.setPastRuns(runs)
+      })
+      .catch((error) => {
+        if (this.listRunsRequestId !== requestId) return
+        this.deps.onError("listRuns", error)
+      })
   }
 
   beginExecution(
@@ -112,9 +142,18 @@ export class WorkflowExecutionController {
     options?: {
       preserveExecutionSnapshot?: boolean
     },
-  ): ExecutionStartHandle {
+  ): ExecutionStartHandle | null {
     const workflowKey = toWorkflowExecutionKey(workflowPathForRun)
     const previousState = this.getExecutionState(workflowKey)
+    if (
+      this.pendingStarts.has(workflowKey) ||
+      previousState.runStatus === "starting" ||
+      previousState.runStatus === "running" ||
+      previousState.runStatus === "cancelling"
+    ) {
+      return null
+    }
+
     const startAttemptId = ++this.nextStartAttemptId
     this.pendingStarts.set(workflowKey, {
       startAttemptId,
@@ -142,7 +181,10 @@ export class WorkflowExecutionController {
 
   rollbackExecutionStart(startHandle: ExecutionStartHandle): boolean {
     const pendingStart = this.pendingStarts.get(startHandle.workflowKey)
-    if (!pendingStart || pendingStart.startAttemptId !== startHandle.startAttemptId) {
+    if (
+      !pendingStart ||
+      pendingStart.startAttemptId !== startHandle.startAttemptId
+    ) {
       return false
     }
 
@@ -151,7 +193,9 @@ export class WorkflowExecutionController {
       return false
     }
 
-    const previousState = this.previousExecutionSnapshots.get(startHandle.workflowKey) ?? createEmptyWorkflowExecutionState()
+    const previousState =
+      this.previousExecutionSnapshots.get(startHandle.workflowKey) ??
+      createEmptyWorkflowExecutionState()
     this.previousExecutionSnapshots.delete(startHandle.workflowKey)
     this.workflowSnapshots.delete(startHandle.workflowKey)
     this.updateExecutionForKey(startHandle.workflowKey, previousState)
@@ -163,7 +207,10 @@ export class WorkflowExecutionController {
     startHandle: ExecutionStartHandle,
   ): FinishExecutionStartResult {
     const pendingStart = this.pendingStarts.get(startHandle.workflowKey)
-    if (!pendingStart || pendingStart.startAttemptId !== startHandle.startAttemptId) {
+    if (
+      !pendingStart ||
+      pendingStart.startAttemptId !== startHandle.startAttemptId
+    ) {
       return {
         accepted: false,
         shouldCancelRun: true,
@@ -206,7 +253,11 @@ export class WorkflowExecutionController {
       if (previous.runStatus !== "cancelling") {
         return previous
       }
-      if (runIdToRestore && previous.runId && previous.runId !== runIdToRestore) {
+      if (
+        runIdToRestore &&
+        previous.runId &&
+        previous.runId !== runIdToRestore
+      ) {
         return previous
       }
       return {
@@ -244,7 +295,10 @@ export class WorkflowExecutionController {
         edges: snapshot.runtimeEdges,
       } as Workflow,
       nodeStates: snapshot.nodeStates,
-      activeNodeId: Object.entries(snapshot.nodeStates).find(([, nodeState]) => nodeState.status === "running")?.[0] ?? null,
+      activeNodeId:
+        Object.entries(snapshot.nodeStates).find(
+          ([, nodeState]) => nodeState.status === "running",
+        )?.[0] ?? null,
       workspace: snapshot.workspace,
       runtimeNodes: snapshot.runtimeNodes,
       runtimeEdges: snapshot.runtimeEdges,
@@ -263,7 +317,11 @@ export class WorkflowExecutionController {
 
     const workflowSnapshot = this.workflowSnapshots.get(workflowKey)
     const previousState = this.getExecutionState(workflowKey)
-    const transition = reduceWorkflowExecutionEvent(previousState, event, workflowSnapshot)
+    const transition = reduceWorkflowExecutionEvent(
+      previousState,
+      event,
+      workflowSnapshot,
+    )
     this.updateExecutionForKey(workflowKey, transition.nextState)
 
     if (transition.effects.approvalRequest) {
@@ -272,8 +330,10 @@ export class WorkflowExecutionController {
           workflowKey,
           ...transition.effects.approvalRequest,
         }
-        const existingIndex = previous.findIndex((request) =>
-          request.workflowKey === workflowKey && request.nodeId === transition.effects.approvalRequest?.nodeId,
+        const existingIndex = previous.findIndex(
+          (request) =>
+            request.workflowKey === workflowKey &&
+            request.nodeId === transition.effects.approvalRequest?.nodeId,
         )
         if (existingIndex === -1) {
           return [...previous, nextRequest]
@@ -304,8 +364,13 @@ export class WorkflowExecutionController {
     }
   }
 
-  cancelExecution(workflowKey: string, runIdToClear: string | null | undefined) {
-    const cancelledState = createCancelledExecutionState(this.getExecutionState(workflowKey))
+  cancelExecution(
+    workflowKey: string,
+    runIdToClear: string | null | undefined,
+  ) {
+    const cancelledState = createCancelledExecutionState(
+      this.getExecutionState(workflowKey),
+    )
     if (!runIdToClear) {
       const pendingStart = this.pendingStarts.get(workflowKey)
       if (pendingStart) {
@@ -336,12 +401,16 @@ export class WorkflowExecutionController {
 
   private resolveWorkflowKeyForRun(runId: string): string | null {
     const mappedWorkflowKey = this.runWorkflowKeys.get(runId)
-    if (mappedWorkflowKey && this.workflowExecutionStates[mappedWorkflowKey]?.runId === runId) {
+    if (
+      mappedWorkflowKey &&
+      this.workflowExecutionStates[mappedWorkflowKey]?.runId === runId
+    ) {
       return mappedWorkflowKey
     }
 
-    const matchingWorkflowEntry = Object.entries(this.workflowExecutionStates)
-      .find(([, state]) => state.runId === runId)
+    const matchingWorkflowEntry = Object.entries(
+      this.workflowExecutionStates,
+    ).find(([, state]) => state.runId === runId)
     if (!matchingWorkflowEntry) {
       if (mappedWorkflowKey) {
         this.runWorkflowKeys.delete(runId)
@@ -402,10 +471,9 @@ export class WorkflowExecutionController {
     }
   }
 
-  private commitApprovalRequests(
-    update: UpdateValue<ApprovalRequest[]>,
-  ) {
-    const next = typeof update === "function" ? update(this.approvalRequests) : update
+  private commitApprovalRequests(update: UpdateValue<ApprovalRequest[]>) {
+    const next =
+      typeof update === "function" ? update(this.approvalRequests) : update
     if (areApprovalRequestsEqual(this.approvalRequests, next)) return
     this.approvalRequests = next
     this.deps.updateApprovalRequests(next)
@@ -417,10 +485,12 @@ export class WorkflowExecutionController {
   }
 
   private buildCanonicalApprovalRequests(): ApprovalRequest[] {
-    const existingByKey = new Map(this.approvalRequests.map((request, index) => [
-      approvalRequestKey(request.workflowKey, request.nodeId),
-      { request, index },
-    ]))
+    const existingByKey = new Map(
+      this.approvalRequests.map((request, index) => [
+        approvalRequestKey(request.workflowKey, request.nodeId),
+        { request, index },
+      ]),
+    )
     const derived: Array<{
       request: ApprovalRequest
       existingIndex: number
@@ -429,17 +499,26 @@ export class WorkflowExecutionController {
       nodeId: string
     }> = []
 
-    for (const [workflowKey, state] of Object.entries(this.workflowExecutionStates)) {
-      const orderedNodes = state.runtimeNodes.length > 0
-        ? state.runtimeNodes
-        : (state.workflowSnapshot?.nodes ?? [])
-      const nodeOrder = new Map(orderedNodes.map((node, index) => [node.id, index]))
+    for (const [workflowKey, state] of Object.entries(
+      this.workflowExecutionStates,
+    )) {
+      const orderedNodes =
+        state.runtimeNodes.length > 0
+          ? state.runtimeNodes
+          : (state.workflowSnapshot?.nodes ?? [])
+      const nodeOrder = new Map(
+        orderedNodes.map((node, index) => [node.id, index]),
+      )
 
       for (const [nodeId, nodeState] of Object.entries(state.nodeStates)) {
         if (nodeState.status !== "waiting_approval" || !state.runId) continue
 
-        const existing = existingByKey.get(approvalRequestKey(workflowKey, nodeId))
-        const request = existing?.request ?? synthesizeApprovalRequest(workflowKey, state, nodeId)
+        const existing = existingByKey.get(
+          approvalRequestKey(workflowKey, nodeId),
+        )
+        const request =
+          existing?.request ??
+          synthesizeApprovalRequest(workflowKey, state, nodeId)
         if (!request) continue
 
         derived.push({
@@ -469,7 +548,9 @@ export class WorkflowExecutionController {
   }
 }
 
-export function createWorkflowExecutionController(deps: WorkflowExecutionControllerDeps) {
+export function createWorkflowExecutionController(
+  deps: WorkflowExecutionControllerDeps,
+) {
   return new WorkflowExecutionController(deps)
 }
 
@@ -477,7 +558,9 @@ function approvalRequestKey(workflowKey: string, nodeId: string) {
   return `${workflowKey}::${nodeId}`
 }
 
-function isApprovalNode(node: WorkflowNode | null | undefined): node is ApprovalWorkflowNode {
+function isApprovalNode(
+  node: WorkflowNode | null | undefined,
+): node is ApprovalWorkflowNode {
   return node?.type === "approval"
 }
 
@@ -487,34 +570,41 @@ function synthesizeApprovalRequest(
   nodeId: string,
 ): ApprovalRequest | null {
   if (!state.runId) return null
-  const workflowNode = state.workflowSnapshot?.nodes.find((node) => node.id === nodeId) || null
+  const workflowNode =
+    state.workflowSnapshot?.nodes.find((node) => node.id === nodeId) || null
   const nodeState = state.nodeStates[nodeId]
-  const approvalConfig = isApprovalNode(workflowNode) ? workflowNode.config : null
+  const approvalConfig = isApprovalNode(workflowNode)
+    ? workflowNode.config
+    : null
 
   return {
     workflowKey,
     runId: state.runId,
     nodeId,
-    content: typeof nodeState?.output?.content === "string"
-      ? nodeState.output.content
-      : "",
+    content:
+      typeof nodeState?.output?.content === "string"
+        ? nodeState.output.content
+        : "",
     message: approvalConfig?.message,
     allowEdit: approvalConfig?.allow_edit ?? false,
   }
 }
 
-function areApprovalRequestsEqual(left: ApprovalRequest[], right: ApprovalRequest[]): boolean {
+function areApprovalRequestsEqual(
+  left: ApprovalRequest[],
+  right: ApprovalRequest[],
+): boolean {
   if (left.length !== right.length) return false
   for (let index = 0; index < left.length; index += 1) {
     const leftRequest = left[index]
     const rightRequest = right[index]
     if (
-      leftRequest.workflowKey !== rightRequest.workflowKey
-      || leftRequest.runId !== rightRequest.runId
-      || leftRequest.nodeId !== rightRequest.nodeId
-      || leftRequest.content !== rightRequest.content
-      || leftRequest.message !== rightRequest.message
-      || leftRequest.allowEdit !== rightRequest.allowEdit
+      leftRequest.workflowKey !== rightRequest.workflowKey ||
+      leftRequest.runId !== rightRequest.runId ||
+      leftRequest.nodeId !== rightRequest.nodeId ||
+      leftRequest.content !== rightRequest.content ||
+      leftRequest.message !== rightRequest.message ||
+      leftRequest.allowEdit !== rightRequest.allowEdit
     ) {
       return false
     }

@@ -16,54 +16,59 @@ vi.mock("@claude-tools/runner", () => ({
 
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
   query: ({ prompt, options }: any) => {
-    const messages: any[] = [{
-      type: "system",
-      subtype: "init",
-      apiKeySource: "user",
-      claude_code_version: "2.1.45",
-      cwd: options?.cwd || "/tmp",
-      tools: [],
-      mcp_servers: [],
-      model: options?.model || "sonnet",
-      permissionMode: options?.permissionMode || "default",
-      slash_commands: [],
-      output_style: "default",
-      skills: [],
-      plugins: [],
-      uuid: "00000000-0000-0000-0000-000000000001",
-      session_id: "sdk-test-session",
-    }]
+    const messages: any[] = [
+      {
+        type: "system",
+        subtype: "init",
+        apiKeySource: "user",
+        claude_code_version: "2.1.45",
+        cwd: options?.cwd || "/tmp",
+        tools: [],
+        mcp_servers: [],
+        model: options?.model || "sonnet",
+        permissionMode: options?.permissionMode || "default",
+        slash_commands: [],
+        output_style: "default",
+        skills: [],
+        plugins: [],
+        uuid: "00000000-0000-0000-0000-000000000001",
+        session_id: "sdk-test-session",
+      },
+    ]
 
-    const run = Promise.resolve(spawnClaudeMock({
-      workdir: options?.cwd,
-      prompt,
-      model: options?.model,
-      maxTurns: options?.maxTurns,
-      persistSession: options?.persistSession,
-      resumeSessionId: options?.resume,
-      tools: options?.tools,
-      permissionMode: options?.permissionMode,
-      systemPrompts: typeof options?.systemPrompt === "string"
-        ? [options.systemPrompt]
-        : options?.systemPrompt?.append
-          ? [options.systemPrompt.append]
-          : [],
-      allowedTools: options?.allowedTools,
-      disallowedTools: options?.disallowedTools,
-      addDirs: options?.additionalDirectories,
-      extraEnv: options?.env,
-      abortSignal: options?.abortController?.signal,
-      onStdout: (data: Buffer) => {
-        for (const line of data.toString().split(/\r?\n/)) {
-          const trimmed = line.trim()
-          if (!trimmed) continue
-          messages.push(JSON.parse(trimmed))
-        }
-      },
-      onStderr: (data: Buffer) => {
-        options?.stderr?.(data.toString())
-      },
-    })).then((result: any) => {
+    const run = Promise.resolve(
+      spawnClaudeMock({
+        workdir: options?.cwd,
+        prompt,
+        model: options?.model,
+        maxTurns: options?.maxTurns,
+        persistSession: options?.persistSession,
+        resumeSessionId: options?.resume,
+        tools: options?.tools,
+        permissionMode: options?.permissionMode,
+        systemPrompts:
+          typeof options?.systemPrompt === "string"
+            ? [options.systemPrompt]
+            : options?.systemPrompt?.append
+              ? [options.systemPrompt.append]
+              : [],
+        allowedTools: options?.allowedTools,
+        disallowedTools: options?.disallowedTools,
+        addDirs: options?.additionalDirectories,
+        extraEnv: options?.env,
+        abortSignal: options?.abortController?.signal,
+        onStdout: (data: Buffer) => {
+          for (const line of data.toString().split(/\r?\n/)) {
+            const trimmed = line.trim()
+            if (!trimmed) continue
+            messages.push(JSON.parse(trimmed))
+          }
+        },
+        onStderr: (data: Buffer) => {
+          options?.stderr?.(data.toString())
+        },
+      }),
+    ).then((result: any) => {
       messages.push({
         type: "result",
         subtype: result.success ? "success" : "error_during_execution",
@@ -82,7 +87,11 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
         permission_denials: [],
         errors: result.success
           ? []
-          : [result.exitCode === null ? "Could not start Claude CLI" : `exit code ${String(result.exitCode)}`],
+          : [
+              result.exitCode === null
+                ? "Could not start Claude CLI"
+                : `exit code ${String(result.exitCode)}`,
+            ],
         uuid: "00000000-0000-0000-0000-000000000002",
         session_id: "sdk-test-session",
       })
@@ -110,6 +119,14 @@ vi.mock("node:fs/promises", () => ({
   unlink: vi.fn(() => Promise.resolve()),
   mkdir: vi.fn(() => Promise.resolve()),
   readdir: vi.fn(() => Promise.resolve([])),
+  stat: vi.fn(() =>
+    Promise.resolve({
+      size: 0,
+      mtimeMs: 0,
+      isDirectory: () => false,
+      isFile: () => true,
+    }),
+  ),
   readFile: vi.fn(() => Promise.resolve("improved content")),
 }))
 
@@ -126,7 +143,12 @@ vi.mock("./telemetry/service", () => ({
 
 import { spawnClaude } from "@claude-tools/runner"
 import { readFile, writeFile } from "node:fs/promises"
-import type { Workflow, WorkflowEvent, NodeState, SkillNodeConfig } from "@shared/types"
+import type {
+  Workflow,
+  WorkflowEvent,
+  NodeState,
+  SkillNodeConfig,
+} from "@shared/types"
 
 const mockedSpawn = vi.mocked(spawnClaude)
 const mockedReadFile = vi.mocked(readFile)
@@ -149,7 +171,12 @@ const EVAL_WORKFLOW: Workflow = {
       id: "eval-1",
       type: "evaluator",
       position: { x: 600, y: 0 },
-      config: { criteria: "Score clarity 1-10", threshold: 8, maxRetries: 3, retryFrom: "skill-1" },
+      config: {
+        criteria: "Score clarity 1-10",
+        threshold: 8,
+        maxRetries: 3,
+        retryFrom: "skill-1",
+      },
     },
     { id: "output-1", type: "output", position: { x: 900, y: 0 }, config: {} },
   ],
@@ -171,13 +198,19 @@ const SPLITTER_RECOVERY_WORKFLOW: Workflow = {
       id: "splitter-1",
       type: "splitter",
       position: { x: 200, y: 0 },
-      config: { strategy: "Split research into independent aspects", maxBranches: 8 },
+      config: {
+        strategy: "Split research into independent aspects",
+        maxBranches: 8,
+      },
     },
     {
       id: "skill-1",
       type: "skill",
       position: { x: 400, y: 0 },
-      config: { skillRef: "test/researcher", prompt: "Research this aspect thoroughly." },
+      config: {
+        skillRef: "test/researcher",
+        prompt: "Research this aspect thoroughly.",
+      },
     },
     {
       id: "merger-1",
@@ -205,7 +238,10 @@ const SIMPLE_SKILL_WORKFLOW: Workflow = {
       id: "skill-1",
       type: "skill",
       position: { x: 300, y: 0 },
-      config: { skillRef: "test/extractor", prompt: "Extract scenarios into content file" },
+      config: {
+        skillRef: "test/extractor",
+        prompt: "Extract scenarios into content file",
+      },
     },
     { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
   ],
@@ -296,7 +332,10 @@ const QUEUED_FAN_OUT_WORKFLOW: Workflow = {
   ],
 }
 
-function withSkillRuntime(workflow: Workflow, runtime: Record<string, unknown>): Workflow {
+function withSkillRuntime(
+  workflow: Workflow,
+  runtime: Record<string, unknown>,
+): Workflow {
   return {
     ...workflow,
     nodes: workflow.nodes.map((node) => {
@@ -363,11 +402,23 @@ describe("workflow-runner evaluator loop", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-1", EVAL_WORKFLOW, { type: "text", value: "test input" }, mockWindow)
+    await runWorkflow(
+      "run-1",
+      EVAL_WORKFLOW,
+      { type: "text", value: "test input" },
+      mockWindow,
+    )
 
     const evalResults = events.filter((e) => e.type === "eval-result")
     expect(evalResults).toHaveLength(1)
@@ -389,11 +440,23 @@ describe("workflow-runner evaluator loop", () => {
           '{"type":"assistant","subtype":"text","content":"Now I have a complete picture of the product. Writing the output to the content file."}\n',
         ),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-skill-output", SIMPLE_SKILL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-skill-output",
+      SIMPLE_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillDone = events.find(
       (e) => e.type === "node-done" && (e as any).nodeId === "skill-1",
@@ -437,18 +500,31 @@ describe("workflow-runner evaluator loop", () => {
       } else {
         opts.onStdout?.(
           Buffer.from(
-            `${JSON.stringify({ type: "assistant", subtype: "text", content: "{\"score\": 9, \"reason\": \"Excellent\"}" })}\n`,
+            `${JSON.stringify({ type: "assistant", subtype: "text", content: '{"score": 9, "reason": "Excellent"}' })}\n`,
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-diagnostic-summary", EVAL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-diagnostic-summary",
+      EVAL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const outputDone = events.find(
-      (event) => event.type === "node-done" && (event as any).nodeId === "output-1",
+      (event) =>
+        event.type === "node-done" && (event as any).nodeId === "output-1",
     ) as any
 
     expect(outputDone).toBeDefined()
@@ -470,18 +546,25 @@ describe("workflow-runner evaluator loop", () => {
   })
 
   it("persists Claude provider session ids while a node is still running", async () => {
-    mockedSpawn.mockImplementation((opts: any) => new Promise((resolve) => {
-      opts.abortSignal?.addEventListener("abort", () => {
-        resolve({
-          success: false,
-          exitCode: 0,
-          signal: null,
-          killed: true,
-          aborted: true,
-          durationMs: 100,
-        })
-      }, { once: true })
-    }))
+    mockedSpawn.mockImplementation(
+      (opts: any) =>
+        new Promise((resolve) => {
+          opts.abortSignal?.addEventListener(
+            "abort",
+            () => {
+              resolve({
+                success: false,
+                exitCode: 0,
+                signal: null,
+                killed: true,
+                aborted: true,
+                durationMs: 100,
+              })
+            },
+            { once: true },
+          )
+        }),
+    )
 
     const { runWorkflow, cancelWorkflowRun } = await import("./workflow-runner")
     const runPromise = runWorkflow(
@@ -492,9 +575,12 @@ describe("workflow-runner evaluator loop", () => {
     )
 
     await waitForCondition(
-      () => mockedWriteFile.mock.calls.some((call) => (
-        typeof call[1] === "string" && call[1].includes('"provider_session_id": "sdk-test-session"')
-      )),
+      () =>
+        mockedWriteFile.mock.calls.some(
+          (call) =>
+            typeof call[1] === "string" &&
+            call[1].includes('"provider_session_id": "sdk-test-session"'),
+        ),
       "expected run-state persistence with provider session id",
     )
 
@@ -509,11 +595,23 @@ describe("workflow-runner evaluator loop", () => {
           '{"type":"assistant","subtype":"text","content":"Great content"}\n',
         ),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-prompt-only-skill", PROMPT_ONLY_SKILL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-prompt-only-skill",
+      PROMPT_ONLY_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillDone = events.find(
       (e) => e.type === "node-done" && (e as any).nodeId === "skill-1",
@@ -543,7 +641,14 @@ describe("workflow-runner evaluator loop", () => {
           '{"type":"assistant","subtype":"text","content":"Great content"}\n',
         ),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const workflowWithSkillFile: Workflow = {
@@ -563,15 +668,26 @@ describe("workflow-runner evaluator loop", () => {
     }
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-skill-file-context", workflowWithSkillFile, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-skill-file-context",
+      workflowWithSkillFile,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     expect(prompts[0]).toContain("Skill instructions:")
     expect(prompts[0]).toContain("Skill root directory: /tmp/gstack/review")
-    expect(prompts[0]).toContain('Sibling gstack skill pack directory: /tmp/gstack')
-    expect(prompts[0]).toContain('Resolve ".claude/skills/review/..." or "review/..." references under "/tmp/gstack/review".')
+    expect(prompts[0]).toContain(
+      "Sibling gstack skill pack directory: /tmp/gstack",
+    )
+    expect(prompts[0]).toContain(
+      'Resolve ".claude/skills/review/..." or "review/..." references under "/tmp/gstack/review".',
+    )
     expect(prompts[0]).toContain("Follow this checklist exactly.")
     expect(prompts[0]).toContain("Review the supplied diff.")
-    expect((mockedSpawn.mock.calls[0]?.[0] as any)?.addDirs).toEqual(["/tmp/gstack/review"])
+    expect((mockedSpawn.mock.calls[0]?.[0] as any)?.addDirs).toEqual([
+      "/tmp/gstack/review",
+    ])
   })
 
   it("keeps best-effort skill output when skill process fails", async () => {
@@ -581,11 +697,23 @@ describe("workflow-runner evaluator loop", () => {
           '{"type":"assistant","subtype":"text","content":"Now I have a complete picture of the product. Writing the output to the content file."}\n',
         ),
       )
-      return { success: false, exitCode: 1, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: false,
+        exitCode: 1,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-skill-fail-partial", SIMPLE_SKILL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-skill-fail-partial",
+      SIMPLE_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillDone = events.find(
       (e) => e.type === "node-done" && (e as any).nodeId === "skill-1",
@@ -619,16 +747,28 @@ describe("workflow-runner evaluator loop", () => {
     mockedSpawn.mockImplementation(async (opts: any) => {
       opts.onStdout?.(
         Buffer.from(
-          '{"type":"tool_use","name":"Edit","input":{"file_path":"src/app.tsx"}}\n'
-          + '{"type":"tool_result","name":"Edit","content":"Applied edit","is_error":false}\n'
-          + '{"type":"error","error":"error_max_turns: maximum number of turns reached"}\n',
+          '{"type":"tool_use","name":"Edit","input":{"file_path":"src/app.tsx"}}\n' +
+            '{"type":"tool_result","name":"Edit","content":"Applied edit","is_error":false}\n' +
+            '{"type":"error","error":"error_max_turns: maximum number of turns reached"}\n',
         ),
       )
-      return { success: false, exitCode: 1, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: false,
+        exitCode: 1,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-skill-max-turns-partial", SIMPLE_SKILL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-skill-max-turns-partial",
+      SIMPLE_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillDone = events.find(
       (e) => e.type === "node-done" && (e as any).nodeId === "skill-1",
@@ -638,9 +778,9 @@ describe("workflow-runner evaluator loop", () => {
     ) as any
     const recoveryLog = events.find(
       (e) =>
-        e.type === "node-log"
-        && (e as any).nodeId === "skill-1"
-        && String((e as any).entry?.content || "").includes("[runtime-recovery]"),
+        e.type === "node-log" &&
+        (e as any).nodeId === "skill-1" &&
+        String((e as any).entry?.content || "").includes("[runtime-recovery]"),
     ) as any
     const runDone = events.find((e) => e.type === "run-done") as any
 
@@ -657,11 +797,23 @@ describe("workflow-runner evaluator loop", () => {
 
   it("reports descriptive error when CLI spawn fails (exitCode null)", async () => {
     mockedSpawn.mockImplementation(async () => {
-      return { success: false, exitCode: null, signal: null, killed: false, aborted: false, durationMs: 0 }
+      return {
+        success: false,
+        exitCode: null,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 0,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-spawn-fail", SIMPLE_SKILL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-spawn-fail",
+      SIMPLE_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillError = events.find(
       (e) => e.type === "node-error" && (e as any).nodeId === "skill-1",
@@ -692,17 +844,29 @@ describe("workflow-runner evaluator loop", () => {
           '{"type":"assistant","subtype":"text","content":"Now I have enough context. Writing output to file."}\n',
         ),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-mirrored-content", SIMPLE_SKILL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-mirrored-content",
+      SIMPLE_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillDone = events.find(
       (e) => e.type === "node-done" && (e as any).nodeId === "skill-1",
     ) as any
     expect(skillDone).toBeDefined()
-    expect(skillDone.output.content).toContain("\"Scenario A\"")
+    expect(skillDone.output.content).toContain('"Scenario A"')
     expect(skillDone.output.metadata.output_source).toBe("content_file")
   })
 
@@ -711,7 +875,13 @@ describe("workflow-runner evaluator loop", () => {
       ...SIMPLE_SKILL_WORKFLOW,
       nodes: SIMPLE_SKILL_WORKFLOW.nodes.map((node) =>
         node.id === "skill-1"
-          ? { ...node, config: { ...(node.config as any), prompt: "Analyze malformed char: \uD83D" } }
+          ? {
+              ...node,
+              config: {
+                ...(node.config as any),
+                prompt: "Analyze malformed char: \uD83D",
+              },
+            }
           : node,
       ),
     }
@@ -720,15 +890,25 @@ describe("workflow-runner evaluator loop", () => {
     mockedSpawn.mockImplementation(async (opts: any) => {
       prompts.push(String(opts.prompt || ""))
       opts.onStdout?.(
-        Buffer.from(
-          '{"type":"assistant","subtype":"text","content":"ok"}\n',
-        ),
+        Buffer.from('{"type":"assistant","subtype":"text","content":"ok"}\n'),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-sanitized-prompt", workflowWithBrokenPrompt, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-sanitized-prompt",
+      workflowWithBrokenPrompt,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     expect(prompts.length).toBeGreaterThan(0)
     expect(prompts[0]).toContain("Analyze malformed char: \uFFFD")
@@ -761,11 +941,23 @@ describe("workflow-runner evaluator loop", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-2", EVAL_WORKFLOW, { type: "text", value: "test" }, mockWindow)
+    await runWorkflow(
+      "run-2",
+      EVAL_WORKFLOW,
+      { type: "text", value: "test" },
+      mockWindow,
+    )
 
     const evalResults = events.filter((e) => e.type === "eval-result")
     expect(evalResults).toHaveLength(2)
@@ -806,7 +998,8 @@ describe("workflow-runner evaluator loop", () => {
         const evalJson = JSON.stringify({
           score: 4,
           reason: "Weak hook",
-          fix_instructions: "Rewrite opening paragraph with a surprising statistic",
+          fix_instructions:
+            "Rewrite opening paragraph with a surprising statistic",
           criteria: [
             { id: "accuracy", score: 8 },
             { id: "hook", score: 2 },
@@ -825,17 +1018,31 @@ describe("workflow-runner evaluator loop", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-fix", EVAL_WORKFLOW, { type: "text", value: "test" }, mockWindow)
+    await runWorkflow(
+      "run-fix",
+      EVAL_WORKFLOW,
+      { type: "text", value: "test" },
+      mockWindow,
+    )
 
     // Verify enriched eval-result event
     const evalResults = events.filter((e) => e.type === "eval-result")
     expect(evalResults).toHaveLength(2)
     const firstEval = evalResults[0] as any
-    expect(firstEval.fix_instructions).toBe("Rewrite opening paragraph with a surprising statistic")
+    expect(firstEval.fix_instructions).toBe(
+      "Rewrite opening paragraph with a surprising statistic",
+    )
     expect(firstEval.criteria).toEqual([
       { id: "accuracy", score: 8 },
       { id: "hook", score: 2 },
@@ -843,7 +1050,9 @@ describe("workflow-runner evaluator loop", () => {
 
     // Verify retry prompt (3rd spawn = retry skill) includes fix_instructions
     const retryPrompt = capturedPrompts[2] // 0-indexed, 3rd call
-    expect(retryPrompt).toContain("Rewrite opening paragraph with a surprising statistic")
+    expect(retryPrompt).toContain(
+      "Rewrite opening paragraph with a surprising statistic",
+    )
     expect(retryPrompt).toContain("What to fix")
   })
 
@@ -870,11 +1079,23 @@ describe("workflow-runner evaluator loop", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-retry-resume", EVAL_WORKFLOW, { type: "text", value: "test" }, mockWindow)
+    await runWorkflow(
+      "run-retry-resume",
+      EVAL_WORKFLOW,
+      { type: "text", value: "test" },
+      mockWindow,
+    )
 
     expect(mockedSpawn).toHaveBeenCalledTimes(4)
     expect(mockedSpawn.mock.calls[0]?.[0]).toMatchObject({
@@ -906,10 +1127,18 @@ describe("workflow-runner evaluator loop", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
-    const { runWorkflow, resolveEvalOverride } = await import("./workflow-runner")
+    const { runWorkflow, resolveEvalOverride } =
+      await import("./workflow-runner")
 
     // Auto-override when eval-exhausted event arrives
     const originalSend = mockWindow.webContents.send
@@ -921,7 +1150,12 @@ describe("workflow-runner evaluator loop", () => {
       }
     }
 
-    await runWorkflow("run-3", EVAL_WORKFLOW, { type: "text", value: "test" }, mockWindow)
+    await runWorkflow(
+      "run-3",
+      EVAL_WORKFLOW,
+      { type: "text", value: "test" },
+      mockWindow,
+    )
 
     mockWindow.webContents.send = originalSend
 
@@ -982,18 +1216,31 @@ describe("workflow-runner splitter recovery", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
     await runWorkflow(
       "run-splitter-recovery",
       SPLITTER_RECOVERY_WORKFLOW,
-      { type: "text", value: "Research best practices for RAG over structured company datasets." },
+      {
+        type: "text",
+        value:
+          "Research best practices for RAG over structured company datasets.",
+      },
       mockWindow,
     )
 
-    const spawnedPrompts = mockedSpawn.mock.calls.map((call) => String((call[0] as any)?.prompt || ""))
+    const spawnedPrompts = mockedSpawn.mock.calls.map((call) =>
+      String((call[0] as any)?.prompt || ""),
+    )
     const splitterInitialCalls = spawnedPrompts.filter((p) =>
       p.includes("You are an intelligent task decomposer"),
     )
@@ -1028,7 +1275,14 @@ describe("workflow-runner splitter recovery", () => {
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
@@ -1037,19 +1291,25 @@ describe("workflow-runner splitter recovery", () => {
       SPLITTER_RECOVERY_WORKFLOW,
       {
         type: "text",
-        value: "1. Entry Point\n2. Step-by-Step Sequence\n3. Expectation Arc Summary",
+        value:
+          "1. Entry Point\n2. Step-by-Step Sequence\n3. Expectation Arc Summary",
       },
       mockWindow,
     )
 
-    const spawnedPrompts = mockedSpawn.mock.calls.map((call) => String((call[0] as any)?.prompt || ""))
+    const spawnedPrompts = mockedSpawn.mock.calls.map((call) =>
+      String((call[0] as any)?.prompt || ""),
+    )
     const splitterInitialCalls = spawnedPrompts.filter((p) =>
       p.includes("You are an intelligent task decomposer"),
     )
     const structuredBypassLog = events.find(
-      (e) => e.type === "node-log"
-        && (e as any).nodeId === "splitter-1"
-        && String((e as any).entry?.content || "").includes("using structured input directly"),
+      (e) =>
+        e.type === "node-log" &&
+        (e as any).nodeId === "splitter-1" &&
+        String((e as any).entry?.content || "").includes(
+          "using structured input directly",
+        ),
     )
 
     expect(splitterInitialCalls).toHaveLength(1)
@@ -1061,10 +1321,17 @@ describe("workflow-runner splitter recovery", () => {
     mockedSpawn.mockImplementation(async (opts: any) => {
       const prompt = String(opts.prompt || "")
       if (
-        prompt.includes("You are an intelligent task decomposer")
-        || prompt.includes("Your previous splitter response was invalid")
+        prompt.includes("You are an intelligent task decomposer") ||
+        prompt.includes("Your previous splitter response was invalid")
       ) {
-        return { success: false, exitCode: null, signal: null, killed: false, aborted: false, durationMs: 100 }
+        return {
+          success: false,
+          exitCode: null,
+          signal: null,
+          killed: false,
+          aborted: false,
+          durationMs: 100,
+        }
       }
 
       opts.onStdout?.(
@@ -1072,7 +1339,14 @@ describe("workflow-runner splitter recovery", () => {
           '{"type":"assistant","subtype":"text","content":"branch complete"}\n',
         ),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
@@ -1081,18 +1355,22 @@ describe("workflow-runner splitter recovery", () => {
       SPLITTER_RECOVERY_WORKFLOW,
       {
         type: "text",
-        value: "Research the onboarding funnel and identify friction points that cause drop-off during the first session. Focus on the signup form, the project creation wizard, and the initial tutorial overlay.\n\nSeparately, audit the execution pipeline for performance bottlenecks. Measure cold-start latency, node-to-node handoff overhead, and memory consumption under concurrent branch expansion.",
+        value:
+          "Research the onboarding funnel and identify friction points that cause drop-off during the first session. Focus on the signup form, the project creation wizard, and the initial tutorial overlay.\n\nSeparately, audit the execution pipeline for performance bottlenecks. Measure cold-start latency, node-to-node handoff overhead, and memory consumption under concurrent branch expansion.",
       },
       mockWindow,
     )
 
     const runDone = events.find((e) => e.type === "run-done") as any
-    const splitterError = events.find((e) => e.type === "node-error" && (e as any).nodeId === "splitter-1")
+    const splitterError = events.find(
+      (e) => e.type === "node-error" && (e as any).nodeId === "splitter-1",
+    )
     const expandEvent = events.find((e) => e.type === "nodes-expanded") as any
     const splitterFallbackLog = events.find(
-      (e) => e.type === "node-log"
-        && (e as any).nodeId === "splitter-1"
-        && String((e as any).entry?.content || "").includes("falling back"),
+      (e) =>
+        e.type === "node-log" &&
+        (e as any).nodeId === "splitter-1" &&
+        String((e as any).entry?.content || "").includes("falling back"),
     )
 
     expect(splitterError).toBeUndefined()
@@ -1127,12 +1405,17 @@ describe("workflow-runner splitter recovery", () => {
         )
       } else {
         opts.onStdout?.(
-          Buffer.from(
-            '{"type":"assistant","subtype":"text","content":"ok"}\n',
-          ),
+          Buffer.from('{"type":"assistant","subtype":"text","content":"ok"}\n'),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
@@ -1144,7 +1427,9 @@ describe("workflow-runner splitter recovery", () => {
     )
 
     const splitterCall = mockedSpawn.mock.calls.find((call) =>
-      String((call[0] as any)?.prompt || "").includes("You are an intelligent task decomposer"),
+      String((call[0] as any)?.prompt || "").includes(
+        "You are an intelligent task decomposer",
+      ),
     )
     expect(splitterCall).toBeDefined()
     expect((splitterCall?.[0] as any).model).toBe("opus")
@@ -1171,12 +1456,17 @@ describe("workflow-runner splitter recovery", () => {
         )
       } else {
         opts.onStdout?.(
-          Buffer.from(
-            '{"type":"assistant","subtype":"text","content":"ok"}\n',
-          ),
+          Buffer.from('{"type":"assistant","subtype":"text","content":"ok"}\n'),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
@@ -1188,13 +1478,18 @@ describe("workflow-runner splitter recovery", () => {
     )
 
     const splitterCall = mockedSpawn.mock.calls.find((call) =>
-      String((call[0] as any)?.prompt || "").includes("You are an intelligent task decomposer"),
+      String((call[0] as any)?.prompt || "").includes(
+        "You are an intelligent task decomposer",
+      ),
     )
 
     expect(splitterCall).toBeDefined()
     expect((splitterCall?.[0] as any).maxTurns).toBe(4)
     expect((splitterCall?.[0] as any).allowedTools).toEqual(["Read", "Bash"])
-    expect((splitterCall?.[0] as any).disallowedTools).toEqual(["WebSearch", "mcp__exa__web_search_exa"])
+    expect((splitterCall?.[0] as any).disallowedTools).toEqual([
+      "WebSearch",
+      "mcp__exa__web_search_exa",
+    ])
     expect((splitterCall?.[0] as any).tools).toBeUndefined()
   })
 
@@ -1211,25 +1506,35 @@ describe("workflow-runner splitter recovery", () => {
     mockedSpawn.mockImplementation(async (opts: any) => {
       const prompt = String(opts.prompt || "")
       if (
-        prompt.includes("You are an intelligent task decomposer")
-        || prompt.includes("Your previous splitter response was invalid")
+        prompt.includes("You are an intelligent task decomposer") ||
+        prompt.includes("Your previous splitter response was invalid")
       ) {
         opts.onStdout?.(
           Buffer.from(
-            "{\"type\":\"assistant\",\"subtype\":\"text\",\"content\":\"[{\\\"key\\\":\\\"branch-1\\\",\\\"content\\\":\\\"Group 1\\\"},{\\\"key\\\":\\\"branch-2\\\",\\\"content\\\":\\\"Group 2\\\"},{\\\"key\\\":\\\"branch-3\\\",\\\"content\\\":\\\"Group 3\\\"},{\\\"key\\\":\\\"branch-4\\\",\\\"content\\\":\\\"Group 4\\\"},{\\\"key\\\":\\\"branch-5\\\",\\\"content\\\":\\\"Group 5\\\"},{\\\"key\\\":\\\"branch-6\\\",\\\"content\\\":\\\"Group 6\\\"},{\\\"key\\\":\\\"branch-7\\\",\\\"content\\\":\\\"Group 7\\\"},{\\\"key\\\":\\\"branch-8\\\",\\\"content\\\":\\\"Group 8\\\"}]\"}\n",
+            '{"type":"assistant","subtype":"text","content":"[{\\"key\\":\\"branch-1\\",\\"content\\":\\"Group 1\\"},{\\"key\\":\\"branch-2\\",\\"content\\":\\"Group 2\\"},{\\"key\\":\\"branch-3\\",\\"content\\":\\"Group 3\\"},{\\"key\\":\\"branch-4\\",\\"content\\":\\"Group 4\\"},{\\"key\\":\\"branch-5\\",\\"content\\":\\"Group 5\\"},{\\"key\\":\\"branch-6\\",\\"content\\":\\"Group 6\\"},{\\"key\\":\\"branch-7\\",\\"content\\":\\"Group 7\\"},{\\"key\\":\\"branch-8\\",\\"content\\":\\"Group 8\\"}]"}\n',
           ),
         )
       } else {
         opts.onStdout?.(
           Buffer.from(
-            "{\"type\":\"assistant\",\"subtype\":\"text\",\"content\":\"branch complete\"}\n",
+            '{"type":"assistant","subtype":"text","content":"branch complete"}\n',
           ),
         )
       }
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
-    const rows = Array.from({ length: 25 }, (_, i) => `| component-${i + 1} | UI | desc-${i + 1} |`).join("\n")
+    const rows = Array.from(
+      { length: 25 },
+      (_, i) => `| component-${i + 1} | UI | desc-${i + 1} |`,
+    ).join("\n")
     const input = `| Component | Type | Description |
 |---|---|---|
 ${rows}`
@@ -1258,20 +1563,34 @@ ${rows}`
         if (prompt.includes("You are an intelligent task decomposer")) {
           opts.onStdout?.(
             Buffer.from(
-              "{\"type\":\"assistant\",\"subtype\":\"text\",\"content\":\"[{\\\"key\\\":\\\"branch-a\\\",\\\"content\\\":\\\"A\\\"},{\\\"key\\\":\\\"branch-b\\\",\\\"content\\\":\\\"B\\\"},{\\\"key\\\":\\\"branch-c\\\",\\\"content\\\":\\\"C\\\"},{\\\"key\\\":\\\"branch-d\\\",\\\"content\\\":\\\"D\\\"}]\"}\n",
+              '{"type":"assistant","subtype":"text","content":"[{\\"key\\":\\"branch-a\\",\\"content\\":\\"A\\"},{\\"key\\":\\"branch-b\\",\\"content\\":\\"B\\"},{\\"key\\":\\"branch-c\\",\\"content\\":\\"C\\"},{\\"key\\":\\"branch-d\\",\\"content\\":\\"D\\"}]"}\n',
             ),
           )
-          return Promise.resolve({ success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 })
+          return Promise.resolve({
+            success: true,
+            exitCode: 0,
+            signal: null,
+            killed: false,
+            aborted: false,
+            durationMs: 100,
+          })
         }
 
         return new Promise((resolve) => {
           branchResolvers.push(() => {
             opts.onStdout?.(
               Buffer.from(
-                "{\"type\":\"assistant\",\"subtype\":\"text\",\"content\":\"branch complete\"}\n",
+                '{"type":"assistant","subtype":"text","content":"branch complete"}\n',
               ),
             )
-            resolve({ success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 })
+            resolve({
+              success: true,
+              exitCode: 0,
+              signal: null,
+              killed: false,
+              aborted: false,
+              durationMs: 100,
+            })
           })
         })
       })
@@ -1283,21 +1602,26 @@ ${rows}`
         { type: "text", value: "Split into four checks" },
         mockWindow,
       )
-      const queuedBranchEvents = () => events.filter((event) =>
-        event.type === "node-queued" && event.nodeId.includes("::"),
-      )
-      const startedBranchEvents = () => events.filter((event) =>
-        event.type === "node-start" && event.nodeId.includes("::"),
-      )
-      const completedBranchEvents = () => events.filter((event) =>
-        event.type === "node-done" && event.nodeId.includes("::"),
-      )
+      const queuedBranchEvents = () =>
+        events.filter(
+          (event) =>
+            event.type === "node-queued" && event.nodeId.includes("::"),
+        )
+      const startedBranchEvents = () =>
+        events.filter(
+          (event) => event.type === "node-start" && event.nodeId.includes("::"),
+        )
+      const completedBranchEvents = () =>
+        events.filter(
+          (event) => event.type === "node-done" && event.nodeId.includes("::"),
+        )
 
       await waitForCondition(
-        () => events.some((event) => event.type === "nodes-expanded")
-          && queuedBranchEvents().length === 4
-          && startedBranchEvents().length === 2
-          && branchResolvers.length === 2,
+        () =>
+          events.some((event) => event.type === "nodes-expanded") &&
+          queuedBranchEvents().length === 4 &&
+          startedBranchEvents().length === 2 &&
+          branchResolvers.length === 2,
         "expected queued branch events before extra provider slots opened",
       )
 
@@ -1360,7 +1684,12 @@ describe("workflow-runner runtime error policies", () => {
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-policy-stop", workflow, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-policy-stop",
+      workflow,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const runDone = events.find((e) => e.type === "run-done") as any
     expect(runDone).toBeDefined()
@@ -1379,7 +1708,9 @@ describe("workflow-runner runtime error policies", () => {
 
     mockedSpawn.mockImplementation(async (opts: any) => {
       opts.onStderr?.(
-        Buffer.from("Error: You've reached your Claude usage limit. Please try again later.\n"),
+        Buffer.from(
+          "Error: You've reached your Claude usage limit. Please try again later.\n",
+        ),
       )
       return {
         success: false,
@@ -1392,13 +1723,20 @@ describe("workflow-runner runtime error policies", () => {
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-policy-limit", workflow, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-policy-limit",
+      workflow,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillError = events.find(
       (e) => e.type === "node-error" && (e as any).nodeId === "skill-1",
     ) as any
     expect(skillError).toBeDefined()
-    expect(String(skillError.error || "")).toContain("Claude usage limit reached")
+    expect(String(skillError.error || "")).toContain(
+      "Claude usage limit reached",
+    )
     expect(String(skillError.error || "")).toContain("then rerun")
 
     const runDone = events.find((e) => e.type === "run-done") as any
@@ -1421,7 +1759,12 @@ describe("workflow-runner runtime error policies", () => {
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-policy-continue", workflow, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-policy-continue",
+      workflow,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const runDone = events.find((e) => e.type === "run-done") as any
     expect(runDone).toBeDefined()
@@ -1449,13 +1792,20 @@ describe("workflow-runner runtime error policies", () => {
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-policy-envelope", workflow, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-policy-envelope",
+      workflow,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     const skillDone = events.find(
       (e) => e.type === "node-done" && (e as any).nodeId === "skill-1",
     ) as any
     expect(skillDone).toBeDefined()
-    expect(skillDone.output.metadata.error_policy_applied).toBe("continue_error_output")
+    expect(skillDone.output.metadata.error_policy_applied).toBe(
+      "continue_error_output",
+    )
     expect(skillDone.output.metadata.error_envelope).toBe(true)
     expect(skillDone.output.content).toContain('"ok": false')
   })
@@ -1471,22 +1821,43 @@ describe("workflow-runner runtime error policies", () => {
       callCount++
       if (callCount === 2) {
         opts.onStdout?.(
-          Buffer.from('{"type":"assistant","subtype":"text","content":"Recovered"}\n'),
+          Buffer.from(
+            '{"type":"assistant","subtype":"text","content":"Recovered"}\n',
+          ),
         )
-        return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+        return {
+          success: true,
+          exitCode: 0,
+          signal: null,
+          killed: false,
+          aborted: false,
+          durationMs: 100,
+        }
       }
-      return { success: false, exitCode: 1, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: false,
+        exitCode: 1,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { runWorkflow } = await import("./workflow-runner")
-    await runWorkflow("run-policy-retry", workflow, { type: "text", value: "input" }, mockWindow)
+    await runWorkflow(
+      "run-policy-retry",
+      workflow,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
 
     expect(mockedSpawn).toHaveBeenCalledTimes(2)
     const retryLog = events.find(
       (e) =>
-        e.type === "node-log"
-        && (e as any).nodeId === "skill-1"
-        && String((e as any).entry?.content || "").includes("[runtime-retry]"),
+        e.type === "node-log" &&
+        (e as any).nodeId === "skill-1" &&
+        String((e as any).entry?.content || "").includes("[runtime-retry]"),
     )
     expect(retryLog).toBeDefined()
 
@@ -1525,19 +1896,28 @@ describe("workflow-runner rerun evaluator behavior", () => {
               status: "completed",
               attempts: 1,
               log: [],
-              output: { content: "seed input", metadata: { source: "input-1" } },
+              output: {
+                content: "seed input",
+                metadata: { source: "input-1" },
+              },
             },
             "skill-1": {
               status: "completed",
               attempts: 1,
               log: [],
-              output: { content: "draft content", metadata: { source: "skill-1" } },
+              output: {
+                content: "draft content",
+                metadata: { source: "skill-1" },
+              },
             },
             "eval-1": {
               status: "completed",
               attempts: 1,
               log: [],
-              output: { content: "draft content", metadata: { source: "eval-1" } },
+              output: {
+                content: "draft content",
+                metadata: { source: "eval-1" },
+              },
             },
             "output-1": { status: "completed", attempts: 1, log: [] },
           },
@@ -1573,7 +1953,9 @@ describe("workflow-runner rerun evaluator behavior", () => {
     const runDone = events.find((e) => e.type === "run-done") as any
 
     expect(evalError).toBeDefined()
-    expect(String(evalError.error || "")).toContain("Evaluator node failed: exit code 9")
+    expect(String(evalError.error || "")).toContain(
+      "Evaluator node failed: exit code 9",
+    )
     expect(runDone).toBeDefined()
     expect(runDone.status).toBe("failed")
   })
@@ -1588,19 +1970,28 @@ describe("workflow-runner rerun evaluator behavior", () => {
               status: "completed",
               attempts: 1,
               log: [],
-              output: { content: "seed input", metadata: { source: "input-1" } },
+              output: {
+                content: "seed input",
+                metadata: { source: "input-1" },
+              },
             },
             "skill-1": {
               status: "completed",
               attempts: 1,
               log: [],
-              output: { content: "draft content", metadata: { source: "skill-1" } },
+              output: {
+                content: "draft content",
+                metadata: { source: "skill-1" },
+              },
             },
             "eval-1": {
               status: "completed",
               attempts: 1,
               log: [],
-              output: { content: "draft content", metadata: { source: "eval-1" } },
+              output: {
+                content: "draft content",
+                metadata: { source: "eval-1" },
+              },
               meta: {
                 model_id: "sonnet",
                 prompt_hash: "1234567890abcdef",
@@ -1624,7 +2015,14 @@ describe("workflow-runner rerun evaluator behavior", () => {
           '{"type":"assistant","subtype":"text","content":"{\\"score\\": 9, \\"reason\\": \\"Excellent\\"}"}\n',
         ),
       )
-      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+      return {
+        success: true,
+        exitCode: 0,
+        signal: null,
+        killed: false,
+        aborted: false,
+        durationMs: 100,
+      }
     })
 
     const { rerunFromNode } = await import("./workflow-runner")

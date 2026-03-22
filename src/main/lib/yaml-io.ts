@@ -3,6 +3,10 @@ import { join, basename } from "node:path"
 import YAML from "yaml"
 import { listChainFiles } from "./chain-io"
 import type { Workflow, WorkflowFile } from "@shared/types"
+import {
+  formatSchemaValidationError,
+  workflowSchema,
+} from "@shared/workflow-schemas"
 import { writeFileAtomic } from "./atomic-write"
 import { logWarn } from "./structured-log"
 import { resolveAppHomeDir } from "./runtime-paths"
@@ -17,32 +21,23 @@ export async function ensureChainsDir(): Promise<string> {
   return dir
 }
 
-function stripCanvasWorkflowFields(workflow: Workflow): Workflow {
-  const { canvasLayout: _canvasLayout, ...rest } = workflow as Workflow & {
-    canvasLayout?: unknown
-  }
-  return rest
-}
-
 export async function loadChainYaml(filePath: string): Promise<Workflow> {
   const content = await readFile(filePath, "utf-8")
-  const parsed = YAML.parse(content) as unknown
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Invalid workflow YAML: expected an object")
+  const parsed = YAML.parse(content)
+  const result = workflowSchema.safeParse(parsed)
+  if (!result.success) {
+    throw new Error(
+      formatSchemaValidationError("Invalid workflow YAML", result.error),
+    )
   }
-  const candidate = parsed as Record<string, unknown>
-  const hasGraph = Array.isArray(candidate.nodes) && Array.isArray(candidate.edges)
-  if (!hasGraph) {
-    throw new Error("Invalid workflow YAML: missing nodes or edges array")
-  }
-  return stripCanvasWorkflowFields(parsed as Workflow)
+  return result.data
 }
 
 export async function saveChainYaml(
   filePath: string,
   workflow: Workflow,
 ): Promise<void> {
-  const content = YAML.stringify(stripCanvasWorkflowFields(workflow), { lineWidth: 120 })
+  const content = YAML.stringify(workflow, { lineWidth: 120 })
   await writeFileAtomic(filePath, content)
 }
 
@@ -53,12 +48,18 @@ export async function listChains(dir?: string): Promise<WorkflowFile[]> {
     const entries = await readdir(targetDir, { withFileTypes: true })
     const workflows = await Promise.all(
       entries
-        .filter((e) => e.isFile() && (e.name.endsWith(".yaml") || e.name.endsWith(".yml")))
+        .filter(
+          (e) =>
+            e.isFile() && (e.name.endsWith(".yaml") || e.name.endsWith(".yml")),
+        )
         .map(async (entry) => {
           const fullPath = join(targetDir, entry.name)
           const info = await stat(fullPath)
           return {
-            name: basename(entry.name, entry.name.endsWith(".yaml") ? ".yaml" : ".yml"),
+            name: basename(
+              entry.name,
+              entry.name.endsWith(".yaml") ? ".yaml" : ".yml",
+            ),
             path: fullPath,
             updatedAt: info.mtimeMs,
           }
@@ -66,7 +67,10 @@ export async function listChains(dir?: string): Promise<WorkflowFile[]> {
     )
     return workflows
   } catch (error) {
-    logWarn("yaml-io", "list_chains_failed", { dir: targetDir, error: String(error) })
+    logWarn("yaml-io", "list_chains_failed", {
+      dir: targetDir,
+      error: String(error),
+    })
     return []
   }
 }

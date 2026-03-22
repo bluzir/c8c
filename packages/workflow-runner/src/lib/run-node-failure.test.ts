@@ -10,7 +10,10 @@ import {
   type ResolvedRuntimePolicy,
 } from "./run-node-failure"
 
-function createNode(id: string, type: WorkflowNode["type"] = "skill"): WorkflowNode {
+function createNode(
+  id: string,
+  type: WorkflowNode["type"] = "skill",
+): WorkflowNode {
   return {
     id,
     type,
@@ -39,7 +42,9 @@ function state(status: NodeState["status"]): NodeState {
   }
 }
 
-function runtimePolicy(overrides: Partial<ResolvedRuntimePolicy> = {}): ResolvedRuntimePolicy {
+function runtimePolicy(
+  overrides: Partial<ResolvedRuntimePolicy> = {},
+): ResolvedRuntimePolicy {
   return {
     onError: "stop",
     retry: {
@@ -47,7 +52,14 @@ function runtimePolicy(overrides: Partial<ResolvedRuntimePolicy> = {}): Resolved
       maxTries: 1,
       waitMs: 0,
       backoff: "none",
-      retryOn: new Set(["tool", "model", "timeout", "unknown", "policy", "network"]),
+      retryOn: new Set([
+        "tool",
+        "model",
+        "timeout",
+        "unknown",
+        "policy",
+        "network",
+      ]),
     },
     ...overrides,
   }
@@ -61,13 +73,18 @@ async function createWorkspace(): Promise<string> {
 
 describe("run-node-failure", () => {
   it("computes exponential retry delay", () => {
-    expect(computeRetryDelayMs({
-      enabled: true,
-      maxTries: 3,
-      waitMs: 50,
-      backoff: "exponential",
-      retryOn: new Set(["tool"]),
-    }, 2)).toBe(100)
+    expect(
+      computeRetryDelayMs(
+        {
+          enabled: true,
+          maxTries: 3,
+          waitMs: 50,
+          backoff: "exponential",
+          retryOn: new Set(["tool"]),
+        },
+        2,
+      ),
+    ).toBe(100)
   })
 
   it("requeues retryable failures instead of stopping", async () => {
@@ -106,7 +123,47 @@ describe("run-node-failure", () => {
     expect(nodeState.retriesUsed).toBe(1)
     expect(nodeState.error).toBeUndefined()
     expect(retryNode).toHaveBeenCalledWith("audit")
-    expect(emitEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "node-log", nodeId: "audit" }))
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "node-log", nodeId: "audit" }),
+    )
+  })
+
+  it("applies automatic backoff to rate-limit policy errors even without node retry config", async () => {
+    const workspace = await createWorkspace()
+    const node = createNode("audit")
+    const workflow = createWorkflow(node)
+    const nodeState = state("running")
+    const retryNode = vi.fn(async () => undefined)
+    const emitEvent = vi.fn(async (_event: WorkflowEvent) => undefined)
+
+    await handleNodeExecutionFailure({
+      runId: "run-429",
+      node,
+      state: nodeState,
+      incomingContent: "input",
+      runtimePolicy: runtimePolicy(),
+      runtimeWorkflow: workflow,
+      activatedEdges: new Set(),
+      error: new Error("429 Too Many Requests"),
+      logger: { warn: vi.fn() },
+      emitEvent,
+      retryNode,
+      sleep: async () => undefined,
+      workspace,
+    })
+
+    expect(nodeState.status).toBe("pending")
+    expect(nodeState.retriesUsed).toBe(1)
+    expect(retryNode).toHaveBeenCalledWith("audit")
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "node-log",
+        nodeId: "audit",
+        entry: expect.objectContaining({
+          content: expect.stringContaining("automatic rate-limit backoff"),
+        }),
+      }),
+    )
   })
 
   it("continues with a partial output when policy is continue", async () => {
@@ -139,7 +196,9 @@ describe("run-node-failure", () => {
     expect(nodeState.policyApplied).toBe("continue")
     expect(nodeState.output?.content).toBe("partial result")
     expect(nodeState.output?.metadata.partial_on_error).toBe(true)
-    expect(emitEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "node-error", nodeId: "audit" }))
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "node-error", nodeId: "audit" }),
+    )
   })
 
   it("keeps failed state and partial artifact when policy is stop", async () => {
@@ -170,8 +229,12 @@ describe("run-node-failure", () => {
 
     expect(nodeState.status).toBe("failed")
     expect(nodeState.output?.content).toBe("partial result")
-    expect(emitEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "node-done", nodeId: "audit" }))
-    expect(emitEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "node-error", nodeId: "audit" }))
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "node-done", nodeId: "audit" }),
+    )
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "node-error", nodeId: "audit" }),
+    )
   })
 
   it("recovers max-turns skill failures when partial progress exists", async () => {
