@@ -586,6 +586,9 @@ export function WorkflowPanel() {
       : isFlowEditing
         ? "edit"
         : "outline"
+  const showInlineProjectArtifactsPanel = showProjectArtifactsPanel
+    && primaryScreenState !== "fresh_start"
+    && primaryScreenState !== "cross_flow_handoff"
   if (!selectedProject && !hasMeaningfulContent) {
     return (
       <EmptyWorkspaceState onOpenProject={() => { void window.api.addProject() }} />
@@ -674,7 +677,7 @@ export function WorkflowPanel() {
                   focusInputPanel()
                 }}
                 inputPanelRef={inputPanelRef}
-                showProjectArtifactsPanel={showProjectArtifactsPanel}
+                showProjectArtifactsPanel={showInlineProjectArtifactsPanel}
                 combinedArtifactRecords={combinedArtifactRecords}
                 projectArtifactsLoading={projectArtifactsLoading}
                 projectArtifactsError={projectArtifactsError}

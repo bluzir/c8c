@@ -27,6 +27,9 @@ function parseOptionalPositiveInt(value: string): number | undefined {
   return Math.max(1, Math.floor(parsed))
 }
 
+const SETTINGS_GROUP_CLASS = "w-full max-w-[620px] rounded-lg bg-surface-2/35 px-3 py-3 space-y-2"
+const SETTINGS_INLINE_STATUS_CLASS = "flex w-full max-w-[620px] items-center justify-between rounded-lg bg-surface-2/35 px-3 py-2"
+
 export function WorkflowSettingsPanel() {
   const [workflow] = useAtom(currentWorkflowAtom)
   const { setWorkflow } = useWorkflowWithUndo()
@@ -69,13 +72,13 @@ export function WorkflowSettingsPanel() {
   }
 
   return (
-    <section aria-label="Flow defaults" className="rounded-lg surface-panel p-4 space-y-3 ui-fade-slide-in">
+    <section aria-label="Flow defaults" className="space-y-3 ui-fade-slide-in">
       <h2 className="section-kicker">Flow Defaults</h2>
       <p className="max-w-[620px] text-body-sm text-muted-foreground">
         App-wide provider access lives in Settings, the flow provider and model live in the Input step, and any node-specific overrides stay with that step.
       </p>
 
-      <div className="w-full max-w-[620px] surface-inset-card space-y-2">
+      <div className={SETTINGS_GROUP_CLASS}>
         <h3 className="section-kicker">Execution Defaults</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="space-y-1">
@@ -141,7 +144,7 @@ export function WorkflowSettingsPanel() {
         </p>
       </div>
 
-      <div className="w-full max-w-[620px] surface-inset-card space-y-2">
+      <div className={SETTINGS_GROUP_CLASS}>
         <h3 className="section-kicker">Budget & Limits</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="space-y-1">
@@ -187,7 +190,7 @@ export function WorkflowSettingsPanel() {
       </div>
 
       {/* MCP status indicator */}
-      <div className="surface-soft flex w-full max-w-[620px] items-center justify-between px-3 py-2">
+      <div className={SETTINGS_INLINE_STATUS_CLASS}>
         <div className="flex items-center gap-2">
           <Server size={14} className="text-muted-foreground" />
           <span className="text-body-sm text-muted-foreground">

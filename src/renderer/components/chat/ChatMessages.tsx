@@ -131,7 +131,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       <button
         type="button"
         onClick={scrollToBottom}
-        className="ui-pressable ui-surface-lift surface-elevated inline-flex items-center gap-1.5 rounded-full px-3 py-1 ui-meta-text text-muted-foreground"
+        className="ui-pressable ui-surface-lift inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface-2/70 px-3 py-1 ui-meta-text text-muted-foreground shadow-inset-highlight-subtle"
       >
         <ArrowDown size={11} />
         New messages

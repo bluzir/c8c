@@ -146,9 +146,9 @@ export function FactoryOperationsView({
           tone={scopedHumanTasks.length > 0 ? "warning" : "default"}
         />
         <StatCard
-          label="Saved results"
+          label="Saved artifacts"
           value={String(scopedArtifacts.length)}
-          hint={scopedArtifacts.length > 0 ? "Reusable results available for downstream steps." : "Run a step to create reusable results."}
+          hint={scopedArtifacts.length > 0 ? "Reusable artifacts available for downstream steps." : "Run a step to create reusable artifacts."}
         />
         <StatCard
           label="Ready next steps"

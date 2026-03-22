@@ -367,8 +367,8 @@ function McpServerFormDialog({
           <DialogTitle>{isEdit ? "Edit MCP Server" : "Add MCP Server"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Modify the server configuration."
-              : "Configure a new MCP server connection."}
+              ? `Modify the ${PROVIDER_LABELS[provider]} server configuration.`
+              : `Configure a new MCP server connection for ${PROVIDER_LABELS[provider]}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -644,7 +644,7 @@ function PluginMcpServerRow({
             server.approved ? "ui-status-badge-success" : "ui-status-badge-warning",
           )}
         >
-          {server.approved ? "Approved" : "Blocked"}
+          {server.approved ? "Approved" : "Needs approval"}
         </span>
 
         <span className="ui-meta-text text-muted-foreground truncate hidden sm:inline">
@@ -812,7 +812,7 @@ export function McpServersSection({ provider = "claude" }: { provider?: Provider
   return (
     <section className="space-y-3">
       <SectionHeading
-        title="MCP Servers"
+        title={`${PROVIDER_LABELS[provider]} MCP Servers`}
         meta={
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="sm" onClick={handleAdd}>
@@ -844,28 +844,26 @@ export function McpServersSection({ provider = "claude" }: { provider?: Provider
       )}
 
       {!hasAnyServers && !loading && (
-        <article className="rounded-lg surface-panel p-6">
-          <div className="ui-empty-state">
-            <Server size={24} className="text-muted-foreground" />
-            <p className="text-body-sm text-muted-foreground mt-2">
-              No MCP servers configured. Add a server to extend the active provider with external tools.
-            </p>
-            <p className="ui-meta-text text-muted-foreground mt-1">
-              Viewing {PROVIDER_LABELS[provider]} servers.
-            </p>
-          </div>
-        </article>
+        <div className="ui-empty-state py-6">
+          <Server size={24} className="text-muted-foreground" />
+          <p className="text-body-sm text-muted-foreground mt-2">
+            No MCP servers configured. Add a server to extend the active provider with external tools.
+          </p>
+          <p className="ui-meta-text text-muted-foreground mt-1">
+            Viewing {PROVIDER_LABELS[provider]} servers.
+          </p>
+        </div>
       )}
 
       {loading && !hasAnyServers && (
-        <article className="rounded-lg surface-panel p-6 flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 py-6">
           <Loader2 size={14} className="animate-spin text-muted-foreground" />
           <span className="text-body-sm text-muted-foreground">Loading servers...</span>
-        </article>
+        </div>
       )}
 
       {hasProviderServers && (
-        <div className="rounded-lg surface-panel p-3 space-y-2">
+        <div className="space-y-2">
           {groups.map((group) => (
             <ServerGroupSection
               key={group.label + (group.projectPath || "")}
@@ -880,7 +878,7 @@ export function McpServersSection({ provider = "claude" }: { provider?: Provider
       )}
 
       {hasPluginServers && (
-        <article className="rounded-lg surface-panel p-3 space-y-3">
+        <div className={cn("space-y-3", hasProviderServers && "border-t border-hairline pt-3")}>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="section-kicker">Plugin MCP Packs</span>
@@ -892,8 +890,11 @@ export function McpServersSection({ provider = "claude" }: { provider?: Provider
           </div>
 
           <div className="space-y-2">
-            {pluginGroups.map((group) => (
-              <div key={group.id} className="space-y-1">
+            {pluginGroups.map((group, index) => (
+              <div
+                key={group.id}
+                className={cn("space-y-1", index > 0 && "border-t border-hairline pt-2")}
+              >
                 <div className="flex items-center gap-2 px-2">
                   <span className="section-kicker">{group.label}</span>
                   <Badge variant="outline" size="compact">{group.servers.length}</Badge>
@@ -911,7 +912,7 @@ export function McpServersSection({ provider = "claude" }: { provider?: Provider
               </div>
             ))}
           </div>
-        </article>
+        </div>
       )}
 
       <McpServerFormDialog
