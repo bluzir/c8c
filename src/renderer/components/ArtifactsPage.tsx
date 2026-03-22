@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
+import { cn } from "@/lib/cn"
 import {
   ArrowUpRight,
   FileStack,
@@ -20,6 +21,7 @@ import { CollectionToolbar } from "@/components/ui/collection-toolbar"
 import { PageHeader, PageShell, SectionHeading } from "@/components/ui/page-shell"
 import { ScopeBanner } from "@/components/ui/scope-banner"
 import { ArtifactInspectPanel } from "@/components/artifacts/ArtifactInspectPanel"
+import { ArtifactListRow } from "@/components/artifacts/ArtifactListRow"
 import { formatRelativeTime, projectFolderName } from "@/components/sidebar/projectSidebarUtils"
 import {
   currentWorkflowAtom,
@@ -41,8 +43,6 @@ import {
 import {
   areTemplateContractsSatisfied,
   deriveArtifactCaseKey,
-  deriveTemplateExecutionDisciplineLabels,
-  deriveTemplateJourneyStageLabel,
   formatArtifactContractLabel,
   selectArtifactsForTemplateContracts,
 } from "@/lib/workflow-entry"
@@ -105,7 +105,6 @@ export function ArtifactsPage() {
   const [artifactPreviewLoadingId, setArtifactPreviewLoadingId] = useState<string | null>(null)
   const artifactsRequestIdRef = useRef(0)
   const artifactPreviewRequestIdRef = useRef(0)
-  const inspectPanelRef = useRef<HTMLDivElement | null>(null)
 
   const refreshArtifacts = useCallback(async () => {
     const requestId = ++artifactsRequestIdRef.current
@@ -350,14 +349,6 @@ export function ArtifactsPage() {
       })
   }, [artifactPreviewById, selectedArtifact])
 
-  useEffect(() => {
-    if (!selectedArtifactId) return
-    const frame = window.requestAnimationFrame(() => {
-      inspectPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [selectedArtifactId])
-
   const openArtifact = async (artifact: ArtifactRecord) => {
     const openError = await window.api.openPath(artifact.contentPath)
     if (!openError) return
@@ -374,6 +365,30 @@ export function ArtifactsPage() {
 
   const inspectArtifact = (artifact: ArtifactRecord) => {
     setSelectedArtifactId(artifact.id)
+  }
+
+  const renderInspectPanel = (className?: string) => {
+    if (!selectedArtifact) return null
+
+    return (
+      <div className={className}>
+        <ArtifactInspectPanel
+          artifact={selectedArtifact}
+          caseState={selectedArtifactCaseState}
+          relatedArtifacts={selectedArtifactScope}
+          matchingTemplates={selectedArtifactMatchingTemplates}
+          loading={artifactPreviewLoadingId === selectedArtifact.id && !selectedArtifactPreview}
+          content={selectedArtifactPreview?.content || ""}
+          truncated={selectedArtifactPreview?.truncated || false}
+          error={selectedArtifactPreview?.error || null}
+          launchingTemplateId={launchingTemplateId}
+          onLaunchTemplate={launchTemplate}
+          onRevealArtifact={revealArtifact}
+          onOpenArtifact={openArtifact}
+          onClearSelection={() => setSelectedArtifactId(null)}
+        />
+      </div>
+    )
   }
 
   const launchTemplate = async (template: WorkflowTemplate, sourceArtifacts = scopeArtifacts) => {
@@ -426,8 +441,8 @@ export function ArtifactsPage() {
     return (
       <PageShell>
         <PageHeader
-          title="Results"
-          subtitle="Choose a project in the sidebar to see reusable results and start the next step from them."
+          title="Artifacts"
+          subtitle="Choose a project in the sidebar to see reusable artifacts and start the next step from them."
           actions={(
             <Button variant="outline" size="sm" onClick={() => setMainView("thread")}>
               <FolderOpen size={14} />
@@ -442,13 +457,13 @@ export function ArtifactsPage() {
   return (
     <PageShell>
       <PageHeader
-        title="Results"
+        title="Artifacts"
         subtitle={
           selectedCaseOption
-            ? `Reusable results for ${selectedCaseOption.label}. Stay in one track and open the next step without rebuilding context in the terminal.`
+            ? `Reusable artifacts for ${selectedCaseOption.label}. Stay in one track and open the next step without rebuilding context in the terminal.`
             : selectedFactoryLabel
-              ? `Reusable results for ${selectedFactoryLabel}. Stay inside one lab while you review results and launch the next step.`
-              : `Reusable project results for ${projectFolderName(selectedProject)}. Use them to open the next step without rebuilding context in the terminal.`
+              ? `Reusable artifacts for ${selectedFactoryLabel}. Stay inside one lab while you review outputs and launch the next step.`
+              : `Reusable artifacts for ${projectFolderName(selectedProject)}. Use them to open the next step without rebuilding context in the terminal.`
         }
         actions={(
           <>
@@ -460,7 +475,7 @@ export function ArtifactsPage() {
             ) : null}
             <Button variant="outline" size="sm" onClick={() => setMainView("templates")}>
               <LayoutTemplate size={14} />
-              Browse library
+              Starting points
             </Button>
             <Button variant="outline" size="sm" onClick={() => void refreshArtifacts()} disabled={artifactsLoading}>
               {artifactsLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
@@ -474,12 +489,12 @@ export function ArtifactsPage() {
         ariaLabel="Result controls"
         query={query}
         onQueryChange={setQuery}
-        searchPlaceholder="Search results or next steps"
-        searchAriaLabel="Search results"
-        summary={`${filteredArtifacts.length} result${filteredArtifacts.length === 1 ? "" : "s"}`}
+        searchPlaceholder="Search artifacts or next steps"
+        searchAriaLabel="Search artifacts"
+        summary={`${filteredArtifacts.length} artifact${filteredArtifacts.length === 1 ? "" : "s"}`}
         filters={(
           <>
-            <span className="ui-meta-text hidden text-muted-foreground lg:inline-flex">Filter by contract</span>
+            <span className="ui-meta-text hidden text-muted-foreground lg:inline-flex">Kind</span>
             <Button
               variant={kindFilter === "all" ? "secondary" : "outline"}
               size="xs"
@@ -531,7 +546,7 @@ export function ArtifactsPage() {
         {selectedFactoryLabel && !selectedCaseOption ? (
           <ScopeBanner
             eyebrow="Lab scope"
-            description={`Showing results for ${selectedFactoryLabel}. Go back to the lab when you need a different outcome or path.`}
+            description={`Showing artifacts for ${selectedFactoryLabel}. Go back to the lab when you need a different outcome or path.`}
             actions={factoryBetaEnabled ? (
               <Button variant="outline" size="sm" onClick={() => setMainView("factory")}>
                 <Rocket size={14} />
@@ -562,33 +577,13 @@ export function ArtifactsPage() {
         ) : null}
 
         <SectionHeading
-          title={selectedFactoryLabel ? `${selectedFactoryLabel} results` : "Project results"}
+          title={selectedFactoryLabel ? `${selectedFactoryLabel} artifacts` : "Project artifacts"}
           meta={compatibleTemplates.length > 0 ? (
             <span className="ui-meta-text text-muted-foreground">
               {compatibleTemplates.length} ready next step{compatibleTemplates.length === 1 ? "" : "s"}
             </span>
           ) : null}
         />
-
-        {selectedArtifact ? (
-          <div ref={inspectPanelRef}>
-            <ArtifactInspectPanel
-              artifact={selectedArtifact}
-              caseState={selectedArtifactCaseState}
-              relatedArtifacts={selectedArtifactScope}
-              matchingTemplates={selectedArtifactMatchingTemplates}
-              loading={artifactPreviewLoadingId === selectedArtifact.id && !selectedArtifactPreview}
-              content={selectedArtifactPreview?.content || ""}
-              truncated={selectedArtifactPreview?.truncated || false}
-              error={selectedArtifactPreview?.error || null}
-              launchingTemplateId={launchingTemplateId}
-              onLaunchTemplate={launchTemplate}
-              onRevealArtifact={revealArtifact}
-              onOpenArtifact={openArtifact}
-              onClearSelection={() => setSelectedArtifactId(null)}
-            />
-          </div>
-        ) : null}
 
         {artifactsError ? (
           <div role="alert" className="rounded-xl border border-status-danger/25 bg-status-danger/5 px-4 py-3 text-body-sm text-status-danger">
@@ -599,146 +594,57 @@ export function ArtifactsPage() {
             {templatesError}
           </div>
         ) : artifactsLoading || templatesLoading ? (
-          <div className="rounded-xl surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
-            Loading project results and next steps...
+          <div className="ui-empty-state rounded-xl border border-dashed border-hairline bg-surface-2/30 px-4 text-body-sm text-muted-foreground">
+            Loading project artifacts and next steps...
           </div>
         ) : filteredArtifacts.length === 0 ? (
-          <div className="rounded-xl surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+          <div className="ui-empty-state rounded-xl border border-dashed border-hairline bg-surface-2/30 px-4 text-body-sm text-muted-foreground">
             {factoryScopeArtifacts.length === 0
               ? selectedFactoryLabel
-                ? `No results have been saved for ${selectedFactoryLabel} yet. Run the first step to create reusable results.`
-                : "No results saved yet. Run a first step to create reusable results."
-              : "No results match this filter."}
+                ? `No artifacts have been saved for ${selectedFactoryLabel} yet. Run the first step to create reusable outputs.`
+                : "No artifacts saved yet. Run a first step to create reusable outputs."
+              : "No artifacts match this filter."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {filteredArtifacts.map((artifact) => {
-              const matchingTemplates = matchingTemplatesByArtifactId.get(artifact.id) || []
-              const artifactCaseKey = deriveArtifactCaseKey(artifact)
-              const artifactCase = caseOptions.find((entry) => entry.id === artifactCaseKey) || null
-              const artifactScope = selectedCaseId
-                ? scopeArtifacts
-                : (artifactsByCaseKey.get(artifactCaseKey) || [artifact])
-              return (
-                <article key={artifact.id} className="rounded-xl surface-panel p-4 space-y-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-title-sm text-foreground">{artifact.title}</h2>
-                        <Badge variant="outline" className="ui-meta-text px-2 py-0">
-                          {formatArtifactContractLabel(artifact.kind)}
-                        </Badge>
-                        {artifactCase ? (
-                          <Badge variant="secondary" className="ui-meta-text px-2 py-0">
-                            {artifactCase.label}
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-body-sm text-muted-foreground">
-                        {artifact.description || "Reusable result saved from a previous run."}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 ui-meta-text text-muted-foreground">
-                        <span>{artifact.templateName || artifact.workflowName || "Saved from run"}</span>
-                        <span>Updated {formatRelativeTime(artifact.updatedAt)}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {artifactCase && factoryBetaEnabled ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCaseId(artifactCase.id)
-                            setMainView("factory")
-                          }}
-                        >
-                          <Rocket size={14} />
-                          Track
-                        </Button>
-                      ) : null}
-                      <Button
-                        variant={selectedArtifactId === artifact.id ? "secondary" : "ghost"}
-                        size="sm"
-                        onClick={() => inspectArtifact(artifact)}
-                      >
-                        <FileText size={14} />
-                        {selectedArtifactId === artifact.id ? "Inspecting" : "Inspect"}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => void revealArtifact(artifact)}>
-                        <ArrowUpRight size={14} />
-                        Reveal
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => void openArtifact(artifact)}>
-                        <FileStack size={14} />
-                        Open
-                      </Button>
-                    </div>
-                  </div>
+          <div className={cn("grid grid-cols-1 gap-4", selectedArtifact && "xl:grid-cols-[minmax(0,1fr)_28rem]")}>
+            <div className="min-w-0">
+              <div className="overflow-hidden rounded-xl surface-panel">
+                {filteredArtifacts.map((artifact, index) => {
+                  const matchingTemplates = matchingTemplatesByArtifactId.get(artifact.id) || []
+                  const artifactCaseKey = deriveArtifactCaseKey(artifact)
+                  const artifactCase = caseOptions.find((entry) => entry.id === artifactCaseKey) || null
+                  const artifactScope = selectedCaseId
+                    ? scopeArtifacts
+                    : (artifactsByCaseKey.get(artifactCaseKey) || [artifact])
+                  const isSelected = selectedArtifactId === artifact.id
 
-                  <div className="rounded-lg surface-inset-card px-3 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="ui-meta-label text-muted-foreground">Ready next steps</div>
-                        <p className="mt-1 text-body-sm text-muted-foreground">
-                          {selectedCaseId || artifactCase
-                            ? "Steps whose required contracts are already satisfied by this track."
-                            : "Steps whose required contracts are already satisfied by this project."}
-                        </p>
-                      </div>
-                    </div>
+                  return (
+                    <ArtifactListRow
+                      key={artifact.id}
+                      artifact={artifact}
+                      artifactCaseLabel={artifactCase?.label || null}
+                      selectedCaseId={selectedCaseId}
+                      selected={isSelected}
+                      factoryBetaEnabled={factoryBetaEnabled}
+                      supportingArtifactCount={artifactScope.length}
+                      matchingTemplates={matchingTemplates}
+                      launchingTemplateId={launchingTemplateId}
+                      onOpenTrack={artifactCase ? () => {
+                        setSelectedCaseId(artifactCase.id)
+                        setMainView("factory")
+                      } : null}
+                      onInspect={() => inspectArtifact(artifact)}
+                      onReveal={() => { void revealArtifact(artifact) }}
+                      onOpen={() => { void openArtifact(artifact) }}
+                      onLaunchTemplate={(template) => { void launchTemplate(template, artifactScope) }}
+                      detailPanel={isSelected ? renderInspectPanel("xl:hidden") : null}
+                    />
+                  )
+                })}
+              </div>
+            </div>
 
-                    {matchingTemplates.length === 0 ? (
-                      <div className="mt-3 text-body-sm text-muted-foreground">
-                        No next steps are ready from this result alone yet.
-                      </div>
-                    ) : (
-                      <div className="mt-3 space-y-2">
-                        {matchingTemplates.map((template) => {
-                          const disciplineLabels = deriveTemplateExecutionDisciplineLabels(template)
-                          const stageLabel = deriveTemplateJourneyStageLabel(template)
-                          const isLaunching = launchingTemplateId === template.id
-                          return (
-                            <div
-                              key={`${artifact.id}-${template.id}`}
-                              className="flex flex-wrap items-center justify-between gap-3 rounded-lg surface-soft px-3 py-3"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="ui-body-text-medium text-foreground">{template.name}</div>
-                                  {template.pack ? (
-                                    <Badge variant="outline" className="ui-meta-text px-2 py-0">
-                                      {template.pack.label}
-                                    </Badge>
-                                  ) : null}
-                                  {stageLabel ? (
-                                    <Badge variant="secondary" className="ui-meta-text px-2 py-0">
-                                      {stageLabel}
-                                    </Badge>
-                                  ) : null}
-                                </div>
-                                {disciplineLabels.length > 0 ? (
-                                  <p className="mt-1 text-body-sm text-muted-foreground">
-                                    {disciplineLabels.join(" · ")}
-                                  </p>
-                                ) : null}
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => void launchTemplate(template, artifactScope)}
-                                disabled={Boolean(launchingTemplateId)}
-                              >
-                                {isLaunching ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                                {isLaunching ? "Opening..." : "Open step"}
-                              </Button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </article>
-              )
-            })}
+            {selectedArtifact ? renderInspectPanel("hidden xl:block xl:sticky xl:top-0 xl:self-start") : null}
           </div>
         )}
       </section>

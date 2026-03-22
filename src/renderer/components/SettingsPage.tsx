@@ -1,20 +1,9 @@
 import { useAtom } from "jotai"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Badge } from "@/components/ui/badge"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { PageHeader, PageShell, SectionHeading } from "@/components/ui/page-shell"
+import { PageHeader, PageShell } from "@/components/ui/page-shell"
+import { cn } from "@/lib/cn"
+import { toastErrorFromCatch } from "@/lib/toast-error"
 import {
   defaultProviderAtom,
   factoryBetaEnabledAtom,
@@ -32,14 +21,22 @@ import type {
   UpdateEvent,
 } from "@shared/types"
 import {
-  PROVIDER_LABELS,
-  SAFETY_PROFILE_LABELS,
   getDefaultModelForProvider,
   modelLooksCompatible,
 } from "@shared/provider-metadata"
 import { Download, Loader2, RefreshCw } from "lucide-react"
 import { McpServersSection } from "@/components/McpServersSection"
-import { ProviderModelInput, ProviderSelect } from "@/components/provider-controls"
+import { getProviderInstallCommand, getProviderLoginCommand, getProviderSignInMethod, resolveProviderReadinessVerdict } from "@/lib/provider-readiness"
+import {
+  SettingsExecutionDefaultsSection,
+  SettingsLabSection,
+  SettingsPrivacySection,
+  SettingsProviderStatusStrip,
+  SettingsProvidersSection,
+  SettingsResearchSection,
+  SettingsUpdatesSection,
+  statusBadgeClassName,
+} from "@/components/settings/SettingsSections"
 
 export function SettingsPage() {
   const [webSearchBackend, setWebSearchBackend] = useAtom(webSearchBackendAtom)
@@ -50,6 +47,7 @@ export function SettingsPage() {
   const [providerAvailability, setProviderAvailability] = useAtom(providerAvailabilityAtom)
   const [providerAuthStatus, setProviderAuthStatus] = useAtom(providerAuthStatusAtom)
   const [providerDiagnosticsLoading, setProviderDiagnosticsLoading] = useState(false)
+  const [settingsRefreshLoading, setSettingsRefreshLoading] = useState(false)
   const [codexApiKeyDraft, setCodexApiKeyDraft] = useState("")
   const [codexApiKeySaving, setCodexApiKeySaving] = useState(false)
   const [telemetrySettings, setTelemetrySettings] = useState<TelemetrySettings | null>(null)
@@ -58,6 +56,8 @@ export function SettingsPage() {
   const [appVersion, setAppVersion] = useState<string>("")
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ status: "idle" })
   const [updateChecking, setUpdateChecking] = useState(false)
+  const [execDefaultsSaveFlash, setExecDefaultsSaveFlash] = useState<"idle" | "saved">("idle")
+  const hasMountedExecDefaultsRef = useRef(false)
 
   const telemetryApi = window.api as typeof window.api & {
     getTelemetrySettings?: () => Promise<TelemetrySettings>
@@ -108,6 +108,18 @@ export function SettingsPage() {
     }
   }, [telemetryApi])
 
+  const refreshAllSettingsDiagnostics = useCallback(async () => {
+    setSettingsRefreshLoading(true)
+    try {
+      await Promise.allSettled([
+        refreshProviderDiagnostics(),
+        refreshTelemetrySettings(),
+      ])
+    } finally {
+      setSettingsRefreshLoading(false)
+    }
+  }, [refreshProviderDiagnostics, refreshTelemetrySettings])
+
   const updateTelemetryConsent = useCallback(async (enabled: boolean) => {
     if (typeof telemetryApi.setTelemetryConsent !== "function") return
     setTelemetryConsentSaving(true)
@@ -150,6 +162,8 @@ export function SettingsPage() {
       const diagnostics = await window.api.setCodexApiKey(codexApiKeyDraft)
       applyProviderDiagnostics(diagnostics)
       setCodexApiKeyDraft("")
+    } catch (error) {
+      toastErrorFromCatch("Could not save Codex API key", error)
     } finally {
       setCodexApiKeySaving(false)
     }
@@ -161,6 +175,8 @@ export function SettingsPage() {
       const diagnostics = await window.api.clearCodexApiKey()
       applyProviderDiagnostics(diagnostics)
       setCodexApiKeyDraft("")
+    } catch (error) {
+      toastErrorFromCatch("Could not remove Codex API key", error)
     } finally {
       setCodexApiKeySaving(false)
     }
@@ -210,6 +226,16 @@ export function SettingsPage() {
 
     return unsubUpdate
   }, [refreshProviderDiagnostics, refreshTelemetrySettings, telemetryApi])
+
+  useEffect(() => {
+    if (!hasMountedExecDefaultsRef.current) {
+      hasMountedExecDefaultsRef.current = true
+      return
+    }
+    setExecDefaultsSaveFlash("saved")
+    const timeoutId = window.setTimeout(() => setExecDefaultsSaveFlash("idle"), 1400)
+    return () => window.clearTimeout(timeoutId)
+  }, [execDefaults])
   const telemetryAvailable = Boolean(telemetrySettings?.enabledInBuild)
   const telemetryChecked = Boolean(telemetrySettings?.consent)
   const telemetryDisabled = telemetrySettingsLoading || telemetryConsentSaving || !telemetryAvailable
@@ -232,493 +258,132 @@ export function SettingsPage() {
   }, [telemetrySettings])
   const telemetryStatusBadge = useMemo(() => {
     if (telemetrySettingsLoading && !telemetrySettings) {
-      return <Badge variant="outline" className="ui-meta-text px-2 py-1 text-muted-foreground">Checking...</Badge>
+      return <span className={cn(statusBadgeClassName("outline"), "ui-meta-text text-muted-foreground")}>Checking...</span>
     }
     if (!telemetryAvailable) {
-      return <Badge variant="outline" className="ui-meta-text px-2 py-1 text-muted-foreground">Disabled in build</Badge>
+      return <span className={cn(statusBadgeClassName("outline"), "ui-meta-text text-muted-foreground")}>Disabled in build</span>
     }
     if (telemetryChecked) {
-      return <Badge variant="success" className="ui-meta-text px-2 py-1">Enabled</Badge>
+      return <span className={cn(statusBadgeClassName("success"), "ui-meta-text")}>Enabled</span>
     }
-    return <Badge variant="outline" className="ui-meta-text px-2 py-1 text-muted-foreground">Disabled</Badge>
+    return <span className={cn(statusBadgeClassName("outline"), "ui-meta-text text-muted-foreground")}>Disabled</span>
   }, [telemetryAvailable, telemetryChecked, telemetrySettings, telemetrySettingsLoading])
   const providers = useMemo(() => ["claude", "codex"] as ProviderId[], [])
+  const currentProviderVerdict = useMemo(() => {
+    const health = providerAvailability[defaultProvider]
+    const auth = providerAuthStatus[defaultProvider]
+    return resolveProviderReadinessVerdict(defaultProvider, health, auth)
+  }, [defaultProvider, providerAuthStatus, providerAvailability])
+  const currentProviderSetupHint = useMemo(() => {
+    const health = providerAvailability[defaultProvider]
+    const auth = providerAuthStatus[defaultProvider]
+
+    if (!health?.available) {
+      return `Next step: install ${PROVIDER_LABELS[defaultProvider]} with ${getProviderInstallCommand(defaultProvider)}.`
+    }
+
+    if (!auth?.authenticated && currentProviderVerdict.blocking) {
+      return `Next step: finish sign-in with ${getProviderLoginCommand(defaultProvider)}.`
+    }
+
+    return null
+  }, [currentProviderVerdict.blocking, defaultProvider, providerAuthStatus, providerAvailability])
 
   return (
     <PageShell>
       <PageHeader
         title="Global Settings"
-        subtitle="Configure app-wide defaults, providers, and services used across flows."
+        subtitle="Providers, tools, and execution defaults."
+        actions={(
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => void refreshAllSettingsDiagnostics()}
+            disabled={settingsRefreshLoading || providerDiagnosticsLoading || telemetrySettingsLoading}
+          >
+            {settingsRefreshLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            Refresh all
+          </Button>
+        )}
       />
 
+      <SettingsProviderStatusStrip
+        badgeVariant={currentProviderVerdict.badgeVariant}
+        badgeLabel={currentProviderVerdict.badgeLabel}
+        title={currentProviderVerdict.title}
+        description={currentProviderVerdict.description}
+        setupHint={currentProviderSetupHint}
+        blocking={currentProviderVerdict.blocking}
+        onOpenProviders={() => {
+          document.getElementById("settings-providers")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }}
+      />
+
+      <div className="flex flex-col gap-6">
       {process.env.NODE_ENV !== "development" && (
-      <section className="space-y-3">
-        <SectionHeading title="Updates" />
-
-        <article className="rounded-lg surface-panel p-4 space-y-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-body-md font-semibold">Application Updates</h3>
-              <p className="text-body-sm text-muted-foreground mt-1">
-                Current version: <span className="font-medium">{appVersion || "..."}</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {updateInfo.status === "downloaded" ? (
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={handleInstallUpdate}
-                >
-                  <Download size={14} />
-                  Restart to update
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void handleCheckForUpdate()}
-                  disabled={updateChecking || updateInfo.status === "checking" || updateInfo.status === "downloading"}
-                >
-                  {updateChecking || updateInfo.status === "checking" ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <RefreshCw size={14} />
-                  )}
-                  Check for updates
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {updateInfo.status === "available" && updateInfo.version && (
-            <p className="text-body-sm text-status-info">
-              Version {updateInfo.version} is available. Downloading...
-            </p>
-          )}
-
-          {updateInfo.status === "downloading" && (
-            <div className="space-y-1">
-              <p className="text-body-sm text-muted-foreground">
-                Downloading update... {updateInfo.progress ?? 0}%
-              </p>
-              <div className="ui-progress-track">
-                <div
-                  className="ui-progress-bar"
-                  style={{ transform: `scaleX(${(updateInfo.progress ?? 0) / 100})` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {updateInfo.status === "downloaded" && (
-            <p className="text-body-sm text-status-success">
-              Version {updateInfo.version} is ready to install. Restart the app to apply the update.
-            </p>
-          )}
-
-          {updateInfo.status === "not-available" && (
-            <p className="ui-meta-text text-muted-foreground">You're on the latest version.</p>
-          )}
-
-          {updateInfo.status === "error" && (
-            <div className="space-y-1">
-              <p className="text-body-sm text-status-danger">{updateInfo.error}</p>
-              <p className="ui-meta-text text-muted-foreground">
-                You can download the latest version from{" "}
-                <a
-                  href="https://github.com/c8c-ai/c8c/releases"
-                  className="text-primary underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  GitHub Releases
-                </a>.
-              </p>
-            </div>
-          )}
-        </article>
-      </section>
+      <SettingsUpdatesSection
+        appVersion={appVersion}
+        updateInfo={updateInfo}
+        updateChecking={updateChecking}
+        onCheckForUpdate={() => void handleCheckForUpdate()}
+        onInstallUpdate={handleInstallUpdate}
+      />
       )}
 
-      <section className="space-y-3">
-        <SectionHeading title="Execution Defaults" />
+      <SettingsExecutionDefaultsSection
+        defaultProvider={defaultProvider}
+        execDefaults={execDefaults}
+        setExecDefaults={setExecDefaults}
+        execDefaultsSaveFlash={execDefaultsSaveFlash}
+      />
 
-        <article className="rounded-lg surface-panel p-4 space-y-3">
-          <div>
-            <h3 className="text-body-md font-semibold">New Flow Defaults</h3>
-            <p className="text-body-sm text-muted-foreground mt-1">
-              Default values applied when creating new flows. These do not affect existing saved flows.
-            </p>
-          </div>
+      <SettingsLabSection
+        factoryBetaEnabled={factoryBetaEnabled}
+        onCheckedChange={setFactoryBetaEnabled}
+      />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="exec-default-model" className="text-body-sm font-medium text-foreground">Model</Label>
-              <ProviderModelInput
-                id="exec-default-model"
-                provider={defaultProvider}
-                value={execDefaults.model}
-                onValueChange={(value) => setExecDefaults((prev) => ({ ...prev, model: value }))}
-                placeholder={getDefaultModelForProvider(defaultProvider)}
-                className="w-full"
-              />
-              <p className="ui-meta-text text-muted-foreground">
-                Suggested models follow the current default provider.
-              </p>
-            </div>
+      <SettingsResearchSection
+        webSearchBackend={webSearchBackend}
+        onValueChange={(value) => setWebSearchBackend(value)}
+      />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="exec-default-max-turns" className="text-body-sm font-medium text-foreground">Max Turns</Label>
-              <Input
-                id="exec-default-max-turns"
-                type="number"
-                min={1}
-                max={1000}
-                value={execDefaults.maxTurns}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10)
-                  if (!isNaN(v) && v >= 1) setExecDefaults((prev) => ({ ...prev, maxTurns: v }))
-                }}
-              />
-              <p className="ui-meta-text text-muted-foreground">Maximum agentic turns per skill node.</p>
-            </div>
+      <SettingsProvidersSection
+        defaultProvider={defaultProvider}
+        providerSettings={providerSettings}
+        providers={providers}
+        providerAvailability={providerAvailability}
+        providerAuthStatus={providerAuthStatus}
+        providerDiagnosticsLoading={providerDiagnosticsLoading}
+        codexApiKeyDraft={codexApiKeyDraft}
+        codexApiKeySaving={codexApiKeySaving}
+        onDefaultProviderChange={handleDefaultProviderChange}
+        onPersistProviderSettings={persistProviderSettings}
+        onCodexApiKeyDraftChange={setCodexApiKeyDraft}
+        onSaveCodexApiKey={handleSaveCodexApiKey}
+        onClearCodexApiKey={handleClearCodexApiKey}
+        onLogoutProvider={handleLogoutProvider}
+      />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="exec-default-timeout" className="text-body-sm font-medium text-foreground">Timeout (minutes)</Label>
-              <Input
-                id="exec-default-timeout"
-                type="number"
-                min={1}
-                max={480}
-                value={execDefaults.timeout_minutes}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10)
-                  if (!isNaN(v) && v >= 1) setExecDefaults((prev) => ({ ...prev, timeout_minutes: v }))
-                }}
-              />
-              <p className="ui-meta-text text-muted-foreground">Per-node execution timeout.</p>
-            </div>
+      <div className="order-2">
+        <McpServersSection provider={defaultProvider} />
+      </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="exec-default-max-parallel" className="text-body-sm font-medium text-foreground">Max Parallel</Label>
-              <Input
-                id="exec-default-max-parallel"
-                type="number"
-                min={1}
-                max={32}
-                value={execDefaults.maxParallel}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10)
-                  if (!isNaN(v) && v >= 1) setExecDefaults((prev) => ({ ...prev, maxParallel: v }))
-                }}
-              />
-              <p className="ui-meta-text text-muted-foreground">Max concurrent branches for splitter fan-out.</p>
-            </div>
-          </div>
-
-          <p className="ui-meta-text text-muted-foreground">
-            Stored locally for this app profile.
-          </p>
-        </article>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeading title="Beta" />
-
-        <article className="rounded-lg surface-panel p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3 rounded-lg border border-hairline bg-surface-1/60 px-3 py-3">
-            <div>
-              <h3 className="text-body-md font-semibold text-foreground">Enable lab view (beta)</h3>
-              <p className="mt-1 text-body-sm text-muted-foreground">
-                Shows the advanced lab workspace and related navigation. Leave this off for the simpler flow editor and library view.
-              </p>
-            </div>
-            <Switch
-              checked={factoryBetaEnabled}
-              aria-label="Enable lab view beta"
-              onCheckedChange={setFactoryBetaEnabled}
-            />
-          </div>
-
-          <p className="ui-meta-text text-muted-foreground">
-            Stored locally for this app profile.
-          </p>
-        </article>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeading title="Research" />
-
-        <article className="rounded-lg surface-panel p-4 space-y-3">
-          <div>
-            <h3 className="text-body-md font-semibold">Web Search Backend</h3>
-            <p className="text-body-sm text-muted-foreground mt-1">
-              Defines which web-search path is preferred when using library flows from the
-              <span className="font-medium"> research </span>
-              category.
-            </p>
-          </div>
-
-          <Select value={webSearchBackend} onValueChange={(value) => setWebSearchBackend(value as typeof webSearchBackend)}>
-            <SelectTrigger className="w-full max-w-[340px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Backend</SelectLabel>
-                <SelectItem value="builtin">Built-in (default)</SelectItem>
-                <SelectItem value="exa">Exa MCP</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
-          <p className="ui-meta-text text-muted-foreground">
-            Current setting is stored locally for this app profile and does not modify existing flow files.
-          </p>
-        </article>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeading title="Providers" />
-
-        <article className="rounded-lg surface-panel p-4 space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="default-provider" className="text-body-sm font-medium text-foreground">
-                Default provider
-              </Label>
-              <ProviderSelect
-                id="default-provider"
-                value={defaultProvider}
-                onValueChange={(value) => void handleDefaultProviderChange(value)}
-                codexEnabled={providerSettings.features.codexProvider}
-                className="w-full"
-              />
-              <p className="ui-meta-text text-muted-foreground">
-                Used when a flow does not set its own provider override.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="safety-profile" className="text-body-sm font-medium text-foreground">
-                Safety profile
-              </Label>
-              <Select
-                value={providerSettings.safetyProfile}
-                onValueChange={(value) => void persistProviderSettings({ safetyProfile: value as typeof providerSettings.safetyProfile })}
-              >
-                <SelectTrigger id="safety-profile" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Profile</SelectLabel>
-                    {Object.entries(SAFETY_PROFILE_LABELS).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <p className="ui-meta-text text-muted-foreground">
-                Mapped to provider-specific sandbox and approval flags at runtime.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void refreshProviderDiagnostics()}
-              disabled={providerDiagnosticsLoading}
-            >
-              {providerDiagnosticsLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              Refresh provider status
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3">
-            {providers.map((providerId) => {
-              const health = providerAvailability[providerId]
-              const auth = providerAuthStatus[providerId]
-              const available = Boolean(health?.available)
-              const authenticated = Boolean(auth?.authenticated)
-              const authState = auth?.state ?? "unknown"
-              const statusLabel = !health
-                ? "Checking..."
-                : !available
-                  ? "CLI not found"
-                  : authenticated
-                    ? "Ready"
-                    : authState === "unknown"
-                      ? "Auth check unavailable"
-                      : "Needs auth"
-
-              return (
-                <article key={providerId} className="rounded-lg border border-hairline bg-surface-1/60 p-4 space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-body-md font-semibold">{PROVIDER_LABELS[providerId]}</h3>
-                      <p className="text-body-sm text-muted-foreground mt-1">
-                        {health?.version || "CLI version unknown"}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        authenticated
-                          ? "success"
-                          : authState === "unknown" || available
-                            ? "warning"
-                            : "destructive"
-                      }
-                      className="ui-meta-text px-2 py-1"
-                    >
-                      {statusLabel}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 text-body-sm text-muted-foreground sm:grid-cols-2">
-                    <p>Executable: <span className="text-foreground">{health?.executablePath || "not found"}</span></p>
-                    <p>Auth method: <span className="text-foreground">{auth?.authMethod || "none"}</span></p>
-                    <p>Account: <span className="text-foreground">{auth?.accountLabel || "n/a"}</span></p>
-                    <p>API key override: <span className="text-foreground">{auth?.apiKeyConfigured ? "configured" : "not set"}</span></p>
-                  </div>
-
-                  {health?.error ? (
-                    <p className="text-body-sm text-status-danger">{health.error}</p>
-                  ) : null}
-                  {auth?.error ? (
-                    <p className="text-body-sm text-status-danger">{auth.error}</p>
-                  ) : null}
-
-                  {providerId === "codex" && (
-                    <div className="space-y-2 rounded-lg border border-hairline bg-surface-2/40 p-3">
-                      <Label htmlFor="codex-api-key" className="text-body-sm font-medium text-foreground">
-                        CODEX_API_KEY override
-                      </Label>
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <Input
-                          id="codex-api-key"
-                          type="password"
-                          value={codexApiKeyDraft}
-                          onChange={(event) => setCodexApiKeyDraft(event.target.value)}
-                          placeholder="Paste API key to store in the app"
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => void handleSaveCodexApiKey()}
-                          disabled={codexApiKeySaving || !codexApiKeyDraft.trim()}
-                        >
-                          Save key
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => void handleClearCodexApiKey()}
-                          disabled={codexApiKeySaving}
-                        >
-                          Clear key
-                        </Button>
-                      </div>
-                      <p className="ui-meta-text text-muted-foreground">
-                        ChatGPT subscription login works via <code className="inline-code">codex login</code> and does not require an API key. The app-managed key is only an optional override stored in the app.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => void handleLogoutProvider(providerId)}
-                      disabled={providerDiagnosticsLoading}
-                    >
-                      Log out
-                    </Button>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </article>
-      </section>
-
-      <McpServersSection provider={defaultProvider} />
-
-      <section className="space-y-3">
-        <SectionHeading title="Privacy" />
-
-        <article className="rounded-lg surface-panel p-4 space-y-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-body-md font-semibold">Product Analytics</h3>
-              <p className="text-body-sm text-muted-foreground mt-1">
-                Sends anonymized runtime metrics to improve reliability and update safety. No prompts, content, paths, or secrets are sent.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {telemetryStatusBadge}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => void refreshTelemetrySettings()}
-                disabled={telemetrySettingsLoading}
-              >
-                {telemetrySettingsLoading ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={14} />
-                )}
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 text-body-sm text-muted-foreground sm:grid-cols-2">
-            <p>
-              Build: <span className="text-foreground">{telemetryBuildLabel || "unknown"}</span>
-            </p>
-            <p>
-              Provider: <span className="text-foreground">{telemetryProviderLabel}</span>
-            </p>
-            <p>
-              Config: <span className="text-foreground">{telemetrySettings?.configDetected ? "present" : "missing"}</span>
-            </p>
-            <p>
-              Local test flag: <span className="text-foreground">{telemetrySettings?.telemetryLocalTest ? "on" : "off"}</span>
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-1/60 px-3 py-2">
-            <div>
-              <p className="text-body-sm font-medium text-foreground">Allow product analytics</p>
-              <p className="ui-meta-text text-muted-foreground">
-                {(telemetryAvailable
-                  ? "You can opt in or out at any time."
-                  : "Telemetry is not available in this build.")}
-              </p>
-            </div>
-            <Switch
-              checked={telemetryChecked}
-              disabled={telemetryDisabled}
-              aria-label="Allow product analytics"
-              onCheckedChange={(enabled) => {
-                void updateTelemetryConsent(enabled)
-              }}
-            />
-          </div>
-
-          <p className="ui-meta-text text-muted-foreground">{telemetryHint}</p>
-        </article>
-      </section>
+      <SettingsPrivacySection
+        telemetryStatusBadge={telemetryStatusBadge}
+        telemetryBuildLabel={telemetryBuildLabel}
+        telemetryProviderLabel={telemetryProviderLabel}
+        telemetryConfigDetected={Boolean(telemetrySettings?.configDetected)}
+        telemetryLocalTest={Boolean(telemetrySettings?.telemetryLocalTest)}
+        telemetryAvailable={telemetryAvailable}
+        telemetryChecked={telemetryChecked}
+        telemetryDisabled={telemetryDisabled}
+        telemetryHint={telemetryHint}
+        onCheckedChange={(enabled) => {
+          void updateTelemetryConsent(enabled)
+        }}
+      />
+      </div>
     </PageShell>
   )
 }
