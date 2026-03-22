@@ -96,6 +96,7 @@ export function useExecutionCommands({
   const { addNotification } = useInboxNotifications()
   const onPreflightWarningsRef = useRef(onPreflightWarnings)
   onPreflightWarningsRef.current = onPreflightWarnings
+  const runStartingRef = useRef(false)
   const providerSettings = useAtomValue(providerSettingsAtom)
   const setProviderSettings = useSetAtom(providerSettingsAtom)
   const setProviderAvailability = useSetAtom(providerAvailabilityAtom)
@@ -204,11 +205,16 @@ export function useExecutionCommands({
 
   const run = useCallback(
     async (executionMode: PermissionMode = "edit") => {
+      if (runStartingRef.current) return
       if (isRunInFlight(runStatus)) return
       if (!workflow.nodes.length) return
 
+      runStartingRef.current = true
       const resolvedInput = resolveExecutionInput(workflow, inputValue)
-      if (!resolvedInput.valid) return
+      if (!resolvedInput.valid) {
+        runStartingRef.current = false
+        return
+      }
 
       const assembledValue = await assembleInputWithAttachments(
         resolvedInput.value,
@@ -227,13 +233,19 @@ export function useExecutionCommands({
         workflowForRun,
         "Could not start run",
       )
-      if (!preflight) return
+      if (!preflight) {
+        runStartingRef.current = false
+        return
+      }
       const startHandle = controller.beginExecution(
         workflowForRun,
         selectedWorkflowPath ?? null,
         selectedProject ?? null,
       )
-      if (!startHandle) return
+      if (!startHandle) {
+        runStartingRef.current = false
+        return
+      }
       setActiveExecutionProvider(preflight.effectiveProvider)
 
       try {
@@ -281,6 +293,8 @@ export function useExecutionCommands({
         toastErrorFromCatch("Could not start run", error)
         recordExecutionError("Could not start run", errorToUserMessage(error))
         controller.rollbackExecutionStart(startHandle)
+      } finally {
+        runStartingRef.current = false
       }
     },
     [
