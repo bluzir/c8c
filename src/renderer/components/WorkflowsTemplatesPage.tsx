@@ -1,18 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Dialog,
-  CanvasDialogBody,
-  CanvasDialogContent,
-  CanvasDialogFooter,
-  CanvasDialogHeader,
-  DialogClose,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -48,7 +37,6 @@ import { runStatusAtom, selectedPastRunAtom } from "@/features/execution"
 import { toast } from "sonner"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import {
-  FilePlus2,
   Loader2,
   Sparkles,
   X,
@@ -56,7 +44,6 @@ import {
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
 import { CollectionToolbar } from "@/components/ui/collection-toolbar"
 import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
-import { getTemplateSourceKind, getTemplateSourceLabel } from "@/lib/template-source"
 import {
   getTemplateSearchScore,
   templateMatchesCategory,
@@ -66,16 +53,15 @@ import {
 } from "@/lib/template-filters"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
-import { useBlankWorkflowCreation } from "@/hooks/useBlankWorkflowCreation"
 import { STAGE_ORDER, STAGE_META } from "@/lib/template-stages"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import {
-  deriveTemplateCardCopy,
-  deriveTemplateExecutionDisciplineLabels,
-  deriveTemplateUseWhen,
+  resolveProjectRequiredContract,
+  splitGuidedTemplateEntryContracts,
+} from "@/lib/entry-state-contracts"
+import {
   mergeInputAttachments,
 } from "@/lib/workflow-entry"
-import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import {
   buildResultModeSeedInput,
   countResultModeConfigFields,
@@ -90,220 +76,16 @@ import {
 } from "@/lib/template-library-context"
 import { getReplaceCurrentWorkflowBlockedReason } from "@/lib/run-guards"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
-import type { ResultModeId } from "@shared/types"
-
-function TemplateCard({
-  template,
-  isSelected,
-  onSelect,
-}: {
-  template: WorkflowTemplate
-  isSelected: boolean
-  onSelect: (template: WorkflowTemplate) => void
-}) {
-  const sourceKind = getTemplateSourceKind(template)
-
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="bare"
-      onClick={() => onSelect(template)}
-      className={`w-full !items-start !justify-start gap-3 rounded-lg border border-hairline/70 bg-transparent p-4 text-left !whitespace-normal ui-transition-colors ui-motion-fast ${
-        isSelected
-          ? "border-transparent bg-surface-2/70 text-foreground"
-          : "text-foreground hover:border-hairline hover:bg-surface-2/45"
-      }`}
-    >
-      <span className="text-xl flex-shrink-0 mt-0.5" aria-hidden>{template.emoji}</span>
-      <div className="min-w-0 flex-1">
-        <h3 className="text-body-md font-semibold">{template.headline}</h3>
-        <p className="text-body-sm text-muted-foreground mt-1 line-clamp-2">
-          {deriveTemplateCardCopy(template)}
-        </p>
-        {(sourceKind === "plugin" || sourceKind === "user" || sourceKind === "hub") && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <Badge variant="secondary" size="compact">
-              {getTemplateSourceLabel(template)}
-            </Badge>
-          </div>
-        )}
-      </div>
-    </Button>
-  )
-}
-
-async function resolveHubTemplate(template: WorkflowTemplate): Promise<WorkflowTemplate> {
-  if (template.source !== "hub" || template.workflow.nodes.length > 0) return template
-  const full = await window.api.fetchHubTemplate(template.id)
-  return { ...template, ...full, source: "hub" }
-}
-
-function normalizeTemplateForWorkflowUse(template: WorkflowTemplate): WorkflowTemplate {
-  const name = getWorkflowTemplateDisplayName(template)
-  if (name === template.name) return template
-  return { ...template, name }
-}
-
-const TEMPLATE_CATEGORY_ORDER: TemplateCategoryKey[] = [
-  "all",
-  "product",
-  "marketing",
-  "content",
-]
-
-const TEMPLATE_CATEGORY_META: Record<TemplateCategoryKey, {
-  label: string
-  summary: string
-  detail?: string
-}> = {
-  all: {
-    label: "All",
-    summary: "See the whole library first, then narrow it only if that helps.",
-  },
-  product: {
-    label: "Development",
-    summary: "Repo work, specs, implementation planning, UI polish, and software audits.",
-  },
-  marketing: {
-    label: "Marketing",
-    summary: "Research, positioning, trend, SEO, funnel, and campaign work.",
-  },
-  content: {
-    label: "Content",
-    summary: "Texts, publishing systems, course work, and launch assets.",
-  },
-}
-
-function deriveCreateModeId(
-  activeCategory: TemplateCategoryKey,
-  fallbackModeId: ResultModeId,
-  selectedTemplate: WorkflowTemplate | null,
-): ResultModeId {
-  if (selectedTemplate?.pack?.id === "courses-factory-alpha") return "courses"
-  if (activeCategory === "product") return "development"
-  if (activeCategory === "marketing") return "content"
-  if (activeCategory === "content") return "courses"
-  return fallbackModeId
-}
-
-function TemplateDetailPanel({
-  template,
-  onUse,
-  disabled,
-  onClose,
-}: {
-  template: WorkflowTemplate
-  onUse: (template: WorkflowTemplate) => void
-  disabled?: boolean
-  onClose: () => void
-}) {
-  const sourceKind = getTemplateSourceKind(template)
-  const sourceLabel = getTemplateSourceLabel(template)
-  const disciplineLabels = deriveTemplateExecutionDisciplineLabels(template)
-  const executionSummary = template.executionPolicy?.summary?.trim()
-    || (disciplineLabels.length > 0 ? disciplineLabels.join(", ") : null)
-  const executionDescription = template.executionPolicy?.description?.trim() || null
-
-  return (
-    <aside className="w-full lg:w-[22rem] lg:max-h-[calc(100vh-var(--titlebar-height)-6rem)] lg:self-start lg:sticky lg:top-0 flex-shrink-0 overflow-hidden rounded-xl surface-panel flex flex-col">
-      <header className="border-b border-border px-4 py-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-control-lg w-control-lg shrink-0 items-center justify-center rounded-lg bg-surface-2/70 p-0 text-lg">
-            <span aria-hidden>{template.emoji}</span>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h3 className="text-body-md font-semibold text-foreground">{getWorkflowTemplateDisplayName(template)}</h3>
-            <p className="ui-meta-text mt-1 text-muted-foreground">{template.headline}</p>
-            {template.description && (
-              <p className="mt-2 text-body-sm text-muted-foreground">
-                {template.description}
-              </p>
-            )}
-            {(sourceKind === "plugin" || sourceKind === "user" || sourceKind === "hub") && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <Badge variant="secondary" size="compact">{sourceLabel}</Badge>
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="ui-icon-button shrink-0"
-            aria-label="Close details"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      </header>
-
-      <div className="border-b border-border px-4 py-3 space-y-3">
-        <div>
-          <span className="ui-meta-label text-muted-foreground">Best when</span>
-          <p className="mt-1 text-body-sm">{deriveTemplateUseWhen(template)}</p>
-        </div>
-        <div>
-          <span className="ui-meta-label text-muted-foreground">You'll give</span>
-          <p className="mt-1 text-body-sm">{template.input}</p>
-        </div>
-        <div>
-          <span className="ui-meta-label text-muted-foreground">You'll get</span>
-          <p className="mt-1 text-body-sm">{template.output}</p>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto ui-scroll-region px-4 py-4">
-        <div className="space-y-4">
-          {(executionSummary || executionDescription) && (
-            <div>
-              <span className="ui-meta-label text-muted-foreground">Flow rules</span>
-              {executionSummary ? (
-                <p className="mt-1 text-body-sm text-foreground">{executionSummary}</p>
-              ) : null}
-              {executionDescription && executionDescription !== executionSummary ? (
-                <p className="mt-2 text-body-sm text-muted-foreground">{executionDescription}</p>
-              ) : null}
-            </div>
-          )}
-
-          {template.how ? (
-            <div className="border-t border-hairline/70 pt-4">
-              <span className="ui-meta-label text-muted-foreground">Why this start works</span>
-              <p className="mt-2 text-body-sm text-muted-foreground">{template.how}</p>
-            </div>
-          ) : null}
-
-          <div className="border-t border-hairline/70 pt-4">
-            <span className="ui-meta-label text-muted-foreground">Inside this flow</span>
-            <ol className="mt-2 list-decimal space-y-2 pl-5 text-body-sm text-muted-foreground">
-              {template.steps.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ol>
-          </div>
-
-          {(sourceKind === "plugin" || sourceKind === "user" || sourceKind === "hub") && (
-            <div className="border-t border-hairline/70 pt-4">
-              <span className="ui-meta-label text-muted-foreground">Source</span>
-              <p className="mt-1 text-body-sm">
-                {sourceLabel}
-                {template.marketplaceName ? ` via ${template.marketplaceName}` : ""}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="border-t border-border px-4 py-3">
-        <Button size="sm" onClick={() => onUse(template)} disabled={disabled} className="w-full">
-          Start this flow
-        </Button>
-      </div>
-    </aside>
-  )
-}
+import { PendingTemplateDialog } from "@/components/templates/PendingTemplateDialog"
+import { TemplateCard } from "@/components/templates/TemplateCard"
+import { TemplateDetailPanel } from "@/components/templates/TemplateDetailPanel"
+import {
+  deriveCreateModeId,
+  normalizeTemplateForWorkflowUse,
+  resolveHubTemplate,
+  TEMPLATE_CATEGORY_META,
+  TEMPLATE_CATEGORY_ORDER,
+} from "@/components/templates/templateLibraryModel"
 
 export function WorkflowsTemplatesPage() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([])
@@ -340,13 +122,19 @@ export function WorkflowsTemplatesPage() {
   const [targetProjectPath, setTargetProjectPath] = useState<string | null>(selectedProject)
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
-  const { createBlankWorkflow, creatingBlankWorkflow } = useBlankWorkflowCreation({ confirmDiscard })
   const replaceCurrentBlockedReason = getReplaceCurrentWorkflowBlockedReason(runStatus)
   const preferredProjectPath = useMemo(
     () => resolveTemplateLibraryProjectPath(projects, selectedProject, templateLibraryContext),
     [projects, selectedProject, templateLibraryContext],
   )
   const createInProjectOnly = templateLibraryRequiresProjectCreation(templateLibraryContext)
+  const projectRequired = useMemo(
+    () => resolveProjectRequiredContract({
+      resolvedProjectPath: preferredProjectPath,
+      primaryActionLabel: "Choose folder",
+    }),
+    [preferredProjectPath],
+  )
 
   useEffect(() => {
     return () => {
@@ -367,7 +155,7 @@ export function WorkflowsTemplatesPage() {
       const loaded = await window.api.listTemplates()
       setTemplates(loaded)
     } catch (error) {
-      toastErrorFromCatch("Could not load library", error)
+      toastErrorFromCatch("Could not load starting points", error)
     } finally {
       setLoading(false)
     }
@@ -408,16 +196,21 @@ export function WorkflowsTemplatesPage() {
   const filteredTemplates = useMemo(() => {
     return categoryFilteredTemplates.filter((template) => templateMatchesLibraryFilter(template, activeFilter))
   }, [activeFilter, categoryFilteredTemplates])
-
-  const selectedTemplate = useMemo(
-    () => filteredTemplates.find((t) => t.id === selectedTemplateId) ?? null,
-    [filteredTemplates, selectedTemplateId],
+  const filteredTemplateEntries = useMemo(
+    () => splitGuidedTemplateEntryContracts(filteredTemplates, templates),
+    [filteredTemplates, templates],
   )
+
+  const selectedTemplateEntry = useMemo(
+    () => filteredTemplateEntries.entries.find((entry) => entry.template.id === selectedTemplateId) ?? null,
+    [filteredTemplateEntries.entries, selectedTemplateId],
+  )
+  const selectedTemplate = selectedTemplateEntry?.template ?? null
 
   const selectedCategoryMeta = TEMPLATE_CATEGORY_META[activeCategory]
   const createModeId = useMemo(
-    () => deriveCreateModeId(activeCategory, selectedResultModeId, selectedTemplate),
-    [activeCategory, selectedResultModeId, selectedTemplate],
+    () => deriveCreateModeId(activeCategory, selectedResultModeId, selectedTemplateEntry?.template ?? null),
+    [activeCategory, selectedResultModeId, selectedTemplateEntry?.template],
   )
   const selectedResultMode = useMemo(
     () => getResultMode(selectedResultModeId),
@@ -503,8 +296,8 @@ export function WorkflowsTemplatesPage() {
 
   const confirmApplyTemplate = (template: WorkflowTemplate) => {
     if (createInProjectOnly) {
-      if (!preferredProjectPath) {
-        toastError("Open or select a project before starting here")
+      if (projectRequired.projectRequired) {
+        toastError(`${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`)
         return
       }
       void doCreateFromTemplate(template, preferredProjectPath)
@@ -620,14 +413,14 @@ export function WorkflowsTemplatesPage() {
     }
   }
 
-  const renderTemplateGrid = (items: WorkflowTemplate[]) => (
+  const renderTemplateGrid = (items: GuidedTemplateEntryContract[]) => (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-      {items.map((template) => (
+      {items.map((entry) => (
         <TemplateCard
-          key={template.id}
-          template={template}
-          isSelected={selectedTemplateId === template.id}
-          onSelect={(t) => setSelectedTemplateId((current) => (current === t.id ? null : t.id))}
+          key={entry.template.id}
+          entry={entry}
+          isSelected={selectedTemplateId === entry.template.id}
+          onSelect={(template) => setSelectedTemplateId((current) => (current === template.id ? null : template.id))}
         />
       ))}
     </div>
@@ -650,30 +443,20 @@ export function WorkflowsTemplatesPage() {
         <Sparkles size={14} />
         {templateLibraryContext ? "Back to create" : "Create with agent"}
       </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => void createBlankWorkflow({ projectPath: preferredProjectPath })}
-        disabled={creatingBlankWorkflow}
-      >
-        {creatingBlankWorkflow ? <Loader2 size={14} className="animate-spin" /> : <FilePlus2 size={14} />}
-        Blank flow
-      </Button>
     </div>
   )
 
   return (
     <PageShell>
       <PageHeader
-        title="Library"
-        subtitle="Choose how to begin, or open a blank flow only if you need full control."
+        title="Starting points"
+        subtitle="Guided paths first, one-off flows second."
         actions={headerActions}
       />
 
-      <section aria-label="Library intro" className="space-y-2 px-1">
-        <p className="section-kicker">Library</p>
-        <h2 className="ui-title-text text-foreground">Browse the library</h2>
+      <section aria-label="Starting points intro" className="space-y-2 px-1">
+        <p className="section-kicker">Starting points</p>
+        <h2 className="ui-title-text text-foreground">Browse starting points</h2>
         <p className="text-body-sm text-muted-foreground">
           Start broad, then narrow the list only if that helps.
         </p>
@@ -699,10 +482,10 @@ export function WorkflowsTemplatesPage() {
         ariaLabel="Library controls"
         query={query}
         onQueryChange={setQuery}
-        searchPlaceholder="Search templates"
-        searchAriaLabel="Search templates"
+        searchPlaceholder="Search starting points"
+        searchAriaLabel="Search starting points"
         surface="flat"
-        summary={`${filteredTemplates.length} flow${filteredTemplates.length === 1 ? "" : "s"}`}
+        summary={`${filteredTemplates.length} starting point${filteredTemplates.length === 1 ? "" : "s"}`}
         filters={(
           <>
             <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as TemplateCategoryKey)}>
@@ -760,22 +543,48 @@ export function WorkflowsTemplatesPage() {
               <div className="ui-empty-state px-4 text-body-sm text-muted-foreground">
                 <p>
                   {activeCategory === "all"
-                    ? "No library flows match these filters."
-                    : `No ${selectedCategoryMeta.label.toLowerCase()} flows match these filters.`}
+                    ? "No starting points match these filters."
+                    : `No ${selectedCategoryMeta.label.toLowerCase()} starting points match these filters.`}
                 </p>
                 <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
                   Clear filters
                 </Button>
               </div>
             ) : (
-              renderTemplateGrid(filteredTemplates)
+              <div className="space-y-6">
+                {filteredTemplateEntries.guidedEntries.length > 0 ? (
+                  <section className="space-y-3" aria-label="Guided entries">
+                    <div className="px-1">
+                      <p className="section-kicker">Guided entries</p>
+                      <p className="mt-1 text-body-sm text-muted-foreground">
+                        Start with the first stage, then continue through saved work as the path progresses.
+                      </p>
+                    </div>
+                    {renderTemplateGrid(filteredTemplateEntries.guidedEntries)}
+                  </section>
+                ) : null}
+
+                {filteredTemplateEntries.isolatedEntries.length > 0 ? (
+                  <section className="space-y-3" aria-label={filteredTemplateEntries.guidedEntries.length > 0 ? "More starts" : "All starts"}>
+                    {filteredTemplateEntries.guidedEntries.length > 0 ? (
+                      <div className="px-1">
+                        <p className="section-kicker">More starts</p>
+                        <p className="mt-1 text-body-sm text-muted-foreground">
+                          One-off flows that do not open a larger guided path.
+                        </p>
+                      </div>
+                    ) : null}
+                    {renderTemplateGrid(filteredTemplateEntries.isolatedEntries)}
+                  </section>
+                ) : null}
+              </div>
             )}
           </div>
 
           {/* Side panel */}
-          {selectedTemplate && (
+          {selectedTemplateEntry && (
             <TemplateDetailPanel
-              template={selectedTemplate}
+              entry={selectedTemplateEntry}
               onUse={confirmApplyTemplate}
               disabled={createInProjectOnly && !preferredProjectPath}
               onClose={() => setSelectedTemplateId(null)}
@@ -784,107 +593,28 @@ export function WorkflowsTemplatesPage() {
         </div>
       </section>
 
-      <Dialog open={pendingTemplate !== null} onOpenChange={(open) => !open && setPendingTemplate(null)}>
-        <CanvasDialogContent showCloseButton={false} size="lg">
-          <CanvasDialogHeader>
-            <DialogTitle>Start this flow</DialogTitle>
-            <DialogDescription>
-              &ldquo;{pendingTemplate ? getWorkflowTemplateDisplayName(pendingTemplate) : ""}&rdquo; is ready. Choose how to apply it, then continue.
-            </DialogDescription>
-          </CanvasDialogHeader>
-          <CanvasDialogBody className="space-y-4">
-            {projects.length > 0 ? (
-              <div className="space-y-1">
-                <p className="ui-meta-text text-muted-foreground">Selected project</p>
-                <Select
-                  value={targetProjectPath ?? ""}
-                  onValueChange={(value) => setTargetProjectPath(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((projectPath) => {
-                      const projectName = projectPath.split(/[\\/]/).pop() || projectPath
-                      return (
-                        <SelectItem key={projectPath} value={projectPath}>
-                          {projectName}
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <p className="text-body-sm text-muted-foreground">
-                Add a project in the sidebar to create this flow there.
-              </p>
-            )}
-            <div role="radiogroup" aria-label="Start mode" className="space-y-2">
-              {projects.length > 0 ? (
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={pendingTemplateDecision === "create"}
-                  onClick={() => setPendingTemplateDecision("create")}
-                  className={`w-full rounded-lg border px-3 py-3 text-left ui-transition-colors ui-motion-fast ${
-                    pendingTemplateDecision === "create"
-                      ? "border-transparent bg-surface-2/75"
-                      : "border-hairline/70 hover:bg-surface-2/45"
-                  }`}
-                >
-                  <p className="text-body-sm font-medium text-foreground">Create in selected project</p>
-                  <p className="mt-1 text-body-sm text-muted-foreground">
-                    Make a new flow in {targetProjectPath ? (targetProjectPath.split(/[\\/]/).pop() || "the selected project") : "the selected project"}.
-                  </p>
-                </button>
-              ) : null}
-              {replaceOptionAvailable ? (
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={pendingTemplateDecision === "replace"}
-                  onClick={() => setPendingTemplateDecision("replace")}
-                  className={`w-full rounded-lg border px-3 py-3 text-left ui-transition-colors ui-motion-fast ${
-                    pendingTemplateDecision === "replace"
-                      ? "border-transparent bg-surface-2/75"
-                      : "border-hairline/70 hover:bg-surface-2/45"
-                  }`}
-                >
-                  <p className="text-body-sm font-medium text-foreground">Replace current draft</p>
-                  <p className="mt-1 text-body-sm text-muted-foreground">
-                    Swap the current draft for this starting flow.
-                  </p>
-                </button>
-              ) : (
-                <p className="text-body-sm text-muted-foreground">
-                  Current draft cannot be replaced while a run is active.
-                </p>
-              )}
-            </div>
-          </CanvasDialogBody>
-          <CanvasDialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
-            </DialogClose>
-            <Button
-              size="sm"
-              disabled={!pendingTemplate || !canContinuePendingTemplate}
-              onClick={() => {
-                if (!pendingTemplate) return
-                if (pendingTemplateDecision === "replace") {
-                  void doApplyTemplate(pendingTemplate)
-                  return
-                }
-                if (!targetProjectPath) return
-                void doCreateFromTemplate(pendingTemplate, targetProjectPath)
-              }}
-            >
-              Continue
-            </Button>
-          </CanvasDialogFooter>
-        </CanvasDialogContent>
-      </Dialog>
+      <PendingTemplateDialog
+        pendingTemplate={pendingTemplate}
+        projects={projects}
+        targetProjectPath={targetProjectPath}
+        onTargetProjectPathChange={setTargetProjectPath}
+        blockerStatement={projectRequired.blockerStatement}
+        actionInstruction={projectRequired.actionInstruction}
+        pendingTemplateDecision={pendingTemplateDecision}
+        onPendingTemplateDecisionChange={setPendingTemplateDecision}
+        replaceOptionAvailable={replaceOptionAvailable}
+        canContinue={canContinuePendingTemplate}
+        onClose={() => setPendingTemplate(null)}
+        onContinue={() => {
+          if (!pendingTemplate) return
+          if (pendingTemplateDecision === "replace") {
+            void doApplyTemplate(pendingTemplate)
+            return
+          }
+          if (!targetProjectPath) return
+          void doCreateFromTemplate(pendingTemplate, targetProjectPath)
+        }}
+      />
       {unsavedChangesDialog}
     </PageShell>
   )

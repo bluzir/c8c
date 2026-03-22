@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
   chatPanelOpenAtom,
@@ -41,7 +41,6 @@ import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
 import { applyWorkflowDetailBudget, clampDetailBudget } from "@/lib/workflow-detail-budget"
 import {
   EMPTY_WORKFLOW_CREATE_SCAFFOLD,
-  countWorkflowCreateScaffoldFields,
   hasWorkflowCreatePromptContent,
 } from "@/lib/workflow-create-prompt"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
@@ -57,42 +56,26 @@ import {
 import type {
   CreateEntryRouteClarification,
   CreateEntryHelpModeHint,
-  CreateEntryRouteOption,
   InputAttachment,
-  ProjectInspectionSummary,
   RunResult,
-  ResultModeId,
   WorkflowTemplate,
 } from "@shared/types"
 import { cn } from "@/lib/cn"
 import { matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
-import { STAGE_META } from "@/lib/template-stages"
 import {
   buildGeneratedWorkflowEntryState,
   buildTemplateRunContext,
-  deriveTemplateExecutionDisciplineLabels,
   mergeInputAttachments,
   type WorkflowEntryState,
 } from "@/lib/workflow-entry"
 import {
-  buildResultModeSeedInput,
   countResultModeConfigFields,
-  getResultModeConfigFields,
   normalizeResultModeConfig,
 } from "@/lib/result-mode-config"
+import { getResultMode } from "@/lib/result-modes"
 import {
-  filterDirectCreateEntryOptions,
   sanitizeDirectCreateFallbackTemplateId,
 } from "@shared/create-entry-routing"
-import {
-  getResultMode,
-  getResultModeQuickStartOptions,
-  presentDevelopmentCreateQuickStarts,
-  presentDevelopmentCreateRouteOptions,
-  prioritizeDevelopmentCreateQuickStarts,
-  prioritizeTemplatesForResultMode,
-  splitTemplatesForResultMode,
-} from "@/lib/result-modes"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
@@ -109,50 +92,14 @@ import { WorkflowCreateContinuationCard } from "@/components/create/WorkflowCrea
 import { WorkflowCreateSuggestionsSection } from "@/components/create/WorkflowCreateSuggestionsSection"
 import { WorkflowCreateComposerFooter } from "@/components/create/WorkflowCreateComposerFooter"
 import { useWorkflowCreateContinuation } from "@/components/create/useWorkflowCreateContinuation"
+import { useWorkflowCreateDerivedState } from "@/components/create/useWorkflowCreateDerivedState"
+import { useWorkflowCreateResources } from "@/components/create/useWorkflowCreateResources"
 import { taskSelectionKey, toContinuationRun } from "@/components/notifications/task-ui"
 import type { WorkflowCreateContinuationCandidate } from "@/lib/workflow-create-continuation"
 
 const POPULAR_TEMPLATE_LIMIT = 12
 const CREATE_SURFACE_MAX_WIDTH = "max-w-5xl"
 const DEVELOPMENT_ROUTING_MIN_VISIBLE_MS = 550
-const DEVELOPMENT_CREATE_QUICK_START_IDS = new Set([
-  "delivery-map-codebase",
-  "delivery-shape-project",
-  "delivery-plan-phase",
-  "delivery-review-phase",
-])
-const DEVELOPMENT_CONTEXTUAL_ROUTE_OPTIONS: CreateEntryRouteOption[] = [
-  {
-    templateId: "full-stack-code-audit",
-    label: "Audit codebase risks",
-    intentLabel: "Review it",
-  },
-  {
-    templateId: "ux-ui-polish-audit",
-    label: "Audit and polish this UI",
-    intentLabel: "Review it",
-  },
-  {
-    templateId: "impeccable-ui-pipeline",
-    label: "Improve this UI flow",
-    intentLabel: "Do it",
-  },
-  {
-    templateId: "playwright-visual-audit",
-    label: "Audit this UI in browser",
-    intentLabel: "Review it",
-  },
-  {
-    templateId: "cto-optimise-audit",
-    label: "Run a full CTO-grade audit",
-    intentLabel: "Review it",
-  },
-  {
-    templateId: "delivery-investigate-bug",
-    label: "Investigate a bug",
-    intentLabel: "Do it",
-  },
-]
 
 function waitForMs(ms: number) {
   return new Promise<void>((resolve) => {
@@ -266,7 +213,6 @@ export function WorkflowCreatePage() {
   const [detailBudget, setDetailBudget] = useAtom(globalDetailBudgetAtom)
   const [workflowDirty] = useAtom(workflowDirtyAtom)
   const [createContext, setCreateContext] = useAtom(workflowCreateContextAtom)
-  const [projectInspection, setProjectInspection] = useState<ProjectInspectionSummary | null>(null)
   const [developmentHelpModeHint, setDevelopmentHelpModeHint] = useState<CreateEntryHelpModeHint | null>(null)
   const [draftPrompt, setDraftPrompt] = useAtom(workflowCreateDraftPromptAtom)
   const [modeConfigs, setModeConfigs] = useAtom(workflowCreateModeConfigsAtom)
@@ -281,9 +227,6 @@ export function WorkflowCreatePage() {
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const [promptHelperOpen, setPromptHelperOpen] = useState(false)
   const [preferNewFlow, setPreferNewFlow] = useState(false)
-  const [popularTemplates, setPopularTemplates] = useState<WorkflowTemplate[]>([])
-  const [availableTemplates, setAvailableTemplates] = useState<WorkflowTemplate[]>([])
-  const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [openingProject, setOpeningProject] = useState(false)
   const [projectPickerOpen, setProjectPickerOpen] = useState(false)
@@ -296,13 +239,20 @@ export function WorkflowCreatePage() {
   const composerRef = useRef<HTMLDivElement | null>(null)
   const promptHelperRef = useRef<HTMLDivElement | null>(null)
   const promptHelperScrollRef = useRef<HTMLDivElement | null>(null)
-  const templateLoadRequestIdRef = useRef(0)
-  const projectInspectionRequestIdRef = useRef(0)
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
 
   const targetProjectPath = createContext.projectPath
   const primaryActionShortcutLabel = `${desktopRuntime.primaryModifierLabel}↵`
   const createShortcutHint = `${primaryActionShortcutLabel} start · Enter newline`
+  const {
+    projectInspection,
+    popularTemplates,
+    availableTemplates,
+    loadingTemplates,
+  } = useWorkflowCreateResources({
+    targetProjectPath,
+    popularTemplateLimit: POPULAR_TEMPLATE_LIMIT,
+  })
 
   useEffect(() => {
     if (
@@ -346,56 +296,6 @@ export function WorkflowCreatePage() {
   ])
 
   useEffect(() => {
-    const requestId = templateLoadRequestIdRef.current + 1
-    templateLoadRequestIdRef.current = requestId
-    setLoadingTemplates(true)
-
-    void (async () => {
-      try {
-        const templates = await window.api.listTemplates()
-        let popular: WorkflowTemplate[] = []
-
-        if (targetProjectPath) {
-          try {
-            popular = await window.api.listPopularProjectTemplates(
-              targetProjectPath,
-              POPULAR_TEMPLATE_LIMIT,
-            )
-          } catch (error) {
-            if (templateLoadRequestIdRef.current !== requestId) return
-            if (!String(error).includes("No handler registered")) {
-              toastErrorFromCatch("Could not load popular library flows", error)
-            }
-          }
-        }
-
-        if (templateLoadRequestIdRef.current !== requestId) return
-        setAvailableTemplates(templates)
-        const seen = new Set(popular.map((template) => template.id))
-        const supplemented = templates.filter((template) => !seen.has(template.id))
-        setPopularTemplates(
-          [...popular, ...supplemented].slice(0, POPULAR_TEMPLATE_LIMIT),
-        )
-      } catch (error) {
-        if (templateLoadRequestIdRef.current !== requestId) return
-        setAvailableTemplates([])
-        setPopularTemplates([])
-        toastErrorFromCatch("Could not load library", error)
-      } finally {
-        if (templateLoadRequestIdRef.current === requestId) {
-          setLoadingTemplates(false)
-        }
-      }
-    })()
-
-    return () => {
-      if (templateLoadRequestIdRef.current === requestId) {
-        templateLoadRequestIdRef.current += 1
-      }
-    }
-  }, [targetProjectPath])
-
-  useEffect(() => {
     textareaRef.current?.style.setProperty("height", "auto")
   }, [draftPrompt])
 
@@ -421,32 +321,6 @@ export function WorkflowCreatePage() {
     return () => window.cancelAnimationFrame(frame)
   }, [promptHelperOpen])
 
-  const targetProjectName = useMemo(
-    () => (targetProjectPath ? projectFolderName(targetProjectPath) : null),
-    [targetProjectPath],
-  )
-  const sourceAttachmentSummary = useMemo(() => {
-    if (sourceArtifacts.length > 0) {
-      const titles = sourceArtifacts.slice(0, 2).map((artifact) => artifact.title)
-      if (sourceArtifacts.length > 2) {
-        titles.push(`+${sourceArtifacts.length - 2} more`)
-      }
-      return titles.join(" · ")
-    }
-    if (sourceAttachments.length > 0) {
-      const labels = sourceAttachments.slice(0, 2).map((attachment) => {
-        if (attachment.kind === "file") return attachment.name
-        if (attachment.kind === "run") return attachment.workflowName
-        return attachment.label
-      })
-      if (sourceAttachments.length > 2) {
-        labels.push(`+${sourceAttachments.length - 2} more`)
-      }
-      return labels.join(" · ")
-    }
-    return null
-  }, [sourceArtifacts, sourceAttachments])
-
   const openTemplateLibrary = () => {
     setTemplateLibraryContext({
       projectPath: targetProjectPath,
@@ -454,131 +328,12 @@ export function WorkflowCreatePage() {
     })
     setMainView("templates")
   }
-  const selectedResultMode = useMemo(
-    () => getResultMode(selectedResultModeId),
-    [selectedResultModeId],
-  )
-  const selectedModeConfig = useMemo(
-    () => normalizeResultModeConfig(selectedResultModeId, modeConfigs[selectedResultModeId]),
-    [modeConfigs, selectedResultModeId],
-  )
-  const selectedModeConfigFields = useMemo(
-    () => getResultModeConfigFields(selectedResultModeId),
-    [selectedResultModeId],
-  )
-  const selectedModeConfigFieldCount = useMemo(
-    () => countResultModeConfigFields(selectedResultModeId, selectedModeConfig),
-    [selectedModeConfig, selectedResultModeId],
-  )
-  const pendingTemplateDisciplineLabels = pendingTemplate ? deriveTemplateExecutionDisciplineLabels(pendingTemplate) : []
-  const pendingTemplateCategoryLabel = pendingTemplate ? STAGE_META[pendingTemplate.stage].label : null
-  const pendingTemplateExecutionSummary = pendingTemplate
-    ? pendingTemplate.executionPolicy?.summary?.trim()
-      || (pendingTemplateDisciplineLabels.length > 0 ? pendingTemplateDisciplineLabels.join(", ") : null)
-    : null
-  const scaffoldFieldCount = useMemo(
-    () => countWorkflowCreateScaffoldFields(promptScaffold),
-    [promptScaffold],
-  )
-  const optionalDetailCount = selectedModeConfigFieldCount + scaffoldFieldCount
-  const canSubmitPrompt = hasWorkflowCreatePromptContent(draftPrompt, promptScaffold)
-    || selectedModeConfigFieldCount > 0
-  const routingActive = submitting && selectedResultMode.id === "development"
-  const createSeedMessage = useMemo(
-    () => (
-      canSubmitPrompt
-        ? buildResultModeSeedInput(
-          selectedResultMode,
-          selectedModeConfig,
-          draftPrompt,
-          promptScaffold,
-        )
-        : ""
-    ),
-    [canSubmitPrompt, draftPrompt, promptScaffold, selectedModeConfig, selectedResultMode],
-  )
-  const modeTemplateSplit = useMemo(
-    () => splitTemplatesForResultMode(availableTemplates, selectedResultModeId),
-    [availableTemplates, selectedResultModeId],
-  )
-  const visibleQuickStarts = modeTemplateSplit.quickStarts
-  const quickStartOptions = useMemo(
-    () => getResultModeQuickStartOptions(selectedResultMode.id),
-    [selectedResultMode.id],
-  )
-  const routeOptions = useMemo<CreateEntryRouteOption[]>(
-    () => {
-      const basePrimaryOptions = (visibleQuickStarts.length > 0 ? visibleQuickStarts : quickStartOptions).map((quickStart) => ({
-        templateId: quickStart.templateId,
-        label: quickStart.label,
-        intentLabel: quickStart.intentLabel,
-        recommended: quickStart.recommended,
-      }))
-      const primaryOptions = filterDirectCreateEntryOptions(
-        selectedResultMode.id,
-        selectedResultMode.id === "development"
-          ? presentDevelopmentCreateRouteOptions(basePrimaryOptions, projectInspection?.projectKind)
-          : basePrimaryOptions,
-      )
-      if (selectedResultMode.id !== "development") return primaryOptions
-
-      const availableTemplateIds = new Set(availableTemplates.map((template) => template.id))
-      const contextualOptions = filterDirectCreateEntryOptions(
-        selectedResultMode.id,
-        DEVELOPMENT_CONTEXTUAL_ROUTE_OPTIONS.filter((option) => availableTemplateIds.has(option.templateId)),
-      )
-
-      return [...primaryOptions, ...contextualOptions].filter((option, index, array) =>
-        array.findIndex((candidate) => candidate.templateId === option.templateId) === index)
-    },
-    [availableTemplates, projectInspection?.projectKind, quickStartOptions, selectedResultMode.id, visibleQuickStarts],
-  )
-  const displayQuickStarts = useMemo(() => {
-    if (visibleQuickStarts.length === 0) return []
-    if (selectedResultMode.id !== "development") return visibleQuickStarts
-    const entryQuickStarts = visibleQuickStarts.filter((quickStart) =>
-      DEVELOPMENT_CREATE_QUICK_START_IDS.has(quickStart.template.id))
-    const prioritizedQuickStarts = prioritizeDevelopmentCreateQuickStarts(
-      entryQuickStarts.length > 0 ? entryQuickStarts : visibleQuickStarts,
-      projectInspection?.projectKind,
-    )
-    const primaryQuickStarts = prioritizedQuickStarts.length > 0 ? prioritizedQuickStarts : visibleQuickStarts.slice(0, 3)
-    return presentDevelopmentCreateQuickStarts(primaryQuickStarts, projectInspection?.projectKind)
-  }, [projectInspection?.projectKind, selectedResultMode.id, visibleQuickStarts])
-  const visiblePopularTemplates = useMemo(() => {
-    const modeTemplates = prioritizeTemplatesForResultMode(popularTemplates, selectedResultModeId)
-    return (modeTemplates.length > 0 ? modeTemplates : popularTemplates).slice(0, POPULAR_TEMPLATE_LIMIT)
-  }, [popularTemplates, selectedResultModeId])
-  const suggestedTemplates = useMemo(() => {
-    if (displayQuickStarts.length > 0) {
-      return displayQuickStarts.map((quickStart) => ({
-        template: quickStart.template,
-        title: quickStart.label,
-        summary: quickStart.summary,
-        eyebrow: quickStart.intentLabel,
-        recommended: quickStart.recommended,
-      }))
-    }
-
-    return visiblePopularTemplates.slice(0, 6).map((template) => ({
-      template,
-      title: undefined,
-      summary: undefined,
-      eyebrow: undefined,
-      recommended: false,
-    }))
-  }, [displayQuickStarts, visiblePopularTemplates])
-  const suggestedTemplatesTitle = useMemo(() => {
-    if (selectedResultMode.id === "development") return "Suggested ways to start"
-    return `Suggested ${selectedResultMode.label.toLowerCase()} starts`
-  }, [selectedResultMode.id, selectedResultMode.label])
-  const pendingQuickStart = useMemo(
-    () => displayQuickStarts.find((quickStart) => quickStart.template.id === pendingTemplate?.id) || null,
-    [displayQuickStarts, pendingTemplate?.id],
-  )
-  const pendingPrimaryActionLabel = pendingQuickStart?.intentLabel
-    ? `Start ${pendingQuickStart.label}`
-    : "Start with this"
+  const preSelectedResultMode = getResultMode(selectedResultModeId)
+  const preSelectedModeConfig = normalizeResultModeConfig(selectedResultModeId, modeConfigs[selectedResultModeId])
+  const preSelectedModeConfigFieldCount = countResultModeConfigFields(selectedResultModeId, preSelectedModeConfig)
+  const preCanSubmitPrompt = hasWorkflowCreatePromptContent(draftPrompt, promptScaffold)
+    || preSelectedModeConfigFieldCount > 0
+  const preRoutingActive = submitting && preSelectedResultMode.id === "development"
   const {
     loading: continuationLoading,
     primaryContinuation,
@@ -588,28 +343,52 @@ export function WorkflowCreatePage() {
     projectPath: targetProjectPath,
     templates: availableTemplates,
     templatesLoading: loadingTemplates,
-    hasStartedNewRequest: canSubmitPrompt || preferNewFlow,
-    routingInProgress: routingActive,
+    hasStartedNewRequest: preCanSubmitPrompt || preferNewFlow,
+    routingInProgress: preRoutingActive,
     clarificationInProgress: routeClarification !== null,
   })
-  const figureOwner = !targetProjectPath
-    ? "no_project"
-    : submitError
-      ? "start_error"
-      : routingActive
-        ? "routing"
-        : continuationPresentation === "dominant"
-          ? "continue_first"
-          : (canSubmitPrompt || preferNewFlow)
-            ? "new_flow"
-            : "browse_for_start"
-  const showComposer = figureOwner === "browse_for_start" || figureOwner === "new_flow" || figureOwner === "continue_first"
-  const showDetailsPanel = promptHelperOpen && showComposer
-  const showRoutingState = figureOwner === "routing"
-  const showStartError = figureOwner === "start_error"
-  const showContinuationCard = figureOwner === "continue_first"
-  const showSuggestions = figureOwner === "browse_for_start"
-  const visibleSuggestions = showSuggestions ? suggestedTemplates.slice(0, 2) : []
+  const {
+    targetProjectName,
+    projectRequired,
+    sourceAttachmentSummary,
+    selectedResultMode,
+    selectedModeConfig,
+    selectedModeConfigFields,
+    optionalDetailCount,
+    canSubmitPrompt,
+    routingActive,
+    createSeedMessage,
+    routeOptions,
+    suggestedTemplatesTitle,
+    pendingQuickStart,
+    pendingPrimaryActionLabel,
+    pendingTemplateCategoryLabel,
+    pendingTemplateExecutionSummary,
+    showComposer,
+    showDetailsPanel,
+    showRoutingState,
+    showStartError,
+    showContinuationCard,
+    showSuggestions,
+    visibleSuggestions,
+  } = useWorkflowCreateDerivedState({
+    targetProjectPath,
+    sourceArtifacts,
+    sourceAttachments,
+    selectedResultModeId,
+    modeConfigs,
+    pendingTemplate,
+    promptScaffold,
+    draftPrompt,
+    submitting,
+    availableTemplates,
+    popularTemplates,
+    projectKind: projectInspection?.projectKind,
+    continuationPresentation,
+    preferNewFlow,
+    submitError,
+    promptHelperOpen,
+  })
 
   const resetCreateSurfaceState = () => {
     setDraftPrompt("")
@@ -738,8 +517,8 @@ export function WorkflowCreatePage() {
         return
       }
 
-      if (!targetProjectPath) {
-        toastError("Select a project before continuing saved work.")
+      if (projectRequired.projectRequired) {
+        toastError(`${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`)
         return
       }
 
@@ -788,44 +567,6 @@ export function WorkflowCreatePage() {
       setOpeningProject(false)
     }
   }
-
-  useEffect(() => {
-    if (!targetProjectPath) {
-      setProjectInspection(null)
-      projectInspectionRequestIdRef.current += 1
-      return
-    }
-
-    const inspectCreateEntryProject = (window.api as typeof window.api & {
-      inspectCreateEntryProject?: typeof window.api.inspectCreateEntryProject
-    }).inspectCreateEntryProject
-
-    if (!inspectCreateEntryProject) {
-      setProjectInspection(null)
-      projectInspectionRequestIdRef.current += 1
-      return
-    }
-
-    const requestId = projectInspectionRequestIdRef.current + 1
-    projectInspectionRequestIdRef.current = requestId
-
-    void inspectCreateEntryProject(targetProjectPath)
-      .then((inspection) => {
-        if (projectInspectionRequestIdRef.current !== requestId) return
-        setProjectInspection(inspection)
-      })
-      .catch((error) => {
-        if (projectInspectionRequestIdRef.current !== requestId) return
-        console.error("[workflow-create] Could not inspect create-entry project", error)
-        setProjectInspection(null)
-      })
-
-    return () => {
-      if (projectInspectionRequestIdRef.current === requestId) {
-        projectInspectionRequestIdRef.current += 1
-      }
-    }
-  }, [targetProjectPath])
 
   const handleTemplateSelect = (template: WorkflowTemplate) => {
     setPendingTemplate(template)
@@ -951,8 +692,8 @@ export function WorkflowCreatePage() {
   } = {}) => {
     const message = createSeedMessage
     if (!message || submitting) return
-    if (!targetProjectPath) {
-      const errorMessage = "Open or select a project before starting a flow."
+    if (projectRequired.projectRequired) {
+      const errorMessage = `${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`
       setSubmitError(errorMessage)
       toastError(errorMessage)
       return
@@ -1134,12 +875,15 @@ export function WorkflowCreatePage() {
               <div className="rounded-[1.35rem] border border-hairline/80 surface-panel px-4 py-4 ui-fade-slide-in">
                 <p className="text-body-sm font-medium text-foreground">Choose project</p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
-                  Pick a project before creating or continuing work.
+                  {projectRequired.blockerStatement}
+                </p>
+                <p className="mt-1 text-body-sm text-muted-foreground">
+                  {projectRequired.actionInstruction}
                 </p>
                 <div className="mt-4">
                   <Button type="button" size="sm" onClick={() => void handleOpenProject()} disabled={openingProject}>
                     {openingProject ? <Loader2 size={14} className="animate-spin" /> : null}
-                    Choose folder
+                    {projectRequired.primaryActionLabel}
                   </Button>
                 </div>
               </div>
