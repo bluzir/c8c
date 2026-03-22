@@ -3,20 +3,14 @@ import { errorToUserMessage } from "@/lib/error-message"
 import { useAtom, useAtomValue } from "jotai"
 import {
   AlertTriangle,
-  BellRing,
-  CheckCheck,
   CheckCircle2,
   Clock3,
-  RefreshCw,
-  ArrowUpRight,
-  Trash2,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
-import { ScopeBanner } from "@/components/ui/scope-banner"
 import { buildProjectCaseIndex } from "@/lib/case-summary"
 import {
   currentWorkflowAtom,
+  desktopRuntimeAtom,
   factoryBetaEnabledAtom,
   inboxNotificationsAtom,
   mainViewAtom,
@@ -34,6 +28,7 @@ import { useChainExecution } from "@/hooks/useChainExecution"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { selectedPastRunAtom } from "@/features/execution"
+import { consumeShortcut, isShortcutConsumed, matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
 import type { ArtifactRecord, CaseStateRecord, HumanTaskField, HumanTaskSnapshot, HumanTaskSummary, RunResult, Workflow } from "@shared/types"
 import {
   buildInitialHumanTaskAnswers,
@@ -46,7 +41,10 @@ import {
   toContinuationRun,
 } from "@/components/notifications/task-ui"
 import { HumanTaskInboxSection } from "@/components/notifications/HumanTaskInboxSection"
+import { NotificationsHeaderActions } from "@/components/notifications/NotificationsHeaderActions"
+import { NotificationsScopeSection } from "@/components/notifications/NotificationsScopeSection"
 import { RecentEventsSection } from "@/components/notifications/RecentEventsSection"
+import { toast } from "sonner"
 
 const LEVEL_META: Record<InboxNotification["level"], { icon: typeof CheckCircle2; tone: string; badgeClass: string }> = {
   info: {
@@ -89,6 +87,7 @@ function deriveTaskStageMeta(workflow: Workflow, nodeId: string): TaskStageMeta 
 export function NotificationsPage() {
   const [notifications] = useAtom(inboxNotificationsAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
+  const desktopRuntime = useAtomValue(desktopRuntimeAtom)
   const [factoryBetaEnabled] = useAtom(factoryBetaEnabledAtom)
   const [selectedFactoryId] = useAtom(selectedFactoryIdAtom)
   const [selectedCaseId, setSelectedCaseId] = useAtom(selectedFactoryCaseIdAtom)
@@ -235,6 +234,7 @@ export function NotificationsPage() {
     () => visibleCaseOptions.find((entry) => entry.id === selectedCaseId) || null,
     [selectedCaseId, visibleCaseOptions],
   )
+  const primaryActionShortcutLabel = `${desktopRuntime.primaryModifierLabel}↵`
 
   useEffect(() => {
     if (!selectedCaseId) return
@@ -404,6 +404,7 @@ export function NotificationsPage() {
     try {
       const ok = await submitSelectedTask()
       if (ok) {
+        toast.success(selectedTask.kind === "approval" ? "Decision recorded" : "Response submitted")
         await refreshHumanTasks()
       }
     } finally {
@@ -417,6 +418,9 @@ export function NotificationsPage() {
     try {
       const ok = await submitSelectedTask()
       if (!ok) return
+      toast.success(selectedTask.kind === "approval" ? "Decision recorded" : "Response submitted", {
+        description: "Returning to the flow.",
+      })
       const continuationRun = toContinuationRun(selectedTask)
       const workflow = await openWorkflowPath(selectedTask.workflowPath, {
         pastRun: continuationRun,
@@ -442,6 +446,7 @@ export function NotificationsPage() {
     try {
       const ok = await window.api.rejectHumanTask(selectedTask.taskId, selectedTask.workspace)
       if (ok) {
+        toast.success(selectedTask.kind === "approval" ? "Decision rejected" : "Task rejected")
         await refreshHumanTasks()
       }
     } finally {
@@ -449,155 +454,89 @@ export function NotificationsPage() {
     }
   }
 
+  useEffect(() => {
+    if (!selectedTask || taskSubmitting || taskLoading) return
+
+    const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isShortcutConsumed(event)) return
+      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey: desktopRuntime.primaryModifierKey })) return
+      consumeShortcut(event)
+      if (selectedTask.workflowPath) {
+        void handleSubmitAndContinue()
+        return
+      }
+      void handleSubmitHumanTask()
+    }
+
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [
+    desktopRuntime.primaryModifierKey,
+    selectedTask,
+    taskLoading,
+    taskSubmitting,
+    handleSubmitAndContinue,
+    handleSubmitHumanTask,
+  ])
+
   return (
     <PageShell>
       <PageHeader
         title="Inbox"
-        subtitle={
-          selectedCaseOption
-            ? `Review open decisions for ${selectedCaseOption.label} and keep up with important flow, batch, agent, and system events.`
-            : selectedFactoryLabel
-              ? `Review open decisions for ${selectedFactoryLabel} and keep up with important flow, batch, agent, and system events.`
-              : "Review open flow tasks and keep up with important flow, batch, agent, and system events."
-        }
+        subtitle="Pending decisions and recent activity."
         actions={(
-          <>
-            {selectedCaseId && factoryBetaEnabled && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setMainView("factory")}
-              >
-                <ArrowUpRight size={14} />
-                Back to track
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { void refreshHumanTasks() }}
-            >
-              <RefreshCw size={14} />
-              Refresh
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowUnreadOnly((value) => !value)}
-            >
-              <BellRing size={14} />
-              {showUnreadOnly ? "Show all" : "Unread only"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => markAllRead()}
-              disabled={unreadCount === 0}
-            >
-              <CheckCheck size={14} />
-              Mark all read
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => clearAll()}
-              disabled={notifications.length === 0}
-            >
-              <Trash2 size={14} />
-              Clear
-            </Button>
-          </>
+          <NotificationsHeaderActions
+            selectedCaseId={selectedCaseId}
+            factoryBetaEnabled={factoryBetaEnabled}
+            showUnreadOnly={showUnreadOnly}
+            unreadCount={unreadCount}
+            hasNotifications={notifications.length > 0}
+            onBackToTrack={() => setMainView("factory")}
+            onRefresh={() => { void refreshHumanTasks() }}
+            onToggleUnreadOnly={() => setShowUnreadOnly((value) => !value)}
+            onMarkAllRead={markAllRead}
+            onClearAll={clearAll}
+          />
         )}
       />
 
-      {(selectedFactoryLabel || selectedCaseOption || visibleCaseOptions.length > 1) && (
-        <section className="rounded-xl surface-panel p-4 space-y-3">
-          {selectedFactoryLabel && !selectedCaseOption ? (
-            <ScopeBanner
-              eyebrow="Path scope"
-              description={
-                artifactsLoading
-                  ? "Resolving lab scope..."
-                  : `Showing ${openHumanTaskCount} open decision${openHumanTaskCount === 1 ? "" : "s"} for ${selectedFactoryLabel}.`
-              }
-              actions={factoryBetaEnabled ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => setMainView("factory")}>
-                  <ArrowUpRight size={14} />
-                  Back to lab
-                </Button>
-              ) : undefined}
-            />
-          ) : null}
+      <NotificationsScopeSection
+        selectedFactoryLabel={selectedFactoryLabel}
+        selectedCaseLabel={selectedCaseOption?.label || null}
+        visibleCaseOptions={visibleCaseOptions.map((entry) => ({ id: entry.id, label: entry.label }))}
+        selectedCaseId={selectedCaseId}
+        openHumanTaskCount={openHumanTaskCount}
+        artifactsLoading={artifactsLoading}
+        factoryBetaEnabled={factoryBetaEnabled}
+        onOpenFactory={() => setMainView("factory")}
+        onClearCase={() => setSelectedCaseId(null)}
+        onSelectCase={setSelectedCaseId}
+      />
 
-          {selectedCaseOption ? (
-            <ScopeBanner
-              eyebrow="Track scope"
-              description={
-                artifactsLoading
-                  ? "Resolving track lineage..."
-                  : `Showing ${openHumanTaskCount} open decision${openHumanTaskCount === 1 ? "" : "s"} for ${selectedCaseOption.label}${selectedFactoryLabel ? ` inside ${selectedFactoryLabel}` : ""}.`
-              }
-              actions={(
-                <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedCaseId(null)}>
-                  Show all tracks
-                </Button>
-              )}
-            />
-          ) : null}
-
-          {visibleCaseOptions.length > 1 && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant={selectedCaseId === null ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCaseId(null)}
-              >
-                All tracks
-              </Button>
-              {visibleCaseOptions.slice(0, 6).map((entry) => (
-                <Button
-                  key={entry.id}
-                  type="button"
-                  variant={selectedCaseId === entry.id ? "secondary" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCaseId(entry.id)}
-                >
-                  {entry.label}
-                </Button>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-        <HumanTaskInboxSection
-          humanTasksLoading={humanTasksLoading}
-          humanTasksError={humanTasksError}
-          openHumanTaskCount={openHumanTaskCount}
-          visibleHumanTasks={visibleHumanTasks}
+      <HumanTaskInboxSection
+        humanTasksLoading={humanTasksLoading}
+        humanTasksError={humanTasksError}
+        openHumanTaskCount={openHumanTaskCount}
+        visibleHumanTasks={visibleHumanTasks}
         selectedTaskId={selectedTaskId}
         selectedCaseId={selectedCaseId}
-          taskStageMetaByKey={taskStageMetaByKey}
-          caseIdByTaskKey={caseIdByTaskKey}
-          caseLabelById={caseLabelById}
-          latestArtifactByCaseId={caseIndex.latestArtifactByCaseId}
-          onSelectTaskId={setSelectedTaskId}
-          selectedTask={selectedTask}
+        taskStageMetaByKey={taskStageMetaByKey}
+        caseIdByTaskKey={caseIdByTaskKey}
+        caseLabelById={caseLabelById}
+        latestArtifactByCaseId={caseIndex.latestArtifactByCaseId}
+        onSelectTaskId={setSelectedTaskId}
+        selectedTask={selectedTask}
         taskLoading={taskLoading}
         taskSubmitting={taskSubmitting}
         taskAnswers={taskAnswers}
         selectedTaskStageMeta={selectedTaskStageMeta}
+        primaryActionShortcutLabel={primaryActionShortcutLabel}
         onOpenWorkflow={() => { void handleOpenWorkflow() }}
         onFieldChange={handleTaskFieldChange}
         onSubmit={() => { void handleSubmitHumanTask() }}
         onSubmitAndContinue={() => { void handleSubmitAndContinue() }}
         onReject={() => { void handleRejectHumanTask() }}
+        onClearCaseFilter={selectedCaseId ? () => setSelectedCaseId(null) : null}
       />
 
       <RecentEventsSection
@@ -605,6 +544,7 @@ export function NotificationsPage() {
         unreadCount={unreadCount}
         visibleNotifications={visibleNotifications}
         sourceFilter={sourceFilter}
+        emphasized={openHumanTaskCount === 0}
         onSourceFilterChange={setSourceFilter}
         onNotificationAction={(notification) => { void handleNotificationAction(notification) }}
         onMarkRead={markRead}

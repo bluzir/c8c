@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useAtom } from "jotai"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,7 +11,6 @@ import {
   skillsAtom,
   type SkillLibrary,
 } from "@/lib/store"
-import { getSkillSourceKind, getSkillSourceLabel } from "@/lib/skill-source"
 import { addSkillNodeToWorkflow } from "@/lib/workflow-mutations"
 import type {
   DiscoveredSkill,
@@ -24,13 +23,13 @@ import { toast } from "sonner"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
 import { CollectionToolbar } from "@/components/ui/collection-toolbar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SkillSourcesAdmin } from "@/components/skills/SkillSourcesAdmin"
 import { SkillsPageDialogs } from "@/components/skills/skill-dialogs"
 import { SkillsActionStatus } from "@/components/skills/SkillsActionStatus"
 import { SkillsAttachSection } from "@/components/skills/SkillsAttachSection"
+import { useSkillsPageDerivedState } from "@/components/skills/useSkillsPageDerivedState"
 import {
-  FAVORITE_LIBRARY_ORDER,
-  findWorkflowRefsBySkills,
   LIBRARY_ACTION_LABEL,
   LIBRARY_PREVIEW_HINTS,
   MARKETPLACE_ACTION_LABEL,
@@ -39,27 +38,6 @@ import {
   PLUGIN_ACTION_LABEL,
   type PluginAction,
 } from "@/components/skills/skills-page-helpers"
-
-const CAPABILITY_SOURCE_SECTIONS = [
-  {
-    id: "project",
-    title: "Project skills",
-    description: "Found in this repo or workspace.",
-    kinds: new Set(["project"]),
-  },
-  {
-    id: "personal",
-    title: "Personal skills",
-    description: "Reusable across your work.",
-    kinds: new Set(["user"]),
-  },
-  {
-    id: "imported",
-    title: "Imported skills",
-    description: "Connected from libraries and plugins.",
-    kinds: new Set(["library", "plugin"]),
-  },
-] as const
 
 export function SkillsPage() {
   const [libraries, setLibraries] = useAtom(librariesAtom)
@@ -75,6 +53,8 @@ export function SkillsPage() {
   const [pluginMcpServers, setPluginMcpServers] = useState<PluginMcpServerInfo[]>([])
   const [query, setQuery] = useState("")
   const [refreshing, setRefreshing] = useState(false)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const [activeSection, setActiveSection] = useState<"attach" | "sources">(selectedWorkflowPath ? "attach" : "sources")
   const [libraryAction, setLibraryAction] = useState<{ id: string; action: LibraryAction } | null>(null)
   const [marketplaceAction, setMarketplaceAction] = useState<{ id: string; action: MarketplaceAction } | null>(null)
   const [pluginAction, setPluginAction] = useState<{ id: string; action: PluginAction } | null>(null)
@@ -112,6 +92,7 @@ export function SkillsPage() {
     } finally {
       if (refreshRequestIdRef.current !== requestId) return
       setRefreshing(false)
+      setHasLoadedOnce(true)
     }
   }, [selectedProject, setLibraries, setSkills])
 
@@ -123,132 +104,43 @@ export function SkillsPage() {
     setAcknowledgeBrokenRefs(false)
   }, [pendingDisablePlugin?.id, pendingRemoveMarketplace?.id, pendingUninstall?.id])
 
-  const skillsCountByLibrary = useMemo(() => {
-    const counter = new Map<string, number>()
-    for (const skill of skills) {
-      if (skill.sourceScope !== "library" || !skill.library) continue
-      counter.set(skill.library, (counter.get(skill.library) ?? 0) + 1)
-    }
-    return counter
-  }, [skills])
-
-  const skillsByLibrary = useMemo(() => {
-    const map = new Map<string, DiscoveredSkill[]>()
-    for (const skill of skills) {
-      if (skill.sourceScope !== "library" || !skill.library) continue
-      const list = map.get(skill.library) || []
-      list.push(skill)
-      map.set(skill.library, list)
-    }
-    return map
-  }, [skills])
-
-  const skillsCountByPlugin = useMemo(() => {
-    const counter = new Map<string, number>()
-    for (const skill of skills) {
-      if (skill.sourceScope !== "plugin" || !skill.pluginId) continue
-      counter.set(skill.pluginId, (counter.get(skill.pluginId) ?? 0) + 1)
-    }
-    return counter
-  }, [skills])
-
-  const skillsByPlugin = useMemo(() => {
-    const map = new Map<string, DiscoveredSkill[]>()
-    for (const skill of skills) {
-      if (skill.sourceScope !== "plugin" || !skill.pluginId) continue
-      const list = map.get(skill.pluginId) || []
-      list.push(skill)
-      map.set(skill.pluginId, list)
-    }
-    return map
-  }, [skills])
-
-  const pluginMcpByPlugin = useMemo(() => {
-    const map = new Map<string, PluginMcpServerInfo[]>()
-    for (const server of pluginMcpServers) {
-      const list = map.get(server.pluginId) || []
-      list.push(server)
-      map.set(server.pluginId, list)
-    }
-    return map
-  }, [pluginMcpServers])
-
-  const libraryById = useMemo(() => {
-    return new Map(libraries.map((library) => [library.id, library]))
-  }, [libraries])
-
-  const pluginsByMarketplaceId = useMemo(() => {
-    const map = new Map<string, InstalledPlugin[]>()
-    for (const plugin of plugins) {
-      const list = map.get(plugin.marketplaceId) || []
-      list.push(plugin)
-      map.set(plugin.marketplaceId, list)
-    }
-    return map
-  }, [plugins])
-
-  const filteredLibraries = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-    if (!normalizedQuery) return libraries
-    return libraries.filter((library) =>
-      `${library.name} ${library.description} ${library.id}`.toLowerCase().includes(normalizedQuery),
-    )
-  }, [libraries, query])
-
-  const filteredMarketplaces = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-    if (!normalizedQuery) return marketplaces
-    return marketplaces.filter((marketplace) =>
-      `${marketplace.name} ${marketplace.description} ${marketplace.id} ${marketplace.owner || ""}`.toLowerCase().includes(normalizedQuery),
-    )
-  }, [marketplaces, query])
-
-  const filteredPlugins = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-    const list = !normalizedQuery
-      ? plugins
-      : plugins.filter((plugin) =>
-        [
-          plugin.name,
-          plugin.description,
-          plugin.marketplaceName,
-          plugin.category || "",
-          plugin.tags?.join(" ") || "",
-          plugin.capabilities.join(" "),
-        ].join(" ").toLowerCase().includes(normalizedQuery),
-      )
-
-    return [...list].sort((a, b) => {
-      if (a.enabled !== b.enabled) return a.enabled ? -1 : 1
-      if (a.marketplaceName !== b.marketplaceName) return a.marketplaceName.localeCompare(b.marketplaceName)
-      return a.name.localeCompare(b.name)
-    })
-  }, [plugins, query])
-
-  const filteredSkills = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-    const list = !normalizedQuery
-      ? skills
-      : skills.filter((skill) =>
-        `${skill.name} ${skill.description} ${skill.category} ${getSkillSourceLabel(skill)}`.toLowerCase().includes(normalizedQuery),
-      )
-    return [...list].sort((a, b) => a.name.localeCompare(b.name))
-  }, [skills, query])
-
-  const currentProcessLabel = useMemo(() => {
-    const workflowName = currentWorkflow.name?.trim()
-    if (workflowName) return workflowName
-    if (!selectedWorkflowPath) return null
-    const fileName = selectedWorkflowPath.split("/").pop() || ""
-    return fileName.replace(/\.(yaml|yml|json)$/i, "") || null
-  }, [currentWorkflow.name, selectedWorkflowPath])
-
-  const groupedSkills = useMemo(() => {
-    return CAPABILITY_SOURCE_SECTIONS.map((section) => {
-      const items = filteredSkills.filter((skill) => section.kinds.has(getSkillSourceKind(skill)))
-      return { ...section, items }
-    }).filter((section) => section.items.length > 0)
-  }, [filteredSkills])
+  const {
+    skillsCountByLibrary,
+    skillsByLibrary,
+    skillsCountByPlugin,
+    skillsByPlugin,
+    pluginMcpByPlugin,
+    libraryById,
+    filteredMarketplaces,
+    filteredPlugins,
+    filteredSkills,
+    pluginsByMarketplaceId,
+    currentProcessLabel,
+    groupedSkills,
+    installedLibraries,
+    favoriteLibraries,
+    availableLibraries,
+    installedMarketplaces,
+    availableMarketplaces,
+    enabledPlugins,
+    disabledPlugins,
+    pendingUninstallRefs,
+    pendingDisablePluginRefs,
+    pendingRemoveMarketplaceRefs,
+  } = useSkillsPageDerivedState({
+    libraries,
+    skills,
+    marketplaces,
+    plugins,
+    pluginMcpServers,
+    query,
+    currentWorkflow,
+    currentWorkflowName: currentWorkflow.name,
+    selectedWorkflowPath,
+    pendingUninstall,
+    pendingDisablePlugin,
+    pendingRemoveMarketplace,
+  })
 
   useEffect(() => {
     if (!selectedSkill) return
@@ -257,35 +149,6 @@ export function SkillsPage() {
       setSelectedSkill(null)
     }
   }, [filteredSkills, selectedSkill])
-
-  const installedLibraries = filteredLibraries.filter((library) => library.installed)
-  const favoriteLibraries = filteredLibraries
-    .filter((library) => !library.installed && FAVORITE_LIBRARY_ORDER.has(library.id))
-    .sort((a, b) => (FAVORITE_LIBRARY_ORDER.get(a.id) ?? 999) - (FAVORITE_LIBRARY_ORDER.get(b.id) ?? 999))
-  const availableLibraries = filteredLibraries.filter((library) => !library.installed && !FAVORITE_LIBRARY_ORDER.has(library.id))
-  const installedMarketplaces = filteredMarketplaces.filter((marketplace) => marketplace.installed)
-  const availableMarketplaces = filteredMarketplaces.filter((marketplace) => !marketplace.installed)
-  const enabledPlugins = filteredPlugins.filter((plugin) => plugin.enabled)
-  const disabledPlugins = filteredPlugins.filter((plugin) => !plugin.enabled)
-
-  const pendingUninstallRefs = useMemo(() => {
-    if (!pendingUninstall) return []
-    const librarySkills = skillsByLibrary.get(pendingUninstall.id) || []
-    return findWorkflowRefsBySkills(currentWorkflow, librarySkills)
-  }, [currentWorkflow, pendingUninstall, skillsByLibrary])
-
-  const pendingDisablePluginRefs = useMemo(() => {
-    if (!pendingDisablePlugin) return []
-    const pluginSkills = skillsByPlugin.get(pendingDisablePlugin.id) || []
-    return findWorkflowRefsBySkills(currentWorkflow, pluginSkills)
-  }, [currentWorkflow, pendingDisablePlugin, skillsByPlugin])
-
-  const pendingRemoveMarketplaceRefs = useMemo(() => {
-    if (!pendingRemoveMarketplace) return []
-    const marketplacePlugins = pluginsByMarketplaceId.get(pendingRemoveMarketplace.id) || []
-    const marketplaceSkills = marketplacePlugins.flatMap((plugin) => skillsByPlugin.get(plugin.id) || [])
-    return findWorkflowRefsBySkills(currentWorkflow, marketplaceSkills)
-  }, [currentWorkflow, pendingRemoveMarketplace, pluginsByMarketplaceId, skillsByPlugin])
 
   const setLibraryInstalled = useCallback(async (library: SkillLibrary, nextChecked: boolean) => {
     if (!nextChecked) {
@@ -513,12 +376,16 @@ export function SkillsPage() {
   const previewPluginMcpServers = previewPlugin
     ? (pluginMcpByPlugin.get(previewPlugin.id) || []).map((server) => server.name)
     : []
+  const initialLoading = refreshing && !hasLoadedOnce
+  const toolbarSummary = initialLoading
+    ? "Loading skills..."
+    : `${filteredMarketplaces.length} marketplace${filteredMarketplaces.length === 1 ? "" : "s"} · ${filteredPlugins.length} plugin${filteredPlugins.length === 1 ? "" : "s"} · ${filteredSkills.length} skill${filteredSkills.length === 1 ? "" : "s"}`
 
   return (
     <PageShell>
       <PageHeader
         title="Skills"
-        subtitle="Connect reusable skills, then attach them to the current flow when they help."
+        subtitle="Manage skill sources and attach the right skill to the current flow."
       />
 
       <CollectionToolbar
@@ -527,7 +394,8 @@ export function SkillsPage() {
         onQueryChange={setQuery}
         searchPlaceholder="Search skills, plugins, and sources"
         searchAriaLabel="Search skills, plugins, and sources"
-        summary={`${filteredMarketplaces.length} marketplace${filteredMarketplaces.length === 1 ? "" : "s"} · ${filteredPlugins.length} plugin${filteredPlugins.length === 1 ? "" : "s"} · ${filteredSkills.length} skill${filteredSkills.length === 1 ? "" : "s"}`}
+        summary={toolbarSummary}
+        surface="flat"
         action={(
           <Button
             size="sm"
@@ -548,48 +416,60 @@ export function SkillsPage() {
         pluginActionLabel={currentPluginActionLabel}
       />
 
-      <SkillSourcesAdmin
-        libraries={libraries}
-        totalMarketplaceCount={marketplaces.length}
-        installedLibraries={installedLibraries}
-        favoriteLibraries={favoriteLibraries}
-        availableLibraries={availableLibraries}
-        filteredMarketplaces={filteredMarketplaces}
-        installedMarketplaces={installedMarketplaces}
-        availableMarketplaces={availableMarketplaces}
-        enabledPlugins={enabledPlugins}
-        disabledPlugins={disabledPlugins}
-        skillsCountByLibrary={skillsCountByLibrary}
-        skillsCountByPlugin={skillsCountByPlugin}
-        pluginMcpByPlugin={pluginMcpByPlugin}
-        pluginsByMarketplaceId={pluginsByMarketplaceId}
-        libraryAction={libraryAction}
-        marketplaceAction={marketplaceAction}
-        pluginAction={pluginAction}
-        refreshing={refreshing}
-        hasQuery={Boolean(query.trim())}
-        onSetLibraryInstalled={(library, nextChecked) => void setLibraryInstalled(library, nextChecked)}
-        onUpdateLibrary={(library) => void updateLibrary(library)}
-        onPreviewLibrary={setPreviewLibrary}
-        onInstallMarketplace={(marketplace) => void installMarketplace(marketplace)}
-        onUpdateMarketplace={(marketplace) => void updateMarketplace(marketplace)}
-        onRequestRemoveMarketplace={requestRemoveMarketplace}
-        onSetPluginEnabled={(plugin, nextChecked) => void setPluginEnabled(plugin, nextChecked)}
-        onPreviewPlugin={setPreviewPlugin}
-      />
+      <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as "attach" | "sources")} className="space-y-4">
+        <TabsList aria-label="Skills page sections">
+          <TabsTrigger value="attach">Attach to flow</TabsTrigger>
+          <TabsTrigger value="sources">Manage sources</TabsTrigger>
+        </TabsList>
 
-      <SkillsAttachSection
-        filteredSkills={filteredSkills}
-        allSkillsCount={skills.length}
-        currentFlowLabel={currentProcessLabel}
-        groupedSkills={groupedSkills}
-        selectedSkill={selectedSkill}
-        onSelectSkill={setSelectedSkill}
-        onAttachSkill={addSkillToWorkflow}
-        addToFlowDisabledReason={addToWorkflowDisabledReason}
-        selectedFlowPath={selectedWorkflowPath}
-        onCloseSkillDetail={() => setSelectedSkill(null)}
-      />
+        <TabsContent value="attach">
+          <SkillsAttachSection
+            filteredSkills={filteredSkills}
+            allSkillsCount={skills.length}
+            currentFlowLabel={currentProcessLabel}
+            groupedSkills={groupedSkills}
+            selectedSkill={selectedSkill}
+            loading={initialLoading}
+            onSelectSkill={setSelectedSkill}
+            onAttachSkill={addSkillToWorkflow}
+            addToFlowDisabledReason={addToWorkflowDisabledReason}
+            onCloseSkillDetail={() => setSelectedSkill(null)}
+          />
+        </TabsContent>
+
+        <TabsContent value="sources">
+          <SkillSourcesAdmin
+            libraries={libraries}
+            totalMarketplaceCount={marketplaces.length}
+            installedLibraries={installedLibraries}
+            favoriteLibraries={favoriteLibraries}
+            availableLibraries={availableLibraries}
+            filteredMarketplaces={filteredMarketplaces}
+            installedMarketplaces={installedMarketplaces}
+            availableMarketplaces={availableMarketplaces}
+            enabledPlugins={enabledPlugins}
+            disabledPlugins={disabledPlugins}
+            skillsCountByLibrary={skillsCountByLibrary}
+            skillsCountByPlugin={skillsCountByPlugin}
+            pluginMcpByPlugin={pluginMcpByPlugin}
+            pluginsByMarketplaceId={pluginsByMarketplaceId}
+            libraryAction={libraryAction}
+            marketplaceAction={marketplaceAction}
+            pluginAction={pluginAction}
+            refreshing={refreshing}
+            loading={initialLoading}
+            hasQuery={Boolean(query.trim())}
+            onSetLibraryInstalled={(library, nextChecked) => void setLibraryInstalled(library, nextChecked)}
+            onUpdateLibrary={(library) => void updateLibrary(library)}
+            onPreviewLibrary={setPreviewLibrary}
+            onInstallMarketplace={(marketplace) => void installMarketplace(marketplace)}
+            onUpdateMarketplace={(marketplace) => void updateMarketplace(marketplace)}
+            onRequestRemoveMarketplace={requestRemoveMarketplace}
+            onSetPluginEnabled={(plugin, nextChecked) => void setPluginEnabled(plugin, nextChecked)}
+            onPreviewPlugin={setPreviewPlugin}
+          />
+        </TabsContent>
+      </Tabs>
 
       <div aria-live="polite" className="sr-only">{statusMessage}</div>
 
