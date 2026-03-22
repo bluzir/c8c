@@ -2,9 +2,13 @@ import { createStore } from "jotai"
 import { describe, expect, it } from "vitest"
 import {
   appendInboxNotification,
+  closeSkillPickerAtom,
   currentWorkflowAtom,
+  openSkillPickerAtom,
   pruneInboxNotificationsByPersistentKeys,
   selectedWorkflowPathAtom,
+  skillPickerOpenAtom,
+  skillPickerRequestAtom,
   type InboxNotification,
   workflowDirtyAtom,
   workflowSavedSnapshotAtom,
@@ -191,5 +195,37 @@ describe("workflowDirtyAtom", () => {
 
     store.set(currentWorkflowAtom, savedWorkflow)
     expect(store.get(workflowDirtyAtom)).toBe(false)
+  })
+})
+
+describe("skill picker session atoms", () => {
+  it("opens with a request payload", () => {
+    const store = createStore()
+    store.set(openSkillPickerAtom, {
+      title: "Choose skill",
+      attachTargetLabel: "this step",
+    })
+
+    expect(store.get(skillPickerOpenAtom)).toBe(true)
+    expect(store.get(skillPickerRequestAtom)).toMatchObject({
+      title: "Choose skill",
+      attachTargetLabel: "this step",
+    })
+  })
+
+  it("clears stale request state on close and generic reopen", () => {
+    const store = createStore()
+    store.set(openSkillPickerAtom, {
+      title: "Attach skill",
+      attachTargetLabel: "this flow",
+    })
+    store.set(closeSkillPickerAtom)
+
+    expect(store.get(skillPickerOpenAtom)).toBe(false)
+    expect(store.get(skillPickerRequestAtom)).toBeNull()
+
+    store.set(openSkillPickerAtom)
+    expect(store.get(skillPickerOpenAtom)).toBe(true)
+    expect(store.get(skillPickerRequestAtom)).toBeNull()
   })
 })

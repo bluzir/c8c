@@ -35,7 +35,6 @@ import type {
   RunResult,
   SafetyProfile,
 } from "@shared/types"
-import type { ClaudeCodeSubscriptionStatus } from "@shared/types"
 import type { WebSearchBackend } from "./web-search-backend"
 import type { WorkflowEntryState, WorkflowTemplateRunContext } from "./workflow-entry"
 
@@ -173,6 +172,28 @@ export const workflowDirtyAtom = atom((get) => {
 // Skills
 export const skillsAtom = atom<DiscoveredSkill[]>([])
 export const skillPickerOpenAtom = atom(false)
+export interface SkillPickerRequest {
+  onAddSkill?: (skill: DiscoveredSkill) => void
+  title?: string
+  description?: string
+  searchPlaceholder?: string
+  emptyStateMessage?: string
+  emptyResultsMessage?: (query: string) => string
+  stageLabel?: string | null
+  attachTargetLabel?: string
+}
+export const skillPickerRequestAtom = atom<SkillPickerRequest | null>(null)
+export const openSkillPickerAtom = atom(
+  null,
+  (_get, set, request?: SkillPickerRequest | null) => {
+    set(skillPickerRequestAtom, request ?? null)
+    set(skillPickerOpenAtom, true)
+  },
+)
+export const closeSkillPickerAtom = atom(null, (_get, set) => {
+  set(skillPickerOpenAtom, false)
+  set(skillPickerRequestAtom, null)
+})
 export const librariesAtom = atom<SkillLibrary[]>([])
 
 // Validation
@@ -252,9 +273,8 @@ export const webSearchBackendAtom = atomWithStorage<WebSearchBackend>(
   "builtin",
 )
 
-// CLI status
-export const cliStatusAtom = atom<ClaudeCodeSubscriptionStatus | null>(null)
-export const cliStatusBannerDismissedAtom = atom(false)
+// Provider setup banner
+export const providerSetupBannerDismissedKeyAtom = atom<string | null>(null)
 
 // View mode
 export type ViewMode = "list" | "settings"
@@ -306,12 +326,7 @@ export type MainView =
   | "settings"
   | "inbox"
   | "onboarding"
-export const mainViewAtom = IS_TEST_MODE
-  ? atom<MainView>("thread")
-  : atomWithStorage<MainView>(
-    "c8c:main-view",
-    "thread",
-  )
+export const mainViewAtom = atom<MainView>("thread")
 
 export const selectedFactoryCaseIdAtom = atomWithStorage<string | null>(
   "c8c:selected-factory-case-id",
