@@ -29,6 +29,37 @@ import { deriveTemplateExecutionDisciplineLabels } from "@/lib/workflow-entry"
 import { filterDirectCreateEntryOptions } from "@shared/create-entry-routing"
 
 const POPULAR_TEMPLATE_LIMIT = 12
+export type WorkflowCreateFigureOwner =
+  | "no_project"
+  | "start_error"
+  | "routing"
+  | "continue_first"
+  | "new_flow"
+  | "browse_for_start"
+
+export function resolveWorkflowCreateFigureOwner({
+  projectRequired,
+  submitError,
+  routingActive,
+  continuationPresentation,
+  canSubmitPrompt,
+  preferNewFlow,
+}: {
+  projectRequired: boolean
+  submitError: string | null
+  routingActive: boolean
+  continuationPresentation: "hidden" | "supporting" | "dominant"
+  canSubmitPrompt: boolean
+  preferNewFlow: boolean
+}): WorkflowCreateFigureOwner {
+  if (projectRequired) return "no_project"
+  if (submitError) return "start_error"
+  if (routingActive) return "routing"
+  if (continuationPresentation === "dominant") return "continue_first"
+  if (canSubmitPrompt || preferNewFlow) return "new_flow"
+  return "browse_for_start"
+}
+
 const DEVELOPMENT_CREATE_QUICK_START_IDS = new Set([
   "delivery-map-codebase",
   "delivery-shape-project",
@@ -269,17 +300,14 @@ export function useWorkflowCreateDerivedState({
   const pendingPrimaryActionLabel = pendingQuickStart?.intentLabel
     ? `Start ${pendingQuickStart.label}`
     : "Start with this"
-  const figureOwner = projectRequired.projectRequired
-    ? "no_project"
-    : submitError
-      ? "start_error"
-      : routingActive
-        ? "routing"
-        : continuationPresentation === "dominant"
-          ? "continue_first"
-          : (canSubmitPrompt || preferNewFlow)
-            ? "new_flow"
-            : "browse_for_start"
+  const figureOwner = resolveWorkflowCreateFigureOwner({
+    projectRequired: projectRequired.projectRequired,
+    submitError,
+    routingActive,
+    continuationPresentation,
+    canSubmitPrompt,
+    preferNewFlow,
+  })
   const showComposer = figureOwner === "browse_for_start" || figureOwner === "new_flow" || figureOwner === "continue_first"
   const showDetailsPanel = promptHelperOpen && showComposer
   const showRoutingState = figureOwner === "routing"
