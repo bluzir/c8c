@@ -9,9 +9,7 @@ import { Label } from "@/components/ui/label"
 import { runIdAtom, runStatusAtom } from "@/features/execution"
 import { workflowHistoryRunsAtom } from "@/features/execution"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
-import {
-  WorkflowPrimaryActions,
-} from "@/components/toolbar/WorkflowPrimaryActions"
+import { WorkflowPrimaryActions } from "@/components/toolbar/WorkflowPrimaryActions"
 import { WorkflowRunControls } from "@/components/toolbar/WorkflowRunControls"
 import { WorkflowRunBlocker } from "@/components/toolbar/WorkflowRunBlocker"
 import { WorkflowToolbarDialogs } from "@/components/toolbar/WorkflowToolbarDialogs"
@@ -72,14 +70,18 @@ export function Toolbar({
   onCancel,
   shellState,
   entryTitle,
+  crossFlowTitle,
   shellDetail,
+  runLaunchPending = false,
   agentToggleRef,
 }: {
   onRun: (mode?: PermissionMode) => Promise<void> | void
   onCancel: () => Promise<void> | void
   shellState: WorkflowPanelShellState
   entryTitle?: string | null
+  crossFlowTitle?: string | null
   shellDetail?: string | null
+  runLaunchPending?: boolean
   agentToggleRef?: Ref<HTMLButtonElement>
 }) {
   const [workflow] = useAtom(currentWorkflowAtom)
@@ -110,7 +112,9 @@ export function Toolbar({
   const [workflowRunBlockReason] = useAtom(workflowRunBlockReasonAtom)
   const [workflowPastRuns] = useAtom(workflowHistoryRunsAtom)
   const setSelectedNodeId = useSetAtom(selectedNodeIdAtom)
-  const setValidationNavigationTarget = useSetAtom(validationNavigationTargetAtom)
+  const setValidationNavigationTarget = useSetAtom(
+    validationNavigationTargetAtom,
+  )
   const setBatchOpen = useSetAtom(batchDialogOpenAtom)
   const outputSurfaceCommandState = useAtomValue(outputSurfaceCommandStateAtom)
   const [undoStack, setUndoStack] = useAtom(undoStackAtom)
@@ -122,9 +126,13 @@ export function Toolbar({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
   const [templateNameInput, setTemplateNameInput] = useState("")
-  const [saveFlash, setSaveFlash] = useState<"saved" | "imported" | "exported" | null>(null)
+  const [saveFlash, setSaveFlash] = useState<
+    "saved" | "imported" | "exported" | null
+  >(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [runControlPending, setRunControlPending] = useState<"pause" | "resume" | null>(null)
+  const [runControlPending, setRunControlPending] = useState<
+    "pause" | "resume" | null
+  >(null)
   const flashTimerRef = useRef<number | null>(null)
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
@@ -151,7 +159,8 @@ export function Toolbar({
 
   const openRenameDialog = () => {
     if (!workflowPath) return
-    const currentName = (workflow.name || "").trim() || deriveTitleFromPath(workflowPath)
+    const currentName =
+      (workflow.name || "").trim() || deriveTitleFromPath(workflowPath)
     setRenameInput(currentName)
     setRenameDialogOpen(true)
   }
@@ -192,8 +201,12 @@ export function Toolbar({
     await deleteWorkflow()
   }
 
-  const isRunning = runStatus === "running" || runStatus === "starting" || runStatus === "cancelling" || runStatus === "paused"
-  const isStarting = runStatus === "starting"
+  const isStarting = runStatus === "starting" || runLaunchPending
+  const isRunning =
+    runStatus === "running" ||
+    isStarting ||
+    runStatus === "cancelling" ||
+    runStatus === "paused"
   const isCancelling = runStatus === "cancelling"
   const isPaused = runStatus === "paused"
   const primaryShortcutLabel = desktopRuntime.primaryModifierLabel
@@ -201,6 +214,7 @@ export function Toolbar({
   const chatShortcutLabel = `${primaryShortcutLabel}⇧K`
   const sidebarShortcutLabel = `${primaryShortcutLabel}B`
   const settingsShortcutLabel = `${primaryShortcutLabel},`
+  const defaultsShortcutLabel = `${primaryShortcutLabel}D`
   const redoShortcutLabel = `${primaryShortcutLabel}⇧Z`
 
   const hasSkillNodes = workflow.nodes.some((node) => node.type === "skill")
@@ -212,67 +226,91 @@ export function Toolbar({
     defaultValue: inputConfig.defaultValue,
   })
   const workflowValidation = validateWorkflow(workflow, defaultProvider)
-  const hasBlockingErrors = workflowValidation.some((issue) => issue.severity === "error")
-  const blockingValidationCount = workflowValidation.filter((issue) => issue.severity === "error").length
+  const hasBlockingErrors = workflowValidation.some(
+    (issue) => issue.severity === "error",
+  )
+  const blockingValidationCount = workflowValidation.filter(
+    (issue) => issue.severity === "error",
+  ).length
   const providerRunBlockReason = resolveExecutionStartBlockReason(workflow, {
     settings: providerSettings,
     availability: providerAvailability,
     auth: providerAuthStatus,
   })
-  const {
-    canRun,
-    runDisabledReason,
-    canBatchRun,
-  } = resolveWorkflowRunAvailability({
-    hasSkillNodes,
-    inputValid: inputValidation.valid,
-    inputValidationMessage: inputValidation.message || null,
-    hasBlockingErrors,
-    blockingValidationCount,
-    workflowRunBlockReason: workflowRunBlockReason || providerRunBlockReason,
-  })
-  const hasProviderRunBlock = providerRunBlockReason !== null && workflowRunBlockReason === null
-  const navigateToValidationIssue = useCallback((issue: (typeof workflowValidation)[number]) => {
-    const target = resolveValidationNavigationTarget(workflow, issue, viewMode)
-    setViewMode(target.viewMode)
-    setSelectedNodeId(target.nodeId)
-    setValidationNavigationTarget(
-      target.fieldId
-        ? {
-            nodeId: target.nodeId,
-            fieldId: target.fieldId,
-            requestId: Date.now(),
-          }
-        : null,
-    )
-  }, [setSelectedNodeId, setValidationNavigationTarget, setViewMode, viewMode, workflow])
+  const { canRun, runDisabledReason, canBatchRun } =
+    resolveWorkflowRunAvailability({
+      hasSkillNodes,
+      inputValid: inputValidation.valid,
+      inputValidationMessage: inputValidation.message || null,
+      hasBlockingErrors,
+      blockingValidationCount,
+      workflowRunBlockReason: workflowRunBlockReason || providerRunBlockReason,
+    })
+  const hasProviderRunBlock =
+    providerRunBlockReason !== null && workflowRunBlockReason === null
+  const navigateToValidationIssue = useCallback(
+    (issue: (typeof workflowValidation)[number]) => {
+      const target = resolveValidationNavigationTarget(
+        workflow,
+        issue,
+        viewMode,
+      )
+      setViewMode(target.viewMode)
+      setSelectedNodeId(target.nodeId)
+      setValidationNavigationTarget(
+        target.fieldId
+          ? {
+              nodeId: target.nodeId,
+              fieldId: target.fieldId,
+              requestId: Date.now(),
+            }
+          : null,
+      )
+    },
+    [
+      setSelectedNodeId,
+      setValidationNavigationTarget,
+      setViewMode,
+      viewMode,
+      workflow,
+    ],
+  )
 
-  const handleRunWithValidation = useCallback(async (mode: PermissionMode = "edit") => {
-    const currentValidation = validateWorkflow(workflow, defaultProvider)
-    const blockingIssues = currentValidation.filter((issue) => issue.severity === "error")
-    if (blockingIssues.length > 0) {
-      const firstBlockingIssue = blockingIssues[0] || null
-      toast.warning("Run blocked", {
-        description: firstBlockingIssue?.message || "Fix the flow before running it.",
-      })
-      if (firstBlockingIssue) {
-        navigateToValidationIssue(firstBlockingIssue)
+  const handleRunWithValidation = useCallback(
+    async (mode: PermissionMode = "edit") => {
+      const currentValidation = validateWorkflow(workflow, defaultProvider)
+      const blockingIssues = currentValidation.filter(
+        (issue) => issue.severity === "error",
+      )
+      if (blockingIssues.length > 0) {
+        const firstBlockingIssue = blockingIssues[0] || null
+        toast.warning("Run blocked", {
+          description:
+            firstBlockingIssue?.message || "Fix the flow before running it.",
+        })
+        if (firstBlockingIssue) {
+          navigateToValidationIssue(firstBlockingIssue)
+        }
+        return
       }
-      return
-    }
 
-    const warnings = currentValidation.filter((issue) => issue.severity === "warning")
-    if (warnings.length > 0) {
-      toast.warning(`${warnings.length} warning(s)`, {
-        description: warnings.map((warning) => warning.message).join(" "),
-      })
-    }
-    await onRun(mode)
-  }, [defaultProvider, navigateToValidationIssue, onRun, workflow])
+      const warnings = currentValidation.filter(
+        (issue) => issue.severity === "warning",
+      )
+      if (warnings.length > 0) {
+        toast.warning(`${warnings.length} warning(s)`, {
+          description: warnings.map((warning) => warning.message).join(" "),
+        })
+      }
+      await onRun(mode)
+    },
+    [defaultProvider, navigateToValidationIssue, onRun, workflow],
+  )
 
   const revealRunBlocker = useCallback(() => {
     if (!runDisabledReason) return
-    const firstBlockingIssue = workflowValidation.find((issue) => issue.severity === "error") || null
+    const firstBlockingIssue =
+      workflowValidation.find((issue) => issue.severity === "error") || null
     toast.warning("Run blocked", {
       description: firstBlockingIssue?.message || runDisabledReason,
     })
@@ -281,69 +319,80 @@ export function Toolbar({
     }
   }, [navigateToValidationIssue, runDisabledReason, workflowValidation])
 
-  const deleteLabel = workflowPath ? (workflow.name || "").trim() || deriveTitleFromPath(workflowPath) : "this flow"
-  const controlGroupClass = "control-cluster flex items-center gap-1 rounded-lg p-1"
+  const deleteLabel = workflowPath
+    ? (workflow.name || "").trim() || deriveTitleFromPath(workflowPath)
+    : "this flow"
+  const controlGroupClass =
+    "control-cluster flex items-center gap-1 rounded-lg p-1"
   const utilityGroupClass = "flex items-center gap-1"
-  const terminalResultOwnsPrimaryAction = (
-    shellState === "completed"
-    || shellState === "failed"
-    || shellState === "cancelled"
-    || workflowReviewMode
-  ) && (
-    outputSurfaceCommandState.useInNewFlow
-    || outputSurfaceCommandState.result
-  )
-  const showRunControls = (
-    shellState === "idle"
-    || shellState === "running"
-    || shellState === "paused"
-  ) && !terminalResultOwnsPrimaryAction
-  const runShortcutEnabled = (shellState === "idle" || shellState === "ready") && !workflowReviewMode
-  const reviewingHistory = workflowReviewMode && (shellState === "idle" || shellState === "ready")
-  const macToolbarLeadingInset = desktopRuntime.platform === "macos" && desktopRuntime.titlebarHeight > 0 && !sidebarOpen
-    ? 108
-    : 0
+  const terminalResultOwnsPrimaryAction =
+    (shellState === "completed" ||
+      shellState === "failed" ||
+      shellState === "cancelled" ||
+      workflowReviewMode) &&
+    (outputSurfaceCommandState.useInNewFlow || outputSurfaceCommandState.result)
+  const showRunControls =
+    (shellState === "idle" ||
+      shellState === "running" ||
+      shellState === "paused" ||
+      runLaunchPending) &&
+    !terminalResultOwnsPrimaryAction
+  const runShortcutEnabled =
+    (shellState === "idle" || shellState === "ready") && !workflowReviewMode
+  const reviewingHistory =
+    workflowReviewMode && (shellState === "idle" || shellState === "ready")
+  const macToolbarLeadingInset =
+    desktopRuntime.platform === "macos" &&
+    desktopRuntime.titlebarHeight > 0 &&
+    !sidebarOpen
+      ? 108
+      : 0
   const shellBadgeLabel = reviewingHistory
     ? "Reviewing"
     : shellState === "blocked"
-    ? "Blocked"
-    : shellState === "running"
-      ? runStatus === "starting"
-        ? "Starting..."
-        : runStatus === "cancelling"
-          ? "Cancelling..."
-          : "Running"
-      : shellState === "paused"
-        ? "Paused"
-        : shellState === "completed"
-          ? "Completed"
-          : shellState === "failed"
-            ? "Failed"
-            : shellState === "cancelled"
-              ? "Cancelled"
-              : null
+      ? "Blocked"
+      : shellState === "running" || runLaunchPending
+        ? runStatus === "starting"
+          ? "Starting..."
+          : runLaunchPending
+            ? "Starting..."
+            : runStatus === "cancelling"
+              ? "Cancelling..."
+              : "Running"
+        : shellState === "paused"
+          ? "Paused"
+          : shellState === "completed"
+            ? "Completed"
+            : shellState === "failed"
+              ? "Failed"
+              : shellState === "cancelled"
+                ? "Cancelled"
+                : null
   const shellBadgeVariant = reviewingHistory
     ? "outline"
     : shellState === "blocked"
-    ? "warning"
-    : shellState === "running" || shellState === "paused"
-      ? "info"
-      : shellState === "completed"
-        ? "success"
-        : shellState === "failed"
-          ? "destructive"
-          : "outline"
+      ? "warning"
+      : shellState === "running" || shellState === "paused"
+        ? "info"
+        : shellState === "completed"
+          ? "success"
+          : shellState === "failed"
+            ? "destructive"
+            : "outline"
 
-  const flashToolbarStatus = useCallback((status: "saved" | "imported" | "exported") => {
-    setSaveFlash(status)
-    if (flashTimerRef.current) {
-      window.clearTimeout(flashTimerRef.current)
-    }
-    flashTimerRef.current = window.setTimeout(() => {
-      setSaveFlash(null)
-      flashTimerRef.current = null
-    }, 1800)
-  }, [])
+  const flashToolbarStatus = useCallback(
+    (status: "saved" | "imported" | "exported") => {
+      setSaveFlash(status)
+      if (flashTimerRef.current) {
+        window.clearTimeout(flashTimerRef.current)
+      }
+      flashTimerRef.current = window.setTimeout(() => {
+        setSaveFlash(null)
+        flashTimerRef.current = null
+      }, 1800)
+    },
+    [],
+  )
 
   const handlePrimarySave = useCallback(async () => {
     if (!workflowDirty || isSaving || isRunning) return
@@ -361,17 +410,35 @@ export function Toolbar({
     } finally {
       setIsSaving(false)
     }
-  }, [flashToolbarStatus, isRunning, isSaving, save, saveAs, workflowDirty, workflowPath])
+  }, [
+    flashToolbarStatus,
+    isRunning,
+    isSaving,
+    save,
+    saveAs,
+    workflowDirty,
+    workflowPath,
+  ])
 
   const handleUndo = useCallback(() => {
-    const restored = performUndo(workflow, undoStack, setUndoStack, setRedoStack)
+    const restored = performUndo(
+      workflow,
+      undoStack,
+      setUndoStack,
+      setRedoStack,
+    )
     if (restored) {
       setCurrentWorkflow(restored)
     }
   }, [setCurrentWorkflow, setRedoStack, setUndoStack, undoStack, workflow])
 
   const handleRedo = useCallback(() => {
-    const restored = performRedo(workflow, redoStack, setUndoStack, setRedoStack)
+    const restored = performRedo(
+      workflow,
+      redoStack,
+      setUndoStack,
+      setRedoStack,
+    )
     if (restored) {
       setCurrentWorkflow(restored)
     }
@@ -433,6 +500,9 @@ export function Toolbar({
           flashToolbarStatus("saved")
         }
         return
+      case "defaults":
+        openFlowDefaults()
+        return
       case "export_copy":
         if (await exportCopy()) {
           flashToolbarStatus("exported")
@@ -483,7 +553,12 @@ export function Toolbar({
         return
       case "delete":
         if (workflowPath) {
-          if (runStatus === "running" || runStatus === "starting" || runStatus === "cancelling" || runStatus === "paused") {
+          if (
+            runStatus === "running" ||
+            runStatus === "starting" ||
+            runStatus === "cancelling" ||
+            runStatus === "paused"
+          ) {
             toastError("Stop the flow before deleting it")
             return
           }
@@ -530,8 +605,12 @@ export function Toolbar({
     canRun,
     canBatchRun,
     onSave: handlePrimarySave,
-    onSaveAs: saveAs,
-    onExport: exportCopy,
+    onSaveAs: async () => {
+      await saveAs()
+    },
+    onExport: async () => {
+      await exportCopy()
+    },
     onImport: () => handleActionMenu("import"),
     onUndo: handleUndo,
     onRedo: handleRedo,
@@ -549,26 +628,49 @@ export function Toolbar({
       <div className="border-b border-hairline bg-gradient-to-b from-surface-1/96 to-surface-1/84 shadow-[0_1px_0_hsl(var(--hairline)/0.7),0_2px_6px_hsl(var(--foreground)/0.04)] backdrop-blur-md">
         <div
           className="flex min-w-0 items-center gap-2 ui-content-gutter py-2 no-drag"
-          style={macToolbarLeadingInset > 0
-            ? { paddingLeft: `calc(var(--content-gutter) + ${macToolbarLeadingInset}px)` }
-            : undefined}
+          style={
+            macToolbarLeadingInset > 0
+              ? {
+                  paddingLeft: `calc(var(--content-gutter) + ${macToolbarLeadingInset}px)`,
+                }
+              : undefined
+          }
         >
           <div className="min-w-0 flex-1 px-1">
             {shellState === "idle" ? (
-              <>
-                <Label htmlFor="toolbar-workflow-name" className="sr-only">Flow name</Label>
-                <Input
-                  id="toolbar-workflow-name"
-                  type="text"
-                  value={workflow.name || ""}
-                  onChange={(event) => setCurrentWorkflow((prev) => ({ ...prev, name: event.target.value }), { coalesceKey: "workflow-name" })}
-                  placeholder="Flow name"
-                  className="h-auto min-w-0 border-none bg-transparent px-0 py-0 text-title-md font-semibold shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
-                />
-              </>
+              !runLaunchPending ? (
+                <>
+                  <Label htmlFor="toolbar-workflow-name" className="sr-only">
+                    Flow name
+                  </Label>
+                  <Input
+                    id="toolbar-workflow-name"
+                    type="text"
+                    value={workflow.name || ""}
+                    onChange={(event) =>
+                      setCurrentWorkflow((prev) => ({
+                        ...prev,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Flow name"
+                    className="h-auto min-w-0 border-none bg-transparent px-0 py-0 text-title-md font-semibold shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
+                  />
+                </>
+              ) : (
+                <div className="truncate text-title-md font-semibold text-foreground">
+                  {crossFlowTitle ||
+                    workflow.name ||
+                    entryTitle ||
+                    "Untitled flow"}
+                </div>
+              )
             ) : (
               <div className="truncate text-title-md font-semibold text-foreground">
-                {workflow.name || entryTitle || "Untitled flow"}
+                {crossFlowTitle ||
+                  workflow.name ||
+                  entryTitle ||
+                  "Untitled flow"}
               </div>
             )}
           </div>
@@ -584,7 +686,10 @@ export function Toolbar({
           {(shellBadgeLabel || shellDetail) && (
             <div className="min-w-0 flex items-center gap-2">
               {shellBadgeLabel && (
-                <Badge variant={shellBadgeVariant} className="ui-meta-text px-2.5 py-1">
+                <Badge
+                  variant={shellBadgeVariant}
+                  className="ui-meta-text px-2.5 py-1"
+                >
                   {shellBadgeLabel}
                 </Badge>
               )}
@@ -643,19 +748,23 @@ export function Toolbar({
               chatShortcutLabel={chatShortcutLabel}
               agentToggleRef={agentToggleRef}
               actionMenuDisabled={isRunning}
+              canOpenDefaults={runStatus === "idle" && !workflowReviewMode}
+              flowDefaultsOpen={viewMode === "settings"}
               canManageCurrentFlow={Boolean(workflowPath)}
               canDeleteCurrentFlow={Boolean(workflowPath) && !isRunning}
               canDuplicateCurrentFlow={Boolean(workflowPath)}
               onSave={() => void handlePrimarySave()}
               onToggleChat={toggleChatPanel}
-              onActionMenu={(action) => { void handleActionMenu(action) }}
+              onActionMenu={(action) => {
+                void handleActionMenu(action)
+              }}
             />
           </div>
         </div>
       </div>
 
       <WorkflowRunBlocker
-        suppressed={shellState !== "idle"}
+        suppressed={shellState !== "idle" || runLaunchPending}
         isRunning={isRunning}
         workflowReviewMode={workflowReviewMode}
         runDisabledReason={runDisabledReason}
@@ -666,8 +775,22 @@ export function Toolbar({
         onNavigateToValidationIssue={navigateToValidationIssue}
       />
 
+      {shellBadgeLabel || shellDetail ? (
+        <span className="sr-only" role="status" aria-live="polite">
+          {shellBadgeLabel
+            ? `Flow status: ${shellBadgeLabel}${shellDetail ? `. ${shellDetail}` : ""}`
+            : shellDetail}
+        </span>
+      ) : null}
+
       <span className="sr-only">
-        Keyboard shortcuts: {primaryShortcutLabel} Z to undo, {redoShortcutLabel} to redo, {primaryShortcutLabel} S to save, {runShortcutLabel} to run or stop, {chatShortcutLabel} to toggle Agent panel, {sidebarShortcutLabel} to show or hide the sidebar, {settingsShortcutLabel} to open settings, question mark to open shortcuts help.
+        Keyboard shortcuts: {primaryShortcutLabel} Z to undo,{" "}
+        {redoShortcutLabel} to redo, {primaryShortcutLabel} S to save,{" "}
+        {defaultsShortcutLabel} to open flow defaults, {runShortcutLabel} to run
+        or stop, {chatShortcutLabel} to toggle Agent panel,{" "}
+        {sidebarShortcutLabel} to show or hide the sidebar,{" "}
+        {settingsShortcutLabel} to open settings, question mark to open
+        shortcuts help.
       </span>
 
       <WorkflowToolbarDialogs

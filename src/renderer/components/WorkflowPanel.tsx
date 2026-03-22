@@ -71,7 +71,10 @@ import { useUndoRedo } from "@/hooks/useUndoRedo"
 import { useChainExecution } from "@/hooks/useChainExecution"
 import { useSelectedRunReview } from "@/hooks/useSelectedRunReview"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
-import { buildProcessSpine, selectProcessSpineFactory } from "@/lib/process-spine"
+import {
+  buildProcessSpine,
+  selectProcessSpineFactory,
+} from "@/lib/process-spine"
 import { Tabs } from "@/components/ui/tabs"
 import type { Workflow } from "@shared/types"
 import { ProcessSpine } from "@/components/ui/process-spine"
@@ -92,8 +95,12 @@ import { WorkflowPanelDialogs } from "./workflow-panel/WorkflowPanelDialogs"
 
 export function WorkflowPanel() {
   const [selectedProject] = useAtom(selectedProjectAtom)
-  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
+  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
+    selectedInboxTaskKeyAtom,
+  )
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
   const { workflow, setWorkflow, setWorkflowDirect } = useWorkflowWithUndo()
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
   const [inputAttachments, setInputAttachments] = useAtom(inputAttachmentsAtom)
@@ -105,8 +112,12 @@ export function WorkflowPanel() {
   const [, setWorkflows] = useAtom(workflowsAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
-  const [selectedWorkflowTemplateContext] = useAtom(selectedWorkflowTemplateContextAtom)
-  const [, setWorkflowTemplateContextForKey] = useAtom(setWorkflowTemplateContextForKeyAtom)
+  const [selectedWorkflowTemplateContext] = useAtom(
+    selectedWorkflowTemplateContextAtom,
+  )
+  const [, setWorkflowTemplateContextForKey] = useAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const [activeNodeId] = useAtom(activeNodeIdAtom)
   const [artifactPersistenceStatus] = useAtom(artifactPersistenceStatusAtom)
   const [artifactRecords] = useAtom(artifactRecordsAtom)
@@ -123,34 +134,53 @@ export function WorkflowPanel() {
   const [surfaceNotice, setSurfaceNotice] = useAtom(surfaceNoticeAtom)
   const [workspace] = useAtom(workspaceAtom)
   const [pendingCreateMessage] = useAtom(workflowCreatePendingMessageAtom)
-  const [workflowEntryState, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
-  const [queuedAutoRunPath, setQueuedAutoRunPath] = useAtom(workflowQueuedAutoRunPathAtom)
-  const [, setWorkflowRequestedResultForKey] = useAtom(setWorkflowRequestedResultForKeyAtom)
+  const [workflowEntryState, setWorkflowEntryState] = useAtom(
+    workflowEntryStateAtom,
+  )
+  const [queuedAutoRunPath, setQueuedAutoRunPath] = useAtom(
+    workflowQueuedAutoRunPathAtom,
+  )
+  const [, setWorkflowRequestedResultForKey] = useAtom(
+    setWorkflowRequestedResultForKeyAtom,
+  )
   const [, setWorkflowReviewMode] = useAtom(workflowReviewModeAtom)
   const [, setWorkflowRunBlockReason] = useAtom(workflowRunBlockReasonAtom)
-  const [workflowOpenState, setWorkflowOpenState] = useAtom(workflowOpenStateAtom)
+  const [workflowOpenState, setWorkflowOpenState] = useAtom(
+    workflowOpenStateAtom,
+  )
   const [, setMainView] = useAtom(mainViewAtom)
   const [selectedPastRun, setSelectedPastRun] = useAtom(selectedPastRunAtom)
   const [workflowPastRuns] = useAtom(workflowHistoryRunsAtom)
-  const { run, cancel, rerunFrom, continueRun, continueWithWorkflow } = useChainExecution()
+  const { run, cancel, rerunFrom, continueRun, continueWithWorkflow } =
+    useChainExecution()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
   const [showEntryEditor, setShowEntryEditor] = useState(false)
   const [prepareNewRun, setPrepareNewRun] = useState(false)
-  const [outputTabRequest, setOutputTabRequest] = useState<{ tab: "nodes" | "log" | "result" | "history"; nodeId?: string; nonce: number } | null>(null)
+  const [outputTabRequest, setOutputTabRequest] = useState<{
+    tab: "nodes" | "log" | "result" | "history"
+    nodeId?: string
+    nonce: number
+  } | null>(null)
+  const blockedTaskAutoFocusKeyRef = useRef<string | null>(null)
   const [flowSurfaceMode, setFlowSurfaceMode] = useAtom(flowSurfaceModeAtom)
   const [desktopRuntime] = useAtom(desktopRuntimeAtom)
   const [, openSkillPicker] = useAtom(openSkillPickerAtom)
   const [, setSelectedNodeId] = useAtom(selectedNodeIdAtom)
   const idleReviewAutoScrollKeyRef = useRef<string | null>(null)
   const resetExecution = useExecutionReset({ preserveCompletedWork: true })
-  const resetExecutionForFreshStart = useExecutionReset({ clearSelectedPastRun: true })
+  const resetExecutionForFreshStart = useExecutionReset({
+    clearSelectedPastRun: true,
+  })
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
   const [showSavedRunReview, setShowSavedRunReview] = useState(false)
 
   const LONG_RUNNING_THRESHOLD_MS = 2 * 60 * 1000
 
   const handleCancelRequest = useCallback(() => {
-    if (runStartedAt && Date.now() - runStartedAt >= LONG_RUNNING_THRESHOLD_MS) {
+    if (
+      runStartedAt &&
+      Date.now() - runStartedAt >= LONG_RUNNING_THRESHOLD_MS
+    ) {
       setCancelConfirmOpen(true)
       return
     }
@@ -261,6 +291,7 @@ export function WorkflowPanel() {
     queuePreparedStageAutoRun,
     runNextStage,
     launchingNextStage,
+    runLaunchPending,
   } = useWorkflowStageLaunch({
     run,
     startApprovalRequired,
@@ -309,17 +340,30 @@ export function WorkflowPanel() {
           if (!inputPanel) return
           inputPanel.scrollIntoView({ behavior: "smooth", block: "start" })
           window.requestAnimationFrame(() => {
-            const focusTarget = inputPanel.querySelector<HTMLElement>("textarea, input, [contenteditable='true']")
+            const focusTarget = inputPanel.querySelector<HTMLElement>(
+              "textarea, input, [contenteditable='true']",
+            )
             focusTarget?.focus()
           })
         })
       })
     },
-    continueWithWorkflow,
+    continueWithWorkflow: async (
+      runToContinue,
+      workflowForRun,
+      workflowPathForRun,
+    ) => {
+      await continueWithWorkflow(
+        runToContinue,
+        workflowForRun,
+        workflowPathForRun,
+      )
+    },
   })
   const effectiveEntryState = activeEntryState || blockedEntryState
   const effectiveResumeHeader = showEntryResumeHeader || showBlockedResumeHeader
-  const effectiveEntryStageLabel = blockedResumeSummary?.currentStepLabel || entryStageLabel
+  const effectiveEntryStageLabel =
+    blockedResumeSummary?.currentStepLabel || entryStageLabel
   const {
     showAnyReviewMode,
     showResumeReviewMode,
@@ -330,19 +374,24 @@ export function WorkflowPanel() {
     selectedPastRunStatus: selectedPastRun?.status,
   })
   const processSpineFactory = useMemo(
-    () => selectProcessSpineFactory(factoryBlueprint, selectedWorkflowTemplateContext),
+    () =>
+      selectProcessSpineFactory(
+        factoryBlueprint,
+        selectedWorkflowTemplateContext,
+      ),
     [factoryBlueprint, selectedWorkflowTemplateContext],
   )
   const processSpineStages = useMemo(
-    () => buildProcessSpine({
-      context: selectedWorkflowTemplateContext,
-      nextTemplate: nextStageTemplate,
-      templates: packTemplates,
-      factory: processSpineFactory,
-      runStatus,
-      runOutcome,
-      reviewingPastRun: showStandaloneIdleReviewMode,
-    }),
+    () =>
+      buildProcessSpine({
+        context: selectedWorkflowTemplateContext,
+        nextTemplate: nextStageTemplate,
+        templates: packTemplates,
+        factory: processSpineFactory,
+        runStatus,
+        runOutcome,
+        reviewingPastRun: showStandaloneIdleReviewMode,
+      }),
     [
       nextStageTemplate,
       packTemplates,
@@ -422,7 +471,9 @@ export function WorkflowPanel() {
     handleOpenArtifact,
   } = useWorkflowPanelOutputSurface({
     showBlockedResumeHeader,
-    blockedTaskKey: selectedResumeTask ? `${selectedResumeTask.taskId}:${selectedResumeTask.sourceRunId}` : null,
+    blockedTaskKey: selectedResumeTask
+      ? `${selectedResumeTask.taskId}:${selectedResumeTask.sourceRunId}`
+      : null,
     canShowTerminalResultSurface,
     showAnyReviewMode,
     runStatus,
@@ -434,10 +485,7 @@ export function WorkflowPanel() {
     setViewMode,
     setOutputTabRequest,
   })
-  const {
-    handleStartNewRun,
-    openEditFlow,
-  } = useWorkflowPanelReviewState({
+  const { handleStartNewRun, openEditFlow } = useWorkflowPanelReviewState({
     runStatus,
     runOutcome,
     runId,
@@ -511,42 +559,46 @@ export function WorkflowPanel() {
     setInputAttachments,
   })
 
-  const sharedOutputPanelProps = useMemo(() => ({
-    onRerunFrom: rerunFrom,
-    onContinueRun: continueRun,
-    requestedTab: outputTabRequest,
-    reviewedRun,
-    reviewedRunDetails,
-    reviewedRunLoading,
-    reviewedRunError,
-    onStartNewRun: handleStartNewRun,
-    onOpenInbox: () => setMainView("inbox"),
-    onOpenArtifacts: () => setMainView("artifacts"),
-    onEditFlow: openEditFlow,
-    onUseInNewFlow: canUseInNewFlow ? handleOpenUseInNewFlow : null,
-    nextStageTemplate,
-    nextStageArtifacts,
-    onRunNextStage: selectedProject && nextStageTemplate ? handleRunNextStage : null,
-    nextStagePending: launchingNextStage,
-  }), [
-    canUseInNewFlow,
-    handleOpenUseInNewFlow,
-    continueRun,
-    handleRunNextStage,
-    handleStartNewRun,
-    launchingNextStage,
-    nextStageArtifacts,
-    nextStageTemplate,
-    outputTabRequest,
-    rerunFrom,
-    reviewedRun,
-    reviewedRunDetails,
-    reviewedRunError,
-    reviewedRunLoading,
-    openEditFlow,
-    selectedProject,
-    setMainView,
-  ])
+  const sharedOutputPanelProps = useMemo(
+    () => ({
+      onRerunFrom: rerunFrom,
+      onContinueRun: continueRun,
+      requestedTab: outputTabRequest,
+      reviewedRun,
+      reviewedRunDetails,
+      reviewedRunLoading,
+      reviewedRunError,
+      onStartNewRun: handleStartNewRun,
+      onOpenInbox: () => setMainView("inbox"),
+      onOpenArtifacts: () => setMainView("artifacts"),
+      onEditFlow: openEditFlow,
+      onUseInNewFlow: canUseInNewFlow ? handleOpenUseInNewFlow : null,
+      nextStageTemplate,
+      nextStageArtifacts,
+      onRunNextStage:
+        selectedProject && nextStageTemplate ? handleRunNextStage : null,
+      nextStagePending: launchingNextStage,
+    }),
+    [
+      canUseInNewFlow,
+      handleOpenUseInNewFlow,
+      continueRun,
+      handleRunNextStage,
+      handleStartNewRun,
+      launchingNextStage,
+      nextStageArtifacts,
+      nextStageTemplate,
+      outputTabRequest,
+      rerunFrom,
+      reviewedRun,
+      reviewedRunDetails,
+      reviewedRunError,
+      reviewedRunLoading,
+      openEditFlow,
+      selectedProject,
+      setMainView,
+    ],
+  )
   const {
     handleAddSkillSelection,
     handleAttachCapability,
@@ -564,37 +616,93 @@ export function WorkflowPanel() {
     setWorkflowEntryState,
   })
 
-  const blockedTaskPanel = showBlockedResumeHeader && selectedResumeTask ? (
-    <WorkflowBlockedTaskPanel
-      panelRef={blockedTaskPanelRef}
-      selectedTask={selectedResumeTask}
-      taskSubmitting={resumeTaskSubmitting}
-      taskAnswers={resumeTaskAnswers}
-      selectedTaskStageMeta={selectedResumeTaskStageMeta}
-      blockedResumeSummary={blockedResumeSummary}
-      showResumeReviewMode={showResumeReviewMode}
-      onFieldChange={handleResumeTaskFieldChange}
-      onSubmit={() => { void handleSubmitResumeTask() }}
-      onSubmitAndContinue={() => { void handleSubmitResumeTaskAndContinue() }}
-      onReject={() => { void handleRejectResumeTask() }}
-      onInspect={() => requestOutputTab("result")}
-    />
-  ) : null
+  const blockedTaskPanel =
+    showBlockedResumeHeader && selectedResumeTask ? (
+      <WorkflowBlockedTaskPanel
+        panelRef={blockedTaskPanelRef}
+        selectedTask={selectedResumeTask}
+        taskSubmitting={resumeTaskSubmitting}
+        taskAnswers={resumeTaskAnswers}
+        selectedTaskStageMeta={selectedResumeTaskStageMeta}
+        blockedResumeSummary={blockedResumeSummary}
+        showResumeReviewMode={showResumeReviewMode}
+        onFieldChange={handleResumeTaskFieldChange}
+        onSubmit={() => {
+          void handleSubmitResumeTask()
+        }}
+        onSubmitAndContinue={() => {
+          void handleSubmitResumeTaskAndContinue()
+        }}
+        onReject={() => {
+          void handleRejectResumeTask()
+        }}
+        onInspect={() => requestOutputTab("result")}
+      />
+    ) : null
 
-  const isFlowEditing = effectiveResumeHeader ? showEntryEditor : flowSurfaceMode === "edit"
-  const chainBuilderMode = shellState === "running" || shellState === "paused"
-    ? "monitor"
-    : reviewFlowHasSnapshot
+  const isFlowEditing = effectiveResumeHeader
+    ? showEntryEditor
+    : flowSurfaceMode === "edit"
+  const chainBuilderMode =
+    shellState === "running" || shellState === "paused"
       ? "monitor"
-      : isFlowEditing
-        ? "edit"
-        : "outline"
-  const showInlineProjectArtifactsPanel = showProjectArtifactsPanel
-    && primaryScreenState !== "fresh_start"
-    && primaryScreenState !== "cross_flow_handoff"
+      : reviewFlowHasSnapshot
+        ? "monitor"
+        : isFlowEditing
+          ? "edit"
+          : "outline"
+  const showInlineProjectArtifactsPanel =
+    showProjectArtifactsPanel &&
+    primaryScreenState !== "fresh_start" &&
+    primaryScreenState !== "cross_flow_handoff"
+
+  const crossFlowTitle =
+    primaryScreenState === "cross_flow_handoff"
+      ? stageStartFlowName || workflow.name || null
+      : null
+  const crossFlowProvenanceLabel =
+    primaryScreenState === "cross_flow_handoff"
+      ? stageStartContextLine || null
+      : null
+
+  useEffect(() => {
+    const blockedTaskFocusKey =
+      showBlockedResumeHeader && selectedResumeTask
+        ? `${selectedResumeTask.workspace}::${selectedResumeTask.taskId}`
+        : null
+
+    if (!blockedTaskFocusKey) {
+      blockedTaskAutoFocusKeyRef.current = null
+      return
+    }
+
+    if (blockedTaskAutoFocusKeyRef.current === blockedTaskFocusKey) return
+    blockedTaskAutoFocusKeyRef.current = blockedTaskFocusKey
+
+    if (viewMode !== "list") {
+      setViewMode("list")
+    }
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        focusBlockedTaskPanel()
+      })
+    })
+  }, [
+    focusBlockedTaskPanel,
+    selectedResumeTask,
+    setViewMode,
+    showBlockedResumeHeader,
+    viewMode,
+  ])
+
   if (!selectedProject && !hasMeaningfulContent) {
     return (
-      <EmptyWorkspaceState onOpenProject={() => { void window.api.addProject() }} />
+      <EmptyWorkspaceState
+        onOpenProject={() => {
+          void window.api.addProject()
+        }}
+      />
     )
   }
 
@@ -610,18 +718,26 @@ export function WorkflowPanel() {
   return (
     <div className="flex-1 min-h-0 flex overflow-hidden">
       {/* Main workflow editor area */}
-      <div role="region" aria-label="Flow workspace" className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0">
+      <div
+        role="region"
+        aria-label="Flow workspace"
+        className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0"
+      >
         <Toolbar
           onRun={handleRunRequest}
           onCancel={handleCancelRequest}
           shellState={shellState}
           entryTitle={effectiveEntryState?.title}
+          crossFlowTitle={crossFlowTitle}
           shellDetail={shellDetail}
+          runLaunchPending={runLaunchPending}
           agentToggleRef={chatPanelToggleRef}
         />
 
         {workflowOpenState.status === "loading" ? (
-          <WorkflowOpenLoadingState flowLabel={workflowTitleFromPath(workflowOpenState.targetPath)} />
+          <WorkflowOpenLoadingState
+            flowLabel={workflowTitleFromPath(workflowOpenState.targetPath)}
+          />
         ) : (
           <>
             {workflowOpenState.status === "error" && (
@@ -632,21 +748,33 @@ export function WorkflowPanel() {
               />
             )}
 
+            {crossFlowProvenanceLabel && (
+              <div className="border-b border-hairline px-[var(--content-gutter)] py-1.5">
+                <span className="ui-meta-text text-muted-foreground">
+                  {crossFlowProvenanceLabel}
+                </span>
+              </div>
+            )}
+
             <Tabs
               value={viewMode}
               onValueChange={(next) => setViewMode(next as "list" | "settings")}
               className="flex-1 min-h-0 flex flex-col overflow-hidden"
             >
-              {showProcessSpine && processSpineStages && processSpineStages.length > 1 && (
-                <div className="border-b border-hairline">
-                  <div className="ui-content-gutter py-2">
-                    <ProcessSpine
-                      stages={processSpineStages}
-                      isLive={runStatus === "running" || runStatus === "starting" || runStatus === "cancelling"}
-                    />
+              {showProcessSpine &&
+                processSpineStages &&
+                processSpineStages.length > 1 && (
+                  <div className="border-b border-hairline">
+                    <div className="ui-content-gutter py-2">
+                      <ProcessSpine
+                        stages={processSpineStages}
+                        isLive={
+                          runStatus === "running" || runStatus === "cancelling"
+                        }
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               <WorkflowSettingsTab
                 surfaceNotice={surfaceNotice}
@@ -658,7 +786,11 @@ export function WorkflowPanel() {
                 listScrollRegionRef={listScrollRegionRef}
                 listShellClass={listShellClass}
                 showCreateDraftSkeleton={showCreateDraftSkeleton}
-                showResumeHeader={effectiveResumeHeader && primaryScreenState !== "fresh_start" && primaryScreenState !== "cross_flow_handoff"}
+                showResumeHeader={
+                  effectiveResumeHeader &&
+                  primaryScreenState !== "fresh_start" &&
+                  primaryScreenState !== "cross_flow_handoff"
+                }
                 activeEntryState={effectiveEntryState}
                 workflowName={workflow.name}
                 readyToRun={readyToRun}
@@ -685,29 +817,44 @@ export function WorkflowPanel() {
                 projectArtifactsLoading={projectArtifactsLoading}
                 projectArtifactsError={projectArtifactsError}
                 requiredContracts={selectedWorkflowTemplateContext?.contractIn}
-                onOpenArtifact={(artifact) => { void handleOpenArtifact(artifact) }}
+                onOpenArtifact={(artifact) => {
+                  void handleOpenArtifact(artifact)
+                }}
                 showIdleStageContract={showIdleStageContract}
                 idleStageContract={idleStageContract}
-                showIdleInputPanel={showIdleInputPanel && primaryScreenState !== "blocked_decision"}
+                showIdleInputPanel={
+                  showIdleInputPanel &&
+                  primaryScreenState !== "blocked_decision"
+                }
                 showFlowEditor={showFlowEditor}
                 chainBuilderMode={chainBuilderMode}
                 onFocusStageDetails={focusStageDetails}
-              reviewSnapshot={showAnyReviewMode ? reviewedRunDetails?.snapshot ?? null : null}
-              showReviewOutputMode={showAnyReviewMode}
-              showReviewOutputPanel={!showBlockedResumeHeader || blockedInspectionVisible}
-              showLiveOutputPanel={showOutputPanel}
-              terminalResultOwnsLayout={liveTerminalResultOwnsLayout}
-              blockedTaskPanel={blockedTaskPanel}
-              outputPanelRef={outputPanelRef}
-              outputPanelProps={sharedOutputPanelProps}
-            />
+                reviewSnapshot={
+                  showAnyReviewMode
+                    ? (reviewedRunDetails?.snapshot ?? null)
+                    : null
+                }
+                showReviewOutputMode={showAnyReviewMode}
+                showReviewOutputPanel={
+                  !showBlockedResumeHeader || blockedInspectionVisible
+                }
+                showLiveOutputPanel={showOutputPanel}
+                terminalResultOwnsLayout={liveTerminalResultOwnsLayout}
+                blockedTaskPanel={blockedTaskPanel}
+                outputPanelRef={outputPanelRef}
+                outputPanelProps={sharedOutputPanelProps}
+              />
             </Tabs>
           </>
         )}
 
         <BatchPanel />
         <WorkflowPanelDialogs
-          skillPickerStageLabel={effectiveResumeHeader && !showEntryEditor ? effectiveEntryStageLabel : null}
+          skillPickerStageLabel={
+            effectiveResumeHeader && !showEntryEditor
+              ? effectiveEntryStageLabel
+              : null
+          }
           onAddSkill={handleAddSkillSelection}
           stageStartGateOpen={stageStartGateOpen}
           stageStartFlowName={stageStartFlowName}
@@ -715,7 +862,11 @@ export function WorkflowPanel() {
           stageLabel={effectiveEntryStageLabel}
           stageStartDescription={stageStartDescription}
           entryFlowRules={entryFlowRules}
-          expectedArtifact={selectedWorkflowTemplateContext?.outputText || effectiveEntryState?.outputText || "A reviewable result"}
+          expectedArtifact={
+            selectedWorkflowTemplateContext?.outputText ||
+            effectiveEntryState?.outputText ||
+            "A reviewable result"
+          }
           inputPreview={inputValue}
           inputLabels={stageStartInputLabels}
           notes={stageStartPolicyNotes}
@@ -729,7 +880,11 @@ export function WorkflowPanel() {
           onConfirmCancel={handleConfirmCancel}
           useInNewFlowOpen={useInNewFlowOpen}
           onUseInNewFlowOpenChange={setUseInNewFlowOpen}
-          projectName={selectedProject ? selectedProject.split(/[\\/]/).pop() || selectedProject : null}
+          projectName={
+            selectedProject
+              ? selectedProject.split(/[\\/]/).pop() || selectedProject
+              : null
+          }
           sourceLabel={resultSourceLabel}
           suggestedTemplates={suggestedUseInNewFlowTemplates}
           selectedTemplateId={selectedUseInNewFlowTemplateId}
@@ -748,7 +903,9 @@ export function WorkflowPanel() {
           }}
           loading={useInNewFlowLoading}
           pending={useInNewFlowPending}
-          onConfirmUseInNewFlow={() => { void handleConfirmUseInNewFlow() }}
+          onConfirmUseInNewFlow={() => {
+            void handleConfirmUseInNewFlow()
+          }}
         />
       </div>
 
