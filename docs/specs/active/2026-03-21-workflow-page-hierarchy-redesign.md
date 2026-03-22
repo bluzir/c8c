@@ -1,7 +1,7 @@
 # Workflow Page Hierarchy Redesign
 
 **Date:** 2026-03-21
-**Status:** Implemented for runtime-shell hierarchy pass (Phases 1-3). Phase 4 deferred.
+**Status:** Implemented for runtime-shell hierarchy pass (Phases 1-3) plus the renderer subset of Phase 4. Router/agent-output follow-up remains deferred.
 **Scope:** List view + output panel + runtime shell. Batch runs are out of scope. Canvas/settings view mode entry points ARE in scope (chrome changes affect them).
 **Source:** 6-agent UX audit (Figure-Ground, Hick's Law, Progressive Disclosure, Hierarchy, Dead Weight, Canon §3 Compliance)
 
@@ -41,7 +41,7 @@ This redesign is **implemented** for the workflow/runtime shell pass:
 - State-machine consistency, visual-weight reduction, progressive rendering, and blocked/ready/completed shell ownership are in place
 - Smoke coverage passes against the updated shell contract
 
-**Deferred follow-up:** Phase 4 remains intentionally open because it depends on new agent-output/runtime contracts, not just renderer composition. It is not a blocker for shipping the hierarchy redesign.
+**Deferred follow-up:** The remaining Phase 4 items stay intentionally open because they depend on new agent-output/runtime contracts and router behavior, not just renderer composition. They are not blockers for shipping the hierarchy redesign.
 
 ---
 
@@ -528,13 +528,18 @@ These are brief transitions (<2s typically). They render identically to RUNNING 
 - Toolbar state-dependent collapse (Run hidden when Resume Header visible)
 - Activity feed → Level 3 card treatment during running (the figure)
 
-### Phase 4: Verdict Variants + Cross-Flow (deferred follow-up; requires agent changes)
-- Verdict card supports 3 variants: outcome, diagnostic, document (see SCREEN-COMPOSITION-GUIDE.md §3.4)
-- Tone mapping reflects findings severity, not execution success (§3.5)
-- Evidence Panel renders for multi-axis results when agent produces structured summary metadata (§3.6)
-- Cross-flow CTA: completed step can create a new flow pre-seeded with artifacts (audit → fix flow, investigation → fix flow) (§3.7)
+### Phase 4: Verdict Variants + Cross-Flow (renderer subset implemented; agent/router follow-up deferred)
+
+**Shipped in renderer:**
+- Verdict surface now supports 3 practical variants: outcome, diagnostic, document (see SCREEN-COMPOSITION-GUIDE.md §3.4)
+- Tone mapping reflects findings severity and structured evaluator outcomes, not raw execution success (§3.5)
+- Evidence Panel renders as flat content when structured evaluator metadata is available (`criteriaBreakdown`, threshold, score delta) (§3.6)
+- Cross-flow CTA is owned by the result surface and opens the existing "Use in new flow" path from the verdict card/context menu (§3.7)
+
+**Still deferred:**
 - Lightweight/urgent path: router classifies small-scope requests, skips stage contract preview (§3.8)
-- Agent output contract: steps that produce diagnostic/audit results must emit structured summary (categories, severity counts, root cause) alongside the markdown report. The UI renders the evidence panel FROM this structured data.
+- General agent output contract: non-evaluator diagnostic/audit steps still need a richer structured summary payload (categories, severity counts, root cause) alongside markdown
+- Generalized evidence-panel support for those richer summaries once the agent contract exists
 
 ---
 

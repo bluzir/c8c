@@ -89,6 +89,30 @@ Implementation rules:
 - Low-emphasis local navigation between sibling surfaces (`result`, `activity`, `log`, `history`) is allowed inside the owner surface when it replaces heavier tab chrome.
 - For `document` and `log` archetypes, the content body owns Level 3. Metadata above it stays Level 0-1.
 
+### Figure surface class
+
+The figure per state uses `surface-elevated` (Level 3), NOT `surface-panel` (Level 2). `surface-elevated` has stronger elevation (`--elevation-overlay`) that visually separates it from all `surface-panel` containers. Without this distinction, the figure looks identical to surrounding panels.
+
+| Surface class | Level | Use |
+|--------------|-------|-----|
+| `surface-panel` | Level 2 | Supporting containers: settings panels, editor cards, form sections |
+| `surface-elevated` | Level 3 | **The figure only:** verdict card, prompt composer shell, active approval card, detail panel when selected |
+
+Currently `surface-elevated` is used only in `dialog.tsx`. It must be applied to figure components per state. This is the implementation gap that makes "One Figure Per State" invisible in the shipped UI.
+
+### Verdict tone via severity surfaces
+
+Verdict/check/loop components must use outcome-toned surfaces, not neutral `bg-surface-2`:
+
+| Outcome | Surface class |
+|---------|--------------|
+| Passed / success | `surface-success-soft` |
+| Warning / returned | `surface-warning-soft` |
+| Failed / danger | `surface-danger-soft` |
+| Info / neutral | `surface-info-soft` |
+
+These classes exist in `globals.css` but are currently unused on verdict components (`ExecutionCheckRecord`, `ExecutionLoopCard` both use neutral `bg-surface-2/55`). Fix: derive surface class from `record.status` or `summary.outcome`.
+
 ## Color Palette
 
 All colors are HSL via CSS custom properties. Light and dark mode defined in globals.css.
