@@ -1,4 +1,12 @@
-export type NodeType = "input" | "skill" | "evaluator" | "splitter" | "merger" | "output" | "approval" | "human"
+export type NodeType =
+  | "input"
+  | "skill"
+  | "evaluator"
+  | "splitter"
+  | "merger"
+  | "output"
+  | "approval"
+  | "human"
 
 export interface NodePosition {
   x: number
@@ -29,7 +37,11 @@ export interface NodeRuntimeConfig {
 
 export type PermissionMode = "plan" | "edit"
 export type ProviderId = "claude" | "codex"
-export type AgentExecutionBackend = "claude_sdk" | "claude_cli" | "codex_acp" | "codex_exec"
+export type AgentExecutionBackend =
+  | "claude_sdk"
+  | "claude_cli"
+  | "codex_acp"
+  | "codex_exec"
 export type SafetyProfile =
   | "safe_readonly"
   | "workspace_auto"
@@ -108,8 +120,19 @@ export interface AgentExecutionSummary extends AgentRunResult {
 export type LogEntry =
   | { type: "thinking"; content: string; timestamp: number }
   | { type: "text"; content: string; timestamp: number }
-  | { type: "tool_use"; tool: string; input: Record<string, unknown>; timestamp: number }
-  | { type: "tool_result"; tool: string; output: string; status: "success" | "error"; timestamp: number }
+  | {
+      type: "tool_use"
+      tool: string
+      input: Record<string, unknown>
+      timestamp: number
+    }
+  | {
+      type: "tool_result"
+      tool: string
+      output: string
+      status: "success" | "error"
+      timestamp: number
+    }
   | { type: "error"; content: string; timestamp: number }
   | { type: "diff"; content: string; files: string[]; timestamp: number }
 
@@ -182,7 +205,14 @@ export interface ApprovalNodeConfig {
   runtime?: NodeRuntimeConfig
 }
 
-export type HumanTaskFieldType = "text" | "textarea" | "number" | "boolean" | "select" | "multiselect" | "json"
+export type HumanTaskFieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "boolean"
+  | "select"
+  | "multiselect"
+  | "json"
 
 export interface HumanTaskFieldOption {
   value: string
@@ -254,11 +284,20 @@ interface BaseWorkflowNode<TType extends NodeType, TConfig> {
 
 export type InputWorkflowNode = BaseWorkflowNode<"input", InputNodeConfig>
 export type SkillWorkflowNode = BaseWorkflowNode<"skill", SkillNodeConfig>
-export type EvaluatorWorkflowNode = BaseWorkflowNode<"evaluator", EvaluatorNodeConfig>
-export type SplitterWorkflowNode = BaseWorkflowNode<"splitter", SplitterNodeConfig>
+export type EvaluatorWorkflowNode = BaseWorkflowNode<
+  "evaluator",
+  EvaluatorNodeConfig
+>
+export type SplitterWorkflowNode = BaseWorkflowNode<
+  "splitter",
+  SplitterNodeConfig
+>
 export type MergerWorkflowNode = BaseWorkflowNode<"merger", MergerNodeConfig>
 export type OutputWorkflowNode = BaseWorkflowNode<"output", OutputNodeConfig>
-export type ApprovalWorkflowNode = BaseWorkflowNode<"approval", ApprovalNodeConfig>
+export type ApprovalWorkflowNode = BaseWorkflowNode<
+  "approval",
+  ApprovalNodeConfig
+>
 export type HumanWorkflowNode = BaseWorkflowNode<"human", HumanNodeConfig>
 
 export type WorkflowNode =
@@ -335,7 +374,14 @@ export type NodeStatus =
   | "waiting_approval"
   | "waiting_human"
 
-export type RunStatus = "running" | "paused" | "blocked" | "completed" | "failed" | "cancelled" | "interrupted"
+export type RunStatus =
+  | "running"
+  | "paused"
+  | "blocked"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "interrupted"
 
 export type DiagnosticSummaryTone = "neutral" | "warning" | "danger"
 
@@ -397,7 +443,13 @@ export interface NodeInput {
   }
 }
 
-export type ErrorKind = "tool" | "model" | "timeout" | "policy" | "unknown"
+export type ErrorKind =
+  | "tool"
+  | "model"
+  | "timeout"
+  | "policy"
+  | "network"
+  | "unknown"
 
 export interface NodeMetrics {
   tokens_in: number
@@ -449,7 +501,13 @@ export type WorkflowEvent =
   | { type: "node-log"; runId: string; nodeId: string; entry: LogEntry }
   | { type: "node-done"; runId: string; nodeId: string; output: NodeInput }
   | { type: "node-error"; runId: string; nodeId: string; error: string }
-  | { type: "node-warning"; runId: string; nodeId: string; warning: string; warningKind: "empty" | "repetition" | "refusal" | "length_anomaly" }
+  | {
+      type: "node-warning"
+      runId: string
+      nodeId: string
+      warning: string
+      warningKind: "empty" | "repetition" | "refusal" | "length_anomaly"
+    }
   | {
       type: "eval-result"
       runId: string
@@ -469,8 +527,21 @@ export type WorkflowEvent =
       nodes: WorkflowNode[]
       edges: WorkflowEdge[]
     }
-  | { type: "approval-requested"; runId: string; nodeId: string; content: string; message?: string; allowEdit: boolean }
-  | { type: "human-task-created"; runId: string; nodeId: string; taskId: string; title: string }
+  | {
+      type: "approval-requested"
+      runId: string
+      nodeId: string
+      content: string
+      message?: string
+      allowEdit: boolean
+    }
+  | {
+      type: "human-task-created"
+      runId: string
+      nodeId: string
+      taskId: string
+      title: string
+    }
   | {
       type: "human-task-resolved"
       runId: string
@@ -478,9 +549,22 @@ export type WorkflowEvent =
       taskId: string
       resolution: "submitted" | "rejected" | "timed_out"
     }
-  | { type: "eval-exhausted"; runId: string; nodeId: string; score: number; threshold: number; attempt: number }
+  | {
+      type: "eval-exhausted"
+      runId: string
+      nodeId: string
+      score: number
+      threshold: number
+      attempt: number
+    }
   | { type: "eval-overridden"; runId: string; nodeId: string }
-  | { type: "run-done"; runId: string; status: RunStatus; reportPath?: string; workspace?: string }
+  | {
+      type: "run-done"
+      runId: string
+      status: RunStatus
+      reportPath?: string
+      workspace?: string
+    }
 
 export type WorkflowInput =
   | { type: "text"; value: string }
