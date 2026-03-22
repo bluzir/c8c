@@ -237,7 +237,7 @@ export function ResultTab({
           className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
           onClick={onViewActivity}
         >
-          View activity
+          View summary
         </Button>,
       )
     }
@@ -261,7 +261,7 @@ export function ResultTab({
       actionItems.push(
         <Button key="retry-step" type="button" size="sm" onClick={onRerunSelectedStage}>
           <ArrowRight size={12} />
-          Retry from this step
+          Resume from this step
         </Button>,
       )
     } else if (canStartFreshRun && onStartNewRun) {
@@ -314,10 +314,12 @@ export function ResultTab({
           return (
             <div key={item.id} className="flex items-start justify-between gap-3 rounded-md bg-surface-2/35 px-3 py-2">
               <div className="min-w-0">
-                <div className="text-body-sm font-medium text-foreground">{item.id}</div>
+                <div className="text-body-sm font-medium text-foreground">{item.title}</div>
                 <div className="ui-meta-text text-muted-foreground">{item.detail}</div>
               </div>
-              <div className={cn("shrink-0 text-body-sm font-medium", toneClass)}>{item.scoreLabel}</div>
+              {item.valueLabel ? (
+                <div className={cn("shrink-0 text-body-sm font-medium", toneClass)}>{item.valueLabel}</div>
+              ) : null}
             </div>
           )
         })}

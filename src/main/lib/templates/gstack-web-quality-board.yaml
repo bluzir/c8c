@@ -114,6 +114,8 @@ nodes:
         - Recommended Fix Order
 
         Keep the distinctions clear: runtime and flow defects are not the same as design-quality problems.
+        Prefix the markdown with YAML frontmatter under diagnostic_summary containing: headline, tone
+        (danger|warning|neutral), severity_counts, and 2-4 top_findings with id, label, detail, and severity.
   - id: output-1
     type: output
     position:

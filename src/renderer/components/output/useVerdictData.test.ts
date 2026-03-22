@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { EvaluationResult, NodeState } from "@shared/types"
+import type { EvaluationResult, NodeState, RunResult } from "@shared/types"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { deriveVerdictData } from "@/components/output/useVerdictData"
 import type { ExecutionLoopSummary } from "@/lib/execution-loops"
@@ -71,6 +71,22 @@ function createExecutionLoopSummary(overrides?: Partial<ExecutionLoopSummary>): 
     reason: "Accessibility needs attention before continuing.",
     fixInstructions: "Fix contrast and focus order first.",
     deltaLabel: "8/10 -> 6.5/10",
+    ...overrides,
+  }
+}
+
+function createReviewRun(overrides?: Partial<RunResult>): RunResult {
+  return {
+    runId: "run-1",
+    workflowPath: "/tmp/flow.yaml",
+    workflowName: "CTO Optimise Audit",
+    status: "failed",
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1_000,
+    workspace: "/tmp/workspace",
+    reportPath: null,
+    totalCost: 1.23,
     ...overrides,
   }
 }
@@ -151,6 +167,50 @@ describe("deriveVerdictData", () => {
     expect(result.preservedText).toBe("Previous 1 step remains available.")
   })
 
+  it("keeps failed saved runs in failed verdict mode", () => {
+    const result = deriveVerdictData({
+      nodeStates: {
+        system_mapper: createCompletedNodeState({
+          status: "failed",
+          output: undefined,
+        }),
+      },
+      evalResults: {
+        system_mapper: [],
+      },
+      selectedResultNodeId: "system_mapper",
+      selectedResultPresentation: {
+        ...RESULT_PRESENTATION,
+        title: "System Mapper",
+        artifactLabel: "System Mapper output",
+        artifactRoleLabel: "Working",
+      },
+      selectedResultBranchLabel: null,
+      selectedStagePresentation: {
+        ...RESULT_PRESENTATION,
+        title: "System Mapper",
+        artifactLabel: "System Mapper output",
+        artifactRoleLabel: "Working",
+      },
+      selectedStageIndex: 1,
+      workflowStepCount: 3,
+      completedStageCount: 1,
+      failedStageCount: 1,
+      reviewingRunHistory: true,
+      selectedReviewRun: createReviewRun(),
+      executionLoopSummary: null,
+      runStatus: "idle",
+      runOutcome: null,
+      hasPrimaryContinuation: false,
+      isDisplayedResultEmpty: true,
+      failedNodeErrors: [["system_mapper", { error: "CLI crashed while mapping the repo." }]],
+    })
+
+    expect(result.terminalVariant).toBe("failed")
+    expect(result.variant).toBe("diagnostic")
+    expect(result.headline).toBe("CLI crashed while mapping the repo.")
+  })
+
   it("promotes evaluator-backed reviews to diagnostic verdicts with an evidence panel", () => {
     const result = deriveVerdictData({
       nodeStates: {
@@ -190,5 +250,70 @@ describe("deriveVerdictData", () => {
     expect(result.evidencePanelTitle).toBe("Review loop")
     expect(result.evidencePanelItems).toHaveLength(2)
     expect(result.followUpLabel).toBe("Create follow-up flow")
+  })
+
+  it("renders structured diagnostic summaries outside evaluator loops", () => {
+    const result = deriveVerdictData({
+      nodeStates: {
+        result: createCompletedNodeState({
+          output: {
+            content: "# Audit report\nBody",
+            metadata: {
+              source: "agent",
+              artifact_label: "Audit report",
+              diagnostic_summary: {
+                headline: "Critical UX debt blocks reliable execution.",
+                tone: "danger",
+                severityCounts: {
+                  critical: 2,
+                  high: 3,
+                },
+                topFindings: [
+                  {
+                    id: "approval-dialog-unmount",
+                    label: "Approval dialog unmounts on navigation",
+                    detail: "Users can lose a live approval request when they leave the workflow view.",
+                    severity: "danger",
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      },
+      evalResults: {
+        result: [],
+      },
+      selectedResultNodeId: "result",
+      selectedResultPresentation: RESULT_PRESENTATION,
+      selectedResultBranchLabel: null,
+      selectedStagePresentation: RESULT_PRESENTATION,
+      selectedStageIndex: 1,
+      workflowStepCount: 3,
+      completedStageCount: 3,
+      failedStageCount: 0,
+      reviewingRunHistory: false,
+      selectedReviewRun: null,
+      executionLoopSummary: null,
+      runStatus: "done",
+      runOutcome: "completed",
+      hasPrimaryContinuation: false,
+      isDisplayedResultEmpty: false,
+      failedNodeErrors: [],
+    })
+
+    expect(result.variant).toBe("diagnostic")
+    expect(result.tone).toBe("danger")
+    expect(result.headline).toBe("Critical UX debt blocks reliable execution.")
+    expect(result.evidenceItems).toContain("2 critical")
+    expect(result.evidenceItems).toContain("3 high")
+    expect(result.evidencePanelTitle).toBe("Top findings")
+    expect(result.evidencePanelItems).toMatchObject([
+      {
+        id: "approval-dialog-unmount",
+        title: "Approval dialog unmounts on navigation",
+        detail: "Users can lose a live approval request when they leave the workflow view.",
+      },
+    ])
   })
 })

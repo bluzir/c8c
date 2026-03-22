@@ -60,6 +60,7 @@ import {
   skipUnfinishedNodes,
   type NodeLifecycleEffect,
 } from "./lib/run-lifecycle.js"
+import { executeNodeByType } from "./lib/run-node-executors.js"
 import { writeFileAtomic } from "./lib/atomic-write.js"
 import { cleanupRunWorkspaces } from "./lib/run-workspace-retention.js"
 import {

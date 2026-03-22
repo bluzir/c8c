@@ -92,6 +92,8 @@ nodes:
         4) unresolved risks,
         5) recommended disposition: ready to close, needs follow-up, or blocked.
         Keep the report concise, explicit, and reviewable.
+        Prefix the markdown with YAML frontmatter under diagnostic_summary containing: headline, tone
+        (danger|warning|neutral), severity_counts when relevant, and 2-4 top_findings with id, label, detail, and severity.
   - id: eval-1
     type: evaluator
     position:

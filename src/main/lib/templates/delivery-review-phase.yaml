@@ -85,6 +85,8 @@ nodes:
         4) fixes or follow-ups required before verification,
         5) whether the change looks ready for verification or needs another implementation pass.
         Keep the notes concrete, prioritized, and easy to verify.
+        Prefix the markdown with YAML frontmatter under diagnostic_summary containing: headline, tone
+        (danger|warning|neutral), severity_counts when relevant, and 2-4 top_findings with id, label, detail, and severity.
   - id: eval-1
     type: evaluator
     position:

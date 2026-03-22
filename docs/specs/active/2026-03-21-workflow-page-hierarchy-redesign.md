@@ -1,7 +1,7 @@
 # Workflow Page Hierarchy Redesign
 
 **Date:** 2026-03-21
-**Status:** Implemented for runtime-shell hierarchy pass (Phases 1-3) plus the renderer subset of Phase 4. Router/agent-output follow-up remains deferred.
+**Status:** Implemented for runtime-shell hierarchy pass (Phases 1-3) plus Phase 4 renderer and explicit diagnostic-summary contract support. Further template adoption is routine maintenance, not an open hierarchy blocker.
 **Scope:** List view + output panel + runtime shell. Batch runs are out of scope. Canvas/settings view mode entry points ARE in scope (chrome changes affect them).
 **Source:** 6-agent UX audit (Figure-Ground, Hick's Law, Progressive Disclosure, Hierarchy, Dead Weight, Canon §3 Compliance)
 
@@ -41,7 +41,7 @@ This redesign is **implemented** for the workflow/runtime shell pass:
 - State-machine consistency, visual-weight reduction, progressive rendering, and blocked/ready/completed shell ownership are in place
 - Smoke coverage passes against the updated shell contract
 
-**Deferred follow-up:** The remaining Phase 4 items stay intentionally open because they depend on new agent-output/runtime contracts and router behavior, not just renderer composition. They are not blockers for shipping the hierarchy redesign.
+**Deferred follow-up:** No remaining Phase 4 item blocks the hierarchy redesign. Any future expansion is template/runtime maintenance work, not an unresolved workflow-shell redesign dependency.
 
 ---
 
@@ -505,6 +505,75 @@ These are brief transitions (<2s typically). They render identically to RUNNING 
 
 ---
 
+## Output Shell Scope Contract
+
+The output area below the FLOW step list is scoped by user selection. A **scope strip** between the step list and the tabs tells the user exactly what they're looking at.
+
+### Scope strip content
+
+| Selection | Scope strip |
+|---|---|
+| Nothing (run level) | `Run: CTO Optimise Audit · 2/7 done` |
+| Regular step | `Viewing: System Mapper · Completed` |
+| Fan-out parent | `Viewing: Fan out · 3/6 branches · Current stage` |
+| Fan-out branch | `Viewing: Security audit · Branch of Fan out · Completed` |
+| Result tab active | `Result from: CTO Optimisation Report · Final output` |
+
+### Tab ownership
+
+| Tab | Scope | What it shows | NOT its job |
+|---|---|---|---|
+| **Summary** | Run-level or focused step | Run progress, focus stage, result readiness, fan-out breakdown, attention block | Step list, per-step navigation |
+| **Result** | Run-level (final) or per-step | Verdict card + artifact document. Always shows provenance: `Result from: [step]` | Step progression |
+| **Step log** | Per-step or per-branch | Full execution log, tool calls, streaming output | Step list, run-level progress |
+| **History** | Run-level (not scoped to selection) | Past runs list | Current run state |
+
+### Tab preservation on scope change
+
+When the user clicks a different step/branch, the current tab is PRESERVED unless it becomes invalid for the new scope:
+
+| Current tab | New scope has content? | Behavior |
+|---|---|---|
+| Summary | Always valid | Stay on Summary |
+| Result | New scope has a result | Stay on Result |
+| Result | New scope has NO result | Fall back to Summary |
+| Step log | New scope is a step/branch | Stay on Step log |
+| Step log | New scope is run-level (no step) | Fall back to Summary |
+| History | Always valid (run-level) | Stay on History |
+
+Never auto-switch tab just because selection changed. Predictable UI.
+
+### Fan-out in step list
+
+Fan-out steps expand inline to show branches as sub-items:
+
+```
+▸ Fan out                    3/6 branches done    [▾]
+  ├─ ✓ Security audit        2.1kt · $0.03
+  ├─ ✓ Code quality          1.8kt · $0.02
+  ├─ ▸ IPC integrity         running...
+  ├─ ○ Build hygiene         queued
+  ├─ ○ Performance           queued
+  └─ ○ Architecture          queued
+```
+
+**Clicking a branch:** scope strip updates, tabs re-scope to that branch, current tab preserved.
+**Clicking the parent "Fan out":** scope strip shows aggregate, Summary shows branch counts + per-branch one-line status.
+**Clicking away from fan-out:** branches collapse, scope returns to regular step view.
+
+### Tab order and defaults
+
+Order: `Summary → Result → Step log → History` (Summary always first)
+
+| Run state | Default active tab |
+|---|---|
+| Running / paused | Summary |
+| Blocked | Summary |
+| Completed (with result) | Result |
+| Idle (no runs yet) | Summary |
+
+---
+
 ## Migration Strategy
 
 ### Phase 1: Strip Visual Weight (implemented)
@@ -528,18 +597,20 @@ These are brief transitions (<2s typically). They render identically to RUNNING 
 - Toolbar state-dependent collapse (Run hidden when Resume Header visible)
 - Activity feed → Level 3 card treatment during running (the figure)
 
-### Phase 4: Verdict Variants + Cross-Flow (renderer subset implemented; agent/router follow-up deferred)
+### Phase 4: Verdict Variants + Cross-Flow (implemented)
 
-**Shipped in renderer:**
+**Shipped in renderer/runtime:**
 - Verdict surface now supports 3 practical variants: outcome, diagnostic, document (see SCREEN-COMPOSITION-GUIDE.md §3.4)
 - Tone mapping reflects findings severity and structured evaluator outcomes, not raw execution success (§3.5)
 - Evidence Panel renders as flat content when structured evaluator metadata is available (`criteriaBreakdown`, threshold, score delta) (§3.6)
 - Cross-flow CTA is owned by the result surface and opens the existing "Use in new flow" path from the verdict card/context menu (§3.7)
+- Lightweight/urgent path is now routed explicitly and can auto-run eligible lightweight starts instead of forcing the full preview path (§3.8)
+- Non-evaluator diagnostic and audit flows can now emit explicit `diagnostic_summary` frontmatter (`headline`, `tone`, `severity_counts`, `top_findings`, optional root cause/next action), and the runner strips it from the visible markdown while preserving it in output metadata
+- Result surfaces now render generalized evidence panels from that structured diagnostic summary, not only from evaluator-loop metadata
 
-**Still deferred:**
-- Lightweight/urgent path: router classifies small-scope requests, skips stage contract preview (§3.8)
-- General agent output contract: non-evaluator diagnostic/audit steps still need a richer structured summary payload (categories, severity counts, root cause) alongside markdown
-- Generalized evidence-panel support for those richer summaries once the agent contract exists
+**Follow-on maintenance only:**
+- adopt the same explicit `diagnostic_summary` contract in any additional built-in or plugin templates that produce diagnostic-style reports
+- extend the contract further only if a future product surface needs more structured evidence than the current verdict/evidence strip can render
 
 ---
 

@@ -1,7 +1,7 @@
 import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { formatCost } from "@/components/output/outputFormatters"
-import type { EvaluationResult, NodeState, RunResult } from "@shared/types"
+import type { DiagnosticSummary, EvaluationResult, NodeState, RunResult } from "@shared/types"
 
 type VerdictTerminalVariant = "saved" | "completed" | "failed" | "cancelled"
 type VerdictTone = "neutral" | "warning" | "danger"
@@ -10,7 +10,8 @@ type VerdictVariant = "outcome" | "diagnostic" | "document"
 
 export interface VerdictEvidencePanelItem {
   id: string
-  scoreLabel: string
+  title: string
+  valueLabel?: string | null
   detail: string
   tone: VerdictTone
 }
@@ -66,6 +67,115 @@ function normalizeHeadline(value: string | null | undefined) {
   if (!value) return null
   const normalized = value.replace(/\s+/g, " ").trim()
   return normalized || null
+}
+
+function hasDiagnosticSummaryContent(summary: DiagnosticSummary | null | undefined) {
+  if (!summary) return false
+  return Boolean(
+    summary.headline
+    || summary.summary
+    || summary.rootCause
+    || summary.recommendedNextAction
+    || summary.tone
+    || summary.categories?.length
+    || summary.topFindings?.length
+    || Object.values(summary.severityCounts || {}).some((value) => typeof value === "number" && value > 0),
+  )
+}
+
+function diagnosticToneToVerdictTone(tone: DiagnosticSummary["tone"] | undefined): VerdictTone | null {
+  if (tone === "danger") return "danger"
+  if (tone === "warning") return "warning"
+  if (tone === "neutral") return "neutral"
+  return null
+}
+
+function formatSeverityCount(label: string, count: number | undefined): string | null {
+  if (typeof count !== "number" || count <= 0) return null
+  return `${count} ${label}`
+}
+
+function severityToneFromSummary(
+  tone: DiagnosticSummary["tone"] | undefined,
+  count: number | undefined,
+): VerdictTone {
+  if (typeof count === "number" && count > 0) {
+    return tone === "danger" || tone === "warning" || tone === "neutral"
+      ? diagnosticToneToVerdictTone(tone) || "neutral"
+      : "neutral"
+  }
+  return diagnosticToneToVerdictTone(tone) || "neutral"
+}
+
+function formatCategoryValue(count: number | undefined): string | null {
+  if (typeof count !== "number" || count <= 0) return null
+  return count === 1 ? "1 issue" : `${count} issues`
+}
+
+function buildDiagnosticEvidencePanel(
+  summary: DiagnosticSummary | null | undefined,
+): { title: string | null; items: VerdictEvidencePanelItem[] } {
+  if (!summary) return { title: null, items: [] }
+
+  if (summary.topFindings && summary.topFindings.length > 0) {
+    return {
+      title: "Top findings",
+      items: summary.topFindings.map((finding) => ({
+        id: finding.id,
+        title: finding.label,
+        detail: finding.detail || "Structured finding",
+        valueLabel: null,
+        tone: diagnosticToneToVerdictTone(finding.severity) || "neutral",
+      })),
+    }
+  }
+
+  if (summary.categories && summary.categories.length > 0) {
+    return {
+      title: "Findings by category",
+      items: summary.categories.map((category) => ({
+        id: category.id,
+        title: category.label,
+        detail: category.detail || "Structured category summary",
+        valueLabel: formatCategoryValue(category.count),
+        tone: severityToneFromSummary(category.severity, category.count),
+      })),
+    }
+  }
+
+  const items: VerdictEvidencePanelItem[] = []
+  if (summary.rootCause) {
+    items.push({
+      id: "root-cause",
+      title: "Root cause",
+      detail: summary.rootCause,
+      valueLabel: null,
+      tone: diagnosticToneToVerdictTone(summary.tone) || "neutral",
+    })
+  }
+  if (summary.recommendedNextAction) {
+    items.push({
+      id: "next-action",
+      title: "Next action",
+      detail: summary.recommendedNextAction,
+      valueLabel: null,
+      tone: diagnosticToneToVerdictTone(summary.tone) || "neutral",
+    })
+  }
+  if (summary.summary) {
+    items.push({
+      id: "summary",
+      title: "Summary",
+      detail: summary.summary,
+      valueLabel: null,
+      tone: diagnosticToneToVerdictTone(summary.tone) || "neutral",
+    })
+  }
+
+  return {
+    title: items.length > 0 ? "Diagnostic summary" : null,
+    items,
+  }
 }
 
 function firstLine(value: string | null | undefined) {
@@ -197,8 +307,13 @@ export function deriveVerdictData({
   const resultMetrics = resultState?.metrics
   const resultWarnings = resultState?.warnings || []
   const metadata = resultState?.output?.metadata
+  const diagnosticSummary = metadata?.diagnostic_summary || null
   const terminalVariant: VerdictTerminalVariant = reviewingRunHistory
-    ? "saved"
+    ? selectedReviewRun?.status === "failed" || selectedReviewRun?.status === "interrupted"
+      ? "failed"
+      : selectedReviewRun?.status === "cancelled"
+        ? "cancelled"
+        : "saved"
     : runStatus === "error" || runOutcome === "failed" || runOutcome === "interrupted"
       ? "failed"
       : runOutcome === "cancelled"
@@ -213,8 +328,15 @@ export function deriveVerdictData({
         ? executionLoopSummary.score
         : null
   const failedCriteriaCount = executionLoopSummary?.failedCriteriaCount || 0
-  const warningCount = resultWarnings.length + failedCriteriaCount
-  const criticalCount = terminalVariant === "failed"
+  const structuredSeverityCounts = diagnosticSummary?.severityCounts
+  const structuredWarningCount = (structuredSeverityCounts?.high || 0)
+    + (structuredSeverityCounts?.medium || 0)
+    + (structuredSeverityCounts?.low || 0)
+    + (structuredSeverityCounts?.info || 0)
+  const warningCount = Math.max(resultWarnings.length + failedCriteriaCount, structuredWarningCount)
+  const criticalCount = typeof structuredSeverityCounts?.critical === "number"
+    ? structuredSeverityCounts.critical
+    : terminalVariant === "failed"
     ? Math.max(failedNodeErrors.length, failedStageCount > 0 ? 1 : 0)
     : 0
   const structuredCriteria = executionLoopSummary?.criteriaBreakdown
@@ -228,6 +350,7 @@ export function deriveVerdictData({
   const hasDiagnosticStructure = terminalVariant === "failed"
     || structuredCriteria.length > 0
     || Boolean(fixInstructions)
+    || hasDiagnosticSummaryContent(diagnosticSummary)
 
   const durationLabel = reviewingRunHistory && selectedReviewRun
     ? formatRunDuration(selectedReviewRun)
@@ -241,7 +364,8 @@ export function deriveVerdictData({
       : null
 
   const headline = terminalVariant === "failed"
-    ? normalizeHeadline(metadata?.reason)
+    ? normalizeHeadline(diagnosticSummary?.headline)
+      || normalizeHeadline(metadata?.reason)
       || firstLine(latestEval?.reason)
       || firstLine(failedNodeErrors[0]?.[1]?.error)
       || `${selectedStagePresentation?.title || "Run"} failed before it could finish.`
@@ -249,18 +373,23 @@ export function deriveVerdictData({
       ? selectedStageIndex && workflowStepCount > 0
         ? `Run cancelled at step ${selectedStageIndex}/${workflowStepCount}.`
         : "The flow stopped before it finished."
-      : buildCompletedHeadline({
-        resultState,
-        latestEval,
-        selectedResultPresentation,
-        reviewingRunHistory,
-        selectedReviewRun,
-        isDisplayedResultEmpty,
-      })
+      : normalizeHeadline(diagnosticSummary?.headline)
+        || buildCompletedHeadline({
+          resultState,
+          latestEval,
+          selectedResultPresentation,
+          reviewingRunHistory,
+          selectedReviewRun,
+          isDisplayedResultEmpty,
+        })
 
   const evidenceItems = hasDiagnosticStructure
     ? [
         formatScore(scoreValue),
+        formatSeverityCount("critical", structuredSeverityCounts?.critical),
+        formatSeverityCount("high", structuredSeverityCounts?.high),
+        formatSeverityCount("medium", structuredSeverityCounts?.medium),
+        formatSeverityCount("low", structuredSeverityCounts?.low),
         structuredCriteria.length > 0
           ? `${structuredCriteria.length} check${structuredCriteria.length === 1 ? "" : "s"}`
           : criticalCount > 0
@@ -288,8 +417,8 @@ export function deriveVerdictData({
           : null,
       ].filter((value): value is string => Boolean(value)).slice(0, 5)
 
-  const evidencePanelItems = executionLoopSummary?.criteriaBreakdown?.map((criterion) => {
-    const scoreLabel = `${criterion.score}/10`
+  const loopEvidencePanelItems = executionLoopSummary?.criteriaBreakdown?.map((criterion) => {
+    const valueLabel = `${criterion.score}/10`
     const detail = executionLoopSummary.threshold
       ? `threshold ${executionLoopSummary.threshold}/10`
       : "structured check"
@@ -300,11 +429,16 @@ export function deriveVerdictData({
       : "neutral"
     return {
       id: criterion.id,
-      scoreLabel,
+      title: criterion.id,
+      valueLabel,
       detail,
       tone,
     }
   }) || []
+  const diagnosticEvidencePanel = buildDiagnosticEvidencePanel(diagnosticSummary)
+  const evidencePanelItems = loopEvidencePanelItems.length > 0
+    ? loopEvidencePanelItems
+    : diagnosticEvidencePanel.items
 
   const preservedText = terminalVariant === "failed"
     ? completedStageCount > 0
@@ -320,11 +454,12 @@ export function deriveVerdictData({
         : "The run stopped before any step finished."
       : null
 
-  const tone: VerdictTone = terminalVariant === "failed" || criticalCount > 0
+  const tone: VerdictTone = diagnosticToneToVerdictTone(diagnosticSummary?.tone)
+    || (terminalVariant === "failed" || criticalCount > 0
     ? "danger"
     : warningCount > 0 || executionLoopSummary?.outcome === "human decision" || executionLoopSummary?.outcome === "retry cap reached"
       ? "warning"
-      : "neutral"
+      : "neutral")
   const variant: VerdictVariant = hasDiagnosticStructure
     ? "diagnostic"
     : !isDisplayedResultEmpty && !hasPrimaryContinuation && (terminalVariant === "saved" || terminalVariant === "completed")
@@ -355,7 +490,11 @@ export function deriveVerdictData({
     headline,
     provenanceLabel,
     evidenceItems,
-    evidencePanelTitle: evidencePanelItems.length > 0 ? executionLoopSummary?.loopLabel || "Checks" : null,
+    evidencePanelTitle: evidencePanelItems.length > 0
+      ? (loopEvidencePanelItems.length > 0
+          ? executionLoopSummary?.loopLabel || "Checks"
+          : diagnosticEvidencePanel.title)
+      : null,
     evidencePanelItems,
     followUpLabel,
     preservedText,

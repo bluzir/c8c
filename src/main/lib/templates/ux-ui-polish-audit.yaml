@@ -108,6 +108,8 @@ nodes:
 
         Deduplicate overlaps, keep file references when available, and make the final report directly actionable for a
         product/design/engineering team.
+        Prefix the markdown with YAML frontmatter under diagnostic_summary containing: headline, tone
+        (danger|warning|neutral), severity_counts, and 2-4 top_findings with id, label, detail, and severity.
   - id: evaluator-1
     type: evaluator
     position:
