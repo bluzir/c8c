@@ -172,8 +172,14 @@ Sidebar rows should stay compact: project headers around 26px minimum height, th
 
 ### Custom utility classes (in globals.css)
 
-- `.surface-panel`, `.surface-elevated`, `.surface-soft`, `.surface-inset-card`, `.surface-depth-header`, `.surface-depth-footer` — layered surface styles
+- `.surface-panel`, `.surface-elevated`, `.surface-figure`, `.surface-soft`, `.surface-inset-card`, `.surface-depth-header`, `.surface-depth-footer` — layered surface styles
+- `.surface-figure` — **Level 3 figure surface** with overlay elevation + radius; use for the ONE primary object per state
 - `.surface-info-soft`, `.surface-success-soft`, `.surface-danger-soft`, `.surface-warning-soft` — soft severity surfaces
+- `.ui-context-strip`, `.ui-slab`, `.ui-inset-well`, `.ui-selected-row-tint`, `.ui-section-divider` — connective tissue (Level 0-2 grouping without cards)
+- `.ui-empty-state-box` — standardized dashed-border empty state container (replaces ad-hoc `rounded-lg border-dashed bg-surface-2/30` patterns)
+- `.ui-evidence-strip`, `.ui-evidence-item` — compact fact display for verdict cards
+- `.ui-skeleton` — loading placeholder with pulse animation
+- `.ui-item-selected` — interactive selection state for selectable items
 - `.section-kicker`, `.ui-title-text`, `.ui-body-text`, `.ui-meta-text`, `.ui-meta-label`, `.ui-body-text-medium` — content typography
 - `.ui-motion-fast`, `.ui-motion-standard` — transition duration shortcuts
 - `.ui-transition-colors`, `.ui-transition-surface`, `.ui-transition-opacity`, `.ui-transition-width` — transition property helpers
@@ -186,6 +192,11 @@ Sidebar rows should stay compact: project headers around 26px minimum height, th
 - `.ui-elevation-base`, `.ui-elevation-inset`, `.ui-surface-lift`, `.ui-fade-slide-in`, `.ui-fade-slide-in-trailing` — elevation + motion composition
 - `.ui-progress-track`, `.ui-progress-bar`, `.sidebar-progress-track`, `.sidebar-progress-bar` — progress primitives
 - `.ui-collapsible`, `.ui-collapsible-inner` — collapsible content helpers
+
+### Severity helpers (src/renderer/lib/surface-tokens.ts)
+
+- `toneToSurface(tone)` — maps `"success"|"warning"|"danger"|"info"|"neutral"` to the corresponding `surface-*-soft` class
+- `toneToBadge(tone)` — maps tone to the corresponding `ui-status-badge-*` class
 
 Additional approved Tailwind typography tokens: `text-label-xs`, `text-title-sm`, `text-title-md`, `text-title-lg`.
 

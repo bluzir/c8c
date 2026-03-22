@@ -1,6 +1,7 @@
 # Repo Guardrails
 
 ## No Heuristics — Agent-Only Decisions
+
 - **All non-trivial decisions must be made by LLM agents, not by regex/keyword heuristics.**
 - This applies to: routing (which template to pick), intent classification, disambiguation, and any decision that interprets user natural language.
 - The only programmatic (non-agent) logic allowed is reading **structural facts** about the project (empty vs has code, has git history, project kind). These facts are passed as context to the agent — they do not map directly to decisions.
@@ -8,6 +9,7 @@
 - When agent confidence is low, surface a clarification fork to the user — do not fall back to a heuristic guess.
 
 ## Visual Hierarchy — Ship-Blocker Rules
+
 - **One Figure Per State**: only the primary object gets border+bg+elevation. Everything else is flat.
 - **≤5 visible actions per state**: excess → overflow. One primary CTA. No dual Run buttons.
 - **Show only what matters now**: no empty tabs, no disabled-but-visible controls, no premature chrome.
@@ -20,6 +22,7 @@
 - Full spec: `docs/DESIGN-PHILOSOPHY.md` §8.
 
 ## UI Surfaces
+
 - Do not add or reintroduce the app-shell flow/status rail for now.
 - No horizontal quick-switch rail on any page until there is an explicit IA pass and approval for it.
 - Keep flow switching on existing surfaces like the sidebar, command palette, and keyboard shortcuts.

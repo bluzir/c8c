@@ -21,38 +21,38 @@ This document defines the renderer design system at four levels:
 Precedence is explicit:
 
 1. **Surface-specific product specs** own per-state figure selection and routing decisions
-2. **`docs/DESIGN-PHILOSOPHY.md`** owns hard hierarchy laws and ship-blocker review rules
+2. **`docs/conventions/DESIGN-PHILOSOPHY.md`** owns hard hierarchy laws and ship-blocker review rules
 3. **`DESIGN_SYSTEM.md`** operationalizes those laws into tokens, primitives, and reusable implementation patterns
 4. Local component conventions may specialize, but must not violate the three sources above
 
 This file does not override surface ownership contracts from specs such as:
 
-- `docs/superpowers/specs/2026-03-21-workflow-page-hierarchy-redesign.md`
-- `docs/superpowers/specs/2026-03-21-main-and-templates-hierarchy-redesign.md`
-- `docs/superpowers/specs/2026-03-21-onboarding-and-sidebar-hierarchy-redesign.md`
+- `docs/specs/active/2026-03-21-workflow-page-hierarchy-redesign.md`
+- `docs/specs/implemented/2026-03-21-main-and-templates-hierarchy-redesign.md`
+- `docs/specs/implemented/2026-03-21-onboarding-and-sidebar-hierarchy-redesign.md`
 
 ## Hard Hierarchy Rules
 
 These rules are mandatory whenever you build or modify renderer UI.
 
-| Rule | Required implementation |
-|------|--------------------------|
-| **One Figure Per State** | Only one object may receive Level 3 treatment (`border + background + elevation`) for a given state. Everything else stays Level 0-2. |
-| **<=5 Visible Actions** | Count buttons, tabs, links, chips, selectors, toggles, and inline CTAs. If there are more than 5 visible actions, move excess into overflow or disclosure. |
-| **Show Only What Matters Now** | Future-state UI, empty tabs, empty sections, and disabled-but-primary-looking controls do not render. |
-| **One Status Signal Per Fact** | Progress, blocked state, dirty state, and current-step ownership appear in exactly one place. |
-| **No Cards Inside Cards** | A Level 3 figure may contain flat content, separators, and tints, but not nested bordered/elevated sub-cards. |
+| Rule                           | Required implementation                                                                                                                                    |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One Figure Per State**       | Only one object may receive Level 3 treatment (`border + background + elevation`) for a given state. Everything else stays Level 0-2.                      |
+| **<=5 Visible Actions**        | Count buttons, tabs, links, chips, selectors, toggles, and inline CTAs. If there are more than 5 visible actions, move excess into overflow or disclosure. |
+| **Show Only What Matters Now** | Future-state UI, empty tabs, empty sections, and disabled-but-primary-looking controls do not render.                                                      |
+| **One Status Signal Per Fact** | Progress, blocked state, dirty state, and current-step ownership appear in exactly one place.                                                              |
+| **No Cards Inside Cards**      | A Level 3 figure may contain flat content, separators, and tints, but not nested bordered/elevated sub-cards.                                              |
 
 Review thresholds:
 
-| Metric | Target | Shippable (follow-up) | Ship-blocker |
-|--------|--------|------------------------|--------------|
-| Level 3 figures per state | 1 | 2 | >2 |
-| Bordered containers per state | <=3 | 4-5 | >5 |
-| Visible clickable elements per state | <=5 | 6-8 | >8 |
-| Duplicate status signals | 0 | 0 | >0 |
-| Nested cards | 0 | 0 | >0 |
-| Rendered-but-empty sections | 0 | 0 | >0 |
+| Metric                               | Target | Shippable (follow-up) | Ship-blocker |
+| ------------------------------------ | ------ | --------------------- | ------------ |
+| Level 3 figures per state            | 1      | 2                     | >2           |
+| Bordered containers per state        | <=3    | 4-5                   | >5           |
+| Visible clickable elements per state | <=5    | 6-8                   | >8           |
+| Duplicate status signals             | 0      | 0                     | >0           |
+| Nested cards                         | 0      | 0                     | >0           |
+| Rendered-but-empty sections          | 0      | 0                     | >0           |
 
 ## State-Conditional Rendering
 
@@ -75,12 +75,12 @@ Common consequences:
 
 Use one of these archetypes per active surface instead of mixing them:
 
-| Archetype | Figure | Typical use |
-|-----------|--------|-------------|
-| `decision` | Verdict / decision card | approvals, failures, ready-to-continue states |
-| `document` | Artifact or report body | saved reports, completed audits, briefs, specs |
-| `activity` | Streaming feed / step stream | running and paused execution |
-| `log` | Log viewer / inspector | trace/debug views |
+| Archetype  | Figure                       | Typical use                                    |
+| ---------- | ---------------------------- | ---------------------------------------------- |
+| `decision` | Verdict / decision card      | approvals, failures, ready-to-continue states  |
+| `document` | Artifact or report body      | saved reports, completed audits, briefs, specs |
+| `activity` | Streaming feed / step stream | running and paused execution                   |
+| `log`      | Log viewer / inspector       | trace/debug views                              |
 
 Implementation rules:
 
@@ -93,25 +93,32 @@ Implementation rules:
 
 The figure per state uses `surface-elevated` (Level 3), NOT `surface-panel` (Level 2). `surface-elevated` has stronger elevation (`--elevation-overlay`) that visually separates it from all `surface-panel` containers. Without this distinction, the figure looks identical to surrounding panels.
 
-| Surface class | Level | Use |
-|--------------|-------|-----|
-| `surface-panel` | Level 2 | Supporting containers: settings panels, editor cards, form sections |
-| `surface-elevated` | Level 3 | **The figure only:** verdict card, prompt composer shell, active approval card, detail panel when selected |
+| Surface class      | Level   | Use                                                                                                                                             |
+| ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surface-panel`    | Level 2 | Supporting containers: settings panels, editor cards, form sections                                                                             |
+| `surface-elevated` | Level 3 | Dialogs, popovers, and overlay-context surfaces                                                                                                 |
+| `surface-figure`   | Level 3 | **The figure only:** verdict card, active approval card, detail panel when selected. Includes `border-radius: radius-container` for convenience |
 
-Currently `surface-elevated` is used only in `dialog.tsx`. It must be applied to figure components per state. This is the implementation gap that makes "One Figure Per State" invisible in the shipped UI.
+Use `surface-figure` on the ONE primary object per state. It combines `surface-1 bg + border + radius-container + elevation-overlay` into one utility, making figure ownership explicit in the markup.
 
 ### Verdict tone via severity surfaces
 
 Verdict/check/loop components must use outcome-toned surfaces, not neutral `bg-surface-2`:
 
-| Outcome | Surface class |
-|---------|--------------|
-| Passed / success | `surface-success-soft` |
+| Outcome            | Surface class          |
+| ------------------ | ---------------------- |
+| Passed / success   | `surface-success-soft` |
 | Warning / returned | `surface-warning-soft` |
-| Failed / danger | `surface-danger-soft` |
-| Info / neutral | `surface-info-soft` |
+| Failed / danger    | `surface-danger-soft`  |
+| Info / neutral     | `surface-info-soft`    |
 
-These classes exist in `globals.css` but are currently unused on verdict components (`ExecutionCheckRecord`, `ExecutionLoopCard` both use neutral `bg-surface-2/55`). Fix: derive surface class from `record.status` or `summary.outcome`.
+Use the `toneToSurface()` helper from `src/renderer/lib/surface-tokens.ts` to derive the correct class:
+
+```ts
+import { toneToSurface } from "@/lib/surface-tokens"
+// toneToSurface("success") → "surface-success-soft"
+// toneToSurface("neutral") → "ui-inset-well"
+```
 
 ## Color Palette
 
@@ -119,37 +126,37 @@ All colors are HSL via CSS custom properties. Light and dark mode defined in glo
 
 ### Semantic colors
 
-| Token | Usage |
-|-------|-------|
-| `background` / `foreground` | Page base |
-| `card` / `card-foreground` | Card surfaces |
-| `popover` / `popover-foreground` | Floating overlays |
-| `primary` / `primary-foreground` | Primary actions (buttons, rings) |
-| `secondary` / `secondary-foreground` | Secondary fills |
-| `muted` / `muted-foreground` | Subdued backgrounds, helper text |
-| `accent` / `accent-foreground` | Hover highlights |
-| `destructive` / `destructive-foreground` | Danger actions |
+| Token                                    | Usage                            |
+| ---------------------------------------- | -------------------------------- |
+| `background` / `foreground`              | Page base                        |
+| `card` / `card-foreground`               | Card surfaces                    |
+| `popover` / `popover-foreground`         | Floating overlays                |
+| `primary` / `primary-foreground`         | Primary actions (buttons, rings) |
+| `secondary` / `secondary-foreground`     | Secondary fills                  |
+| `muted` / `muted-foreground`             | Subdued backgrounds, helper text |
+| `accent` / `accent-foreground`           | Hover highlights                 |
+| `destructive` / `destructive-foreground` | Danger actions                   |
 
 ### Surface tokens
 
 These tokens describe fill colors only. They do **not** grant permission to create additional card-weight containers.
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `surface-1` | white | 10% | Cards, panels, dialogs |
-| `surface-2` | 96% | 12% | Recessed areas, hover fills |
-| `surface-3` | 92% | 15% | Deep insets, active states |
+| Token       | Light | Dark | Usage                       |
+| ----------- | ----- | ---- | --------------------------- |
+| `surface-1` | white | 10%  | Cards, panels, dialogs      |
+| `surface-2` | 96%   | 12%  | Recessed areas, hover fills |
+| `surface-3` | 92%   | 15%  | Deep insets, active states  |
 
 ### Surface emphasis ladder
 
 Use the lightest level that communicates the role:
 
-| Level | Treatment | Typical implementation |
-|-------|-----------|------------------------|
-| **0 - Ground** | No border, no background, no shadow | plain page content, helper copy, input areas, metadata, lists |
-| **1 - Separator** | Hairline border only | `border-hairline`, row dividers, section breaks |
-| **2 - Tint** | Background emphasis only, no elevation | `bg-surface-2/40`, selected rows, active pills, current-step highlight |
-| **3 - Figure** | Border + background + elevation | `surface-panel`, `surface-elevated`, one dominant shell for the active state |
+| Level             | Treatment                              | Typical implementation                                                       |
+| ----------------- | -------------------------------------- | ---------------------------------------------------------------------------- |
+| **0 - Ground**    | No border, no background, no shadow    | plain page content, helper copy, input areas, metadata, lists                |
+| **1 - Separator** | Hairline border only                   | `border-hairline`, row dividers, section breaks                              |
+| **2 - Tint**      | Background emphasis only, no elevation | `bg-surface-2/40`, selected rows, active pills, current-step highlight       |
+| **3 - Figure**    | Border + background + elevation        | `surface-panel`, `surface-elevated`, one dominant shell for the active state |
 
 Rules:
 
@@ -158,28 +165,54 @@ Rules:
 - A Level 3 figure may contain Level 0-2 internals only.
 - When in doubt, flatten first and escalate only if the surface truly owns the state.
 
+### Grouping Without New Figures
+
+Flattening nested cards does not mean flattening relationships.
+If a screen becomes hard to scan after card removal, repair it with Level 0-2 connective tissue before adding another figure.
+
+| Pattern               | CSS class               | Level | What it does                                                          | Typical use                                                           |
+| --------------------- | ----------------------- | ----- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **Context strip**     | `.ui-context-strip`     | 0-1   | Binds local identity, status, and scope above the owner surface       | result scope, selected step context, section identity                 |
+| **Slab / lane**       | `.ui-slab`              | 1-2   | Groups sibling rows into one readable region without card weight      | Lab track lanes, provider groups, inbox buckets                       |
+| **Inset well**        | `.ui-inset-well`        | 2     | Creates a local focal point inside the owner surface or selected item | next action, API key override, current branch summary, warning bridge |
+| **Selected row tint** | `.ui-selected-row-tint` | 2     | Marks the current item without promoting it to a second figure        | selected case, selected artifact, active provider row                 |
+| **Section divider**   | `.ui-section-divider`   | 1     | Standardized hairline between logical sections                        | settings sections, factory sections, approval sections                |
+
+Rules:
+
+- Use one of these patterns before introducing a second Level 3 shell.
+- Rounded corners alone do not create figure weight. The escalation happens only when border + background + elevation combine into a competing object.
+- A slab, lane, or inset well may make relationships legible, but it must still read as belonging to the owner surface.
+
+Examples:
+
+- **Run summary:** one owner surface inside the output shell, then hairline-separated summary rows and one status-toned inset well for the current issue or next action.
+- **Settings:** one provider-status figure, flat provider rows below it, and one inset well for the `CODEX_API_KEY` override instead of a new card.
+- **Lab:** one owner surface per populated state (`selected case detail`, `next actions`, or the empty-state launch surface). Overview rails, lanes, and selected-row tint keep the page connected without turning every row into a card.
+
 ### Sidebar
 
-| Token | Usage |
-|-------|-------|
-| `sidebar` (bg) | Sidebar background |
+| Token            | Usage                    |
+| ---------------- | ------------------------ |
+| `sidebar` (bg)   | Sidebar background       |
 | `sidebar-active` | Selected item background |
-| `sidebar-hover` | Hovered item background |
+| `sidebar-hover`  | Hovered item background  |
 
 ### Sidebar List Primitives
 
 For thread/workflow lists in sidebar, use these utility classes from `globals.css`:
 
-| Class | Usage |
-|-------|-------|
-| `.sidebar-list-group` | Wrapper for one project/thread group block |
-| `.sidebar-project-row` | Project/folder header row |
-| `.sidebar-thread-row` | Thread/workflow list row |
-| `.sidebar-thread-row--active` | Selected row state |
-| `.sidebar-progress-track` | Thin progress track under active row |
-| `.sidebar-progress-bar` | Progress fill inside track |
+| Class                         | Usage                                      |
+| ----------------------------- | ------------------------------------------ |
+| `.sidebar-list-group`         | Wrapper for one project/thread group block |
+| `.sidebar-project-row`        | Project/folder header row                  |
+| `.sidebar-thread-row`         | Thread/workflow list row                   |
+| `.sidebar-thread-row--active` | Selected row state                         |
+| `.sidebar-progress-track`     | Thin progress track under active row       |
+| `.sidebar-progress-bar`       | Progress fill inside track                 |
 
 Rules:
+
 - Keep list layout flat and lightweight; avoid heavy card borders around each row.
 - Prefer one active highlight (`sidebar-active`) and subtle hover (`sidebar-hover`).
 - Show progress bars only for actionable states (for example running/in-progress), not for every idle row.
@@ -189,44 +222,44 @@ Rules:
 
 ### Borders
 
-| Token | Usage |
-|-------|-------|
-| `border` | Standard border |
-| `hairline` | Subtle dividers, shadow outlines |
-| `input` | Input field borders |
-| `input-background` | Input field fill |
+| Token              | Usage                            |
+| ------------------ | -------------------------------- |
+| `border`           | Standard border                  |
+| `hairline`         | Subtle dividers, shadow outlines |
+| `input`            | Input field borders              |
+| `input-background` | Input field fill                 |
 
 ### Status
 
-| Token | Usage |
-|-------|-------|
+| Token            | Usage                   |
+| ---------------- | ----------------------- |
 | `status-success` | Green — completed, pass |
-| `status-warning` | Amber — caution |
-| `status-danger` | Red — failed, error |
-| `status-info` | Blue — running, info |
+| `status-warning` | Amber — caution         |
+| `status-danger`  | Red — failed, error     |
+| `status-info`    | Blue — running, info    |
 
 ## Typography
 
 ### Tailwind font-size tokens
 
-| Class | Size | Line-height | Weight | Usage |
-|-------|------|-------------|--------|-------|
-| `text-title-lg` | 1.75rem (28px) | 2.125rem | 600 | Page titles |
-| `text-title-md` | 1.125rem (18px) | 1.5rem | 600 | Section headings, dialog titles |
-| `text-title-sm` | 1rem (16px) | 1.375rem | 600 | Sub-section headings |
-| `text-body-md` | 0.875rem (14px) | 1.25rem | — | Default body text |
-| `text-body-sm` | 0.8125rem (13px) | 1.125rem | — | Compact body text, main content areas |
-| `text-label-xs` | 0.75rem (12px) | 1rem | 600 | Labels, badges |
+| Class           | Size             | Line-height | Weight | Usage                                 |
+| --------------- | ---------------- | ----------- | ------ | ------------------------------------- |
+| `text-title-lg` | 1.75rem (28px)   | 2.125rem    | 600    | Page titles                           |
+| `text-title-md` | 1.125rem (18px)  | 1.5rem      | 600    | Section headings, dialog titles       |
+| `text-title-sm` | 1rem (16px)      | 1.375rem    | 600    | Sub-section headings                  |
+| `text-body-md`  | 0.875rem (14px)  | 1.25rem     | —      | Default body text                     |
+| `text-body-sm`  | 0.8125rem (13px) | 1.125rem    | —      | Compact body text, main content areas |
+| `text-label-xs` | 0.75rem (12px)   | 1rem        | 600    | Labels, badges                        |
 
 ### Sidebar-specific tokens
 
 Use these **exclusively** in sidebar — not generic `text-body-*` or `ui-meta-text`:
 
-| Class | Size | Line-height | Weight | Usage |
-|-------|------|-------------|--------|-------|
-| `text-sidebar-item` | 0.8125rem (13px) | 1rem | — | Nav items, workflow names, interactive rows |
-| `text-sidebar-label` | 0.6875rem (11px) | 1rem | 500 | Project folder group headers |
-| `text-sidebar-meta` | 0.625rem (10px) | 0.875rem | — | Timestamps, helper text |
+| Class                | Size             | Line-height | Weight | Usage                                       |
+| -------------------- | ---------------- | ----------- | ------ | ------------------------------------------- |
+| `text-sidebar-item`  | 0.8125rem (13px) | 1rem        | —      | Nav items, workflow names, interactive rows |
+| `text-sidebar-label` | 0.6875rem (11px) | 1rem        | 500    | Project folder group headers                |
+| `text-sidebar-meta`  | 0.625rem (10px)  | 0.875rem    | —      | Timestamps, helper text                     |
 
 ### Sidebar layout
 
@@ -236,20 +269,31 @@ Use these **exclusively** in sidebar — not generic `text-body-*` or `ui-meta-t
 
 ### CSS utility classes (globals.css)
 
-| Class | Effect |
-|-------|--------|
-| `.section-kicker` | 11px, fw 600, uppercase, 0.11em tracking — structural section dividers |
-| `.ui-title-text` | 28px, fw 600, -0.015em tracking — page titles |
-| `.ui-body-text` | 14px, lh 1.25rem — body text |
-| `.ui-meta-text` | 12px, lh 1rem, muted-foreground — metadata in main content |
-| `.control-cluster-compact` | Reduced-padding variant for dense picker/toolbelt rows under composers and inline cards |
-| `.control-badge` | Compact control-height badge chrome for counters, inline meta chips, and small status quantities |
-| `.control-badge-compact` | Reduced-padding variant of `control-badge` for tight sidebar/meta usage |
-| `.control-pill-compact` | 20px compact pill chrome for embedded provider/model pickers and icon triggers |
-| `.ui-empty-state` | Layout-only empty-state helper for centered copy/action stacks; Level 0 by default and does not imply card weight |
-| `.ui-interactive-card-subtle` | Quiet interactive card treatment for dense rails/lists; avoids lifted hover shadows that clip in scroll containers |
-| `.ui-scrollbar-hidden` | Hides native scrollbar while preserving scroll interaction; use for horizontal rails only when there is another visible affordance such as arrow controls |
-| `.ui-scrollbar-transient` | Hides scrollbar by default and shows it only while actively scrolling; use for dense navigation regions like the sidebar |
+| Class                         | Effect                                                                                                                                                                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.section-kicker`             | 11px, fw 600, uppercase, 0.11em tracking — structural section dividers                                                                                                                                                                 |
+| `.ui-title-text`              | 28px, fw 600, -0.015em tracking — page titles                                                                                                                                                                                          |
+| `.ui-body-text`               | 14px, lh 1.25rem — body text                                                                                                                                                                                                           |
+| `.ui-meta-text`               | 12px, lh 1rem, muted-foreground — metadata in main content                                                                                                                                                                             |
+| `.control-cluster-compact`    | Reduced-padding variant for dense picker/toolbelt rows under composers and inline cards                                                                                                                                                |
+| `.control-badge`              | Compact control-height badge chrome for counters, inline meta chips, and small status quantities                                                                                                                                       |
+| `.control-badge-compact`      | Reduced-padding variant of `control-badge` for tight sidebar/meta usage                                                                                                                                                                |
+| `.control-pill-compact`       | 20px compact pill chrome for embedded provider/model pickers and icon triggers                                                                                                                                                         |
+| `.ui-empty-state`             | Layout-only empty-state helper for centered copy/action stacks; Level 0 by default and does not imply card weight                                                                                                                      |
+| `.ui-empty-state-box`         | Standardized dashed-border empty-state container: `radius-container + dashed hairline border + surface-2/25 bg + 1rem padding + body-sm type + muted color`. Use instead of ad-hoc `rounded-lg border-dashed bg-surface-2/30` patterns |
+| `.ui-context-strip`           | Level 0-1 flat strip binding identity/status/scope above a figure or section: `hairline-bottom border + 0.375rem padding + body-sm type`                                                                                               |
+| `.ui-slab`                    | Level 2 tinted region grouping sibling rows: `radius-container + surface-2/25 bg + space-4 padding`. No border, no elevation                                                                                                           |
+| `.ui-inset-well`              | Level 2 focal area inside an owner surface: `radius-control + surface-2/38 bg + compact padding`. For next-action, status, or warning blocks                                                                                           |
+| `.ui-selected-row-tint`       | Level 2 background tint marking the current item in a flat list: `surface-2/38 bg`                                                                                                                                                     |
+| `.ui-section-divider`         | Level 1 section break: `hairline/70 top border + space-3 top padding`. Replaces ad-hoc `border-t border-hairline/70 pt-3` and `border-t border-hairline/80 pt-3` patterns                                                              |
+| `.ui-evidence-strip`          | Flex wrapper for compact fact display in verdict cards: `flex-wrap + 0.375rem gap`                                                                                                                                                     |
+| `.ui-evidence-item`           | Individual evidence fact: `radius-control + surface-2/38 bg + compact padding + body-sm type`                                                                                                                                          |
+| `.ui-skeleton`                | Loading placeholder: `pulse animation + radius-control + surface-2/55 bg`. Replaces ad-hoc `animate-pulse bg-surface-2/80` patterns                                                                                                    |
+| `.ui-item-selected`           | Interactive selection state for selectable items: `primary/8 bg + inset highlight + ring outline`. Replaces ad-hoc `shadow-[inset_0_1px_0_...]` patterns                                                                               |
+| `.surface-figure`             | Level 3 figure surface with overlay elevation: `surface-1 bg + border + radius-container + elevation-overlay`. The primary owner object per state                                                                                      |
+| `.ui-interactive-card-subtle` | Quiet interactive card treatment for dense rails/lists; avoids lifted hover shadows that clip in scroll containers                                                                                                                     |
+| `.ui-scrollbar-hidden`        | Hides native scrollbar while preserving scroll interaction; use for horizontal rails only when there is another visible affordance such as arrow controls                                                                              |
+| `.ui-scrollbar-transient`     | Hides scrollbar by default and shows it only while actively scrolling; use for dense navigation regions like the sidebar                                                                                                               |
 
 ### Font stack
 
@@ -263,18 +307,19 @@ OpenType features enabled: `rlig`, `calt`.
 
 8-step scale via CSS variables, available as Tailwind `p-space-*` / `m-space-*` / `gap-space-*`:
 
-| Token | Value |
-|-------|-------|
-| `space-1` | 0.25rem (4px) |
-| `space-2` | 0.5rem (8px) |
+| Token     | Value          |
+| --------- | -------------- |
+| `space-1` | 0.25rem (4px)  |
+| `space-2` | 0.5rem (8px)   |
 | `space-3` | 0.75rem (12px) |
-| `space-4` | 1rem (16px) |
+| `space-4` | 1rem (16px)    |
 | `space-5` | 1.25rem (20px) |
-| `space-6` | 1.5rem (24px) |
-| `space-7` | 2rem (32px) |
-| `space-8` | 2.5rem (40px) |
+| `space-6` | 1.5rem (24px)  |
+| `space-7` | 2rem (32px)    |
+| `space-8` | 2.5rem (40px)  |
 
 Additional rhythm variables (CSS-only, not in Tailwind):
+
 - `--rhythm-1`: 0.5rem — `--rhythm-2`: 0.8125rem — `--rhythm-3`: 1.3125rem — `--rhythm-4`: 2.125rem
 - `--content-gutter`: 1.5rem — `--dialog-gutter`: 1.5rem
 
@@ -296,66 +341,71 @@ Additional rhythm variables (CSS-only, not in Tailwind):
 
 Four sizes for buttons, inputs, and interactive elements:
 
-| Token | Value | Usage |
-|-------|-------|-------|
+| Token        | Value          | Usage                                                       |
+| ------------ | -------------- | ----------------------------------------------------------- |
 | `control-xs` | 1.25rem (20px) | Compact micro-controls (inline icon actions, tight toggles) |
-| `control-sm` | 1.75rem (28px) | Compact controls, icon buttons |
-| `control-md` | 2.25rem (36px) | Default buttons, inputs |
-| `control-lg` | 2.5rem (40px) | Large CTAs |
+| `control-sm` | 1.75rem (28px) | Compact controls, icon buttons                              |
+| `control-md` | 2.25rem (36px) | Default buttons, inputs                                     |
+| `control-lg` | 2.5rem (40px)  | Large CTAs                                                  |
 
 Available as `h-control-xs|sm|md|lg`, `w-control-xs|sm|md|lg`, `min-h-control-xs|sm|md|lg`.
 
 ## Border Radius
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `rounded-sm` | `calc(var(--radius-control) - 2px)` ≈ 6px | Small elements inside controls |
-| `rounded-md` | `var(--radius-control)` = 0.5rem (8px) | Buttons, inputs, interactive elements |
-| `rounded-lg` | `var(--radius-container)` = 0.75rem (12px) | Cards, panels, dialogs |
+| Token         | Value                                      | Usage                                       |
+| ------------- | ------------------------------------------ | ------------------------------------------- |
+| `rounded-sm`  | `calc(var(--radius-control) - 2px)` ≈ 6px  | Small elements inside controls              |
+| `rounded-md`  | `var(--radius-control)` = 0.5rem (8px)     | Buttons, inputs, interactive elements       |
+| `rounded-lg`  | `var(--radius-container)` = 0.75rem (12px) | Cards, panels, dialogs                      |
+| `rounded-xl`  | 1rem (16px)                                | Board lanes, stat cards, large empty states |
+| `rounded-2xl` | 1rem (16px)                                | Composer shells, pill-like input containers |
 
-**Rule**: use only `rounded-sm` / `rounded-md` / `rounded-lg` for standard UI. `rounded-full` only for true pills/avatars.
+**Rule**: use only `rounded-sm` through `rounded-2xl` for standard UI. `rounded-full` only for true pills/avatars. Never use arbitrary `rounded-[Xrem]` values.
 
 ## Elevation
 
 Two shadow levels combining inset highlight + hairline outline + drop shadow:
 
-| Token | Usage |
-|-------|-------|
-| `--elevation-base` | Cards, panels, surfaces |
-| `--elevation-overlay` | Dialogs, popovers, hover-lifted cards |
-| `--inset-highlight` | Button/control inset highlight (swaps for dark mode) |
-| `--inset-highlight-strong` | Stronger inset highlight for outline buttons |
+| Token                      | Usage                                                |
+| -------------------------- | ---------------------------------------------------- |
+| `--elevation-base`         | Cards, panels, surfaces                              |
+| `--elevation-overlay`      | Dialogs, popovers, hover-lifted cards                |
+| `--inset-highlight`        | Button/control inset highlight (swaps for dark mode) |
+| `--inset-highlight-strong` | Stronger inset highlight for outline buttons         |
 
 Applied via:
-- `.surface-panel` — default Level 3 shell for the current figure
-- `.surface-elevated` — overlay Level 3 shell for dialogs, popovers, and dominant composers
+
+- `.surface-figure` — **preferred** Level 3 shell for the state's primary object (includes radius)
+- `.surface-panel` — Level 2 supporting container (settings panels, editor cards)
+- `.surface-elevated` — Level 3 shell for dialogs, popovers, and overlay contexts
 - `.surface-soft` — transitional Level 3 shell; do not use for secondary info, helper panels, or empty states
-- `.surface-info-soft` — status-owned Level 3 shell for running/info figures only
-- `.surface-warning-soft` / `.surface-danger-soft` — status-owned Level 3 shell for warning/error figures only
+- `.surface-info-soft` — status-toned Level 2-3 shell for running/info figures only
+- `.surface-warning-soft` / `.surface-danger-soft` — status-toned Level 2-3 shell for warning/error figures only
 - `.surface-depth-header` — decorative header treatment inside an already-owned surface, not a separate figure
 
 ## Motion
 
-| Token | Duration | Usage |
-|-------|----------|-------|
-| `--motion-fast` | 140ms | Hovers, toggles, micro-interactions |
-| `--motion-base` | 170ms | Standard transitions |
-| `--motion-slow` | 220ms | Emphasis animations |
+| Token           | Duration | Usage                               |
+| --------------- | -------- | ----------------------------------- |
+| `--motion-fast` | 140ms    | Hovers, toggles, micro-interactions |
+| `--motion-base` | 170ms    | Standard transitions                |
+| `--motion-slow` | 220ms    | Emphasis animations                 |
 
 Easing curves:
+
 - `--ease-standard`: `cubic-bezier(0.2, 0, 0, 1)` — general purpose
 - `--ease-emphasis`: `cubic-bezier(0.16, 1, 0.3, 1)` — entrance animations, emphasis
 
 ### Utility classes
 
-| Class | Effect |
-|-------|--------|
-| `.ui-motion-fast` | `transition-duration: var(--motion-fast)` + standard easing |
-| `.ui-motion-standard` | `transition-duration: var(--motion-base)` + standard easing |
-| `.ui-pressable` | Full transition set + `scale(0.995)` on `:active` |
-| `.ui-interactive-card` | `translateY(-1px)` + elevation-overlay on hover |
-| `.ui-fade-slide-in` | Entrance: fade + 4px slide-up over `--motion-base` |
-| `.lux-hover` | Slow emphasis transitions for premium hover feel |
+| Class                  | Effect                                                      |
+| ---------------------- | ----------------------------------------------------------- |
+| `.ui-motion-fast`      | `transition-duration: var(--motion-fast)` + standard easing |
+| `.ui-motion-standard`  | `transition-duration: var(--motion-base)` + standard easing |
+| `.ui-pressable`        | Full transition set + `scale(0.995)` on `:active`           |
+| `.ui-interactive-card` | `translateY(-1px)` + elevation-overlay on hover             |
+| `.ui-fade-slide-in`    | Entrance: fade + 4px slide-up over `--motion-base`          |
+| `.lux-hover`           | Slow emphasis transitions for premium hover feel            |
 
 All motion respects `prefers-reduced-motion: reduce`.
 
@@ -373,6 +423,7 @@ CVA variants via `class-variance-authority`:
 Each variant includes its own shadow, inset highlight, and border treatment. All use `.ui-pressable` base.
 
 Filter/toggle convention:
+
 - Active filter chips use `secondary`
 - Inactive filter chips use `outline`
 - Toggle-like button groups should expose `aria-pressed`
@@ -385,6 +436,7 @@ Filter/toggle convention:
 ### Dialog (`ui/dialog.tsx`)
 
 Two dialog styles:
+
 - `DialogContent` — standard 600px dialog with close button
 - `CanvasDialogContent` — compact 420px dialog for canvas/workflow actions
   - Uses `CanvasDialogHeader` / `CanvasDialogBody` / `CanvasDialogFooter` sub-components
@@ -398,6 +450,7 @@ Two dialog styles:
 - `SectionHeading` — section title with optional meta slot
 
 Rules:
+
 - Even immersive/create pages should keep a standard `PageHeader` at the top instead of inventing page-level title styles.
 - Use `PageHero` only when it is the single figure for that state, not as a decorative intro above another figure.
 - Secondary rails and supporting content under a hero should still use `SectionHeading` and standard controls.
@@ -410,6 +463,7 @@ Rules:
 `Input`, `Textarea`, `Select`, `Tabs`, `Switch`, `Tooltip`, `ErrorBoundary`, `Skeleton`
 
 Removed from the active primitive surface:
+
 - `AlertDialog` alias wrapper
 - `ScrollArea` div wrapper
 - `Separator` div wrapper
@@ -418,17 +472,17 @@ Removed from the active primitive surface:
 
 These patterns bridge surface specs and primitives. Reuse them instead of inventing new card stacks.
 
-| Pattern | Figure shell | What stays flat inside | Action model |
-|--------|--------------|------------------------|--------------|
-| **Stage Contract / Resume Header** | One Level 3 outer shell | key-value rows, artifact handoff lines, inline status/meta | one primary CTA, optional overflow |
-| **Task Panel / Approval Surface** | One Level 3 outer shell | reason, step input, consequences, form fields, artifact preview | one primary approve/continue, one secondary reject/cancel |
-| **Routing Shell** | One Level 3 outer shell | flat progress list, static snapshot text | 0-1 visible actions |
-| **Result Figure** | One Level 3 prose/result shell | inline summary, one continuation line, flat metadata | one primary next-step CTA, overflow for export/history |
-| **Project Target Picker / First Action Launcher** | One Level 3 blocking shell | helper copy and reassurance below the shell | one primary CTA, at most one secondary route |
-| **Wizard Step Shell** | One persistent Level 3 outer shell for the active step | step-level confirmations, readiness rows, helper copy, and chooser outcomes stay flat inside the shell | footer navigation stays secondary to the step's single next action |
-| **Template Detail Panel** | One Level 3 detail shell | section groups separated by hairlines only | one primary start CTA, secondary close/back |
-| **Single-Decision Dialog** | One Level 3 dialog shell | radio/choice controls and project selection fields | one affirmative `Continue`, one secondary `Cancel` |
-| **Sidebar Content Region** | Ownership by cluster, not elevation | rows, search results, empty-state copy | persistent chrome stays ground; selected row is Level 2 only |
+| Pattern                                           | Figure shell                                           | What stays flat inside                                                                                 | Action model                                                       |
+| ------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **Stage Contract / Resume Header**                | One Level 3 outer shell                                | key-value rows, artifact handoff lines, inline status/meta                                             | one primary CTA, optional overflow                                 |
+| **Task Panel / Approval Surface**                 | One Level 3 outer shell                                | reason, step input, consequences, form fields, artifact preview                                        | one primary approve/continue, one secondary reject/cancel          |
+| **Routing Shell**                                 | One Level 3 outer shell                                | flat progress list, static snapshot text                                                               | 0-1 visible actions                                                |
+| **Result Figure**                                 | One Level 3 prose/result shell                         | inline summary, one continuation line, flat metadata                                                   | one primary next-step CTA, overflow for export/history             |
+| **Project Target Picker / First Action Launcher** | One Level 3 blocking shell                             | helper copy and reassurance below the shell                                                            | one primary CTA, at most one secondary route                       |
+| **Wizard Step Shell**                             | One persistent Level 3 outer shell for the active step | step-level confirmations, readiness rows, helper copy, and chooser outcomes stay flat inside the shell | footer navigation stays secondary to the step's single next action |
+| **Template Detail Panel**                         | One Level 3 detail shell                               | section groups separated by hairlines only                                                             | one primary start CTA, secondary close/back                        |
+| **Single-Decision Dialog**                        | One Level 3 dialog shell                               | radio/choice controls and project selection fields                                                     | one affirmative `Continue`, one secondary `Cancel`                 |
+| **Sidebar Content Region**                        | Ownership by cluster, not elevation                    | rows, search results, empty-state copy                                                                 | persistent chrome stays ground; selected row is Level 2 only       |
 
 Implementation notes:
 
@@ -465,15 +519,15 @@ If a result screen answers `what data is stored here?` before it answers the fiv
 
 Every result/report page should organize content into these roles:
 
-| Role | Question answered | Typical content |
-|------|-------------------|-----------------|
-| **Object Header** | What object am I looking at? | workflow name, artifact label, compact status, compact provenance |
-| **Outcome Headline** | What happened overall? | one-sentence verdict in user language. **Progressive collapse:** full sentence on first encounter with a flow/step; collapses to a compact badge or single-line after the user has run this flow before. Day-30 users should not re-read paragraphs they already understand. |
-| **Decision / Next Step** | What should I do next? | one primary CTA, optional one-line rationale |
-| **Evidence Strip** | What are the key facts behind the verdict? | 3-5 compact facts such as score, critical count, weakest area, readiness |
-| **Evidence Panel** | Why is that the verdict? | checks summary, failed criteria, reason, fix-first guidance |
-| **Artifact Document** | Where is the full output? | markdown report, merged report, long-form result body |
-| **Provenance Row** | Where did this come from? | saved run, duration, branch, generated-at, source path |
+| Role                     | Question answered                          | Typical content                                                                                                                                                                                                                                                              |
+| ------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Object Header**        | What object am I looking at?               | workflow name, artifact label, compact status, compact provenance                                                                                                                                                                                                            |
+| **Outcome Headline**     | What happened overall?                     | one-sentence verdict in user language. **Progressive collapse:** full sentence on first encounter with a flow/step; collapses to a compact badge or single-line after the user has run this flow before. Day-30 users should not re-read paragraphs they already understand. |
+| **Decision / Next Step** | What should I do next?                     | one primary CTA, optional one-line rationale                                                                                                                                                                                                                                 |
+| **Evidence Strip**       | What are the key facts behind the verdict? | 3-5 compact facts such as score, critical count, weakest area, readiness                                                                                                                                                                                                     |
+| **Evidence Panel**       | Why is that the verdict?                   | checks summary, failed criteria, reason, fix-first guidance                                                                                                                                                                                                                  |
+| **Artifact Document**    | Where is the full output?                  | markdown report, merged report, long-form result body                                                                                                                                                                                                                        |
+| **Provenance Row**       | Where did this come from?                  | saved run, duration, branch, generated-at, source path                                                                                                                                                                                                                       |
 
 These roles are ordered. If two adjacent blocks answer the same question, merge them or demote one.
 
@@ -499,12 +553,12 @@ Meaning:
 
 For long-form result/report pages, heading levels should map like this:
 
-| Level | Meaning | Example |
-|-------|---------|---------|
-| **H1** | object title | `UX/UI Polish Audit` |
-| **H2** | outcome or major section | `4 critical issues block release` / `Executive summary` |
-| **H3** | supporting section within the report | `Critical findings` / `Accessibility gaps` |
-| **Meta / label** | provenance or structural support | `Saved run`, `Completed in 30m`, `Branches merged` |
+| Level            | Meaning                              | Example                                                 |
+| ---------------- | ------------------------------------ | ------------------------------------------------------- |
+| **H1**           | object title                         | `UX/UI Polish Audit`                                    |
+| **H2**           | outcome or major section             | `4 critical issues block release` / `Executive summary` |
+| **H3**           | supporting section within the report | `Critical findings` / `Accessibility gaps`              |
+| **Meta / label** | provenance or structural support     | `Saved run`, `Completed in 30m`, `Branches merged`      |
 
 Do not use meta labels as headline substitutes.
 
@@ -545,17 +599,17 @@ Avoid these result/report failures:
 
 These patterns either violate current hierarchy rules or are allowed only as migration debt.
 
-| Pattern | Status | Guidance |
-|--------|--------|----------|
-| `surface-soft` for helper panels, suggestion cards, empty states, or sibling surfaces | Deprecated | Use Level 0 text, Level 1 separators, or Level 2 tint unless the component is the figure |
-| `surface-inset-card` inside an active figure | Prohibited | Flatten to label/value rows, disclosure content, or plain form fields |
-| Nested bordered confirmation blocks inside a wizard/onboarding shell | Prohibited | Keep the wizard shell as the only Level 3 surface and render project-ready or success confirmations as flat content |
-| Empty tabs, disabled tabs, or tab bars before content exists | Prohibited | Render tabs only when content exists and matters now |
-| Dual affirmative footers such as `Create` + `Replace` | Prohibited | Use explicit decision controls plus one primary `Continue` |
-| Duplicate create/settings/status entries in one state | Prohibited | Keep one visible owner per action or fact |
-| Elevated selected rows in sidebar | Prohibited | Selected rows use Level 2 tint only |
-| Large hero block above a separate composer/detail figure | Prohibited | Keep one figure; everything else stays ground |
-| Heavy library/category/filter toolbars rendered as their own card | Deprecated | Use flat strips, compact choosers, or overflow |
+| Pattern                                                                               | Status     | Guidance                                                                                                            |
+| ------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| `surface-soft` for helper panels, suggestion cards, empty states, or sibling surfaces | Deprecated | Use Level 0 text, Level 1 separators, or Level 2 tint unless the component is the figure                            |
+| `surface-inset-card` inside an active figure                                          | Prohibited | Flatten to label/value rows, disclosure content, or plain form fields                                               |
+| Nested bordered confirmation blocks inside a wizard/onboarding shell                  | Prohibited | Keep the wizard shell as the only Level 3 surface and render project-ready or success confirmations as flat content |
+| Empty tabs, disabled tabs, or tab bars before content exists                          | Prohibited | Render tabs only when content exists and matters now                                                                |
+| Dual affirmative footers such as `Create` + `Replace`                                 | Prohibited | Use explicit decision controls plus one primary `Continue`                                                          |
+| Duplicate create/settings/status entries in one state                                 | Prohibited | Keep one visible owner per action or fact                                                                           |
+| Elevated selected rows in sidebar                                                     | Prohibited | Selected rows use Level 2 tint only                                                                                 |
+| Large hero block above a separate composer/detail figure                              | Prohibited | Keep one figure; everything else stays ground                                                                       |
+| Heavy library/category/filter toolbars rendered as their own card                     | Deprecated | Use flat strips, compact choosers, or overflow                                                                      |
 
 Component-specific constraints:
 
