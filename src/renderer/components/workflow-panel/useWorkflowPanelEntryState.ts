@@ -4,6 +4,8 @@ import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 import {
   areTemplateContractsSatisfied,
   buildContinuationArtifactPool,
+  deriveTemplateContinuationDescription,
+  deriveTemplateContextJobLabel,
   deriveTemplateContextJourneyStageLabel,
   formatArtifactContractLabel,
   selectArtifactsForTemplateContracts,
@@ -148,6 +150,10 @@ export function useWorkflowPanelEntryState({
 
   const nextStageTemplate = nextStageSelection.template
   const nextStageArtifacts = nextStageSelection.artifacts
+  const currentTemplate = useMemo(
+    () => packTemplates.find((template) => template.id === selectedWorkflowTemplateContext?.templateId) || null,
+    [packTemplates, selectedWorkflowTemplateContext?.templateId],
+  )
   const entryStageLabel = useMemo(
     () => deriveTemplateContextJourneyStageLabel(selectedWorkflowTemplateContext),
     [selectedWorkflowTemplateContext],
@@ -211,10 +217,42 @@ export function useWorkflowPanelEntryState({
     || selectedWorkflowTemplateContext?.templateName
     || activeEntryState?.workflowName
     || "Untitled flow"
+  const stageStartTitle = deriveTemplateContextJobLabel(selectedWorkflowTemplateContext)
+    || activeEntryState?.title
+    || stageStartFlowName
   const stageStartDescription = takeLeadingSentence(
-    activeEntryState?.summary || selectedWorkflowTemplateContext?.inputText,
+    deriveTemplateContinuationDescription(currentTemplate)
+    || activeEntryState?.summary
+    || selectedWorkflowTemplateContext?.inputText,
     "Run this step with the current input.",
   )
+  const stageStartContextLine = useMemo(() => {
+    const primaryArtifact = sourceArtifacts[0] || null
+    const originFlowLabel = primaryArtifact?.workflowName
+      || primaryArtifact?.templateName
+      || primaryArtifact?.caseLabel
+      || null
+    if (originFlowLabel) {
+      return `From ${originFlowLabel}`
+    }
+    const caseLabel = selectedWorkflowTemplateContext?.caseLabel || currentCaseState?.caseLabel || null
+    return caseLabel ? `Case: ${caseLabel}` : null
+  }, [currentCaseState?.caseLabel, selectedWorkflowTemplateContext?.caseLabel, sourceArtifacts])
+  const stageStartProvenanceLabel = useMemo(() => {
+    const primaryArtifact = sourceArtifacts[0] || null
+    if (!primaryArtifact) return null
+
+    const originFlowLabel = primaryArtifact.workflowName
+      || primaryArtifact.templateName
+      || primaryArtifact.caseLabel
+      || null
+    if (sourceArtifacts.length === 1) {
+      return originFlowLabel && originFlowLabel !== primaryArtifact.title
+        ? `${primaryArtifact.title} from ${originFlowLabel}`
+        : primaryArtifact.title
+    }
+    return resumeEntrySummary?.attachText || `${sourceArtifacts.length} saved results`
+  }, [resumeEntrySummary?.attachText, sourceArtifacts])
   const workflowHasGeneratedSteps = workflow.nodes.some(
     (node) => node.type !== "input" && node.type !== "output",
   )
@@ -229,12 +267,7 @@ export function useWorkflowPanelEntryState({
       )
     )
   )
-  const showResumeHeader = (
-    viewMode === "list"
-    && runStatus === "idle"
-    && activeEntryState !== null
-    && !showCreateDraftSkeleton
-  )
+  const showResumeHeader = false
   const showIdleReviewMode = (
     runStatus === "idle"
     && activeEntryState === null
@@ -266,6 +299,7 @@ export function useWorkflowPanelEntryState({
     combinedArtifactRecords,
     nextStageTemplate,
     nextStageArtifacts,
+    sourceArtifacts,
     entryStageLabel,
     entryFlowRules,
     startApprovalRequired,
@@ -273,8 +307,11 @@ export function useWorkflowPanelEntryState({
     resumeEntrySummary,
     stageStartInputLabels,
     stageStartPolicyNotes,
+    stageStartTitle,
     stageStartFlowName,
     stageStartDescription,
+    stageStartContextLine,
+    stageStartProvenanceLabel,
     showCreateDraftSkeleton,
     showResumeHeader,
     showIdleReviewMode,

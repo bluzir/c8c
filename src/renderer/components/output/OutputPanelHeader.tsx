@@ -39,7 +39,7 @@ export function OutputPanelHeader({
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="min-h-0 rounded-md border-0 px-2.5 py-1 text-body-sm shadow-none data-[state=active]:border-0 data-[state=active]:bg-surface-2/70 data-[state=active]:shadow-none"
+                className="min-h-0 rounded-md px-2.5 py-1 text-body-sm"
               >
                 {tab.label}
               </TabsTrigger>
@@ -53,7 +53,9 @@ export function OutputPanelHeader({
           <div className="min-w-0 flex flex-wrap items-center justify-end gap-x-2 gap-y-1 ui-meta-text text-muted-foreground">
             {showReviewContext ? (
               <>
-                <span className="ui-meta-label text-muted-foreground">Saved run</span>
+                <span className="ui-status-badge h-control-xs shrink-0 border border-hairline bg-surface-2/80 px-2 text-muted-foreground">
+                  Saved run
+                </span>
                 <div className="min-w-0 truncate text-body-sm font-medium text-foreground">
                   {selectedRunLabel}
                 </div>

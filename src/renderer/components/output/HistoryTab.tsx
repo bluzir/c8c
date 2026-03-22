@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { cn } from "@/lib/cn"
 import { Button } from "@/components/ui/button"
+import { Copy } from "lucide-react"
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -92,6 +93,7 @@ function formatRunIdShort(runId: string): string {
 export interface HistoryTabProps {
   pastRuns: RunResult[]
   runStatus: string
+  fillHeight?: boolean
   onOpenReport: (path: string) => Promise<void> | void
   onContinueRun?: (run: RunResult) => Promise<void> | void
   selectedRunId?: string | null
@@ -101,6 +103,7 @@ export interface HistoryTabProps {
 export function HistoryTab({
   pastRuns,
   runStatus,
+  fillHeight = false,
   onOpenReport,
   onContinueRun,
   selectedRunId,
@@ -153,7 +156,7 @@ export function HistoryTab({
   if (pastRuns.length === 0) {
     return (
       <div className="px-1 py-2 text-body-sm text-muted-foreground">
-        No run history yet. Each new run will appear here so you can reopen, continue, or inspect it later.
+        No runs yet. Results will appear here after you run this flow.
       </div>
     )
   }
@@ -165,20 +168,16 @@ export function HistoryTab({
     && isRunContinuable(selectedHistoryRun)
     && runStatus !== "running",
   )
+  const selectedRunCanViewResult = Boolean(selectedHistoryRun && onSelectRun)
   const selectedRunCanOpenFile = Boolean(selectedHistoryRun?.reportPath)
-  const selectedRunPrimaryActionLabel = selectedRunCanContinue ? "Continue" : "View result"
-  const handleSelectedRunPrimaryAction = () => {
+  const handleSelectedRunViewResult = () => {
     if (!selectedHistoryRun) return
-    if (selectedRunCanContinue && onContinueRun) {
-      void onContinueRun(selectedHistoryRun)
-      return
-    }
     onSelectRun?.(selectedHistoryRun)
   }
 
   return (
     <>
-      <div className="space-y-3">
+      <div className={cn(fillHeight ? "flex min-h-0 flex-1 flex-col gap-3" : "space-y-3")}>
         {selectedHistoryRun && (
           <div className="border-b border-hairline px-1 pb-3">
             <div className="min-w-0">
@@ -200,47 +199,70 @@ export function HistoryTab({
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 ui-meta-text text-muted-foreground">
                 <span>{pastRuns.length === 1 ? "1 run recorded" : `${pastRuns.length} runs recorded`}</span>
-                <span className="font-mono" title={selectedHistoryRun.runId}>
-                  {formatRunIdShort(selectedHistoryRun.runId)}
+                <span className="inline-flex items-center gap-1.5">
+                  <span>Run ID:</span>
+                  <span className="font-mono" title={selectedHistoryRun.runId}>
+                    {formatRunIdShort(selectedHistoryRun.runId)}
+                  </span>
+                  <button
+                    type="button"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                    title="Copy run ID"
+                    aria-label="Copy run ID"
+                    onClick={() => { void handleCopyRunId(selectedHistoryRun.runId) }}
+                  >
+                    <Copy size={12} aria-hidden="true" />
+                  </button>
                 </span>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleSelectedRunPrimaryAction}
-                disabled={!selectedRunCanContinue && !onSelectRun}
-              >
-                {selectedRunPrimaryActionLabel}
-              </Button>
-              {selectedRunCanOpenFile && (
+              {selectedRunCanViewResult && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSelectedRunViewResult}
+                >
+                  View result
+                </Button>
+              )}
+              {selectedRunCanContinue && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (!selectedHistoryRun.reportPath) return
-                    void handleOpenReport(selectedHistoryRun.reportPath)
+                    if (!selectedHistoryRun || !onContinueRun) return
+                    void onContinueRun(selectedHistoryRun)
                   }}
                 >
-                  Open file
+                  Continue
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!selectedRunCanOpenFile}
+                title={selectedRunCanOpenFile ? undefined : "No report file saved for this run"}
+                onClick={() => {
+                  if (!selectedHistoryRun?.reportPath) return
+                  void handleOpenReport(selectedHistoryRun.reportPath)
+                }}
+              >
+                Open file
+              </Button>
             </div>
           </div>
         )}
 
-        <div className="border-b border-hairline px-1 pb-2">
-          <div className="ui-meta-text text-muted-foreground">
-            Double-click a run to open its result. Right-click for file and ID actions.
-          </div>
-        </div>
-
         <div
           role="list"
           aria-label="Run history"
-          className="max-h-[min(24rem,calc(100vh-18rem))] overflow-y-auto ui-scroll-region"
+          className={cn(
+            "ui-scroll-region overflow-y-auto",
+            fillHeight ? "min-h-0 flex-1" : "max-h-[min(24rem,calc(100vh-18rem))]",
+          )}
         >
           {pastRuns.map((run) => {
             const isSelected = selectedHistoryRun?.runId === run.runId

@@ -13,7 +13,7 @@ import {
 } from "@/lib/workflow-entry"
 import { isRunInFlight } from "@/lib/workflow-execution"
 import { templateAutoRunsOnContinue, templateRequiresStartApproval } from "@/lib/stage-run-policy"
-import { formatCost } from "@/components/output/OutputSections"
+import { formatCost } from "@/components/output/outputFormatters"
 import type {
   ArtifactRecord,
   EvaluationResult,
@@ -477,22 +477,6 @@ export function useOutputPanelDerivedState({
   const approvalLoopSummary = executionLoopSummary?.outcome === "human decision"
     ? executionLoopSummary
     : null
-  const showLoopStateIndicator = Boolean(
-    executionLoopSummary
-    && (
-      executionLoopSummary.attempt > 1
-      || executionLoopSummary.outcome !== "auto-pass"
-    )
-    && (
-      selectedStageId === displayActiveNodeId
-      || selectedStageId === executionLoopSummary.evaluatorNodeId
-      || selectedStageStatus === "running"
-      || selectedStageStatus === "waiting_approval"
-      || selectedStageStatus === "waiting_human"
-      || selectedStageStatus === "failed"
-    ),
-  )
-
   // Build copy text with meta-header for sharing
   const resultCopyTextWithHeader = (() => {
     if (isDisplayedResultEmpty) return displayedResultContent
@@ -613,7 +597,6 @@ export function useOutputPanelDerivedState({
     hiddenNextStageArtifactCount,
     executionLoopSummary,
     approvalLoopSummary,
-    showLoopStateIndicator,
     effectiveRunOutcome,
   }
 }

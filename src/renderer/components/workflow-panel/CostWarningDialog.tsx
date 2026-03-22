@@ -39,24 +39,27 @@ export function CostWarningDialog({
             {warning.message}
           </DialogDescription>
         </CanvasDialogHeader>
-        <div className="px-4 pb-3">
-          <p className="ui-meta-text text-secondary">
+        <div className="space-y-2 px-4 pb-3">
+          <p className="text-body-sm text-foreground">
             Worst-case breakdown: {warning.detail}
+          </p>
+          <p className="ui-meta-text text-muted-foreground">
+            Continue only if this spend is expected for the current run.
           </p>
         </div>
         <CanvasDialogFooter>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onCancel}
+            autoFocus
           >
             Cancel
           </Button>
           <Button
-            variant="default"
+            variant="destructive"
             size="sm"
             onClick={onConfirm}
-            autoFocus
           >
             Continue anyway
           </Button>

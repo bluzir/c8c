@@ -3,29 +3,25 @@ import type { EvalCriterion, EvaluationResult } from "@/lib/store"
 import type { LogEntry, NodeState, WorkflowNode } from "@shared/types"
 import { cn } from "@/lib/cn"
 import { mergeLogEntriesForDisplay } from "@/lib/log-display"
-import { getToolPermissionHint } from "@/lib/tool-permission-hints"
 import {
   Check,
   Loader2,
   AlertCircle,
   Clock,
-  ChevronRight,
-  Wrench,
   Search,
   X,
-  FileCode2,
-  Bug,
   ShieldCheck,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { CursorMenu } from "@/components/ui/cursor-menu"
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { DebugDetailsPanel } from "@/components/output/DebugDetailsPanel"
+import { LogEntryCard } from "@/components/output/LogEntryCard"
+import { formatCost, formatTokens } from "@/components/output/outputFormatters"
 
 const PREVIEW_MAX_W = "max-w-52" as const
 
@@ -81,611 +77,19 @@ function getEntrySearchText(entry: LogEntry): string {
   }
 }
 
-function getLogEntryKey(selectedNodeId: string, entry: LogEntry): string {
+function getLogEntryKey(selectedNodeId: string, entry: LogEntry, index: number): string {
   switch (entry.type) {
     case "thinking":
     case "text":
     case "error":
-      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.content}`
+      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${index}`
     case "tool_use":
-      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.tool}-${JSON.stringify(entry.input)}`
+      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.tool}-${index}`
     case "tool_result":
-      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.tool}-${entry.status}-${entry.output}`
+      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.tool}-${entry.status}-${index}`
     case "diff":
-      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.files.join(",")}-${entry.content}`
+      return `${selectedNodeId}-${entry.type}-${entry.timestamp}-${entry.files.join(",")}-${index}`
   }
-}
-
-function mcpServerLabel(qualifiedName: string): string {
-  const match = qualifiedName.match(/^mcp__([^_]+)__/)
-  return match ? `MCP: ${match[1]}` : "MCP"
-}
-
-function PermissionHintNotice({
-  toolName,
-  domain,
-}: {
-  toolName: string
-  domain?: string | null
-}) {
-  return (
-    <div className="mt-1 border-l-2 border-status-warning/35 pl-3 py-0.5">
-      <p className="ui-meta-text text-status-warning">
-        Permission hint: add <span className="font-mono">{toolName}</span> to this skill step&apos;s Allowed Tools,
-        then rerun this step.
-      </p>
-      {domain ? (
-        <p className="ui-meta-text text-muted-foreground mt-1">
-          If domain allowlist blocks access, add{" "}
-          <span className="font-mono">WebFetch(domain:{domain})</span>{" "}
-          to <span className="font-mono">.claude/settings.local.json</span>.
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
-function LogEntryCard({ entry }: { entry: LogEntry }) {
-  const permissionHint = getToolPermissionHint(entry)
-  const [collapsed, setCollapsed] = useState(
-    entry.type === "thinking" || entry.type === "tool_use" || entry.type === "tool_result",
-  )
-
-  if (entry.type === "thinking") {
-    return (
-      <div className="border-l-2 border-muted pl-3 py-1">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand thinking block" : "Collapse thinking block"}
-          className="flex items-center gap-1 ui-meta-text text-muted-foreground hover:text-foreground ui-pressable"
-        >
-          <ChevronRight
-            size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
-          />
-          <span className="italic">thinking...</span>
-        </button>
-        {!collapsed && (
-          <pre className="ui-meta-text text-muted-foreground whitespace-pre-wrap font-mono mt-1">
-            {entry.content}
-          </pre>
-        )}
-      </div>
-    )
-  }
-
-  if (entry.type === "text") {
-    return (
-      <div className="py-1">
-        <pre className="text-body-md whitespace-pre-wrap font-mono">{entry.content}</pre>
-      </div>
-    )
-  }
-
-  if (entry.type === "tool_use") {
-    const inputPreview = JSON.stringify(entry.input, null, 2)
-    const isMcp = entry.tool.startsWith("mcp__")
-    const toolDisplayName = isMcp
-      ? entry.tool.replace(/^mcp__/, "").replace(/__/, " / ")
-      : entry.tool
-
-    return (
-      <div className="border-l-2 border-hairline pl-3 py-1">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? `Expand ${toolDisplayName} input` : `Collapse ${toolDisplayName} input`}
-          className="flex items-center gap-2 ui-meta-label text-foreground-subtle hover:text-foreground ui-pressable"
-        >
-          <ChevronRight
-            size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
-          />
-          <Wrench size={12} />
-          <span>{toolDisplayName}</span>
-          {isMcp && <Badge variant="info" className="ui-meta-text px-1.5 py-0">{mcpServerLabel(entry.tool)}</Badge>}
-        </button>
-        {!collapsed && (
-          <pre className="ui-meta-text text-muted-foreground whitespace-pre-wrap font-mono mt-1 max-h-60 overflow-y-auto ui-scroll-region">
-            {inputPreview}
-          </pre>
-        )}
-      </div>
-    )
-  }
-
-  if (entry.type === "tool_result") {
-    const isError = entry.status === "error"
-    const isMcp = entry.tool.startsWith("mcp__")
-    const toolDisplayName = isMcp
-      ? entry.tool.replace(/^mcp__/, "").replace(/__/, " / ")
-      : entry.tool
-
-    const borderColor = isError
-      ? "border-status-danger/50"
-      : isMcp
-        ? "border-accent/30"
-        : "border-status-success/50"
-    const textColor = isError
-      ? "text-status-danger hover:text-status-danger/80"
-      : isMcp
-        ? "text-foreground-subtle hover:text-foreground"
-        : "text-status-success hover:text-status-success/80"
-
-    return (
-      <div className={cn("border-l-2 pl-3 py-1", borderColor)}>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? `Expand ${toolDisplayName} result` : `Collapse ${toolDisplayName} result`}
-          className={cn("flex items-center gap-2 ui-meta-label ui-pressable", textColor)}
-        >
-          <ChevronRight
-            size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
-          />
-          <span>
-            {toolDisplayName} {isError ? "failed" : "result"}
-          </span>
-          {isMcp && <Badge variant="info" className="ui-meta-text px-1.5 py-0">{mcpServerLabel(entry.tool)}</Badge>}
-        </button>
-        {permissionHint ? (
-          <PermissionHintNotice
-            toolName={permissionHint.toolName}
-            domain={permissionHint.domain}
-          />
-        ) : null}
-        {!collapsed && (
-          <pre
-            className={cn(
-              "ui-meta-text whitespace-pre-wrap font-mono mt-1 max-h-60 overflow-y-auto ui-scroll-region",
-              isError ? "text-status-danger/80" : "text-muted-foreground",
-            )}
-          >
-            {entry.output}
-          </pre>
-        )}
-      </div>
-    )
-  }
-
-  if (entry.type === "error") {
-    return (
-      <div className="py-1">
-        <pre className="ui-meta-text text-status-danger whitespace-pre-wrap font-mono">
-          {entry.content}
-        </pre>
-        {permissionHint ? (
-          <PermissionHintNotice
-            toolName={permissionHint.toolName}
-            domain={permissionHint.domain}
-          />
-        ) : null}
-      </div>
-    )
-  }
-
-  if (entry.type === "diff") {
-    return (
-      <div className="border-l-2 border-accent/40 pl-3 py-1">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand diff" : "Collapse diff"}
-          className="flex items-center gap-2 ui-meta-label text-foreground-subtle hover:text-foreground ui-pressable"
-        >
-          <ChevronRight
-            size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
-          />
-          <FileCode2 size={12} />
-          <span>{entry.files.length} file{entry.files.length !== 1 ? "s" : ""} changed</span>
-        </button>
-        {!collapsed && (
-          <>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {entry.files.map((file) => (
-                <span key={file} className="inline-flex items-center rounded-sm border border-hairline px-1.5 py-0 ui-meta-text text-muted-foreground bg-surface-1/80 font-mono">
-                  {file}
-                </span>
-              ))}
-            </div>
-            <pre className="ui-meta-text whitespace-pre-wrap font-mono mt-2 max-h-80 overflow-y-auto ui-scroll-region">
-              {entry.content.split("\n").map((line, i) => {
-                const color = line.startsWith("+") && !line.startsWith("+++")
-                  ? "text-status-success"
-                  : line.startsWith("-") && !line.startsWith("---")
-                    ? "text-status-danger"
-                    : line.startsWith("@@")
-                      ? "text-status-info"
-                      : "text-muted-foreground"
-                return (
-                  <span key={i} className={color}>
-                    {line}
-                    {"\n"}
-                  </span>
-                )
-              })}
-            </pre>
-          </>
-        )}
-      </div>
-    )
-  }
-
-  return null
-}
-
-export function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
-  return String(n)
-}
-
-export function formatCost(usd: number): string {
-  if (usd < 0.001) return "<$0.001"
-  if (usd < 0.01) return `$${usd.toFixed(3)}`
-  return `$${usd.toFixed(2)}`
-}
-
-// ── Debug Details Panel ─────────────────────────────────
-
-interface ToolCallSummary {
-  tool: string
-  inputPreview: string
-  status: "success" | "error" | "pending"
-}
-
-function buildToolCallSummaries(log: LogEntry[]): ToolCallSummary[] {
-  const summaries: ToolCallSummary[] = []
-  const pendingTools: Map<string, number> = new Map()
-
-  for (const entry of log) {
-    if (entry.type === "tool_use") {
-      const inputStr = JSON.stringify(entry.input)
-      summaries.push({
-        tool: entry.tool,
-        inputPreview: inputStr.length > 100 ? inputStr.slice(0, 100) + "..." : inputStr,
-        status: "pending",
-      })
-      pendingTools.set(entry.tool, summaries.length - 1)
-    }
-    if (entry.type === "tool_result") {
-      const pendingIdx = pendingTools.get(entry.tool)
-      if (pendingIdx !== undefined) {
-        summaries[pendingIdx].status = entry.status
-        pendingTools.delete(entry.tool)
-      }
-    }
-  }
-  return summaries
-}
-
-function buildToolCallCountLabel(summaries: ToolCallSummary[]): string {
-  if (summaries.length === 0) return ""
-  const counts: Record<string, number> = {}
-  for (const s of summaries) {
-    const name = s.tool.startsWith("mcp__")
-      ? s.tool.replace(/^mcp__/, "").replace(/__/, "/")
-      : s.tool
-    counts[name] = (counts[name] || 0) + 1
-  }
-  const parts = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, count]) => `${count} ${name}`)
-  return `${summaries.length} tool call${summaries.length !== 1 ? "s" : ""} (${parts.join(", ")})`
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1_000) return `${ms}ms`
-  if (ms < 60_000) return `${(ms / 1_000).toFixed(1)}s`
-  const mins = Math.floor(ms / 60_000)
-  const secs = ((ms % 60_000) / 1_000).toFixed(0)
-  return `${mins}m ${secs}s`
-}
-
-function formatTimestamp(ts: number): string {
-  return new Date(ts).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    fractionalSecondDigits: 3,
-  })
-}
-
-function DebugDetailsPanel({
-  state,
-  rawLog,
-  evalResults,
-  workflowNode,
-}: {
-  state: NodeState
-  rawLog: LogEntry[]
-  evalResults: EvaluationResult[]
-  workflowNode?: WorkflowNode | null
-}) {
-  const [rawLogOpen, setRawLogOpen] = useState(false)
-
-  const toolCallSummaries = useMemo(() => buildToolCallSummaries(rawLog), [rawLog])
-  const toolCallCountLabel = useMemo(() => buildToolCallCountLabel(toolCallSummaries), [toolCallSummaries])
-
-  const durationMs = state.startedAt && state.completedAt
-    ? state.completedAt - state.startedAt
-    : undefined
-
-  const nodeConfig = workflowNode?.config
-  const nodeType = workflowNode?.type
-
-  // Extract config values based on node type
-  const maxTurns = nodeConfig && "maxTurns" in nodeConfig ? (nodeConfig as { maxTurns?: number }).maxTurns : undefined
-  const evalThreshold = nodeType === "evaluator" && nodeConfig && "threshold" in nodeConfig
-    ? (nodeConfig as { threshold: number }).threshold : undefined
-  const evalMaxRetries = nodeType === "evaluator" && nodeConfig && "maxRetries" in nodeConfig
-    ? (nodeConfig as { maxRetries: number }).maxRetries : undefined
-  const evalRetryFrom = nodeType === "evaluator" && nodeConfig && "retryFrom" in nodeConfig
-    ? (nodeConfig as { retryFrom?: string }).retryFrom : undefined
-
-  const hasExecutionSummary = Boolean(durationMs || state.metrics || state.meta?.model_id || maxTurns || state.status === "failed")
-  const hasToolCalls = toolCallSummaries.length > 0
-  const hasEvalDetails = evalResults.length > 0 && nodeType === "evaluator"
-  const hasRawLog = rawLog.length > 0
-
-  if (!hasExecutionSummary && !hasToolCalls && !hasEvalDetails && !hasRawLog) return null
-
-  const rawLogText = useMemo(() => {
-    return rawLog.map((entry) => {
-      const ts = formatTimestamp(entry.timestamp)
-      switch (entry.type) {
-        case "thinking":
-          return `[${ts}] THINKING: ${entry.content}`
-        case "text":
-          return `[${ts}] TEXT: ${entry.content}`
-        case "tool_use":
-          return `[${ts}] TOOL_USE: ${entry.tool}\n  input: ${JSON.stringify(entry.input, null, 2)}`
-        case "tool_result":
-          return `[${ts}] TOOL_RESULT: ${entry.tool} (${entry.status})\n  output: ${entry.output}`
-        case "error":
-          return `[${ts}] ERROR: ${entry.content}`
-        case "diff":
-          return `[${ts}] DIFF: ${entry.files.join(", ")}\n${entry.content}`
-      }
-    }).join("\n\n")
-  }, [rawLog])
-
-  return (
-    <DisclosurePanel
-      summary={
-        <span className="flex items-center gap-1.5">
-          <Bug size={12} className="text-muted-foreground/60" />
-          Debug details
-        </span>
-      }
-      surface="flat"
-      className="mt-3"
-      summaryClassName="px-1 py-2"
-      contentClassName="space-y-3 px-1 py-3"
-    >
-      {/* Section 1: Execution summary */}
-      {hasExecutionSummary && (
-        <div className="space-y-1">
-          <div className="ui-meta-label text-muted-foreground">Execution summary</div>
-          <div className="space-y-1 border-l-2 border-hairline/70 pl-3">
-            {durationMs != null && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Duration</span>
-                <span className="font-mono text-foreground">{formatDuration(durationMs)}</span>
-              </div>
-            )}
-            {state.metrics && (
-              <>
-                <div className="flex justify-between ui-meta-text">
-                  <span className="text-muted-foreground">Tokens in</span>
-                  <span className="font-mono text-foreground">{formatTokens(state.metrics.tokens_in)}</span>
-                </div>
-                <div className="flex justify-between ui-meta-text">
-                  <span className="text-muted-foreground">Tokens out</span>
-                  <span className="font-mono text-foreground">{formatTokens(state.metrics.tokens_out)}</span>
-                </div>
-                {state.metrics.cost_usd > 0 && (
-                  <div className="flex justify-between ui-meta-text">
-                    <span className="text-muted-foreground">Cost</span>
-                    <span className="font-mono text-foreground">{formatCost(state.metrics.cost_usd)}</span>
-                  </div>
-                )}
-              </>
-            )}
-            {state.meta?.model_id && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Model</span>
-                <span className="font-mono text-foreground">{state.meta.model_id}</span>
-              </div>
-            )}
-            {maxTurns != null && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Max turns</span>
-                <span className="font-mono text-foreground">{maxTurns}</span>
-              </div>
-            )}
-            <div className="flex justify-between ui-meta-text">
-              <span className="text-muted-foreground">Status</span>
-              <span className={cn(
-                "font-mono",
-                state.status === "completed" && "text-status-success",
-                state.status === "failed" && "text-status-danger",
-                state.status !== "completed" && state.status !== "failed" && "text-foreground",
-              )}>
-                {state.status}
-                {state.errorKind ? ` (${ERROR_KIND_LABELS[state.errorKind] || state.errorKind})` : ""}
-              </span>
-            </div>
-            {state.startedAt && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Started</span>
-                <span className="font-mono text-foreground">{formatTimestamp(state.startedAt)}</span>
-              </div>
-            )}
-            {state.completedAt && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Completed</span>
-                <span className="font-mono text-foreground">{formatTimestamp(state.completedAt)}</span>
-              </div>
-            )}
-            {state.attempts > 1 && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Attempts</span>
-                <span className="font-mono text-foreground">{state.attempts}</span>
-              </div>
-            )}
-            {state.policyApplied && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Flow rules applied</span>
-                <span className="font-mono text-foreground">{state.policyApplied}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Section 2: Tool calls */}
-      {hasToolCalls && (
-        <div className="space-y-1">
-          <div className="ui-meta-label text-muted-foreground">Tool calls</div>
-          <div className="ui-meta-text text-muted-foreground mb-1">{toolCallCountLabel}</div>
-          <div className="space-y-1 border-l-2 border-hairline/70 pl-3 max-h-48 overflow-y-auto ui-scroll-region">
-            {toolCallSummaries.map((tc, i) => {
-              const displayName = tc.tool.startsWith("mcp__")
-                ? tc.tool.replace(/^mcp__/, "").replace(/__/, " / ")
-                : tc.tool
-              return (
-                <details key={`${tc.tool}-${i}`} className="group">
-                  <summary className="cursor-pointer list-none flex items-center gap-2 py-0.5 ui-meta-text hover:text-foreground ui-pressable">
-                    <span className={cn(
-                      "inline-block w-1.5 h-1.5 rounded-full shrink-0",
-                      tc.status === "success" && "bg-status-success",
-                      tc.status === "error" && "bg-status-danger",
-                      tc.status === "pending" && "bg-muted-foreground",
-                    )} />
-                    <span className="font-mono text-foreground truncate">{displayName}</span>
-                    <span className={cn(
-                      "ml-auto shrink-0",
-                      tc.status === "error" ? "text-status-danger" : "text-muted-foreground",
-                    )}>
-                      {tc.status}
-                    </span>
-                  </summary>
-                  <pre className="ui-meta-text text-muted-foreground whitespace-pre-wrap font-mono mt-0.5 mb-1 pl-4 max-h-32 overflow-y-auto ui-scroll-region">
-                    {tc.inputPreview}
-                  </pre>
-                </details>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Section 3: Evaluator details */}
-      {hasEvalDetails && (
-        <div className="space-y-1">
-          <div className="ui-meta-label text-muted-foreground">Check details</div>
-          <div className="space-y-1 border-l-2 border-hairline/70 pl-3">
-            {evalThreshold != null && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Threshold</span>
-                <span className="font-mono text-foreground">{evalThreshold}/10</span>
-              </div>
-            )}
-            {evalMaxRetries != null && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Max retries</span>
-                <span className="font-mono text-foreground">{evalMaxRetries}</span>
-              </div>
-            )}
-            {evalRetryFrom && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Retry from</span>
-                <span className="font-mono text-foreground">{evalRetryFrom}</span>
-              </div>
-            )}
-            {evalResults.length > 0 && (
-              <div className="flex justify-between ui-meta-text">
-                <span className="text-muted-foreground">Attempts used</span>
-                <span className="font-mono text-foreground">
-                  {evalResults.length}{evalMaxRetries != null ? ` / ${evalMaxRetries + 1}` : ""}
-                </span>
-              </div>
-            )}
-            {evalResults.length > 0 && (
-              <div className="border-t border-hairline mt-1.5 pt-1.5 space-y-1">
-                {evalResults.map((er) => (
-                  <div key={er.attempt} className="space-y-1">
-                    <div className={cn(
-                      "ui-meta-text font-mono",
-                      er.passed ? "text-status-success" : "text-status-warning",
-                    )}>
-                      Attempt {er.attempt}: {er.score}/10 {er.passed ? "PASS" : "FAIL"}
-                    </div>
-                    {er.criteria && er.criteria.length > 0 && (
-                      <div className="pl-2 space-y-0.5">
-                        {er.criteria.map((c) => (
-                          <div key={c.id} className="flex items-center gap-2 ui-meta-text">
-                            <span className="w-20 truncate text-muted-foreground">{c.id}</span>
-                            <span className={cn(
-                              "font-mono",
-                              c.score >= 7 ? "text-status-success" : c.score >= 4 ? "text-status-warning" : "text-status-danger",
-                            )}>
-                              {c.score}/10
-                            </span>
-                            {c.weight != null && c.weight !== 1 && (
-                              <span className="text-muted-foreground/60">w:{c.weight}</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Section 4: Raw log */}
-      {hasRawLog && (
-        <div className="space-y-1">
-          <button
-            type="button"
-            onClick={() => setRawLogOpen(!rawLogOpen)}
-            className="flex items-center gap-1.5 ui-meta-label text-muted-foreground hover:text-foreground ui-pressable"
-          >
-            <ChevronRight
-              size={12}
-              className={cn("ui-chevron", rawLogOpen && "rotate-90")}
-            />
-            Raw log ({rawLog.length} entries)
-          </button>
-          {rawLogOpen && (
-            <pre className="rounded-md border border-hairline/70 bg-surface-2/35 px-3 py-2 ui-meta-text text-muted-foreground whitespace-pre-wrap font-mono max-h-80 overflow-y-auto ui-scroll-region">
-              {rawLogText}
-            </pre>
-          )}
-        </div>
-      )}
-    </DisclosurePanel>
-  )
 }
 
 export function NodesTab({
@@ -973,6 +377,7 @@ export function LogTab({
   evalOverrideNodeIds?: Set<string>
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevLogLengthRef = useRef(0)
   const prevSelectedNodeIdRef = useRef<string | null>(selectedNodeId)
   const state = selectedNodeId ? nodeStates[selectedNodeId] : null
@@ -1012,6 +417,12 @@ export function LogTab({
   }
 
   const hasActiveFilters = searchQuery !== "" || activeTypeFilters.size !== LOG_ENTRY_TYPES.length
+  const isNearBottom = useMemo(() => () => {
+    const container = scrollContainerRef.current
+    if (!container) return true
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    return distanceFromBottom <= 96
+  }, [])
 
   useEffect(() => {
     prevLogLengthRef.current = rawLog.length
@@ -1028,9 +439,10 @@ export function LogTab({
     const delta = rawLog.length - prevLogLengthRef.current
     prevLogLengthRef.current = rawLog.length
     if (delta <= 0) return
+    if (hasActiveFilters || !isNearBottom()) return
     const behavior: ScrollBehavior = delta === 1 ? "smooth" : "auto"
     scrollRef.current?.scrollIntoView({ behavior, block: "end" })
-  }, [rawLog.length, selectedNodeId])
+  }, [hasActiveFilters, isNearBottom, rawLog.length, selectedNodeId])
 
   if (!selectedNodeId) {
     return (
@@ -1123,7 +535,10 @@ export function LogTab({
       )}
 
       {/* Scrollable log content */}
-      <div className="max-h-[min(24rem,calc(100vh-18rem))] overflow-y-auto ui-scroll-region space-y-1 px-1 py-1">
+      <div
+        ref={scrollContainerRef}
+        className="max-h-[min(24rem,calc(100vh-18rem))] overflow-y-auto ui-scroll-region space-y-1 px-1 py-1"
+      >
         {state?.metrics && (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0) && (
           <div className="mb-2 flex flex-wrap items-center gap-3 border-b border-hairline/70 pb-2 ui-meta-text font-mono text-muted-foreground">
             <span title="Input tokens">In: {formatTokens(state.metrics.tokens_in)}</span>
@@ -1151,8 +566,8 @@ export function LogTab({
             No entries match the current filters
           </div>
         )}
-        {filteredLog.map((entry) => (
-          <LogEntryCard key={getLogEntryKey(selectedNodeId, entry)} entry={entry} />
+        {filteredLog.map((entry, index) => (
+          <LogEntryCard key={getLogEntryKey(selectedNodeId, entry, index)} entry={entry} />
         ))}
         {selectedNodeId && evalResults[selectedNodeId]?.length > 0 && (
           <EvalResultsSection

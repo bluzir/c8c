@@ -73,6 +73,9 @@ interface WorkflowListTabProps {
     resultLabel: string
     summary: string
     inputLabels: string[]
+    contextLine?: string | null
+    provenanceLabel?: string | null
+    showNeeds?: boolean
   } | null
   showIdleInputPanel: boolean
   showFlowEditor: boolean
@@ -125,6 +128,12 @@ export function WorkflowListTab({
   outputPanelRef,
   outputPanelProps,
 }: WorkflowListTabProps) {
+  const reviewOutputPanelClassName = "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col"
+  const liveOutputPanelClassName = cn(
+    "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col",
+    !terminalResultOwnsLayout && "flex-1",
+  )
+
   return (
     <TabsContent
       value="list"
@@ -167,13 +176,18 @@ export function WorkflowListTab({
             )}
             {blockedTaskPanel}
             {showIdleStageContract && !terminalResultOwnsLayout && idleStageContract && (
-              <WorkflowIdleStageContract
-                title={idleStageContract.title}
-                resultLabel={idleStageContract.resultLabel}
-                summary={idleStageContract.summary}
-                inputLabels={idleStageContract.inputLabels}
-              />
-            )}
+                <WorkflowIdleStageContract
+                  title={idleStageContract.title}
+                  resultLabel={idleStageContract.resultLabel}
+                  summary={idleStageContract.summary}
+                  contextLine={idleStageContract.contextLine}
+                  provenanceLabel={idleStageContract.provenanceLabel}
+                  inputLabels={idleStageContract.inputLabels}
+                  showNeeds={idleStageContract.showNeeds}
+                  onPrimaryAction={onPrimaryEntryAction}
+                  primaryActionLabel={blockedResumeSummary?.primaryActionLabel || (readyToRun ? (resumeEntrySummary?.continueLabel || "Run") : "Add input")}
+                />
+              )}
             {showIdleInputPanel && !terminalResultOwnsLayout && (
               <StageInputSection
                 inputPanelRef={inputPanelRef}
@@ -200,10 +214,10 @@ export function WorkflowListTab({
               <div
                 ref={outputPanelRef}
                 id="run-output-panel"
-                className="scroll-mt-4 flex min-h-0 flex-1 flex-col space-y-3"
+                className={reviewOutputPanelClassName}
               >
                 <SectionErrorBoundary sectionName="output panel">
-                  <OutputPanel {...outputPanelProps} reviewingPastRun fillHeight />
+                  <OutputPanel {...outputPanelProps} reviewingPastRun />
                 </SectionErrorBoundary>
               </div>
             )}
@@ -211,10 +225,10 @@ export function WorkflowListTab({
               <div
                 ref={outputPanelRef}
                 id="run-output-panel"
-                className={cn("scroll-mt-4", "flex min-h-0 flex-1 flex-col")}
+                className={liveOutputPanelClassName}
               >
                 <SectionErrorBoundary sectionName="output panel">
-                  <OutputPanel {...outputPanelProps} fillHeight />
+                  <OutputPanel {...outputPanelProps} fillHeight={!terminalResultOwnsLayout} />
                 </SectionErrorBoundary>
               </div>
             )}

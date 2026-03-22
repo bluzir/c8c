@@ -1,19 +1,31 @@
 import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
-import { formatCost } from "@/components/output/OutputSections"
+import { formatCost } from "@/components/output/outputFormatters"
 import type { EvaluationResult, NodeState, RunResult } from "@shared/types"
 
 type VerdictTerminalVariant = "saved" | "completed" | "failed" | "cancelled"
 type VerdictTone = "neutral" | "warning" | "danger"
 type VerdictSurfaceMode = "decision" | "document"
+type VerdictVariant = "outcome" | "diagnostic" | "document"
+
+export interface VerdictEvidencePanelItem {
+  id: string
+  scoreLabel: string
+  detail: string
+  tone: VerdictTone
+}
 
 export interface VerdictData {
   terminalVariant: VerdictTerminalVariant
+  variant: VerdictVariant
   surfaceMode: VerdictSurfaceMode
   tone: VerdictTone
   headline: string
   provenanceLabel: string | null
   evidenceItems: string[]
+  evidencePanelTitle: string | null
+  evidencePanelItems: VerdictEvidencePanelItem[]
+  followUpLabel: string | null
   preservedText: string | null
 }
 
@@ -205,6 +217,17 @@ export function deriveVerdictData({
   const criticalCount = terminalVariant === "failed"
     ? Math.max(failedNodeErrors.length, failedStageCount > 0 ? 1 : 0)
     : 0
+  const structuredCriteria = executionLoopSummary?.criteriaBreakdown
+    || latestEval?.criteria
+    || metadata?.criteria
+    || []
+  const fixInstructions = executionLoopSummary?.fixInstructions
+    || latestEval?.fix_instructions
+    || metadata?.fix_instructions
+    || null
+  const hasDiagnosticStructure = terminalVariant === "failed"
+    || structuredCriteria.length > 0
+    || Boolean(fixInstructions)
 
   const durationLabel = reviewingRunHistory && selectedReviewRun
     ? formatRunDuration(selectedReviewRun)
@@ -235,16 +258,53 @@ export function deriveVerdictData({
         isDisplayedResultEmpty,
       })
 
-  const evidenceItems = [
-    formatScore(scoreValue),
-    criticalCount > 0 ? `${criticalCount} critical` : scoreValue != null || warningCount > 0 || terminalVariant === "failed" ? "0 critical" : null,
-    warningCount > 0 ? `${warningCount} warning${warningCount === 1 ? "" : "s"}` : scoreValue != null || criticalCount > 0 ? "0 warnings" : null,
-    durationLabel,
-    costLabel,
-    executionLoopSummary?.attempt && executionLoopSummary.attempt > 1
-      ? `Attempt ${executionLoopSummary.attempt}/${executionLoopSummary.maxAttempts}`
-      : null,
-  ].filter((value): value is string => Boolean(value)).slice(0, 5)
+  const evidenceItems = hasDiagnosticStructure
+    ? [
+        formatScore(scoreValue),
+        structuredCriteria.length > 0
+          ? `${structuredCriteria.length} check${structuredCriteria.length === 1 ? "" : "s"}`
+          : criticalCount > 0
+            ? `${criticalCount} failed step${criticalCount === 1 ? "" : "s"}`
+            : null,
+        failedCriteriaCount > 0
+          ? `${failedCriteriaCount} below threshold`
+          : structuredCriteria.length > 0
+            ? "0 below threshold"
+            : warningCount > 0
+              ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
+              : null,
+        executionLoopSummary?.deltaLabel || null,
+        durationLabel,
+        costLabel,
+      ].filter((value): value is string => Boolean(value)).slice(0, 5)
+    : [
+        formatScore(scoreValue),
+        criticalCount > 0 ? `${criticalCount} critical` : scoreValue != null || warningCount > 0 || terminalVariant === "failed" ? "0 critical" : null,
+        warningCount > 0 ? `${warningCount} warning${warningCount === 1 ? "" : "s"}` : scoreValue != null || criticalCount > 0 ? "0 warnings" : null,
+        durationLabel,
+        costLabel,
+        executionLoopSummary?.attempt && executionLoopSummary.attempt > 1
+          ? `Attempt ${executionLoopSummary.attempt}/${executionLoopSummary.maxAttempts}`
+          : null,
+      ].filter((value): value is string => Boolean(value)).slice(0, 5)
+
+  const evidencePanelItems = executionLoopSummary?.criteriaBreakdown?.map((criterion) => {
+    const scoreLabel = `${criterion.score}/10`
+    const detail = executionLoopSummary.threshold
+      ? `threshold ${executionLoopSummary.threshold}/10`
+      : "structured check"
+    const tone: VerdictTone = criterion.score < (executionLoopSummary.threshold || 0)
+      ? criterion.score <= Math.max(1, (executionLoopSummary.threshold || 0) - 3)
+        ? "danger"
+        : "warning"
+      : "neutral"
+    return {
+      id: criterion.id,
+      scoreLabel,
+      detail,
+      tone,
+    }
+  }) || []
 
   const preservedText = terminalVariant === "failed"
     ? completedStageCount > 0
@@ -265,11 +325,19 @@ export function deriveVerdictData({
     : warningCount > 0 || executionLoopSummary?.outcome === "human decision" || executionLoopSummary?.outcome === "retry cap reached"
       ? "warning"
       : "neutral"
-  const surfaceMode: VerdictSurfaceMode = !isDisplayedResultEmpty
-    && !hasPrimaryContinuation
-    && (terminalVariant === "saved" || terminalVariant === "completed")
-    ? "document"
-    : "decision"
+  const variant: VerdictVariant = hasDiagnosticStructure
+    ? "diagnostic"
+    : !isDisplayedResultEmpty && !hasPrimaryContinuation && (terminalVariant === "saved" || terminalVariant === "completed")
+      ? "document"
+      : "outcome"
+  const surfaceMode: VerdictSurfaceMode = variant === "document" ? "document" : "decision"
+  const followUpLabel = hasPrimaryContinuation
+    ? null
+    : variant === "diagnostic"
+      ? "Create follow-up flow"
+      : variant === "document"
+        ? "Start next flow"
+        : "Continue with Agent"
 
   const provenanceLabel = buildProvenanceLabel({
     resultState,
@@ -281,11 +349,15 @@ export function deriveVerdictData({
 
   return {
     terminalVariant,
+    variant,
     surfaceMode,
     tone,
     headline,
     provenanceLabel,
     evidenceItems,
+    evidencePanelTitle: evidencePanelItems.length > 0 ? executionLoopSummary?.loopLabel || "Checks" : null,
+    evidencePanelItems,
+    followUpLabel,
     preservedText,
   }
 }

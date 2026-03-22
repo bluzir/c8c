@@ -94,7 +94,7 @@ export function useWorkflowPanelResources({
       if (cancelled) return
       console.error("[WorkflowPanel] failed to load pack templates:", error)
       setPackTemplates([])
-      toastErrorFromCatch("Could not load library", error)
+      toastErrorFromCatch("Could not load starting points", error)
     })
 
     return () => {

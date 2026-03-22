@@ -114,7 +114,7 @@ export function EmptyProjectState({
         )}
         <Button variant="outline" size="sm" onClick={onOpenTemplates}>
           <LayoutTemplate size={14} />
-          Browse library
+          Browse starting points
         </Button>
         {!hasCompletedFirstFlow && (
           <p className="text-body-sm text-muted-foreground/70">
@@ -201,26 +201,60 @@ export function WorkflowIdleStageContract({
   title,
   resultLabel,
   summary,
+  contextLine,
+  provenanceLabel,
   inputLabels,
+  showNeeds = true,
+  onPrimaryAction,
+  primaryActionLabel,
 }: {
   title: string
   resultLabel: string
   summary: string
+  contextLine?: string | null
+  provenanceLabel?: string | null
   inputLabels: string[]
+  showNeeds?: boolean
+  onPrimaryAction?: (() => void) | null
+  primaryActionLabel?: string
 }) {
   const needsText = inputLabels.length > 0 ? inputLabels.slice(0, 3).join(" · ") : "Input from this page"
+  const detailLines = [
+    provenanceLabel ? `Using: ${provenanceLabel}` : null,
+    resultLabel ? `Result: ${resultLabel}` : null,
+    showNeeds ? `Input: ${needsText}` : null,
+  ].filter((line): line is string => Boolean(line))
 
   return (
-    <section className="rounded-lg border border-hairline bg-surface-1 px-4 py-4 ui-fade-slide-in">
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <p className="section-kicker">Stage contract</p>
-          <h2 className="text-title-lg text-foreground">{title}</h2>
-          <p className="text-body-sm text-muted-foreground">{summary}</p>
+    <section className="ui-fade-slide-in space-y-2">
+      {contextLine && (
+        <p className="ui-meta-text text-muted-foreground">{contextLine}</p>
+      )}
+      <div className="rounded-lg border border-hairline bg-surface-1 px-4 py-4">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <p className="section-kicker">Stage contract</p>
+            <h2 className="text-title-lg text-foreground">{title}</h2>
+            <p className="text-body-sm text-muted-foreground">{summary}</p>
+          </div>
+          {detailLines.length > 0 && (
+            <div className="space-y-1.5">
+              {detailLines.map((line) => (
+                <p key={line} className="text-body-sm text-muted-foreground">
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
+          {onPrimaryAction && primaryActionLabel && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={onPrimaryAction}>
+                <Play size={14} />
+                {primaryActionLabel}
+              </Button>
+            </div>
+          )}
         </div>
-        <p className="text-body-sm text-muted-foreground">
-          Produces: {resultLabel} · Needs: {needsText}
-        </p>
       </div>
     </section>
   )

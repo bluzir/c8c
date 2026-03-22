@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { EvaluationResult, NodeState } from "@shared/types"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { deriveVerdictData } from "@/components/output/useVerdictData"
+import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 
 const RESULT_PRESENTATION: RuntimeStagePresentation = {
   kind: "Result",
@@ -45,6 +46,31 @@ function createEvalResult(overrides?: Partial<EvaluationResult>): EvaluationResu
     score: 8.5,
     reason: "Evaluator fallback reason",
     passed: true,
+    ...overrides,
+  }
+}
+
+function createExecutionLoopSummary(overrides?: Partial<ExecutionLoopSummary>): ExecutionLoopSummary {
+  return {
+    evaluatorNodeId: "result",
+    loopLabel: "Review loop",
+    title: "Quality check",
+    attempt: 1,
+    maxAttempts: 2,
+    threshold: 8,
+    score: 6.5,
+    failedCriteriaCount: 2,
+    criteriaText: "Check clarity and accessibility",
+    criteriaBreakdown: [
+      { id: "clarity", score: 7 },
+      { id: "accessibility", score: 5 },
+    ],
+    outcome: "human decision",
+    outcomeLabel: "Human decision",
+    outcomeSentence: "Human decision required.",
+    reason: "Accessibility needs attention before continuing.",
+    fixInstructions: "Fix contrast and focus order first.",
+    deltaLabel: "8/10 -> 6.5/10",
     ...overrides,
   }
 }
@@ -123,5 +149,46 @@ describe("deriveVerdictData", () => {
     expect(result.headline).toBe("Accessibility review failed on contrast and focus order.")
     expect(result.tone).toBe("danger")
     expect(result.preservedText).toBe("Previous 1 step remains available.")
+  })
+
+  it("promotes evaluator-backed reviews to diagnostic verdicts with an evidence panel", () => {
+    const result = deriveVerdictData({
+      nodeStates: {
+        result: createCompletedNodeState(),
+      },
+      evalResults: {
+        result: [createEvalResult({
+          score: 6.5,
+          passed: false,
+          criteria: [
+            { id: "clarity", score: 7 },
+            { id: "accessibility", score: 5 },
+          ],
+          fix_instructions: "Fix contrast and focus order first.",
+        })],
+      },
+      selectedResultNodeId: "result",
+      selectedResultPresentation: RESULT_PRESENTATION,
+      selectedResultBranchLabel: null,
+      selectedStagePresentation: RESULT_PRESENTATION,
+      selectedStageIndex: 1,
+      workflowStepCount: 3,
+      completedStageCount: 3,
+      failedStageCount: 0,
+      reviewingRunHistory: false,
+      selectedReviewRun: null,
+      executionLoopSummary: createExecutionLoopSummary(),
+      runStatus: "done",
+      runOutcome: "completed",
+      hasPrimaryContinuation: false,
+      isDisplayedResultEmpty: false,
+      failedNodeErrors: [],
+    })
+
+    expect(result.variant).toBe("diagnostic")
+    expect(result.surfaceMode).toBe("decision")
+    expect(result.evidencePanelTitle).toBe("Review loop")
+    expect(result.evidencePanelItems).toHaveLength(2)
+    expect(result.followUpLabel).toBe("Create follow-up flow")
   })
 })

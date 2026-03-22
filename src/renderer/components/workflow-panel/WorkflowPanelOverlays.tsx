@@ -1,14 +1,7 @@
-import { ApprovalDialog } from "@/components/ApprovalDialog"
-import { SkillPicker } from "@/components/SkillPicker"
 import { StageStartApprovalDialog } from "@/components/workflow-panel/WorkflowPanelInlineSections"
 import type { FlowRulePreview } from "@/lib/flow-rules"
-import type { DiscoveredSkill } from "@shared/types"
 
 export function WorkflowPanelOverlays({
-  showResumeHeader,
-  showEntryEditor,
-  entryStageLabel,
-  onAttachCapabilitySelection,
   stageStartGateOpen,
   stageStartFlowName,
   stageStartTitle,
@@ -24,10 +17,6 @@ export function WorkflowPanelOverlays({
   onApproveStageStart,
   onCancelStageStart,
 }: {
-  showResumeHeader: boolean
-  showEntryEditor: boolean
-  entryStageLabel: string | null
-  onAttachCapabilitySelection: (skill: DiscoveredSkill) => void
   stageStartGateOpen: boolean
   stageStartFlowName: string | null
   stageStartTitle: string
@@ -45,18 +34,6 @@ export function WorkflowPanelOverlays({
 }) {
   return (
     <>
-      {showResumeHeader && !showEntryEditor && (
-        <SkillPicker
-          onAddSkill={onAttachCapabilitySelection}
-          title="Attach skill"
-          description="Choose a reusable skill to add to the current flow."
-          searchPlaceholder="Search skills..."
-          emptyStateMessage="No skills found. Enable a plugin pack, keep using local skills, or open a project with project-level skills."
-          emptyResultsMessage={(query) => `No skills found for “${query}”`}
-          stageLabel={entryStageLabel}
-          attachTargetLabel="this flow"
-        />
-      )}
       <StageStartApprovalDialog
         open={stageStartGateOpen}
         flowName={stageStartFlowName || "This flow"}
@@ -75,7 +52,6 @@ export function WorkflowPanelOverlays({
         onApprove={onApproveStageStart}
         onCancel={onCancelStageStart}
       />
-      <ApprovalDialog />
     </>
   )
 }
