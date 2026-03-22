@@ -16,16 +16,24 @@ import { cn } from "@/lib/cn"
 import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
-import type { ArtifactRecord, EvaluationResult, NodeState, RunResult } from "@shared/types"
+import type {
+  ArtifactRecord,
+  EvaluationResult,
+  NodeState,
+  RunResult,
+} from "@shared/types"
 
 const MARKDOWN_PROSE_CLASS = "prose-c8c"
+const RESULT_MARKDOWN_PROPS = DEFAULT_MARKDOWN_PROPS as any
 
 function stripLeadingMarkdownHeading(value: string) {
   return value.replace(/^\s*# .*(?:\r?\n)+(?:\r?\n)*/u, "")
 }
 
 function compactLine(items: Array<string | null | undefined>) {
-  return items.filter((item): item is string => Boolean(item && item.trim())).join(" · ")
+  return items
+    .filter((item): item is string => Boolean(item && item.trim()))
+    .join(" · ")
 }
 
 interface ResultNodeOption {
@@ -79,8 +87,12 @@ export function ResultTab({
   canRerunSelectedStage,
   onRerunSelectedStage,
   onViewActivity,
+  onInspectFailure,
   onEditFlow,
   failedNodeErrors,
+  failureCategoryLabel,
+  failureHint,
+  retryStepLabel,
   canUseInNewFlow,
   onUseInNewFlow,
   onOpenArtifact,
@@ -131,12 +143,21 @@ export function ResultTab({
   canRerunSelectedStage: boolean
   onRerunSelectedStage?: (() => void) | null
   onViewActivity?: (() => void) | null
+  onInspectFailure?: (() => void) | null
   onEditFlow?: (() => void) | null
   failedNodeErrors: [string, { error?: string }][]
+  failureCategoryLabel?: string | null
+  failureHint?: string | null
+  retryStepLabel?: string | null
   canUseInNewFlow: boolean
   onUseInNewFlow?: (() => Promise<void> | void) | null
   onOpenArtifact?: ((artifact: ArtifactRecord) => Promise<void> | void) | null
-  onArtifactContextMenu?: ((event: React.MouseEvent<HTMLButtonElement>, artifact: ArtifactRecord) => void) | null
+  onArtifactContextMenu?:
+    | ((
+        event: React.MouseEvent<HTMLButtonElement>,
+        artifact: ArtifactRecord,
+      ) => void)
+    | null
   onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => void
 }) {
   const verdictData = useVerdictData({
@@ -162,19 +183,25 @@ export function ResultTab({
   const terminalVariant = verdictData.terminalVariant
   const isDocumentSurface = verdictData.surfaceMode === "document"
   const isDiagnosticSurface = verdictData.variant === "diagnostic"
-  const savedArtifactsLabel = artifactRecords.length > 0
-    ? compactLine([
-        visibleArtifactContinuation.map((artifact) => artifact.title).join(" · "),
-        hiddenArtifactContinuationCount > 0 ? `+${hiddenArtifactContinuationCount} more` : null,
-      ])
-    : (selectedResultPresentation?.artifactLabel || "Result")
+  const savedArtifactsLabel =
+    artifactRecords.length > 0
+      ? compactLine([
+          visibleArtifactContinuation
+            .map((artifact) => artifact.title)
+            .join(" · "),
+          hiddenArtifactContinuationCount > 0
+            ? `+${hiddenArtifactContinuationCount} more`
+            : null,
+        ])
+      : selectedResultPresentation?.artifactLabel || "Result"
   const continuationReferenceLine = compactLine([
     `Saved: ${savedArtifactsLabel}`,
     nextStageRequiresApproval ? "approval before continue" : null,
-    artifactPersistenceError,
     nextStageLabel ? `feeds into ${nextStageLabel}` : null,
   ])
-  const hasUseInNewFlowAction = Boolean(canUseInNewFlow && onUseInNewFlow && !reviewingRunHistory)
+  const hasUseInNewFlowAction = Boolean(
+    canUseInNewFlow && onUseInNewFlow && !reviewingRunHistory,
+  )
   const actionItems: ReactNode[] = []
 
   if (showArtifactContinuation && nextStageLabel && onRunNextStage) {
@@ -208,6 +235,19 @@ export function ResultTab({
         >
           {verdictData.followUpLabel || "Continue with Agent"}
         </Button>,
+      )
+    }
+
+    if (canStartFreshRun && onStartNewRun) {
+      actionItems.push(
+        <button
+          key="start-step-over"
+          type="button"
+          className="ui-meta-text text-muted-foreground hover:text-foreground ui-motion-fast"
+          onClick={onStartNewRun}
+        >
+          Start this step over
+        </button>,
       )
     }
   } else if (terminalVariant === "completed" || terminalVariant === "saved") {
@@ -249,7 +289,11 @@ export function ResultTab({
           type="button"
           variant={hasUseInNewFlowAction ? "ghost" : "default"}
           size="sm"
-          className={hasUseInNewFlowAction ? "h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground" : undefined}
+          className={
+            hasUseInNewFlowAction
+              ? "h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+              : undefined
+          }
           onClick={onStartNewRun}
         >
           {hasUseInNewFlowAction ? "Start fresh run" : "Run again"}
@@ -259,16 +303,43 @@ export function ResultTab({
   } else if (terminalVariant === "failed") {
     if (canRerunSelectedStage && onRerunSelectedStage) {
       actionItems.push(
-        <Button key="retry-step" type="button" size="sm" onClick={onRerunSelectedStage}>
+        <Button
+          key="retry-step"
+          type="button"
+          size="sm"
+          onClick={onRerunSelectedStage}
+        >
           <ArrowRight size={12} />
-          Resume from this step
+          {retryStepLabel
+            ? `Retry from ${retryStepLabel}`
+            : "Retry from this step"}
         </Button>,
       )
     } else if (canStartFreshRun && onStartNewRun) {
       actionItems.push(
-        <Button key="start-fresh" type="button" size="sm" onClick={onStartNewRun}>
+        <Button
+          key="start-fresh"
+          type="button"
+          size="sm"
+          onClick={onStartNewRun}
+        >
           <ArrowRight size={12} />
           Start fresh run
+        </Button>,
+      )
+    }
+
+    if (onInspectFailure) {
+      actionItems.push(
+        <Button
+          key="inspect-failure"
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+          onClick={onInspectFailure}
+        >
+          Inspect step log
         </Button>,
       )
     }
@@ -288,74 +359,126 @@ export function ResultTab({
       )
     }
   }
-  const verdictToneClass = verdictData.tone === "danger"
-    ? "surface-danger-soft"
-    : verdictData.tone === "warning"
-      ? "surface-warning-soft"
-      : "bg-surface-1"
-  const renderedResultContent = stripLeadingMarkdownHeading(displayedResultContent)
-  const visibleProvenanceLabel = showArtifactContinuation ? null : verdictData.provenanceLabel
+  const verdictToneClass =
+    verdictData.tone === "danger"
+      ? "surface-danger-soft"
+      : verdictData.tone === "warning"
+        ? "surface-warning-soft"
+        : "bg-surface-1"
+  const renderedResultContent = stripLeadingMarkdownHeading(
+    displayedResultContent,
+  )
+  const visibleProvenanceLabel = showArtifactContinuation
+    ? null
+    : verdictData.provenanceLabel
   const evidenceLine = verdictData.evidenceItems.join(" · ")
   const visibleSavedArtifacts = visibleArtifactContinuation.slice(0, 2)
-  const hiddenSavedArtifactCount = Math.max(0, artifactRecords.length - visibleSavedArtifacts.length)
+  const hiddenSavedArtifactCount = Math.max(
+    0,
+    artifactRecords.length - visibleSavedArtifacts.length,
+  )
   const documentMetaLine = compactLine([visibleProvenanceLabel, evidenceLine])
-  const evidencePanel = verdictData.evidencePanelItems.length > 0 ? (
-    <section className="space-y-2 border-t border-hairline pt-3">
-      {verdictData.evidencePanelTitle ? (
-        <div className="ui-meta-label text-muted-foreground">{verdictData.evidencePanelTitle}</div>
-      ) : null}
-      <div className="space-y-2">
-        {verdictData.evidencePanelItems.map((item) => {
-          const toneClass = item.tone === "danger"
-            ? "text-status-danger"
-            : item.tone === "warning"
-              ? "text-status-warning"
-              : "text-foreground"
-          return (
-            <div key={item.id} className="flex items-start justify-between gap-3 rounded-md bg-surface-2/35 px-3 py-2">
-              <div className="min-w-0">
-                <div className="text-body-sm font-medium text-foreground">{item.title}</div>
-                <div className="ui-meta-text text-muted-foreground">{item.detail}</div>
-              </div>
-              {item.valueLabel ? (
-                <div className={cn("shrink-0 text-body-sm font-medium", toneClass)}>{item.valueLabel}</div>
-              ) : null}
-            </div>
-          )
-        })}
-      </div>
-    </section>
-  ) : null
-  const artifactLinkStrip = showArtifactContinuation && visibleSavedArtifacts.length > 0 ? (
-    <div className="border-t border-hairline pt-3">
-      <div className="ui-meta-label text-muted-foreground">Saved files</div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-        {visibleSavedArtifacts.map((artifact) => (
-          <button
-            key={artifact.id}
-            type="button"
-            className="ui-meta-text text-foreground-subtle hover:text-foreground ui-pressable"
-            onClick={() => {
-              if (!onOpenArtifact) return
-              void Promise.resolve(onOpenArtifact(artifact))
-            }}
-            onContextMenu={(event) => {
-              if (!onArtifactContextMenu) return
-              event.preventDefault()
-              onArtifactContextMenu(event, artifact)
-            }}
-          >
-            {artifact.title}
-          </button>
-        ))}
-        {hiddenSavedArtifactCount > 0 ? (
-          <span className="ui-meta-text text-muted-foreground">
-            +{hiddenSavedArtifactCount} more
-          </span>
+  const failureBridge =
+    terminalVariant === "failed" && (failureCategoryLabel || failureHint) ? (
+      <div className="space-y-1 border-t border-hairline pt-3">
+        {failureCategoryLabel ? (
+          <p className="ui-meta-label text-status-danger">
+            {failureCategoryLabel}
+          </p>
+        ) : null}
+        {failureHint ? (
+          <p className="text-body-sm text-foreground">{failureHint}</p>
         ) : null}
       </div>
-    </div>
-  ) : null
+    ) : null
+  const nextStageHint =
+    showArtifactContinuation && nextStageDescription ? (
+      <p className="text-body-sm text-muted-foreground">
+        {nextStageDescription}
+      </p>
+    ) : null
+  const artifactPersistenceNotice =
+    showArtifactContinuation && artifactPersistenceError ? (
+      <p className="border-t border-hairline pt-3 text-body-sm text-status-danger">
+        {artifactPersistenceError}
+      </p>
+    ) : null
+  const evidencePanel =
+    verdictData.evidencePanelItems.length > 0 ? (
+      <section className="space-y-2 border-t border-hairline pt-3">
+        {verdictData.evidencePanelTitle ? (
+          <div className="ui-meta-label text-muted-foreground">
+            {verdictData.evidencePanelTitle}
+          </div>
+        ) : null}
+        <div className="space-y-2">
+          {verdictData.evidencePanelItems.map((item) => {
+            const toneClass =
+              item.tone === "danger"
+                ? "text-status-danger"
+                : item.tone === "warning"
+                  ? "text-status-warning"
+                  : "text-foreground"
+            return (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 ui-evidence-item"
+              >
+                <div className="min-w-0">
+                  <div className="text-body-sm font-medium text-foreground">
+                    {item.title}
+                  </div>
+                  <div className="ui-meta-text text-muted-foreground">
+                    {item.detail}
+                  </div>
+                </div>
+                {item.valueLabel ? (
+                  <div
+                    className={cn(
+                      "shrink-0 text-body-sm font-medium",
+                      toneClass,
+                    )}
+                  >
+                    {item.valueLabel}
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    ) : null
+  const artifactLinkStrip =
+    showArtifactContinuation && visibleSavedArtifacts.length > 0 ? (
+      <div className="border-t border-hairline pt-3">
+        <div className="ui-meta-label text-muted-foreground">Saved files</div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {visibleSavedArtifacts.map((artifact) => (
+            <button
+              key={artifact.id}
+              type="button"
+              className="ui-meta-text text-foreground-subtle hover:text-foreground ui-pressable"
+              onClick={() => {
+                if (!onOpenArtifact) return
+                void Promise.resolve(onOpenArtifact(artifact))
+              }}
+              onContextMenu={(event) => {
+                if (!onArtifactContextMenu) return
+                event.preventDefault()
+                onArtifactContextMenu(event, artifact)
+              }}
+            >
+              {artifact.title}
+            </button>
+          ))}
+          {hiddenSavedArtifactCount > 0 ? (
+            <span className="ui-meta-text text-muted-foreground">
+              +{hiddenSavedArtifactCount} more
+            </span>
+          ) : null}
+        </div>
+      </div>
+    ) : null
 
   return (
     <div className="space-y-2" onContextMenu={onContextMenu}>
@@ -366,9 +489,13 @@ export function ResultTab({
         <section className="space-y-3">
           <div className="border-b border-hairline px-1 pb-3">
             <div className="min-w-0">
-              <h2 className="truncate text-title-sm font-semibold text-foreground">{verdictData.headline}</h2>
+              <h2 className="truncate text-title-sm font-semibold text-foreground">
+                {verdictData.headline}
+              </h2>
               {documentMetaLine ? (
-                <p className="mt-1 ui-meta-text text-muted-foreground">{documentMetaLine}</p>
+                <p className="mt-1 ui-meta-text text-muted-foreground">
+                  {documentMetaLine}
+                </p>
               ) : null}
             </div>
             {actionItems.length > 0 ? (
@@ -376,10 +503,11 @@ export function ResultTab({
                 {actionItems}
               </div>
             ) : null}
+            {nextStageHint}
             {artifactLinkStrip}
           </div>
 
-          <section className="overflow-hidden rounded-lg border border-hairline bg-surface-1">
+          <section className="surface-figure overflow-hidden">
             <div className="px-4 py-4">
               {isDisplayedResultEmpty ? (
                 <div className="ui-meta-text text-muted-foreground">
@@ -391,9 +519,10 @@ export function ResultTab({
                 </div>
               ) : (
                 <div className={MARKDOWN_PROSE_CLASS}>
-                  <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
-                    {renderedResultContent}
-                  </ReactMarkdown>
+                  <ReactMarkdown
+                    {...RESULT_MARKDOWN_PROPS}
+                    children={renderedResultContent}
+                  />
                 </div>
               )}
             </div>
@@ -402,16 +531,20 @@ export function ResultTab({
       ) : (
         <section
           className={cn(
-            "rounded-lg border border-hairline px-4 py-4",
+            "surface-figure px-4 py-4",
             verdictToneClass,
             showArtifactContinuation && artifactContinuationToneClass,
           )}
         >
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <h2 className="text-title-lg text-foreground">{verdictData.headline}</h2>
+              <h2 className="text-title-lg text-foreground">
+                {verdictData.headline}
+              </h2>
               {visibleProvenanceLabel && (
-                <p className="ui-meta-text text-muted-foreground">{visibleProvenanceLabel}</p>
+                <p className="ui-meta-text text-muted-foreground">
+                  {visibleProvenanceLabel}
+                </p>
               )}
             </div>
 
@@ -428,14 +561,19 @@ export function ResultTab({
                 {actionItems}
               </div>
             )}
+            {terminalVariant === "failed" ? failureBridge : nextStageHint}
 
             {evidencePanel}
 
-            {((showArtifactContinuation && continuationReferenceLine) || verdictData.preservedText) && (
+            {((showArtifactContinuation && continuationReferenceLine) ||
+              verdictData.preservedText) && (
               <p className="border-t border-hairline pt-3 text-body-sm text-muted-foreground">
-                {showArtifactContinuation ? continuationReferenceLine : verdictData.preservedText}
+                {showArtifactContinuation
+                  ? continuationReferenceLine
+                  : verdictData.preservedText}
               </p>
             )}
+            {artifactPersistenceNotice}
             {artifactLinkStrip}
           </div>
         </section>
@@ -458,8 +596,12 @@ export function ResultTab({
               </SelectTrigger>
               <SelectContent>
                 {resultNodeOptions.map((option) => (
-                  <SelectItem key={`result-node-${option.id}`} value={option.id}>
-                    {option.label}{option.hasContent ? "" : " · empty result"}
+                  <SelectItem
+                    key={`result-node-${option.id}`}
+                    value={option.id}
+                  >
+                    {option.label}
+                    {option.hasContent ? "" : " · empty result"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -469,8 +611,8 @@ export function ResultTab({
       )}
 
       <div className={isDisplayedResultEmpty ? "px-1 py-1" : "px-4 py-4"}>
-        {!isDocumentSurface && (
-          isDisplayedResultEmpty ? (
+        {!isDocumentSurface &&
+          (isDisplayedResultEmpty ? (
             <div className="ui-meta-text text-muted-foreground">
               {reviewingRunHistory
                 ? "No saved result for this run."
@@ -479,13 +621,18 @@ export function ResultTab({
                   : "No result yet. Results appear here when the flow completes."}
             </div>
           ) : (
-            <div className={cn(MARKDOWN_PROSE_CLASS, isDiagnosticSurface && "pt-1")}>
-              <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
-                {renderedResultContent}
-              </ReactMarkdown>
+            <div
+              className={cn(
+                MARKDOWN_PROSE_CLASS,
+                isDiagnosticSurface && "pt-1",
+              )}
+            >
+              <ReactMarkdown
+                {...RESULT_MARKDOWN_PROPS}
+                children={renderedResultContent}
+              />
             </div>
-          )
-        )}
+          ))}
       </div>
     </div>
   )
