@@ -243,6 +243,57 @@ export function formatExecutionPreflightTitle(provider: ProviderId, reason: Exec
   return `${providerLabel} login required`
 }
 
+function appendSettingsHint(message: string) {
+  const trimmed = message.trim()
+  if (!trimmed) return "Open Settings to fix the provider setup."
+  if (/open settings/i.test(trimmed)) return trimmed
+  return `${trimmed} Open Settings to fix the provider setup.`
+}
+
+export function resolveExecutionStartBlockReason(
+  workflow: Workflow,
+  snapshot: {
+    settings: ProviderSettings
+    availability: Record<ProviderId, ProviderDiagnostics["health"][ProviderId] | null>
+    auth: Record<ProviderId, ProviderDiagnostics["auth"][ProviderId] | null>
+  },
+): string | null {
+  if (!workflowRequiresProvider(workflow)) {
+    return null
+  }
+
+  const effectiveProvider = resolveEffectiveExecutionProvider(workflow, snapshot.settings)
+  const providerHealth = snapshot.availability[effectiveProvider]
+  if (!providerHealth) {
+    return null
+  }
+  if (!providerHealth.available) {
+    return appendSettingsHint(unavailableMessage(effectiveProvider, null, providerHealth.error))
+  }
+
+  if (effectiveProvider === "claude") {
+    const detectedVersion = parseCliVersion(providerHealth.version)
+    if (detectedVersion && compareSemver(detectedVersion, MIN_CLAUDE_CLI_VERSION) < 0) {
+      return appendSettingsHint(
+        `Claude CLI version ${detectedVersion} is installed, but c8c requires ${MIN_CLAUDE_CLI_VERSION} or newer. Run: npm update -g @anthropic-ai/claude-code`,
+      )
+    }
+  }
+
+  const providerAuth = snapshot.auth[effectiveProvider]
+  if (!providerAuth) {
+    return null
+  }
+  if (effectiveProvider === "codex" && providerAuth.state === "unknown") {
+    return null
+  }
+  if (!providerAuth.authenticated) {
+    return appendSettingsHint(authRequiredMessage(effectiveProvider, null, providerAuth.error))
+  }
+
+  return null
+}
+
 // ── Token Budget Estimation ─────────────────────────────
 
 /**

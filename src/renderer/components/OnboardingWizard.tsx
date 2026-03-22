@@ -26,6 +26,12 @@ import {
 } from "lucide-react"
 import { toastErrorFromCatch } from "@/lib/toast-error"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
+import { resolveProjectRequiredContract } from "@/lib/entry-state-contracts"
+import {
+  getProviderInstallCommand,
+  getProviderLoginCommand,
+  resolveProviderReadinessVerdict,
+} from "@/lib/provider-readiness"
 
 const TOTAL_STEPS = 3
 
@@ -132,17 +138,16 @@ export function OnboardingWizard() {
                     {step === TOTAL_STEPS ? "Finish" : "Skip setup"}
                   </Button>
                   {step < TOTAL_STEPS && (
-                    canContinue ? (
-                      <Button
-                        type="button"
-                        variant="default"
-                        size="sm"
-                        onClick={next}
-                      >
-                        Continue
-                        <ArrowRight size={14} />
-                      </Button>
-                    ) : null
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={next}
+                      disabled={!canContinue}
+                    >
+                      Continue
+                      <ArrowRight size={14} />
+                    </Button>
                   )}
                 </div>
               </div>
@@ -162,6 +167,7 @@ function StepCheckCli() {
   const [, setProviderAuthStatus] = useAtom(providerAuthStatusAtom)
   const [execDefaults, setExecDefaults] = useAtom(globalExecutionDefaultsAtom)
   const currentModelRef = useRef(execDefaults.model)
+  const mountedRef = useRef(true)
   const [diagnostics, setDiagnostics] = useState<ProviderDiagnostics | null>(null)
   const [primaryProvider, setPrimaryProvider] = useState<ProviderId | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -171,61 +177,68 @@ function StepCheckCli() {
     currentModelRef.current = execDefaults.model
   }, [execDefaults.model])
 
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   const applyDiagnostics = useCallback((nextDiagnostics: ProviderDiagnostics) => {
+    if (!mountedRef.current) return
     setDiagnostics(nextDiagnostics)
     setProviderSettings(nextDiagnostics.settings)
     setProviderAvailability(nextDiagnostics.health)
     setProviderAuthStatus(nextDiagnostics.auth)
   }, [setProviderAuthStatus, setProviderAvailability, setProviderSettings])
 
-  useEffect(() => {
-    let cancelled = false
+  const refreshDiagnostics = useCallback(async () => {
+    if (!mountedRef.current) return
+    setLoadError(null)
     setLoading(true)
+    try {
+      const initialDiagnostics = await window.api.getProviderDiagnostics()
+      applyDiagnostics(initialDiagnostics)
 
-    void (async () => {
-      try {
-        const initialDiagnostics = await window.api.getProviderDiagnostics()
-        if (cancelled) return
+      const resolvedPrimary = resolveOnboardingPrimaryProvider(
+        initialDiagnostics,
+        currentModelRef.current,
+      )
 
-        applyDiagnostics(initialDiagnostics)
+      if (!mountedRef.current) return
+      setPrimaryProvider(resolvedPrimary?.provider ?? null)
 
-        const resolvedPrimary = resolveOnboardingPrimaryProvider(
-          initialDiagnostics,
-          currentModelRef.current,
-        )
+      if (resolvedPrimary?.providerChanged) {
+        const nextSettings = await window.api.updateProviderSettings({
+          defaultProvider: resolvedPrimary.provider,
+        })
 
-        if (cancelled) return
-        setPrimaryProvider(resolvedPrimary?.provider ?? null)
-
-        if (resolvedPrimary?.providerChanged) {
-          const nextSettings = await window.api.updateProviderSettings({
-            defaultProvider: resolvedPrimary.provider,
-          })
-          if (cancelled) return
-
-          applyDiagnostics({
-            ...initialDiagnostics,
-            settings: nextSettings,
-          })
-        }
-
-        if (resolvedPrimary?.modelChanged) {
-          setExecDefaults((prev) => ({
-            ...prev,
-            model: resolvedPrimary.model,
-          }))
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : "Could not check CLI status.")
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
+        applyDiagnostics({
+          ...initialDiagnostics,
+          settings: nextSettings,
+        })
       }
-    })()
 
-    return () => { cancelled = true }
+      if (resolvedPrimary?.modelChanged) {
+        if (!mountedRef.current) return
+        setExecDefaults((prev) => ({
+          ...prev,
+          model: resolvedPrimary.model,
+        }))
+      }
+    } catch (error) {
+      if (!mountedRef.current) return
+      setLoadError(error instanceof Error ? error.message : "Could not check CLI status.")
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false)
+      }
+    }
   }, [applyDiagnostics, setExecDefaults])
+
+  useEffect(() => {
+    void refreshDiagnostics()
+  }, [refreshDiagnostics])
 
   const providers: ProviderId[] = ["claude", "codex"]
   const readyProviders = providers.filter((provider) => {
@@ -261,10 +274,9 @@ function StepCheckCli() {
             const available = health?.available ?? false
             const authenticated = auth?.authenticated ?? false
             const authState = auth?.state ?? "unknown"
-            const installCommand = provider === "claude"
-              ? "npm install -g @anthropic-ai/claude-code"
-              : "npm install -g @openai/codex"
-            const loginCommand = provider === "claude" ? "claude login" : "codex login"
+            const verdict = resolveProviderReadinessVerdict(provider, health, auth)
+            const installCommand = getProviderInstallCommand(provider)
+            const loginCommand = getProviderLoginCommand(provider)
 
             return (
               <div
@@ -302,7 +314,7 @@ function StepCheckCli() {
                     {available
                       ? authenticated
                         ? "Authenticated"
-                        : authState === "unknown"
+                        : verdict.badgeLabel === "Check sign-in"
                           ? "Authentication could not be verified automatically"
                           : "Not authenticated"
                       : "Authentication unavailable until the CLI is installed"}
@@ -350,6 +362,18 @@ function StepCheckCli() {
           <p className="ui-meta-text text-muted-foreground">
             No custom skills needed to start.
           </p>
+          <div className="pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void refreshDiagnostics()}
+              disabled={loading}
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
+              Re-check CLI
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -366,6 +390,9 @@ function StepOpenProject({
   onProjectAdded: (path: string | null) => void
 }) {
   const [adding, setAdding] = useState(false)
+  const projectRequired = resolveProjectRequiredContract({
+    resolvedProjectPath: projectPath,
+  })
 
   const handleAddProject = useCallback(async () => {
     setAdding(true)
@@ -417,10 +444,10 @@ function StepOpenProject({
             ) : (
               <FolderOpen size={14} />
             )}
-            Choose folder
+            {projectRequired.primaryActionLabel}
           </Button>
           <p className="ui-meta-text text-muted-foreground">
-            A project is required before your first real flow run.
+            {projectRequired.blockerStatement} {projectRequired.actionInstruction}
           </p>
         </div>
       )}
@@ -469,14 +496,14 @@ function StepUnderstandWorkflow({
             Start a flow
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={onGoTemplates}>
-            Browse library
+            Browse starting points
           </Button>
         </div>
         <p className="ui-meta-text text-muted-foreground">
           No custom skills needed to start.
         </p>
         <p className="ui-meta-text text-muted-foreground">
-          Tip: write the goal first. You can browse the library if you want a curated starting point.
+          Tip: write the goal first. You can browse starting points if you want a curated way to begin.
         </p>
       </div>
 

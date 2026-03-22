@@ -8,6 +8,8 @@ interface WorkflowRunBlockerProps {
   runDisabledReason: string | null
   workflowValidation: ValidationError[]
   hasBlockingErrors: boolean
+  showOpenSettingsAction?: boolean
+  onOpenSettings?: () => void
   onNavigateToValidationIssue: (issue: ValidationError) => void
 }
 
@@ -18,6 +20,8 @@ export function WorkflowRunBlocker({
   runDisabledReason,
   workflowValidation,
   hasBlockingErrors,
+  showOpenSettingsAction = false,
+  onOpenSettings,
   onNavigateToValidationIssue,
 }: WorkflowRunBlockerProps) {
   return (
@@ -33,6 +37,17 @@ export function WorkflowRunBlocker({
           <p className="text-body-sm font-medium">
             {runDisabledReason || ""}
           </p>
+          {showOpenSettingsAction && onOpenSettings ? (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="text-left text-body-sm underline underline-offset-2 hover:no-underline"
+              >
+                Open Settings
+              </button>
+            </div>
+          ) : null}
           {hasBlockingErrors && (
             <ul className="mt-2 space-y-1.5">
               {workflowValidation.filter((issue) => issue.severity === "error").map((issue) => (

@@ -19,6 +19,7 @@ import {
   MIN_CLAUDE_CLI_VERSION,
   parseCliVersion,
   resolveEffectiveExecutionProvider,
+  resolveExecutionStartBlockReason,
 } from "./preflight"
 
 function createWorkflow(provider?: "claude" | "codex"): Workflow {
@@ -289,6 +290,47 @@ describe("execution preflight", () => {
     expect(formatExecutionPreflightTitle("claude", "cli_unavailable")).toBe("Claude Code unavailable")
     expect(formatExecutionPreflightTitle("claude", "cli_version_unsupported")).toBe("Claude Code update required")
     expect(formatExecutionPreflightTitle("codex", "auth_required")).toBe("OpenAI Codex login required")
+  })
+
+  it("returns a settings-directed block reason for unavailable providers", () => {
+    expect(resolveExecutionStartBlockReason(createProviderWorkflow("claude"), {
+      settings: createDiagnostics().settings,
+      availability: {
+        claude: {
+          provider: "claude",
+          available: false,
+          error: "Claude CLI is not installed.",
+        },
+        codex: {
+          provider: "codex",
+          available: true,
+          error: null,
+        },
+      },
+      auth: createDiagnostics().auth,
+    })).toContain("Open Settings to fix the provider setup.")
+  })
+
+  it("does not block when provider diagnostics have not loaded yet", () => {
+    expect(resolveExecutionStartBlockReason(createProviderWorkflow("codex"), {
+      settings: createDiagnostics({
+        settings: {
+          defaultProvider: "codex",
+          safetyProfile: "workspace_auto",
+          features: {
+            codexProvider: true,
+          },
+        },
+      }).settings,
+      availability: {
+        claude: null,
+        codex: null,
+      },
+      auth: {
+        claude: null,
+        codex: null,
+      },
+    })).toBeNull()
   })
 
   describe("CLI version checking", () => {
