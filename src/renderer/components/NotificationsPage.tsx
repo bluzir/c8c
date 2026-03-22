@@ -117,6 +117,7 @@ export function NotificationsPage() {
   const humanTasksRequestIdRef = useRef(0)
   const artifactsRequestIdRef = useRef(0)
   const selectedTaskRequestIdRef = useRef(0)
+  const taskStageMetaRequestIdRef = useRef(0)
 
   useEffect(() => {
     markAllRead()
@@ -263,27 +264,29 @@ export function NotificationsPage() {
 
     const requestId = selectedTaskRequestIdRef.current + 1
     selectedTaskRequestIdRef.current = requestId
-    let cancelled = false
 
     setSelectedTask(null)
     setTaskAnswers({})
     setTaskLoading(true)
+    setHumanTasksError(null)
     void window.api.loadHumanTask(summary.taskId, summary.workspace).then((task) => {
-      if (cancelled || selectedTaskRequestIdRef.current !== requestId) return
+      if (selectedTaskRequestIdRef.current !== requestId) return
       setSelectedTask(task)
       setTaskAnswers(buildInitialHumanTaskAnswers(task))
     }).catch((error) => {
-      if (cancelled || selectedTaskRequestIdRef.current !== requestId) return
+      if (selectedTaskRequestIdRef.current !== requestId) return
       setHumanTasksError(errorToUserMessage(error))
       setSelectedTask(null)
       setTaskAnswers({})
     }).finally(() => {
-      if (cancelled || selectedTaskRequestIdRef.current !== requestId) return
+      if (selectedTaskRequestIdRef.current !== requestId) return
       setTaskLoading(false)
     })
 
     return () => {
-      cancelled = true
+      if (selectedTaskRequestIdRef.current === requestId) {
+        selectedTaskRequestIdRef.current += 1
+      }
     }
   }, [selectedTaskId, visibleHumanTasks])
 
@@ -294,18 +297,20 @@ export function NotificationsPage() {
         .filter((value): value is string => typeof value === "string" && value.length > 0),
     ))
     if (workflowPaths.length === 0) {
+      taskStageMetaRequestIdRef.current += 1
       setTaskStageMetaByKey({})
       return
     }
 
-    let cancelled = false
+    const requestId = taskStageMetaRequestIdRef.current + 1
+    taskStageMetaRequestIdRef.current = requestId
     void Promise.all(
       workflowPaths.map(async (workflowPath) => ({
         workflowPath,
         workflow: await window.api.loadWorkflow(workflowPath),
       })),
     ).then((loaded) => {
-      if (cancelled) return
+      if (taskStageMetaRequestIdRef.current !== requestId) return
       const next: Record<string, TaskStageMeta> = {}
       for (const task of humanTasks) {
         const key = taskStageKey(task)
@@ -316,12 +321,16 @@ export function NotificationsPage() {
         if (meta) next[key] = meta
       }
       setTaskStageMetaByKey(next)
-    }).catch(() => {
-      if (!cancelled) setTaskStageMetaByKey({})
+    }).catch((error) => {
+      if (taskStageMetaRequestIdRef.current !== requestId) return
+      console.error("[notifications] Could not load task stage metadata", error)
+      setTaskStageMetaByKey({})
     })
 
     return () => {
-      cancelled = true
+      if (taskStageMetaRequestIdRef.current === requestId) {
+        taskStageMetaRequestIdRef.current += 1
+      }
     }
   }, [humanTasks])
 

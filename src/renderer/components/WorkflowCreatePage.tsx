@@ -296,6 +296,8 @@ export function WorkflowCreatePage() {
   const composerRef = useRef<HTMLDivElement | null>(null)
   const promptHelperRef = useRef<HTMLDivElement | null>(null)
   const promptHelperScrollRef = useRef<HTMLDivElement | null>(null)
+  const templateLoadRequestIdRef = useRef(0)
+  const projectInspectionRequestIdRef = useRef(0)
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
 
   const targetProjectPath = createContext.projectPath
@@ -344,7 +346,8 @@ export function WorkflowCreatePage() {
   ])
 
   useEffect(() => {
-    let cancelled = false
+    const requestId = templateLoadRequestIdRef.current + 1
+    templateLoadRequestIdRef.current = requestId
     setLoadingTemplates(true)
 
     void (async () => {
@@ -359,13 +362,14 @@ export function WorkflowCreatePage() {
               POPULAR_TEMPLATE_LIMIT,
             )
           } catch (error) {
+            if (templateLoadRequestIdRef.current !== requestId) return
             if (!String(error).includes("No handler registered")) {
               toastErrorFromCatch("Could not load popular library flows", error)
             }
           }
         }
 
-        if (cancelled) return
+        if (templateLoadRequestIdRef.current !== requestId) return
         setAvailableTemplates(templates)
         const seen = new Set(popular.map((template) => template.id))
         const supplemented = templates.filter((template) => !seen.has(template.id))
@@ -373,19 +377,21 @@ export function WorkflowCreatePage() {
           [...popular, ...supplemented].slice(0, POPULAR_TEMPLATE_LIMIT),
         )
       } catch (error) {
-        if (cancelled) return
+        if (templateLoadRequestIdRef.current !== requestId) return
         setAvailableTemplates([])
         setPopularTemplates([])
         toastErrorFromCatch("Could not load library", error)
       } finally {
-        if (!cancelled) {
+        if (templateLoadRequestIdRef.current === requestId) {
           setLoadingTemplates(false)
         }
       }
     })()
 
     return () => {
-      cancelled = true
+      if (templateLoadRequestIdRef.current === requestId) {
+        templateLoadRequestIdRef.current += 1
+      }
     }
   }, [targetProjectPath])
 
@@ -784,13 +790,10 @@ export function WorkflowCreatePage() {
   }
 
   useEffect(() => {
-    let cancelled = false
-
     if (!targetProjectPath) {
       setProjectInspection(null)
-      return () => {
-        cancelled = true
-      }
+      projectInspectionRequestIdRef.current += 1
+      return
     }
 
     const inspectCreateEntryProject = (window.api as typeof window.api & {
@@ -799,25 +802,28 @@ export function WorkflowCreatePage() {
 
     if (!inspectCreateEntryProject) {
       setProjectInspection(null)
-      return () => {
-        cancelled = true
-      }
+      projectInspectionRequestIdRef.current += 1
+      return
     }
+
+    const requestId = projectInspectionRequestIdRef.current + 1
+    projectInspectionRequestIdRef.current = requestId
 
     void inspectCreateEntryProject(targetProjectPath)
       .then((inspection) => {
-        if (!cancelled) {
-          setProjectInspection(inspection)
-        }
+        if (projectInspectionRequestIdRef.current !== requestId) return
+        setProjectInspection(inspection)
       })
-      .catch(() => {
-        if (!cancelled) {
-          setProjectInspection(null)
-        }
+      .catch((error) => {
+        if (projectInspectionRequestIdRef.current !== requestId) return
+        console.error("[workflow-create] Could not inspect create-entry project", error)
+        setProjectInspection(null)
       })
 
     return () => {
-      cancelled = true
+      if (projectInspectionRequestIdRef.current === requestId) {
+        projectInspectionRequestIdRef.current += 1
+      }
     }
   }, [targetProjectPath])
 

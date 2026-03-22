@@ -196,6 +196,7 @@ export function WorkflowPanel() {
   const [blockedInspectionVisible, setBlockedInspectionVisible] = useState(false)
   const [useInNewFlowOpen, setUseInNewFlowOpen] = useState(false)
   const [useInNewFlowLoading, setUseInNewFlowLoading] = useState(false)
+  const useInNewFlowTemplatesRequestIdRef = useRef(0)
   const [useInNewFlowPending, setUseInNewFlowPending] = useState(false)
   const [useInNewFlowTemplates, setUseInNewFlowTemplates] = useState<WorkflowTemplate[]>([])
   const [selectedUseInNewFlowTemplateId, setSelectedUseInNewFlowTemplateId] = useState<string | null>(null)
@@ -295,12 +296,11 @@ export function WorkflowPanel() {
     const taskSelectionKey = selectedInboxTaskKey
     const requestId = selectedResumeTaskRequestIdRef.current + 1
     selectedResumeTaskRequestIdRef.current = requestId
-    let cancelled = false
 
     setSelectedResumeTask(null)
     setResumeTaskAnswers({})
     void window.api.loadHumanTask(taskId, workspace).then((task) => {
-      if (cancelled || selectedResumeTaskRequestIdRef.current !== requestId) return
+      if (selectedResumeTaskRequestIdRef.current !== requestId) return
       if (!task || task.status !== "open") {
         setSelectedInboxTaskKey((current) => current === taskSelectionKey ? null : current)
         setSelectedResumeTask(null)
@@ -315,14 +315,18 @@ export function WorkflowPanel() {
       }
       setSelectedResumeTask(task)
       setResumeTaskAnswers(buildInitialHumanTaskAnswers(task))
-    }).catch(() => {
-      if (cancelled || selectedResumeTaskRequestIdRef.current !== requestId) return
+    }).catch((error) => {
+      if (selectedResumeTaskRequestIdRef.current !== requestId) return
+      toastErrorFromCatch("Could not load blocked task", error)
+      setSelectedInboxTaskKey((current) => current === taskSelectionKey ? null : current)
       setSelectedResumeTask(null)
       setResumeTaskAnswers({})
     })
 
     return () => {
-      cancelled = true
+      if (selectedResumeTaskRequestIdRef.current === requestId) {
+        selectedResumeTaskRequestIdRef.current += 1
+      }
     }
   }, [selectedInboxTaskKey, selectedWorkflowPath, setSelectedInboxTaskKey])
 
@@ -1060,29 +1064,35 @@ export function WorkflowPanel() {
   ])
 
   useEffect(() => {
-    if (!useInNewFlowOpen) return
+    if (!useInNewFlowOpen) {
+      useInNewFlowTemplatesRequestIdRef.current += 1
+      return
+    }
 
-    let cancelled = false
+    const requestId = useInNewFlowTemplatesRequestIdRef.current + 1
+    useInNewFlowTemplatesRequestIdRef.current = requestId
     setUseInNewFlowLoading(true)
 
     void window.api.listTemplates()
       .then((templates) => {
-        if (cancelled) return
+        if (useInNewFlowTemplatesRequestIdRef.current !== requestId) return
         setUseInNewFlowTemplates(templates)
       })
       .catch((error) => {
-        if (cancelled) return
+        if (useInNewFlowTemplatesRequestIdRef.current !== requestId) return
         setUseInNewFlowTemplates([])
         toastErrorFromCatch("Could not load flow suggestions", error)
       })
       .finally(() => {
-        if (!cancelled) {
+        if (useInNewFlowTemplatesRequestIdRef.current === requestId) {
           setUseInNewFlowLoading(false)
         }
       })
 
     return () => {
-      cancelled = true
+      if (useInNewFlowTemplatesRequestIdRef.current === requestId) {
+        useInNewFlowTemplatesRequestIdRef.current += 1
+      }
     }
   }, [useInNewFlowOpen])
 
