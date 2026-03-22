@@ -113,7 +113,7 @@ export function RuntimeNodeCard({
 
   if (presentationMode === "monitor") {
     const inlineBits = runtimeStatus === "running"
-      ? [runtimeStatusLabel, ...runtimeCardCopy.metricChips.slice(0, 2)]
+      ? [runtimeStatusLabel]
       : runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human" || runtimeStatus === "failed"
         ? [runtimeStatusLabel]
         : runtimeFocusKind === "next"

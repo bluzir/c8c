@@ -21,7 +21,6 @@ export function OutputPanelLogContent({
   selectedStageContextLabel,
   selectedStageBranchLabel,
   selectedStageBranchDetail,
-  selectedStageStatusLabel,
   selectedNodeId,
   nodeStates,
   evalResults,
@@ -43,7 +42,6 @@ export function OutputPanelLogContent({
   selectedStageContextLabel: string
   selectedStageBranchLabel?: string | null
   selectedStageBranchDetail?: string | null
-  selectedStageStatusLabel: string
   selectedNodeId: string | null
   nodeStates: Record<string, NodeState>
   evalResults: Record<string, EvaluationResult[]>
@@ -67,10 +65,10 @@ export function OutputPanelLogContent({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
-            onClick={onBackToActivity}
-          >
-            Back to activity
+          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+          onClick={onBackToActivity}
+        >
+            Back to summary
           </Button>
         </div>
       ) : null}
@@ -85,7 +83,6 @@ export function OutputPanelLogContent({
             selectedStageContextLabel={selectedStageContextLabel}
             selectedStageBranchLabel={selectedStageBranchLabel}
             selectedStageBranchDetail={selectedStageBranchDetail}
-            selectedStageStatusLabel={selectedStageStatusLabel}
           />
           <LogTab
             selectedNodeId={selectedNodeId}

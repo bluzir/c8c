@@ -18,6 +18,7 @@ import {
   workflowCreatePendingMessageAtom,
   workflowEntryStateAtom,
   workflowQueuedAutoRunPathAtom,
+  setWorkflowRequestedResultForKeyAtom,
   workflowSavedSnapshotAtom,
   chatPanelWidthAtom,
   workflowReviewModeAtom,
@@ -124,6 +125,7 @@ export function WorkflowPanel() {
   const [pendingCreateMessage] = useAtom(workflowCreatePendingMessageAtom)
   const [workflowEntryState, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
   const [queuedAutoRunPath, setQueuedAutoRunPath] = useAtom(workflowQueuedAutoRunPathAtom)
+  const [, setWorkflowRequestedResultForKey] = useAtom(setWorkflowRequestedResultForKeyAtom)
   const [, setWorkflowReviewMode] = useAtom(workflowReviewModeAtom)
   const [, setWorkflowRunBlockReason] = useAtom(workflowRunBlockReasonAtom)
   const [workflowOpenState, setWorkflowOpenState] = useAtom(workflowOpenStateAtom)
@@ -497,6 +499,7 @@ export function WorkflowPanel() {
     setWorkflowSavedSnapshot,
     setInputValue,
     setWorkflowEntryState,
+    setWorkflowRequestedResultForKey,
     setWorkflowTemplateContextForKey,
     setSelectedInboxTaskKey,
     setSelectedPastRun,

@@ -116,23 +116,26 @@ export function OutputPanel({
     selectedResultNodeId,
     selectedResultPresentation,
     selectedResultBranchLabel,
+    selectedResultScopeLabel,
     selectedStageId,
+    selectedStageRerunNodeId,
     selectedStageIndex,
     selectedStagePresentation,
     selectedStageBranchLabel,
     selectedStageBranchDetail,
-    selectedStageStatusLabel,
+    selectedStageBranchSummary,
+    selectedStageScopeLabel,
     workflowStepCount,
     completedStageCount,
+    runningStageCount,
+    blockedStageCount,
+    pendingStageCount,
     failedStageCount,
     selectedStageContextLabel,
-    selectedStageContextToneClass,
     selectedStageContextLabelClass,
-    activitySummaryItems,
     selectedRunLabel,
     canInspectSavedRun,
     canStartFreshRun,
-    canRerunStages,
     canRerunSelectedStage,
     showResultSurface,
     showArtifactContinuation,
@@ -182,6 +185,29 @@ export function OutputPanel({
     return workflow.nodes.find((n) => n.id === selectedStageId) ?? null
   }, [selectedStageId, workflow.nodes])
   const displayNodeIds = useMemo(() => allDisplayNodes.map((node) => node.id), [allDisplayNodes])
+  const summaryProgressItems = useMemo(() => ([
+    workflowStepCount > 0 ? `${completedStageCount}/${workflowStepCount} done` : null,
+    failedStageCount > 0
+      ? `${failedStageCount} need${failedStageCount === 1 ? "s" : ""} attention`
+      : blockedStageCount > 0
+        ? `${blockedStageCount} blocked`
+        : runningStageCount > 0
+          ? `${runningStageCount} running`
+          : pendingStageCount > 0 && completedStageCount === 0
+            ? "Ready to run"
+            : null,
+  ].filter(Boolean) as string[]), [
+    blockedStageCount,
+    completedStageCount,
+    failedStageCount,
+    pendingStageCount,
+    runningStageCount,
+    workflowStepCount,
+  ])
+  const historyScopeLabel = useMemo(
+    () => `History: ${selectedReviewRun?.workflowName || executionWorkflowName || workflow.name || "Flow"}`,
+    [executionWorkflowName, selectedReviewRun?.workflowName, workflow.name],
+  )
 
   const handleRerunFrom = useCallback((nodeId: string) => {
     if (!onRerunFrom || !rerunWorkspace) return
@@ -194,7 +220,6 @@ export function OutputPanel({
     activeTab,
     setActiveTab,
     resultReadyPulse,
-    openNodeDetails,
     focusStageSurface,
     activateResultSurface,
     handleSurfaceNoticeAction,
@@ -235,7 +260,7 @@ export function OutputPanel({
     canInspectHistory,
     canRerunSelectedStage,
     reviewingRunHistory,
-    selectedStageId,
+    selectedStageId: selectedStageRerunNodeId,
     showArtifactContinuation,
     canTriggerNextStageShortcut: Boolean(
       nextStageTemplate
@@ -320,11 +345,11 @@ export function OutputPanel({
     && (runStatus === "error" || effectiveRunOutcome === "failed" || effectiveRunOutcome === "interrupted")
   const tabOptions = useMemo(() => {
     const options: Array<{ value: OutputTabValue, label: string }> = []
+    if (canInspectActivity) {
+      options.push({ value: "nodes", label: "Summary" })
+    }
     if (showResultSurface) {
       options.push({ value: "result", label: "Result" })
-    }
-    if (canInspectActivity) {
-      options.push({ value: "nodes", label: "Activity" })
     }
     if (canInspectLog) {
       options.push({ value: "log", label: "Step log" })
@@ -339,6 +364,13 @@ export function OutputPanel({
     && activeTab === "nodes"
     && !reviewingRunHistory
     && !errorFigureOwnsSurface
+  const scopeLabel = activeTab === "nodes"
+    ? null
+    : activeTab === "result"
+    ? selectedResultScopeLabel
+    : activeTab === "history"
+      ? historyScopeLabel
+      : selectedStageScopeLabel
 
   return (
     <>
@@ -356,6 +388,7 @@ export function OutputPanel({
           activeTab={activeTab}
           hasResult={hasResult}
           resultReadyPulse={resultReadyPulse}
+          scopeLabel={scopeLabel}
           reviewingRunHistory={reviewingRunHistory}
           selectedRunLabel={selectedRunLabel}
           selectedReviewStatus={selectedReviewRun?.status || null}
@@ -385,26 +418,26 @@ export function OutputPanel({
           {savedRunErrorNotice}
           {savedRunSnapshotNotice}
           {(!reviewingRunHistory || canInspectSavedRun) && (
-            <div className={cn(activityOwnsSurface && "rounded-lg surface-soft px-4 py-4")}>
+            <div className={cn(activityOwnsSurface && "rounded-lg surface-panel px-4 py-4")}>
               <ActivityTab
                 showIdleState={showIdleState}
                 selectedStagePresentation={selectedStagePresentation}
-                selectedStageContextToneClass={selectedStageContextToneClass}
                 selectedStageContextLabelClass={selectedStageContextLabelClass}
                 selectedStageContextLabel={selectedStageContextLabel}
                 selectedStageBranchLabel={selectedStageBranchLabel}
                 selectedStageBranchDetail={selectedStageBranchDetail}
-                selectedStageStatusLabel={selectedStageStatusLabel}
-                onRerunFrom={handleRerunFrom}
-                activitySummaryItems={activitySummaryItems}
+                runProgressItems={summaryProgressItems}
+                resultReadyLabel={hasResult
+                  ? (selectedResultScopeLabel.replace(/^Result from:\s*/u, "") || selectedResultPresentation?.artifactLabel || "Result")
+                  : null}
+                onViewResult={showResultSurface ? activateResultSurface : null}
+                selectedStageBranchSummary={selectedStageBranchSummary}
+                onOpenBranchLog={canInspectLog ? (nodeId: string) => {
+                  setInspectedNodeId(nodeId)
+                  setActiveTab("log")
+                } : null}
                 budgetWarning={budgetWarning}
                 budgetWarningClassName={budgetWarningClassName}
-                nodes={allDisplayNodes}
-                nodeStates={displayNodeStates}
-                activeNodeId={displayActiveNodeId}
-                evalResults={displayEvalResults}
-                canRerun={canRerunStages}
-                onSelectNode={openNodeDetails}
                 onViewStepLog={canInspectLog ? () => focusStageSurface("log") : null}
                 runAttentionNotice={errorFigureOwnsSurface ? null : runAttentionBanner}
               />
@@ -431,7 +464,6 @@ export function OutputPanel({
             selectedStageContextLabel={selectedStageContextLabel}
             selectedStageBranchLabel={selectedStageBranchLabel}
             selectedStageBranchDetail={selectedStageBranchDetail}
-            selectedStageStatusLabel={selectedStageStatusLabel}
             selectedNodeId={selectedStageId}
             nodeStates={displayNodeStates}
             evalResults={displayEvalResults}
@@ -489,7 +521,7 @@ export function OutputPanel({
               canStartFreshRun={canStartFreshRun}
               onStartNewRun={onStartNewRun}
               canRerunSelectedStage={canRerunSelectedStage}
-              onRerunSelectedStage={selectedStageId && canRerunSelectedStage ? () => handleRerunFrom(selectedStageId) : null}
+              onRerunSelectedStage={selectedStageRerunNodeId && canRerunSelectedStage ? () => handleRerunFrom(selectedStageRerunNodeId) : null}
               onViewActivity={canInspectActivity ? () => focusStageSurface("nodes") : null}
               onEditFlow={onEditFlow}
               failedNodeErrors={failedNodeErrors}

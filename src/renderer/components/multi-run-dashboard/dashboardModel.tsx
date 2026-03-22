@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import type { WorkflowExecutionState } from "@/features/execution"
 import { getWorkflowNodeLabel } from "@/lib/workflow-labels"
+import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state"
 
 export type DashboardEntryGroupId = "needs_action" | "running" | "recent"
 
@@ -63,43 +64,49 @@ export function formatTokenCount(tokens: number): string {
 }
 
 export function outcomeLabel(entry: DashboardEntry): string {
-  if (entry.runStatus === "starting") return "Starting"
-  if (entry.runStatus === "running") return entry.approvalCount > 0 ? "Waiting for approval" : "Running"
-  if (entry.runStatus === "paused") return "Paused"
-  if (entry.runStatus === "cancelling") return "Stopping"
-  if (entry.runOutcome === "cancelled") return "Cancelled"
-  if (entry.runOutcome === "failed") return "Failed"
-  if (entry.runOutcome === "interrupted") return "Interrupted"
-  if (entry.runOutcome === "completed") return "Completed"
-  if (entry.runStatus === "error") return "Failed"
-  if (entry.runStatus === "done") return "Completed"
-  return "Idle"
+  return resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  }).label
 }
 
 export function outcomeClasses(entry: DashboardEntry): string {
-  if (entry.runStatus === "paused" || entry.approvalCount > 0) {
-    return "ui-status-badge-warning"
-  }
-  if (entry.runStatus === "starting" || entry.runStatus === "running" || entry.runStatus === "cancelling") {
-    return "ui-status-badge-info"
-  }
-  if (entry.runOutcome === "failed" || entry.runOutcome === "interrupted" || entry.lastError) {
-    return "ui-status-badge-danger"
-  }
-  return "ui-status-badge-success"
+  const tone = resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  }).tone
+
+  if (tone === "warning") return "ui-status-badge-warning"
+  if (tone === "danger") return "ui-status-badge-danger"
+  if (tone === "success") return "ui-status-badge-success"
+  return "ui-status-badge-info"
 }
 
 export function outcomeIcon(entry: DashboardEntry) {
-  if (entry.runStatus === "starting" || entry.runStatus === "running" || entry.runStatus === "cancelling") {
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  })
+
+  if (runDisplayState.state === "starting" || runDisplayState.state === "running" || runDisplayState.state === "cancelling") {
     return <Loader2 size={12} className="animate-spin" aria-hidden="true" />
   }
-  if (entry.runStatus === "paused" || entry.approvalCount > 0) {
+  if (runDisplayState.state === "paused") {
     return <Pause size={12} aria-hidden="true" />
   }
-  if (entry.runOutcome === "failed" || entry.runOutcome === "interrupted" || entry.lastError) {
+  if (runDisplayState.state === "blocked") {
+    return <AlertTriangle size={12} aria-hidden="true" />
+  }
+  if (runDisplayState.state === "failed") {
     return <XCircle size={12} aria-hidden="true" />
   }
-  if (entry.runOutcome === "cancelled") {
+  if (runDisplayState.state === "cancelled") {
     return <CircleSlash2 size={12} aria-hidden="true" />
   }
   return <CheckCircle2 size={12} aria-hidden="true" />
@@ -189,25 +196,39 @@ export function summarizeCost(entry: DashboardEntry): { totalCost: number; total
 }
 
 export function isFailureEntry(entry: DashboardEntry): boolean {
-  return entry.runStatus === "error"
-    || entry.runOutcome === "failed"
-    || entry.runOutcome === "interrupted"
-    || Boolean(entry.lastError)
+  return resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  }).isFailure
 }
 
 export function triageGroup(entry: DashboardEntry): DashboardEntryGroupId {
-  if (entry.approvalCount > 0 || isFailureEntry(entry)) return "needs_action"
-  if (entry.runStatus === "paused" || isRunInFlight(entry.runStatus)) return "running"
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  })
+  if (runDisplayState.needsAttention) return "needs_action"
+  if (runDisplayState.state === "paused" || runDisplayState.isInFlight) return "running"
   return "recent"
 }
 
 function triagePriority(entry: DashboardEntry): number {
-  if (entry.approvalCount > 0) return 0
-  if (isFailureEntry(entry)) return 1
-  if (entry.runStatus === "paused") return 2
-  if (isRunInFlight(entry.runStatus)) return 3
-  if (entry.runOutcome === "completed" || entry.runStatus === "done") return 4
-  if (entry.runOutcome === "cancelled") return 5
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  })
+  if (runDisplayState.state === "blocked") return 0
+  if (runDisplayState.state === "failed") return 1
+  if (runDisplayState.state === "paused") return 2
+  if (runDisplayState.isInFlight) return 3
+  if (runDisplayState.state === "completed") return 4
+  if (runDisplayState.state === "cancelled") return 5
   return 6
 }
 
@@ -248,24 +269,33 @@ export function entryScanLine(entry: DashboardEntry, now: number): string {
 }
 
 export function triageHeadline(entry: DashboardEntry): string {
-  if (entry.approvalCount > 0) {
-    return `${entry.approvalCount} approval${entry.approvalCount === 1 ? "" : "s"} waiting`
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  })
+
+  if (runDisplayState.state === "blocked") {
+    return entry.approvalCount > 0
+      ? `${entry.approvalCount} approval${entry.approvalCount === 1 ? "" : "s"} waiting`
+      : "Needs approval"
   }
-  if (isFailureEntry(entry)) {
+  if (runDisplayState.state === "failed") {
     return entry.activeNodeLabel
       ? `${entry.activeNodeLabel} failed`
       : "Run failed"
   }
-  if (entry.runStatus === "paused") return "Run paused"
-  if (entry.runStatus === "starting") return "Run starting"
-  if (entry.runStatus === "running") {
+  if (runDisplayState.state === "paused") return "Run paused"
+  if (runDisplayState.state === "starting") return "Run starting"
+  if (runDisplayState.state === "running") {
     return entry.activeNodeLabel
       ? `${entry.activeNodeLabel} is running`
       : "Run in progress"
   }
-  if (entry.runStatus === "cancelling") return "Run stopping"
-  if (entry.runOutcome === "completed" || entry.runStatus === "done") return "Run completed"
-  if (entry.runOutcome === "cancelled") return "Run cancelled"
+  if (runDisplayState.state === "cancelling") return "Run stopping"
+  if (runDisplayState.state === "completed") return "Run completed"
+  if (runDisplayState.state === "cancelled") return "Run cancelled"
   return "Recent flow state"
 }
 
@@ -288,11 +318,17 @@ export function triageSummary(entry: DashboardEntry, now: number): string {
 }
 
 export function primaryActionLabel(entry: DashboardEntry): string {
-  if (entry.runStatus === "paused" && entry.runId) return "Resume run"
-  if (entry.approvalCount > 0) return "Review decision"
-  if (isFailureEntry(entry)) return "Inspect failure"
-  if (isRunInFlight(entry.runStatus)) return "Open live run"
-  if (entry.runOutcome === "completed" || entry.runStatus === "done") return "Review result"
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus: entry.runStatus,
+    runOutcome: entry.runOutcome,
+    approvalCount: entry.approvalCount,
+    lastError: entry.lastError,
+  })
+  if (runDisplayState.state === "paused" && entry.runId) return "Resume run"
+  if (runDisplayState.state === "blocked") return "Review decision"
+  if (runDisplayState.state === "failed") return "Inspect failure"
+  if (runDisplayState.isInFlight) return "Open live run"
+  if (runDisplayState.state === "completed") return "Review result"
   return "Open flow"
 }
 

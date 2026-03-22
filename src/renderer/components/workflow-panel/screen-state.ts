@@ -1,5 +1,6 @@
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 import type { RunStatus, WorkflowTemplate } from "@shared/types"
+import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state"
 
 export type WorkflowPrimaryScreenState =
   | "fresh_start"
@@ -32,19 +33,28 @@ export function resolveWorkflowPrimaryScreenState({
   nextStageTemplate: WorkflowTemplate | null
   prepareNewRun: boolean
 }): WorkflowPrimaryScreenState {
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus,
+    runOutcome,
+  })
+
   if (showAnyReviewMode) {
     return "review"
   }
 
-  if (runStatus === "paused") {
+  if (runDisplayState.state === "paused") {
     return "paused_resume"
   }
 
-  if (hasBlockedResumeState || (runStatus === "done" && runOutcome === "blocked")) {
+  if (hasBlockedResumeState || runDisplayState.state === "blocked") {
     return "blocked_decision"
   }
 
-  if (runStatus === "starting" || runStatus === "running" || runStatus === "cancelling") {
+  if (
+    runDisplayState.state === "starting"
+    || runDisplayState.state === "running"
+    || runDisplayState.state === "cancelling"
+  ) {
     return "running"
   }
 
@@ -55,7 +65,11 @@ export function resolveWorkflowPrimaryScreenState({
   if (
     !prepareNewRun
     && canShowTerminalResultSurface
-    && (runStatus === "error" || (runStatus === "done" && runOutcome !== "blocked"))
+    && (
+      runDisplayState.state === "failed"
+      || runDisplayState.state === "completed"
+      || runDisplayState.state === "cancelled"
+    )
   ) {
     return nextStageTemplate ? "auto_chain_gate" : "one_off_done"
   }

@@ -283,13 +283,16 @@ export function Toolbar({
 
   const deleteLabel = workflowPath ? (workflow.name || "").trim() || deriveTitleFromPath(workflowPath) : "this flow"
   const controlGroupClass = "control-cluster flex items-center gap-1 rounded-lg p-1"
-  const terminalResultOwnsPrimaryAction = outputSurfaceCommandState.useInNewFlow
-    || (outputSurfaceCommandState.result && (
-      shellState === "completed"
-      || shellState === "failed"
-      || shellState === "cancelled"
-      || workflowReviewMode
-    ))
+  const utilityGroupClass = "flex items-center gap-1"
+  const terminalResultOwnsPrimaryAction = (
+    shellState === "completed"
+    || shellState === "failed"
+    || shellState === "cancelled"
+    || workflowReviewMode
+  ) && (
+    outputSurfaceCommandState.useInNewFlow
+    || outputSurfaceCommandState.result
+  )
   const showRunControls = (
     shellState === "idle"
     || shellState === "running"
@@ -545,12 +548,12 @@ export function Toolbar({
     <>
       <div className="border-b border-hairline bg-gradient-to-b from-surface-1/96 to-surface-1/84 shadow-[0_1px_0_hsl(var(--hairline)/0.7),0_2px_6px_hsl(var(--foreground)/0.04)] backdrop-blur-md">
         <div
-          className="flex items-center gap-2 ui-content-gutter py-2 no-drag overflow-x-auto"
+          className="flex min-w-0 items-center gap-2 ui-content-gutter py-2 no-drag"
           style={macToolbarLeadingInset > 0
             ? { paddingLeft: `calc(var(--content-gutter) + ${macToolbarLeadingInset}px)` }
             : undefined}
         >
-          <div className="min-w-[220px] flex-1 px-1">
+          <div className="min-w-0 flex-1 px-1">
             {shellState === "idle" ? (
               <>
                 <Label htmlFor="toolbar-workflow-name" className="sr-only">Flow name</Label>
@@ -579,14 +582,17 @@ export function Toolbar({
           )}
 
           {(shellBadgeLabel || shellDetail) && (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="min-w-0 flex items-center gap-2">
               {shellBadgeLabel && (
                 <Badge variant={shellBadgeVariant} className="ui-meta-text px-2.5 py-1">
                   {shellBadgeLabel}
                 </Badge>
               )}
               {shellDetail ? (
-                <span className="ui-meta-text tabular-nums whitespace-nowrap text-muted-foreground">
+                <span
+                  className="ui-meta-text hidden max-w-[220px] truncate tabular-nums whitespace-nowrap text-muted-foreground sm:inline"
+                  title={shellDetail}
+                >
                   {shellDetail}
                 </span>
               ) : null}
@@ -627,7 +633,7 @@ export function Toolbar({
             )}
 
             <WorkflowPrimaryActions
-              controlGroupClass={controlGroupClass}
+              controlGroupClass={utilityGroupClass}
               isRunning={isRunning}
               isSaving={isSaving}
               showSave={workflowDirty || isSaving || saveFlash === "saved"}

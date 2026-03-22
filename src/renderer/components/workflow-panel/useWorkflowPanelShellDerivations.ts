@@ -12,6 +12,7 @@ import {
   shouldShowLiveOutputPanel,
   type WorkflowPrimaryScreenState,
 } from "@/components/workflow-panel/screen-state"
+import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state"
 import type { FlowSurfaceMode, ViewMode } from "@/lib/store"
 import type {
   ArtifactRecord,
@@ -106,26 +107,33 @@ export function useWorkflowPanelShellDerivations({
     activeNodeId,
   }), [activeNodeId, nodeStates, runOutcome, runStatus, runtimeMeta, runtimeNodes, workflow])
 
+  const runDisplayState = useMemo(() => resolveWorkflowRunDisplayState({
+    runStatus,
+    runOutcome,
+  }), [runOutcome, runStatus])
+
   const shellState = useMemo<WorkflowPanelShellState>(() => {
-    if (runStatus === "paused") return "paused"
-    if (runStatus === "starting" || runStatus === "running" || runStatus === "cancelling") return "running"
-    if (hasBlockedResumeState || (runStatus === "done" && runOutcome === "blocked")) return "blocked"
-    if (runStatus === "error" || runOutcome === "failed" || runOutcome === "interrupted") return "failed"
-    if (runStatus === "done" && runOutcome === "completed") return "completed"
-    if (runStatus === "done" && runOutcome === "cancelled") return "cancelled"
+    if (runDisplayState.state === "paused") return "paused"
+    if (runDisplayState.state === "starting" || runDisplayState.state === "running" || runDisplayState.state === "cancelling") return "running"
+    if (hasBlockedResumeState || runDisplayState.state === "blocked") return "blocked"
+    if (runDisplayState.state === "failed") return "failed"
+    if (runDisplayState.state === "completed") return "completed"
+    if (runDisplayState.state === "cancelled") return "cancelled"
     if (effectiveResumeHeader) return "ready"
     return "idle"
-  }, [effectiveResumeHeader, hasBlockedResumeState, runOutcome, runStatus])
+  }, [effectiveResumeHeader, hasBlockedResumeState, runDisplayState.state])
 
   const shellDetail = useMemo(() => {
     if (shellState !== "running" && shellState !== "paused") return null
 
-    const progressLabel = runSummary.totalSteps > 0
-      ? `${Math.min(runSummary.completedSteps, runSummary.totalSteps)}/${runSummary.totalSteps}`
-      : null
+    const progressLabel = runSummary.branchLabel || (
+      runSummary.totalSteps > 0
+        ? `${Math.min(runSummary.completedSteps, runSummary.totalSteps)}/${runSummary.totalSteps}`
+        : null
+    )
     const detailParts = [
-      progressLabel,
       runStatus === "running" || runStatus === "paused" ? runSummary.activeStepLabel : null,
+      progressLabel,
       elapsed || null,
     ].filter((value): value is string => Boolean(value))
 

@@ -46,6 +46,7 @@ export function WorkflowPrimaryActions({
     : saveFlash === "saved"
       ? "Saved"
       : "Save"
+  const showActionMenu = !actionMenuDisabled
 
   return (
     <div className={controlGroupClass}>
@@ -73,7 +74,7 @@ export function WorkflowPrimaryActions({
             variant="ghost"
             size="sm"
             ref={agentToggleRef}
-            className="gap-1.5"
+            className="gap-1.5 text-muted-foreground hover:border-transparent hover:bg-surface-2/55"
             onClick={onToggleChat}
             aria-label="Toggle Agent panel"
             aria-pressed={chatOpen}
@@ -85,13 +86,15 @@ export function WorkflowPrimaryActions({
         <TooltipContent>Toggle Agent panel ({chatShortcutLabel})</TooltipContent>
       </Tooltip>
 
-      <WorkflowActionMenu
-        disabled={actionMenuDisabled}
-        canManageCurrentFlow={canManageCurrentFlow}
-        canDelete={canDeleteCurrentFlow}
-        canDuplicate={canDuplicateCurrentFlow}
-        onAction={onActionMenu}
-      />
+      {showActionMenu ? (
+        <WorkflowActionMenu
+          disabled={actionMenuDisabled}
+          canManageCurrentFlow={canManageCurrentFlow}
+          canDelete={canDeleteCurrentFlow}
+          canDuplicate={canDuplicateCurrentFlow}
+          onAction={onActionMenu}
+        />
+      ) : null}
     </div>
   )
 }

@@ -12,6 +12,7 @@ import {
   deriveTemplateJobLabel,
 } from "@/lib/workflow-entry"
 import { isRunInFlight } from "@/lib/workflow-execution"
+import { selectStageRerunNodeId } from "@/lib/workflow-rerun-target"
 import { templateAutoRunsOnContinue, templateRequiresStartApproval } from "@/lib/stage-run-policy"
 import { formatCost } from "@/components/output/outputFormatters"
 import type {
@@ -74,6 +75,33 @@ function formatDateShort(timestamp: number): string {
   return d.toLocaleDateString("en-CA") // YYYY-MM-DD
 }
 
+function compactLine(items: Array<string | null | undefined>) {
+  return items.filter((item): item is string => Boolean(item && item.trim())).join(" · ")
+}
+
+function firstMeaningfulLine(value: string | null | undefined) {
+  if (!value) return null
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0) || null
+}
+
+function formatBranchScopeSummary(summary: OutputPanelBranchSummary) {
+  const lead = summary.running > 0
+    ? `${summary.running}/${summary.total} active`
+    : summary.waitingApproval > 0
+      ? `${summary.waitingApproval}/${summary.total} blocked`
+      : summary.completed > 0
+        ? `${summary.completed}/${summary.total} done`
+        : `${summary.total} branches`
+
+  return compactLine([
+    lead,
+    summary.failed > 0 ? `${summary.failed} failed` : null,
+  ])
+}
+
 function derivePrimaryModel(nodeStates: Record<string, NodeState>): string | null {
   const modelCounts = new Map<string, number>()
   for (const state of Object.values(nodeStates)) {
@@ -92,6 +120,83 @@ function derivePrimaryModel(nodeStates: Record<string, NodeState>): string | nul
     }
   }
   return best
+}
+
+const BRANCH_STATUS_PRIORITY: Record<string, number> = {
+  waiting_approval: 0,
+  waiting_human: 0,
+  failed: 1,
+  running: 2,
+  queued: 3,
+  pending: 4,
+  completed: 5,
+  skipped: 6,
+}
+
+type OutputPanelBranchPreview = {
+  id: string
+  label: string
+  detail?: string | null
+  status: string
+}
+
+type OutputPanelBranchSummary = {
+  total: number
+  running: number
+  completed: number
+  failed: number
+  waitingApproval: number
+  pending: number
+  previews: OutputPanelBranchPreview[]
+}
+
+function buildOutputPanelBranchSummary(
+  branchIds: string[],
+  nodeStates: Record<string, NodeState>,
+  runtimeMeta: WorkflowRuntimeMeta,
+): OutputPanelBranchSummary | null {
+  if (branchIds.length === 0) return null
+
+  let running = 0
+  let completed = 0
+  let failed = 0
+  let waitingApproval = 0
+  let pending = 0
+
+  for (const branchId of branchIds) {
+    const status = nodeStates[branchId]?.status || "pending"
+    if (status === "running") running += 1
+    else if (status === "waiting_approval" || status === "waiting_human") waitingApproval += 1
+    else if (status === "failed") failed += 1
+    else if (status === "completed" || status === "skipped") completed += 1
+    else pending += 1
+  }
+
+  const previews = branchIds
+    .map((branchId) => ({
+      id: branchId,
+      label: runtimeMeta[branchId]?.subtaskKey
+        ? getRuntimeBranchLabel(runtimeMeta[branchId].subtaskKey)
+        : branchId.split("::").pop() || branchId,
+      detail: getRuntimeBranchDetail(runtimeMeta[branchId]),
+      status: nodeStates[branchId]?.status || "pending",
+    }))
+    .sort((left, right) => {
+      const priorityDelta = (BRANCH_STATUS_PRIORITY[left.status] ?? 99) - (BRANCH_STATUS_PRIORITY[right.status] ?? 99)
+      if (priorityDelta !== 0) return priorityDelta
+      return left.label.localeCompare(right.label)
+    })
+    .slice(0, 4)
+
+  return {
+    total: branchIds.length,
+    running,
+    completed,
+    failed,
+    waitingApproval,
+    pending,
+    previews,
+  }
 }
 
 type UseOutputPanelDerivedStateParams = {
@@ -218,6 +323,35 @@ export function useOutputPanelDerivedState({
   })
 
   const allDisplayNodes = [...displayNodes, ...runtimeBranchNodes]
+  const stageBranchSummaryById = new Map(
+    displayNodes.map((node) => {
+      const branchIds = node.type === "splitter"
+        ? runtimeBranchIds
+        : runtimeBranchIds.filter((id) => displayRuntimeMeta[id]?.templateId === node.id)
+      return [node.id, buildOutputPanelBranchSummary(branchIds, displayNodeStates, displayRuntimeMeta)]
+    }),
+  )
+  const stageStatusById = new Map(
+    displayNodes.map((node) => {
+      const directStatus = displayNodeStates[node.id]?.status || "pending"
+      const branchSummary = stageBranchSummaryById.get(node.id)
+      const effectiveStatus = branchSummary
+        && (directStatus === "pending" || directStatus === "queued")
+        ? branchSummary.waitingApproval > 0
+          ? "waiting_human"
+          : branchSummary.failed > 0
+            ? "failed"
+            : branchSummary.running > 0
+              ? "running"
+              : branchSummary.completed === branchSummary.total && branchSummary.total > 0
+                ? "completed"
+                : branchSummary.completed > 0
+                  ? "running"
+                  : directStatus
+        : directStatus
+      return [node.id, effectiveStatus]
+    }),
+  )
   const inspectableNodeIds = new Set([
     ...allDisplayNodes.map((node) => node.id),
     ...Object.keys(displayNodeStates),
@@ -226,6 +360,21 @@ export function useOutputPanelDerivedState({
     ? inspectedNodeId
     : null
   const displayActiveNodeId = reviewingRunHistory ? selectedNodeId : activeNodeId
+  const defaultReviewStageId = reviewingRunHistory
+    ? displayNodes.find((node) => stageStatusById.get(node.id) === "failed")?.id
+      || displayNodes.find((node) => {
+        const status = stageStatusById.get(node.id)
+        return status === "waiting_approval" || status === "waiting_human"
+      })?.id
+      || displayNodes.find((node) => stageStatusById.get(node.id) === "running")?.id
+      || [...displayNodes].reverse().find((node) => {
+        const status = stageStatusById.get(node.id)
+        return status === "completed" || status === "skipped"
+      })?.id
+      || displayNodes[0]?.id
+      || null
+    : null
+  const fallbackStageFocusId = selectedNodeId || displayActiveNodeId || defaultReviewStageId
   const displayLabelByNodeId = new Map(allDisplayNodes.map((node) => [node.id, node.label]))
   for (const node of workflow.nodes) {
     if (!displayLabelByNodeId.has(node.id)) {
@@ -234,7 +383,7 @@ export function useOutputPanelDerivedState({
   }
 
   const workflowOrderIndex = new Map(workflow.nodes.map((node, index) => [node.id, index]))
-  const resultNodeOptions = Object.entries(displayNodeStates)
+  const rawResultNodeOptions = Object.entries(displayNodeStates)
     .filter(([, state]) => typeof state.output?.content === "string")
     .map(([id]) => {
       const workflowNode = templateById.get(id)
@@ -255,6 +404,9 @@ export function useOutputPanelDerivedState({
       if (bIndex != null) return 1
       return a.label.localeCompare(b.label)
     })
+  const resultNodeOptions = rawResultNodeOptions.some((option) => templateById.get(option.id)?.type !== "input")
+    ? rawResultNodeOptions.filter((option) => templateById.get(option.id)?.type !== "input")
+    : rawResultNodeOptions
   const resultNodeOptionIds = new Set(resultNodeOptions.map((option) => option.id))
 
   const totalBranches = runtimeBranchNodes.length
@@ -300,9 +452,14 @@ export function useOutputPanelDerivedState({
   const hasHistoricalResult = reviewingRunHistory && !!selectedReviewRun
   const hasResult = hasLiveResult || hasHistoricalResult
   const outputResultNode = resultNodeOptions.find((option) => templateById.get(option.id)?.type === "output") || null
+  const failureLikeRun = reviewingRunHistory
+    ? selectedReviewRun?.status === "failed" || selectedReviewRun?.status === "interrupted"
+    : runStatus === "error" || runOutcome === "failed" || runOutcome === "interrupted"
   const selectedResultNodeId = selectedNodeId && resultNodeOptionIds.has(selectedNodeId)
     ? selectedNodeId
-    : outputResultNode?.id || resultNodeOptions[0]?.id || null
+    : failureLikeRun && fallbackStageFocusId
+      ? fallbackStageFocusId
+      : outputResultNode?.id || resultNodeOptions[0]?.id || null
   const selectedResultOutput = selectedResultNodeId ? displayNodeStates[selectedResultNodeId]?.output : undefined
   const selectedResultMeta = selectedResultNodeId ? displayRuntimeMeta[selectedResultNodeId] : undefined
   const selectedResultWorkflowNode = selectedResultNodeId
@@ -316,6 +473,12 @@ export function useOutputPanelDerivedState({
     : null
   const selectedResultBranchLabel = selectedResultMeta
     ? getRuntimeBranchLabel(selectedResultMeta.subtaskKey)
+    : null
+  const selectedResultSplitterPresentation = selectedResultMeta?.splitterId
+    ? (() => {
+        const splitterNode = templateById.get(selectedResultMeta.splitterId)
+        return splitterNode ? getRuntimeStagePresentation(splitterNode, { fallbackId: splitterNode.id }) : null
+      })()
     : null
   const selectedResultMetrics = selectedResultNodeId
     ? displayNodeStates[selectedResultNodeId]?.metrics
@@ -339,12 +502,26 @@ export function useOutputPanelDerivedState({
   const hasMultipleResultOptions = resultNodeOptions.length > 1
   const showIdleState = runStatus === "idle" && !hasNodeStates && !hasLiveResult && !reviewingRunHistory
 
-  const defaultReviewStageId = reviewingRunHistory ? allDisplayNodes[0]?.id || null : null
-  const selectedStageId = selectedNodeId || displayActiveNodeId || defaultReviewStageId
+  const selectedStageId = fallbackStageFocusId
   const selectedStageMeta = selectedStageId ? displayRuntimeMeta[selectedStageId] : undefined
   const selectedStageWorkflowNode = selectedStageId
     ? templateById.get(selectedStageMeta?.templateId || selectedStageId) || null
     : null
+  const selectedStageBranchIds = selectedStageId
+    ? selectedStageMeta?.templateId
+      ? runtimeBranchIds.filter((id) => displayRuntimeMeta[id]?.templateId === selectedStageMeta.templateId)
+      : selectedStageWorkflowNode?.type === "splitter"
+        ? runtimeBranchIds
+        : runtimeBranchIds.filter((id) => displayRuntimeMeta[id]?.templateId === selectedStageId)
+    : []
+  const selectedStageRerunNodeId = selectStageRerunNodeId({
+    stageNodeId: selectedStageWorkflowNode?.id || null,
+    stageNodeType: selectedStageWorkflowNode?.type || null,
+    stageTemplateId: selectedStageMeta?.templateId || null,
+    runtimeBranchIds,
+    runtimeMeta: displayRuntimeMeta,
+    nodeStates: displayNodeStates,
+  })
   const selectedStageOutput = selectedStageId ? displayNodeStates[selectedStageId]?.output : undefined
   const selectedStagePresentation = selectedStageWorkflowNode
     ? getRuntimeStagePresentation(selectedStageWorkflowNode, {
@@ -355,10 +532,7 @@ export function useOutputPanelDerivedState({
   const selectedStageBranchLabel = selectedStageMeta
     ? getRuntimeBranchLabel(selectedStageMeta.subtaskKey)
     : null
-  const selectedStageBranchDetail = selectedStageMeta
-    ? getRuntimeBranchDetail(selectedStageMeta)
-    : null
-  const selectedStageStatus = selectedStageId ? (displayNodeStates[selectedStageId]?.status || "pending") : null
+  const selectedStageDirectStatus = selectedStageId ? (displayNodeStates[selectedStageId]?.status || "pending") : null
   const selectedStageIndex = selectedStageId
     ? (() => {
         const index = allDisplayNodes.findIndex((node) => node.id === selectedStageId)
@@ -370,23 +544,87 @@ export function useOutputPanelDerivedState({
     const status = displayNodeStates[node.id]?.status
     return status === "completed" || status === "skipped"
   }).length
+  const runningStageCount = allDisplayNodes.filter((node) => displayNodeStates[node.id]?.status === "running").length
+  const blockedStageCount = allDisplayNodes.filter((node) => {
+    const status = displayNodeStates[node.id]?.status
+    return status === "waiting_approval" || status === "waiting_human"
+  }).length
+  const pendingStageCount = allDisplayNodes.filter((node) => {
+    const status = displayNodeStates[node.id]?.status || "pending"
+    return status === "pending" || status === "queued"
+  }).length
   const failedStageCount = allDisplayNodes.filter((node) => displayNodeStates[node.id]?.status === "failed").length
-  const selectedStageHasOutput = selectedStageId
-    ? typeof displayNodeStates[selectedStageId]?.output?.content === "string"
-      && (displayNodeStates[selectedStageId]?.output?.content || "").trim().length > 0
-    : false
+  const selectedStageBranchSummary = buildOutputPanelBranchSummary(
+    selectedStageBranchIds,
+    displayNodeStates,
+    displayRuntimeMeta,
+  )
+  const selectedStageStatus = selectedStageBranchSummary
+    && !selectedStageBranchLabel
+    && (selectedStageDirectStatus === "pending" || selectedStageDirectStatus === "queued")
+    ? selectedStageBranchSummary.waitingApproval > 0
+      ? "waiting_human"
+      : selectedStageBranchSummary.failed > 0
+        ? "failed"
+        : selectedStageBranchSummary.running > 0
+          ? "running"
+          : selectedStageBranchSummary.completed === selectedStageBranchSummary.total && selectedStageBranchSummary.total > 0
+            ? "completed"
+            : selectedStageBranchSummary.completed > 0
+              ? "running"
+              : selectedStageDirectStatus
+    : selectedStageDirectStatus
+  const selectedStageBranchDetail = selectedStageStatus === "failed"
+    ? (() => {
+        const directError = selectedStageId
+          ? firstMeaningfulLine(displayNodeStates[selectedStageId]?.error)
+          : null
+        if (directError) return directError
+
+        const failedBranchId = selectedStageBranchIds.find((branchId) =>
+          displayNodeStates[branchId]?.status === "failed" && displayNodeStates[branchId]?.error,
+        )
+        if (failedBranchId) {
+          const branchLabel = displayRuntimeMeta[failedBranchId]?.subtaskKey
+            ? getRuntimeBranchLabel(displayRuntimeMeta[failedBranchId].subtaskKey)
+            : failedBranchId.split("::").pop() || failedBranchId
+          const branchError = firstMeaningfulLine(displayNodeStates[failedBranchId]?.error)
+          return branchError ? `${branchLabel}: ${branchError}` : branchLabel
+        }
+
+        return selectedStageMeta
+          ? getRuntimeBranchDetail(selectedStageMeta)
+          : null
+      })()
+    : selectedStageMeta
+      ? getRuntimeBranchDetail(selectedStageMeta)
+      : null
+  const selectedStageSplitterPresentation = selectedStageMeta?.splitterId
+    ? (() => {
+        const splitterNode = templateById.get(selectedStageMeta.splitterId)
+        return splitterNode ? getRuntimeStagePresentation(splitterNode, { fallbackId: splitterNode.id }) : null
+      })()
+    : null
+  const selectedStageOwnsActiveWork = Boolean(
+    selectedStageId === displayActiveNodeId
+    || (
+      !selectedStageBranchLabel
+      && selectedStageBranchSummary
+      && (
+        selectedStageStatus === "running"
+        || selectedStageStatus === "waiting_approval"
+        || selectedStageStatus === "waiting_human"
+        || selectedStageStatus === "failed"
+      )
+    ),
+  )
   const selectedStageStatusLabel = formatOutputStatusLabel(selectedStageStatus)
   const nextStageId = allDisplayNodes.find((node) => {
     const status = displayNodeStates[node.id]?.status || "pending"
     return status === "queued" || status === "pending"
   })?.id || null
   const selectedStageContextLabel = selectedStageId
-    ? selectedStageId === displayActiveNodeId && (
-      selectedStageStatus === "running"
-      || selectedStageStatus === "waiting_approval"
-      || selectedStageStatus === "waiting_human"
-      || selectedStageStatus === "failed"
-    )
+    ? selectedStageOwnsActiveWork
       ? selectedStageStatus === "failed"
         ? "Step needing attention"
         : selectedStageStatus === "running"
@@ -398,10 +636,9 @@ export function useOutputPanelDerivedState({
           ? "Completed step"
           : "Selected step"
     : "Selected step"
-  const selectedStageContextToneClass = "bg-surface-2/60"
-  const selectedStageContextLabelClass = selectedStageId === displayActiveNodeId && selectedStageStatus === "running"
+  const selectedStageContextLabelClass = selectedStageOwnsActiveWork && selectedStageStatus === "running"
     ? "text-status-info"
-    : selectedStageId === displayActiveNodeId && (selectedStageStatus === "waiting_approval" || selectedStageStatus === "waiting_human")
+    : selectedStageOwnsActiveWork && (selectedStageStatus === "waiting_approval" || selectedStageStatus === "waiting_human")
       ? "text-status-warning"
       : selectedStageStatus === "failed"
         ? "text-status-danger"
@@ -410,12 +647,40 @@ export function useOutputPanelDerivedState({
           : selectedStageStatus === "completed" || selectedStageStatus === "skipped"
             ? "text-status-success"
             : "text-muted-foreground"
-
-  const activitySummaryItems = [
-    `${formatCost(accumulatedCost)}${budgetCost != null ? ` / ${formatCost(budgetCost)}` : ""} cost`,
-    `${formatTokenCount(totalTokens)} tokens${budgetTokens != null ? ` / ${formatTokenCount(budgetTokens)}` : ""}`,
-    totalBranches > 0 ? `${branchesProgressPct}% branches ready` : null,
-  ].filter(Boolean) as string[]
+  const selectedStageScopeLabel = selectedStagePresentation
+    ? selectedStageBranchLabel
+      ? compactLine([
+          `Viewing: ${selectedStageBranchLabel}`,
+          selectedStageSplitterPresentation ? `Branch of ${selectedStageSplitterPresentation.title}` : "Branch run",
+          selectedStageContextLabel === "Selected step" ? selectedStageStatusLabel : selectedStageContextLabel,
+        ])
+      : selectedStageBranchSummary
+        ? compactLine([
+            `Viewing: ${selectedStagePresentation.title}`,
+            formatBranchScopeSummary(selectedStageBranchSummary),
+            selectedStageContextLabel === "Selected step" ? selectedStageStatusLabel : selectedStageContextLabel,
+          ])
+        : compactLine([
+            `Viewing: ${selectedStagePresentation.title}`,
+            selectedStageContextLabel === "Selected step" ? selectedStageStatusLabel : selectedStageContextLabel,
+          ])
+    : compactLine([
+        `Run: ${executionWorkflowName || workflow.name || "Flow"}`,
+        workflowStepCount > 0 ? `${completedStageCount}/${workflowStepCount} done` : null,
+      ])
+  const selectedResultScopeLabel = selectedResultPresentation
+    ? selectedResultBranchLabel
+      ? compactLine([
+          `Result from: ${selectedResultBranchLabel}`,
+          selectedResultSplitterPresentation ? `Branch of ${selectedResultSplitterPresentation.title}` : "Branch run",
+        ])
+      : compactLine([
+          `Result from: ${selectedResultPresentation.title}`,
+          selectedResultPresentation.artifactRoleLabel === "Final"
+            ? "Final output"
+            : `${selectedResultPresentation.artifactRoleLabel.toLowerCase()} output`,
+        ])
+    : `Result from: ${executionWorkflowName || workflow.name || "Flow"}`
   const selectedRunLabel = selectedReviewRun
     ? `${selectedReviewRun.workflowName || workflow.name || "Flow"} · ${formatRunCompletedAt(selectedReviewRun)}`
     : null
@@ -434,7 +699,7 @@ export function useOutputPanelDerivedState({
     && (reviewingRunHistory || runStatus === "done" || runStatus === "error" || pastRuns.length > 0)
   const canRerunStages = Boolean(onRerunFrom) && !isRunInFlight(runStatus as any) && !!rerunWorkspace
   const canRerunSelectedStage = Boolean(
-    selectedStageId
+    selectedStageRerunNodeId
     && canRerunStages
     && (selectedStageStatus === "completed" || selectedStageStatus === "failed"),
   )
@@ -560,22 +825,25 @@ export function useOutputPanelDerivedState({
     selectedResultNodeId,
     selectedResultPresentation,
     selectedResultBranchLabel,
+    selectedResultScopeLabel,
     selectedResultMetricsLabel,
     selectedStageId,
+    selectedStageRerunNodeId,
     selectedStagePresentation,
     selectedStageBranchLabel,
     selectedStageBranchDetail,
+    selectedStageBranchSummary,
+    selectedStageScopeLabel,
     selectedStageStatus,
     selectedStageIndex,
-    selectedStageStatusLabel,
     workflowStepCount,
     completedStageCount,
+    runningStageCount,
+    blockedStageCount,
+    pendingStageCount,
     failedStageCount,
-    selectedStageHasOutput,
     selectedStageContextLabel,
-    selectedStageContextToneClass,
     selectedStageContextLabelClass,
-    activitySummaryItems,
     selectedRunLabel,
     canInspectSavedRun,
     showBlockedReviewStrip,

@@ -437,11 +437,6 @@ export function ChainBuilder({
 
   const renderNodeStep = (node: WorkflowNode, i: number) => {
     const { effectiveState, runtimeBranchSummary } = getNodePresentation(node)
-    const preferredTab: "nodes" | "log" | "result" = typeof effectiveState?.output?.content === "string" && effectiveState.output.content.trim().length > 0
-      ? "result"
-      : effectiveState?.status === "running" || effectiveState?.status === "waiting_approval" || effectiveState?.status === "waiting_human" || effectiveState?.status === "failed"
-        ? "log"
-        : "nodes"
 
     const moveUpBlockedReason = node.type === "input" || node.type === "output"
       ? "Only editable steps can be reordered."
@@ -516,7 +511,7 @@ export function ChainBuilder({
           onConfigChange={(config) => updateNodeConfig(node.id, config)}
           onSelect={() => {
             setSelectedNode(node.id)
-            onStageSelect?.({ nodeId: node.id, preferredTab })
+            onStageSelect?.({ nodeId: node.id, preferredTab: "nodes" })
           }}
           resolveNodeLabel={getNodeDisplayLabel}
           compact={compact}

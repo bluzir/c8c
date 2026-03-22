@@ -5,10 +5,28 @@ export interface OutputPanelTabOption {
   label: string
 }
 
+function renderScopeLabel(scopeLabel: string) {
+  const colonIndex = scopeLabel.indexOf(":")
+  if (colonIndex <= 0) {
+    return <div className="ui-meta-text text-muted-foreground">{scopeLabel}</div>
+  }
+
+  const lead = scopeLabel.slice(0, colonIndex)
+  const detail = scopeLabel.slice(colonIndex + 1).trim()
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+      <span className="ui-meta-label text-muted-foreground">{lead}</span>
+      <span className="min-w-0 truncate text-body-sm text-foreground-subtle">{detail}</span>
+    </div>
+  )
+}
+
 export function OutputPanelHeader({
   activeTab,
   hasResult,
   resultReadyPulse,
+  scopeLabel = null,
   reviewingRunHistory = false,
   selectedRunLabel = null,
   selectedReviewStatus = null,
@@ -17,6 +35,7 @@ export function OutputPanelHeader({
   activeTab: string
   hasResult: boolean
   resultReadyPulse: boolean
+  scopeLabel?: string | null
   reviewingRunHistory?: boolean
   selectedRunLabel?: string | null
   selectedReviewStatus?: string | null
@@ -26,20 +45,26 @@ export function OutputPanelHeader({
   const showReviewContext = reviewingRunHistory && Boolean(selectedRunLabel)
   const showTabs = tabOptions.length > 1
 
-  if (!showTabs && !showResultPulse && !showReviewContext) {
+  if (!showTabs && !showResultPulse && !showReviewContext && !scopeLabel) {
     return null
   }
 
   return (
     <div className="border-b border-hairline px-1 pb-2">
+      {scopeLabel ? (
+        <div className="pb-2">
+          {renderScopeLabel(scopeLabel)}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         {showTabs ? (
-          <TabsList className="h-auto w-fit flex-wrap gap-1 rounded-none border-0 bg-transparent p-0 shadow-none">
+          <TabsList variant="plain" className="h-auto w-fit flex-wrap gap-1">
             {tabOptions.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="min-h-0 rounded-md px-2.5 py-1 text-body-sm"
+                variant="plain"
+                className="px-2.5 py-1"
               >
                 {tab.label}
               </TabsTrigger>

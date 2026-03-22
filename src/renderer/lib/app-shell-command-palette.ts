@@ -187,7 +187,7 @@ export function buildOutputSurfaceActionEntries(state: OutputSurfaceCommandState
     entries.push(actionEntry("output_view_result", "View result", ["result", "answer", "final output"], "Open the result surface"))
   }
   if (state.activity) {
-    entries.push(actionEntry("output_view_activity", "View activity", ["activity", "steps", "run activity"], "Open the step activity surface"))
+    entries.push(actionEntry("output_view_activity", "View summary", ["summary", "activity", "steps", "run status"], "Open the run summary surface"))
   }
   if (state.log) {
     entries.push(actionEntry("output_view_log", "View step log", ["log", "trace", "step log"], "Open the detailed log for the selected step"))

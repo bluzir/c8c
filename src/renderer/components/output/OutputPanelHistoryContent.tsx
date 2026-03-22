@@ -50,10 +50,10 @@ export function OutputPanelHistoryContent({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
-            onClick={onBackToActivity}
-          >
-            Back to activity
+          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+          onClick={onBackToActivity}
+        >
+            Back to summary
           </Button>
         </div>
       ) : null}

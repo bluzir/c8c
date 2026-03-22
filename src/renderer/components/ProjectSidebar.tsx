@@ -11,7 +11,9 @@ import {
   skillsAtom,
   mainViewAtom,
   clearWorkflowTemplateContextForKeyAtom,
+  clearWorkflowRequestedResultForKeyAtom,
   moveWorkflowTemplateContextAtom,
+  moveWorkflowRequestedResultAtom,
   templateLibraryContextAtom,
   workflowDirtyAtom,
   workflowCreateContextAtom,
@@ -101,6 +103,8 @@ export function ProjectSidebar({
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
   const moveWorkflowExecutionState = useSetAtom(moveWorkflowExecutionStateAtom)
   const clearWorkflowExecutionState = useSetAtom(clearWorkflowExecutionStateAtom)
+  const moveWorkflowRequestedResult = useSetAtom(moveWorkflowRequestedResultAtom)
+  const clearWorkflowRequestedResult = useSetAtom(clearWorkflowRequestedResultForKeyAtom)
   const moveWorkflowTemplateContext = useSetAtom(moveWorkflowTemplateContextAtom)
   const clearWorkflowTemplateContext = useSetAtom(clearWorkflowTemplateContextForKeyAtom)
   const markWorkflowSidebarRunSeen = useSetAtom(markWorkflowSidebarRunSeenAtom)
@@ -121,6 +125,7 @@ export function ProjectSidebar({
   }
   const clearDraftExecutionState = () => {
     clearWorkflowExecutionState(toWorkflowExecutionKey(null))
+    clearWorkflowRequestedResult(toWorkflowExecutionKey(null))
     clearWorkflowTemplateContext(toWorkflowExecutionKey(null))
     setWorkflowEntryState(null)
   }
@@ -204,6 +209,8 @@ export function ProjectSidebar({
     workflowHasActiveRun,
     moveWorkflowExecutionState,
     clearWorkflowExecutionState,
+    moveWorkflowRequestedResult,
+    clearWorkflowRequestedResult,
     moveWorkflowTemplateContext,
     clearWorkflowTemplateContext,
     onProjectAdd,

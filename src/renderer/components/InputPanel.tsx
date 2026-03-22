@@ -7,8 +7,11 @@ import {
   inputValueAtom,
   inputAttachmentsAtom,
   providerSettingsAtom,
+  requestedResultAtom,
+  selectedProjectAtom,
   selectedWorkflowTemplateContextAtom,
   selectedWorkflowPathAtom,
+  workflowEntryStateAtom,
 } from "@/lib/store"
 import { resolveWorkflowInput } from "@/lib/input-type"
 import type { InputNodeConfig, InputAttachment } from "@shared/types"
@@ -27,7 +30,7 @@ import { FilePicker } from "@/components/input/FilePicker"
 import { RunPicker } from "@/components/input/RunPicker"
 import { TextAttachmentEditor } from "@/components/input/TextAttachmentEditor"
 import { ProviderModelSelect, ProviderSelect } from "@/components/provider-controls"
-import { formatArtifactContractLabel } from "@/lib/workflow-entry"
+import { formatArtifactContractLabel, getRequestedResultFromEntryState } from "@/lib/workflow-entry"
 import { useWorkflowWithUndo } from "@/hooks/useWorkflowWithUndo"
 import { MOTION_BASE_MS } from "@/lib/tokens"
 
@@ -49,7 +52,10 @@ export function InputPanel({
   const { setWorkflow } = useWorkflowWithUndo()
   const defaultProvider = useAtomValue(defaultProviderAtom)
   const providerSettings = useAtomValue(providerSettingsAtom)
+  const [requestedResult, setRequestedResult] = useAtom(requestedResultAtom)
+  const selectedProject = useAtomValue(selectedProjectAtom)
   const selectedWorkflowTemplateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
+  const workflowEntryState = useAtomValue(workflowEntryStateAtom)
   const [selectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
   const [attachments, setAttachments] = useAtom(inputAttachmentsAtom)
   const [touched, setTouched] = useState(false)
@@ -69,6 +75,19 @@ export function InputPanel({
     defaultValue: inputConfig.defaultValue,
   })
   const forcedInputType = inputConfig.inputType && inputConfig.inputType !== "auto" ? inputConfig.inputType : null
+  const showRequestedResultField = forcedInputType === "directory" || forcedInputType === "url"
+  const primaryFieldLabel = showRequestedResultField ? "Target" : label
+  const entryRequestedResultSeed = useMemo(() => {
+    if (!workflowEntryState) return ""
+    const contractText = getRequestedResultFromEntryState(workflowEntryState)
+    if (!contractText) return ""
+    if (selectedWorkflowPath) {
+      if (workflowEntryState.workflowPath !== selectedWorkflowPath) return ""
+    } else if (workflowEntryState.workflowName !== workflow.name) {
+      return ""
+    }
+    return contractText
+  }, [selectedWorkflowPath, workflow.name, workflowEntryState])
 
   const inputTypeLabel =
     !resolvedInput.value.trim()
@@ -103,6 +122,40 @@ export function InputPanel({
     setAttachments([])
     setLeavingKeys(new Set())
   }, [selectedWorkflowPath, setAttachments])
+
+  useEffect(() => {
+    if (!showRequestedResultField) return
+    if (requestedResult.trim()) return
+    if (!entryRequestedResultSeed) return
+    setRequestedResult(entryRequestedResultSeed)
+  }, [entryRequestedResultSeed, requestedResult, setRequestedResult, showRequestedResultField])
+
+  useEffect(() => {
+    if (!showRequestedResultField) return
+    const activeRequestedResult = requestedResult.trim() || entryRequestedResultSeed
+    if (!activeRequestedResult) return
+    if (inputValue.trim() !== activeRequestedResult) return
+    if (resolvedInput.valid && resolvedInput.type === forcedInputType) return
+
+    if (forcedInputType === "directory") {
+      setInputValue(selectedProject || "")
+      return
+    }
+
+    if (forcedInputType === "url") {
+      setInputValue("")
+    }
+  }, [
+    entryRequestedResultSeed,
+    forcedInputType,
+    inputValue,
+    requestedResult,
+    resolvedInput.type,
+    resolvedInput.valid,
+    selectedProject,
+    setInputValue,
+    showRequestedResultField,
+  ])
 
   const removeAttachment = (index: number) => {
     const key = getAttachmentKey(attachments[index])
@@ -165,7 +218,7 @@ export function InputPanel({
       )}
     >
       <label htmlFor="workflow-input" className="section-kicker">
-        {label}
+        {primaryFieldLabel}
       </label>
 
       {showTemplateContext && (selectedWorkflowTemplateContext?.useWhen || selectedWorkflowTemplateContext?.inputText || templateContracts.length > 0) && (
@@ -228,6 +281,32 @@ export function InputPanel({
           compact ? "min-h-[3.25rem] max-h-[10rem]" : "min-h-[6rem] max-h-[24rem]",
         )}
       />
+
+      {showRequestedResultField && (
+        <div className={cn("space-y-1.5", compact && "pt-0.5")}>
+          <label htmlFor="workflow-requested-result" className="ui-meta-label text-muted-foreground">
+            Requested result
+          </label>
+          <TextareaWithMention
+            id="workflow-requested-result"
+            value={requestedResult}
+            onChange={(event) => setRequestedResult(event.target.value)}
+            placeholder={
+              forcedInputType === "directory"
+                ? "What should this flow do with this project?"
+                : "What should this flow do with this URL?"
+            }
+            rows={compact ? 2 : 3}
+            className={cn(
+              "resize-y",
+              compact ? "min-h-[3rem] max-h-[8rem]" : "min-h-[4.5rem] max-h-[16rem]",
+            )}
+          />
+          <p className="ui-meta-text text-muted-foreground">
+            Keep the target separate from the instruction so the flow knows both where to work and what result you want.
+          </p>
+        </div>
+      )}
 
       {/* Attachment chips */}
       <div className="flex flex-wrap items-center gap-1.5">

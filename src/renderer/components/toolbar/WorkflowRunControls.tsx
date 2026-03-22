@@ -44,7 +44,7 @@ export function WorkflowRunControls({
       role="group"
       aria-label="Run controls"
       className={cn(
-        "flex items-center gap-1 rounded-lg p-1 ui-transition-surface ui-motion-fast",
+        "flex shrink-0 items-center gap-1 rounded-lg p-1 ui-transition-surface ui-motion-fast",
         isRunning
           ? isPaused
             ? "surface-warning-soft shadow-inset-highlight-subtle"
@@ -77,7 +77,7 @@ export function WorkflowRunControls({
               <TooltipTrigger asChild>
                 <span className="inline-flex">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     className="ui-fade-slide-in-trailing gap-1.5"
                     onClick={onPause}
@@ -97,17 +97,17 @@ export function WorkflowRunControls({
                 <Button
                   variant={isPaused ? "outline" : "destructive"}
                   size="sm"
-                  className="ui-fade-slide-in-trailing"
+                  className="ui-fade-slide-in-trailing gap-1.5"
                   onClick={onCancel}
                   disabled={isCancelling || isStarting}
                 >
                   {isCancelling ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
-                  {isCancelling ? "Stopping..." : isStarting ? "Connecting..." : "Cancel"}
+                  {isCancelling ? "Stopping..." : isStarting ? "Connecting..." : "Stop"}
                 </Button>
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              {isCancelling ? "Stopping run..." : isStarting ? "Connecting to CLI..." : `Cancel run (${runShortcutLabel})`}
+              {isCancelling ? "Stopping run..." : isStarting ? "Connecting to CLI..." : `Stop run (${runShortcutLabel})`}
             </TooltipContent>
           </Tooltip>
         </>

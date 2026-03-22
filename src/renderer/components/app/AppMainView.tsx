@@ -46,7 +46,7 @@ export const AppMainView = memo(function AppMainView() {
       key={mainView}
       ref={viewRef}
       tabIndex={-1}
-      className="h-full min-h-0 outline-none ui-fade-slide-in"
+      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden outline-none ui-fade-slide-in"
       aria-label={`${mainView} view`}
     >
       {view}

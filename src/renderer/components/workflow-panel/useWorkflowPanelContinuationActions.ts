@@ -6,6 +6,7 @@ import { contextRequiresStartApproval } from "@/lib/stage-run-policy"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { useWorkflowUseInNewFlow } from "./useWorkflowUseInNewFlow"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
+import { getRequestedResultFromEntryState } from "@/lib/workflow-entry"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
 import type { ArtifactRecord, InputAttachment, Workflow, WorkflowTemplate } from "@shared/types"
 
@@ -31,6 +32,7 @@ export function useWorkflowPanelContinuationActions({
   setWorkflowSavedSnapshot,
   setInputValue,
   setWorkflowEntryState,
+  setWorkflowRequestedResultForKey,
   setWorkflowTemplateContextForKey,
   setSelectedInboxTaskKey,
   setSelectedPastRun,
@@ -75,6 +77,7 @@ export function useWorkflowPanelContinuationActions({
   setWorkflowSavedSnapshot: (value: ReturnType<typeof import("@/lib/workflow-snapshot").workflowSnapshot>) => void
   setInputValue: (value: string) => void
   setWorkflowEntryState: (value: import("@/lib/workflow-entry").WorkflowEntryState | null) => void
+  setWorkflowRequestedResultForKey: (value: { key: string; value: string | null }) => void
   setWorkflowTemplateContextForKey: (value: {
     key: string
     context: import("@/lib/workflow-entry").WorkflowTemplateRunContext | null
@@ -102,6 +105,10 @@ export function useWorkflowPanelContinuationActions({
     setWorkflowSavedSnapshot(launch.savedSnapshot)
     setInputValue(launch.inputSeed)
     setWorkflowEntryState(launch.entryState)
+    setWorkflowRequestedResultForKey({
+      key: toWorkflowExecutionKey(launch.filePath),
+      value: getRequestedResultFromEntryState(launch.entryState) || null,
+    })
     setWorkflowTemplateContextForKey({
       key: toWorkflowExecutionKey(launch.filePath),
       context: launch.templateContext,
@@ -143,6 +150,7 @@ export function useWorkflowPanelContinuationActions({
     setViewMode,
     setWorkflowDirect,
     setWorkflowEntryState,
+    setWorkflowRequestedResultForKey,
     setWorkflowReviewMode,
     setWorkflowSavedSnapshot,
     setWorkflowTemplateContextForKey,

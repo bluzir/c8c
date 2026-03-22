@@ -60,6 +60,14 @@ export interface WorkflowTemplateCaseOverride {
   caseLabel?: string
 }
 
+export function getRequestedResultFromEntryState(entryState: WorkflowEntryState | null | undefined) {
+  if (!entryState) return ""
+  if (entryState.contractLabel !== "Requested result" && entryState.contractLabel !== "What you asked for") {
+    return ""
+  }
+  return entryState.contractText.trim()
+}
+
 const DEFAULT_INPUT_PLACEHOLDER = "Enter your input text, paste a URL, or describe what to run..."
 
 function collapseWhitespace(value: string) {

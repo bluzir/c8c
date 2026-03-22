@@ -13,6 +13,7 @@ import {
   deriveTemplateContextDisplayLabel,
   deriveTemplateContextJourneyStageLabel,
   deriveTemplateJourneyStageLabel,
+  getRequestedResultFromEntryState,
   selectArtifactsForTemplateContracts,
 } from "./workflow-entry"
 
@@ -138,6 +139,49 @@ describe("workflow-entry factory helpers", () => {
 
     expect(context.factoryId).toBe("factory:delivery-foundation")
     expect(context.caseId).toMatch(/^case:delivery-foundation:/)
+  })
+
+  it("extracts requested result only from request-style entry contracts", () => {
+    expect(getRequestedResultFromEntryState({
+      workflowPath: "/tmp/flow.chain",
+      workflowName: "Flow",
+      source: "generated",
+      title: "Flow",
+      summary: "Summary",
+      contractLabel: "Requested result",
+      contractText: "Audit the repo.",
+      inputText: "",
+      outputText: "",
+      readinessText: "",
+    })).toBe("Audit the repo.")
+
+    expect(getRequestedResultFromEntryState({
+      workflowPath: "/tmp/flow.chain",
+      workflowName: "Flow",
+      source: "generated",
+      title: "Flow",
+      summary: "Summary",
+      contractLabel: "What you asked for",
+      contractText: "Ship the plan.",
+      inputText: "",
+      outputText: "",
+      readinessText: "",
+    })).toBe("Ship the plan.")
+  })
+
+  it("ignores non-request entry contracts", () => {
+    expect(getRequestedResultFromEntryState({
+      workflowPath: "/tmp/flow.chain",
+      workflowName: "Flow",
+      source: "template",
+      title: "Flow",
+      summary: "Summary",
+      contractLabel: "Use this when",
+      contractText: "You need a code review.",
+      inputText: "",
+      outputText: "",
+      readinessText: "",
+    })).toBe("")
   })
 
   it("inherits case identity from source artifacts when available", () => {

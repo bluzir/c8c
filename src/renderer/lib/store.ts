@@ -556,6 +556,75 @@ export const workflowCreatePendingMessageAtom = atom<Record<string, string>>({})
 export const workflowCreatePendingEntryAtom = atom<Record<string, string>>({})
 export const workflowQueuedAutoRunPathAtom = atom<string | null>(null)
 export const workflowEntryStateAtom = atom<WorkflowEntryState | null>(null)
+export const workflowRequestedResultsAtom = atom<Record<string, string>>({})
+export const requestedResultAtom = atom(
+  (get) => {
+    const workflowPath = get(selectedWorkflowPathAtom)
+    if (!workflowPath) return ""
+    return get(workflowRequestedResultsAtom)[toWorkflowExecutionKey(workflowPath)] ?? ""
+  },
+  (get, set, next: string) => {
+    const workflowPath = get(selectedWorkflowPathAtom)
+    if (!workflowPath) return
+    const key = toWorkflowExecutionKey(workflowPath)
+    const existing = get(workflowRequestedResultsAtom)
+    const normalized = next.trim()
+    if (!normalized) {
+      if (!(key in existing)) return
+      const updated = { ...existing }
+      delete updated[key]
+      set(workflowRequestedResultsAtom, updated)
+      return
+    }
+    set(workflowRequestedResultsAtom, {
+      ...existing,
+      [key]: next,
+    })
+  },
+)
+export const setWorkflowRequestedResultForKeyAtom = atom(
+  null,
+  (get, set, { key, value }: { key: string; value: string | null }) => {
+    const existing = get(workflowRequestedResultsAtom)
+    const normalized = value?.trim() || ""
+    if (!normalized) {
+      if (!(key in existing)) return
+      const updated = { ...existing }
+      delete updated[key]
+      set(workflowRequestedResultsAtom, updated)
+      return
+    }
+    set(workflowRequestedResultsAtom, {
+      ...existing,
+      [key]: value ?? "",
+    })
+  },
+)
+export const moveWorkflowRequestedResultAtom = atom(
+  null,
+  (get, set, { fromKey, toKey }: { fromKey: string; toKey: string }) => {
+    if (fromKey === toKey) return
+    const requestedResults = get(workflowRequestedResultsAtom)
+    const value = requestedResults[fromKey]
+    if (!value) return
+    const updated = {
+      ...requestedResults,
+      [toKey]: value,
+    }
+    delete updated[fromKey]
+    set(workflowRequestedResultsAtom, updated)
+  },
+)
+export const clearWorkflowRequestedResultForKeyAtom = atom(
+  null,
+  (get, set, key: string) => {
+    const requestedResults = get(workflowRequestedResultsAtom)
+    if (!(key in requestedResults)) return
+    const updated = { ...requestedResults }
+    delete updated[key]
+    set(workflowRequestedResultsAtom, updated)
+  },
+)
 export const workflowTemplateContextsAtom = atom<Record<string, WorkflowTemplateRunContext>>({})
 export const selectedWorkflowTemplateContextAtom = atom(
   (get) => get(workflowTemplateContextsAtom)[toWorkflowExecutionKey(get(selectedWorkflowPathAtom))] ?? null,

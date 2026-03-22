@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
   activeExecutionProviderAtom,
@@ -13,15 +13,18 @@ import {
   currentWorkflowAtom,
 } from "@/lib/store"
 import {
+  activeNodeIdAtom,
   nodeStatesAtom,
   runOutcomeAtom,
   runStartedAtAtom,
   runStatusAtom,
+  runtimeMetaAtom,
   runtimeNodesAtom,
   toWorkflowExecutionKey,
   workflowExecutionStatesAtom,
 } from "@/features/execution"
 import { cn } from "@/lib/cn"
+import { buildRunProgressSummary } from "@/lib/run-progress"
 import { PROVIDER_LABELS } from "@shared/provider-metadata"
 import { Activity, GitBranch, Keyboard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -41,10 +44,6 @@ import {
 function folderName(projectPath: string | null) {
   if (!projectPath) return null
   return projectPath.split("/").pop() || projectPath
-}
-
-function isStepNodeType(nodeType: string) {
-  return nodeType !== "input" && nodeType !== "output"
 }
 
 function isRunInFlight(status: string) {
@@ -73,6 +72,8 @@ export function AppStatusBar() {
   const [runOutcome] = useAtom(runOutcomeAtom)
   const [runStartedAt] = useAtom(runStartedAtAtom)
   const [nodeStates] = useAtom(nodeStatesAtom)
+  const [activeNodeId] = useAtom(activeNodeIdAtom)
+  const [runtimeMeta] = useAtom(runtimeMetaAtom)
   const [workflow] = useAtom(currentWorkflowAtom)
   const [runtimeNodes] = useAtom(runtimeNodesAtom)
   const [workflowExecutionStates] = useAtom(workflowExecutionStatesAtom)
@@ -115,34 +116,26 @@ export function AppStatusBar() {
     if (!isRunInFlight(state.runStatus) || workflowKey === selectedWorkflowKey) return count
     return count + 1
   }, 0)
-  const nodeTypeById = new Map(
-    (runtimeNodes.length > 0 ? runtimeNodes : workflow.nodes).map((node) => [node.id, node.type]),
+  const runSummary = useMemo(() => buildRunProgressSummary({
+    workflow,
+    runtimeNodes,
+    runtimeMeta,
+    nodeStates,
+    runStatus,
+    runOutcome,
+    activeNodeId,
+  }), [activeNodeId, nodeStates, runOutcome, runStatus, runtimeMeta, runtimeNodes, workflow])
+  const progressLabel = runSummary.branchLabel || (
+    runSummary.totalSteps > 0
+      ? `${Math.min(runSummary.completedSteps, runSummary.totalSteps)}/${runSummary.totalSteps}`
+      : null
   )
-  const stepNodeIds = new Set<string>()
-  for (const [nodeId, nodeType] of nodeTypeById.entries()) {
-    if (isStepNodeType(nodeType)) stepNodeIds.add(nodeId)
-  }
-  for (const nodeId of Object.keys(nodeStates)) {
-    const nodeType = nodeTypeById.get(nodeId)
-    if ((nodeType && isStepNodeType(nodeType)) || nodeId.includes("::")) {
-      stepNodeIds.add(nodeId)
-    }
-  }
-
-  let completedSteps = 0
-  let runningSteps = 0
-  let waitingApprovalSteps = 0
-  let failedSteps = 0
-  for (const nodeId of stepNodeIds) {
-    const status = nodeStates[nodeId]?.status || "pending"
-    if (status === "completed" || status === "skipped") completedSteps += 1
-    if (status === "running") runningSteps += 1
-    if (status === "waiting_approval" || status === "waiting_human") waitingApprovalSteps += 1
-    if (status === "failed") failedSteps += 1
-  }
-
-  const totalSteps = stepNodeIds.size
-  const showRunProgress = runStatus !== "idle" && (totalSteps > 0 || runStatus === "starting" || runStatus === "cancelling")
+  const progressDetail = [
+    runSummary.activeStepLabel,
+    progressLabel,
+    elapsed || null,
+  ].filter((value): value is string => Boolean(value)).join(" · ")
+  const showRunProgress = runStatus !== "idle" && (runSummary.totalSteps > 0 || runStatus === "starting" || runStatus === "cancelling")
   const runPhaseLabel = runStatus === "starting"
     ? "connecting to CLI..."
     : runStatus === "cancelling"
@@ -150,11 +143,11 @@ export function AppStatusBar() {
       : runStatus === "paused"
         ? "paused"
         : runStatus === "running"
-          ? waitingApprovalSteps > 0
+          ? runSummary.waitingApprovalSteps > 0
             ? "waiting for input"
-            : failedSteps > 0
+            : runSummary.failedSteps > 0
               ? "errors detected"
-              : runningSteps > 0
+              : runSummary.runningSteps > 0
                 ? "running"
                 : "waiting"
           : runStatus === "done"
@@ -170,9 +163,9 @@ export function AppStatusBar() {
       ? "ui-status-badge-danger"
       : runStatus === "paused"
         ? "ui-status-badge-warning"
-        : failedSteps > 0
+        : runSummary.failedSteps > 0
           ? "ui-status-badge-danger"
-        : waitingApprovalSteps > 0
+        : runSummary.waitingApprovalSteps > 0
           ? "ui-status-badge-warning"
           : "ui-status-badge-info"
 
@@ -243,9 +236,8 @@ export function AppStatusBar() {
                 )}
               >
                 {(runStatus === "running" || runStatus === "starting" || runStatus === "cancelling") && <Loader2 size={11} className="animate-spin" aria-hidden="true" />}
-                <span className="ui-metric-text">Step {Math.min(completedSteps, totalSteps)}/{totalSteps}</span>
                 <span className="text-current/80">{runPhaseLabel}</span>
-                {elapsed && <span className="ui-meta-text text-current/60 tabular-nums">{elapsed}</span>}
+                {progressDetail && <span className="ui-meta-text text-current/70">{progressDetail}</span>}
               </span>
             )}
             {backgroundRunCount > 0 && (
