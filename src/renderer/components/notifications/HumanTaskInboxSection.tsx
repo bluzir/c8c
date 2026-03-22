@@ -1,6 +1,7 @@
 import { Inbox } from "lucide-react"
 import type { ArtifactRecord, HumanTaskField, HumanTaskSnapshot, HumanTaskSummary } from "@shared/types"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/ui/page-shell"
 import { cn } from "@/lib/cn"
 import { formatRelativeTime } from "@/components/sidebar/projectSidebarUtils"
@@ -24,11 +25,13 @@ interface HumanTaskInboxSectionProps {
   taskSubmitting: boolean
   taskAnswers: Record<string, unknown>
   selectedTaskStageMeta: TaskStageMeta | null
+  primaryActionShortcutLabel?: string | null
   onOpenWorkflow: () => void
   onFieldChange: (field: HumanTaskField, value: unknown) => void
   onSubmit: () => void
   onSubmitAndContinue: () => void
   onReject: () => void
+  onClearCaseFilter?: (() => void) | null
 }
 
 export function HumanTaskInboxSection({
@@ -48,14 +51,16 @@ export function HumanTaskInboxSection({
   taskSubmitting,
   taskAnswers,
   selectedTaskStageMeta,
+  primaryActionShortcutLabel = null,
   onOpenWorkflow,
   onFieldChange,
   onSubmit,
   onSubmitAndContinue,
   onReject,
+  onClearCaseFilter = null,
 }: HumanTaskInboxSectionProps) {
   return (
-    <section className="rounded-xl surface-panel p-5 space-y-4">
+    <section className={cn("rounded-xl p-5 space-y-4", openHumanTaskCount > 0 ? "surface-elevated" : "surface-panel")}>
       <SectionHeading
         title="Waiting on you"
         meta={(
@@ -64,10 +69,6 @@ export function HumanTaskInboxSection({
           </span>
         )}
       />
-      <p className="text-body-sm text-muted-foreground">
-        Open review and input tasks appear here while saved work is waiting on you.
-      </p>
-
       {humanTasksError ? (
         <article className="rounded-lg surface-danger-soft px-4 py-3 text-body-sm text-status-danger">
           {humanTasksError}
@@ -85,6 +86,17 @@ export function HumanTaskInboxSection({
               ? "Switch to all flows or continue the related flow if you want to move it forward."
               : "Flows that need structured answers or approvals will appear here."}
           </p>
+          {selectedCaseId && onClearCaseFilter ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={onClearCaseFilter}
+            >
+              Show all tasks
+            </Button>
+          ) : null}
         </article>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -113,7 +125,7 @@ export function HumanTaskInboxSection({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="min-w-0 flex-1 truncate text-body-md font-semibold text-foreground">{task.title}</h2>
+                        <p className="min-w-0 flex-1 truncate text-body-md font-semibold text-foreground">{task.title}</p>
                         <Badge variant={task.kind === "approval" ? "warning" : "info"} size="pill">
                           {taskKindLabel(task)}
                         </Badge>
@@ -128,9 +140,7 @@ export function HumanTaskInboxSection({
                         {stageMeta && <span>· {stageMeta.title}</span>}
                         {!stageMeta && task.kind === "approval" && <span>· Approval</span>}
                       </div>
-                      {stageMeta && (
-                        <p className="mt-1 ui-meta-text text-muted-foreground">{stageMeta.group}</p>
-                      )}
+                      {stageMeta?.group ? <p className="mt-1 ui-meta-text text-muted-foreground">{stageMeta.group}</p> : null}
                       <p className="mt-2 text-body-sm text-muted-foreground">{taskCardContext.statusText}</p>
                       {taskCardContext.detailText && (
                         <p className="mt-1 line-clamp-2 ui-meta-text text-muted-foreground">{taskCardContext.detailText}</p>
@@ -149,6 +159,7 @@ export function HumanTaskInboxSection({
             taskSubmitting={taskSubmitting}
             taskAnswers={taskAnswers}
             selectedTaskStageMeta={selectedTaskStageMeta}
+            primaryActionShortcutLabel={primaryActionShortcutLabel}
             onOpenWorkflow={onOpenWorkflow}
             onFieldChange={onFieldChange}
             onSubmit={onSubmit}

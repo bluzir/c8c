@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { approvalRequestsAtom, workflowExecutionStatesAtom } from "@/features/execution"
-import { desktopRuntimeAtom } from "@/lib/store"
+import { desktopRuntimeAtom, multiRunDashboardOpenAtom } from "@/lib/store"
 import {
   Dialog,
   DialogContent,
@@ -50,12 +50,16 @@ export function ApprovalDialog() {
   const [requests, setRequests] = useAtom(approvalRequestsAtom)
   const executionStates = useAtomValue(workflowExecutionStatesAtom)
   const desktopRuntime = useAtomValue(desktopRuntimeAtom)
+  const multiRunDashboardOpen = useAtomValue(multiRunDashboardOpenAtom)
+  const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
   const [editedContent, setEditedContent] = useState("")
-  const [submitting, setSubmitting] = useState(false)
+  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null)
+  const [dismissedRequestKey, setDismissedRequestKey] = useState<string | null>(null)
   const mountedRef = useRef(true)
 
   const request = requests[0] ?? null
   const queueCount = requests.length
+  const requestKey = request ? `${request.workflowKey}::${request.runId}::${request.nodeId}` : null
   const requestExecutionState = useMemo(
     () => request
       ? executionStates[request.workflowKey]
@@ -130,6 +134,7 @@ export function ApprovalDialog() {
     ? `Approve ${requestContext.stageLabel}`
     : "Approve this step"
   const gateDescription = request?.message || "Review this exact step before the flow continues."
+  const dialogOpen = Boolean(request && requestKey !== dismissedRequestKey)
 
   useEffect(() => {
     mountedRef.current = true
@@ -145,10 +150,25 @@ export function ApprovalDialog() {
   }, [request])
 
   useEffect(() => {
+    if (!requestKey) {
+      setDismissedRequestKey(null)
+      return
+    }
+    if (dismissedRequestKey && dismissedRequestKey !== requestKey) {
+      setDismissedRequestKey(null)
+    }
+  }, [dismissedRequestKey, requestKey])
+
+  useEffect(() => {
+    if (multiRunDashboardOpen) return
+    setDismissedRequestKey(null)
+  }, [multiRunDashboardOpen])
+
+  useEffect(() => {
     if (!request) return
 
     const handler = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isShortcutConsumed(event)) return
+      if (event.defaultPrevented || isShortcutConsumed(event) || pendingAction !== null) return
 
       if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey: desktopRuntime.primaryModifierKey })) return
       consumeShortcut(event)
@@ -159,7 +179,7 @@ export function ApprovalDialog() {
     return () => {
       window.removeEventListener("keydown", handler, true)
     }
-  }, [desktopRuntime.primaryModifierKey, request, submitting, editedContent])
+  }, [desktopRuntime.primaryModifierKey, pendingAction, request, editedContent])
 
   if (!request) return null
 
@@ -167,10 +187,16 @@ export function ApprovalDialog() {
     setRequests((prev) => prev.slice(1))
   }
 
+  const handleDismiss = () => {
+    if (!requestKey || pendingAction !== null) return
+    setDismissedRequestKey(requestKey)
+    setMultiRunDashboardOpen(true)
+  }
+
   const handleApprove = async () => {
-    if (submitting) return
+    if (pendingAction !== null) return
     const content = request.allowEdit ? editedContent : undefined
-    setSubmitting(true)
+    setPendingAction("approve")
     try {
       const ok = await withIpcTimeout(
         window.api.approveNode(request.runId, request.nodeId, content),
@@ -188,14 +214,14 @@ export function ApprovalDialog() {
       toastError("Could not approve step")
     } finally {
       if (mountedRef.current) {
-        setSubmitting(false)
+        setPendingAction(null)
       }
     }
   }
 
   const handleReject = async () => {
-    if (submitting) return
-    setSubmitting(true)
+    if (pendingAction !== null) return
+    setPendingAction("reject")
     try {
       const ok = await withIpcTimeout(
         window.api.rejectNode(request.runId, request.nodeId),
@@ -213,19 +239,20 @@ export function ApprovalDialog() {
       toastError("Could not stop flow")
     } finally {
       if (mountedRef.current) {
-        setSubmitting(false)
+        setPendingAction(null)
       }
     }
   }
 
   return (
-    <Dialog open={!!request} onOpenChange={() => {}}>
+    <Dialog open={dialogOpen} onOpenChange={(open) => {
+      if (!open) handleDismiss()
+    }}>
       <DialogContent
         className="max-w-2xl max-h-[80vh] overflow-y-auto ui-scroll-region"
-        showCloseButton={false}
         data-approval-dialog="true"
       >
-        <DialogHeader className="space-y-2">
+        <DialogHeader className="sr-only">
           <DialogTitle>{gateTitle}</DialogTitle>
           <DialogDescription>
             {gateDescription}
@@ -243,20 +270,7 @@ export function ApprovalDialog() {
             approveConsequence={requestContext.approveConsequence}
             rejectConsequence={requestContext.rejectConsequence}
             topBadges={(
-              <>
-                {queueCount > 1 && (
-                  <Badge variant="secondary" size="compact">{queueCount - 1} more pending</Badge>
-                )}
-                <Badge variant="outline" size="compact">{primaryShortcutLabel} approve</Badge>
-                {failedCriterionCount > 0 && (
-                  <Badge variant="warning" size="compact">
-                    {failedCriterionCount} below bar
-                  </Badge>
-                )}
-                {request.allowEdit && (
-                  <Badge variant="outline" size="compact">Editable input</Badge>
-                )}
-              </>
+              queueCount > 1 ? <Badge variant="secondary" size="compact">{queueCount - 1} more pending</Badge> : null
             )}
           />
         )}
@@ -284,6 +298,7 @@ export function ApprovalDialog() {
                 rows={12}
                 aria-label="Edit step output before continuing"
                 className="font-mono text-body-sm"
+                autoFocus
               />
               <p className="ui-meta-text text-muted-foreground">Your edits will be used as the step output when approved.</p>
             </section>
@@ -297,12 +312,28 @@ export function ApprovalDialog() {
         )}
 
         <DialogFooter className="border-t border-hairline/70 pt-3">
-          <Button variant="destructive" size="sm" onClick={handleReject} disabled={submitting}>
-            <X size={14} />
+          <div className="mr-auto flex min-w-0 flex-wrap items-center gap-2 ui-meta-text text-muted-foreground">
+            <span>Press {primaryShortcutLabel} to approve</span>
+            {queueCount > 1 ? <span>{queueCount - 1} more approval{queueCount - 1 === 1 ? "" : "s"} waiting</span> : null}
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleReject}
+            isLoading={pendingAction === "reject"}
+            disabled={pendingAction !== null}
+          >
+            {pendingAction !== "reject" && <X size={14} />}
             Reject & stop
           </Button>
-          <Button size="sm" onClick={handleApprove} disabled={submitting}>
-            <Check size={14} />
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            disabled={pendingAction !== null}
+            isLoading={pendingAction === "approve"}
+            autoFocus={!request.allowEdit}
+          >
+            {pendingAction !== "approve" && <Check size={14} />}
             Approve & continue
           </Button>
         </DialogFooter>

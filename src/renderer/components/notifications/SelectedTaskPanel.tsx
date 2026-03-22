@@ -3,11 +3,17 @@ import type { HumanTaskField, HumanTaskSnapshot } from "@shared/types"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
   deriveTaskCardContext,
   normalizeHumanFieldValue,
-  primaryTaskFieldLabel,
   taskActionCopy,
   type TaskStageMeta,
 } from "./task-ui"
@@ -50,6 +56,7 @@ interface SelectedTaskPanelProps {
   taskSubmitting: boolean
   taskAnswers: Record<string, unknown>
   selectedTaskStageMeta: TaskStageMeta | null
+  primaryActionShortcutLabel?: string | null
   blockedSummary?: {
     statusText?: string | null
     reasonText?: string | null
@@ -76,6 +83,7 @@ export function SelectedTaskPanel({
   taskSubmitting,
   taskAnswers,
   selectedTaskStageMeta,
+  primaryActionShortcutLabel = null,
   blockedSummary = null,
   showOpenWorkflowButton = true,
   inspectLabel = null,
@@ -87,7 +95,6 @@ export function SelectedTaskPanel({
   onReject,
   onInspect = null,
 }: SelectedTaskPanelProps) {
-  const selectedTaskPrimaryField = primaryTaskFieldLabel(selectedTask)
   const taskContext = selectedTask
     ? deriveTaskCardContext(selectedTask, { stageLabel: selectedTaskStageMeta?.title || null })
     : null
@@ -126,7 +133,7 @@ export function SelectedTaskPanel({
   )
 
   return (
-    <article className={className || "rounded-lg border border-hairline bg-surface-1 px-4 py-4"}>
+    <article className={className || "rounded-lg bg-surface-1 px-4 py-4"}>
       {taskLoading ? (
         <div className="flex min-h-[260px] items-center justify-center text-muted-foreground">
           <Loader2 size={18} className="mr-2 animate-spin" />
@@ -204,25 +211,21 @@ export function SelectedTaskPanel({
               </div>
             )}
 
-            <div className="grid gap-3 border-t border-hairline pt-2 sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="ui-meta-label text-muted-foreground">On approve</p>
-                <p className="text-body-sm text-foreground">
-                  {blockedSummary?.approveText || "Continue this flow from the blocked step."}
-                </p>
+            {selectedTask.kind === "approval" && (
+              <div className="grid gap-3 border-t border-hairline pt-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="ui-meta-label text-muted-foreground">On approve</p>
+                  <p className="text-body-sm text-foreground">
+                    {blockedSummary?.approveText || "Continue this flow from the blocked step."}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="ui-meta-label text-muted-foreground">On reject</p>
+                  <p className="text-body-sm text-foreground">
+                    {blockedSummary?.rejectText || "Stop the flow and keep the current results."}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="ui-meta-label text-muted-foreground">On reject</p>
-                <p className="text-body-sm text-foreground">
-                  {blockedSummary?.rejectText || "Stop the flow and keep the current results."}
-                </p>
-              </div>
-            </div>
-
-            {selectedTaskPrimaryField && (
-              <p className="ui-meta-text text-muted-foreground">
-                Required field: {selectedTaskPrimaryField}
-              </p>
             )}
           </div>
 
@@ -231,6 +234,12 @@ export function SelectedTaskPanel({
               const value = normalizeHumanFieldValue(field, taskAnswers[field.id])
               const fieldControlId = `selected-task-field-${field.id}`
               const fieldDescriptionId = field.description ? `${fieldControlId}-description` : undefined
+              const requiredMark = field.required ? (
+                <>
+                  <span className="ml-0.5 text-label-xs text-status-danger" aria-hidden="true">*</span>
+                  <span className="sr-only"> (required)</span>
+                </>
+              ) : null
 
               if (field.type === "boolean") {
                 return (
@@ -238,6 +247,7 @@ export function SelectedTaskPanel({
                     <div className="min-w-0">
                       <label htmlFor={fieldControlId} className="text-body-sm font-medium text-foreground">
                         {field.label}
+                        {requiredMark}
                       </label>
                       {field.description && (
                         <p id={fieldDescriptionId} className="mt-1 text-body-sm text-muted-foreground">{field.description}</p>
@@ -256,22 +266,32 @@ export function SelectedTaskPanel({
               if (field.type === "select") {
                 return (
                   <div key={field.id} className="space-y-2">
-                    <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">{field.label}</label>
+                    <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">
+                      {field.label}
+                      {requiredMark}
+                    </label>
                     {field.description && (
                       <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
                     )}
-                    <select
-                      id={fieldControlId}
-                      className="ui-input w-full"
+                    <Select
                       value={String(value)}
-                      aria-describedby={fieldDescriptionId}
-                      onChange={(event) => onFieldChange(field, event.target.value)}
+                      onValueChange={(nextValue) => onFieldChange(field, nextValue)}
                     >
-                      <option value="">Select...</option>
-                      {(field.options || []).map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger
+                        id={fieldControlId}
+                        aria-describedby={fieldDescriptionId}
+                        className="w-full"
+                      >
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(field.options || []).map((option) => (
+                          <SelectItem key={option.value} value={String(option.value)}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )
               }
@@ -280,7 +300,10 @@ export function SelectedTaskPanel({
                 const selectedValues = Array.isArray(value) ? value : []
                 return (
                   <fieldset key={field.id} className="space-y-2 border-t border-hairline pt-2">
-                    <legend className="ui-meta-text text-muted-foreground">{field.label}</legend>
+                    <legend className="ui-meta-text text-muted-foreground">
+                      {field.label}
+                      {requiredMark}
+                    </legend>
                     {field.description && (
                       <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
                     )}
@@ -313,7 +336,10 @@ export function SelectedTaskPanel({
               if (field.type === "textarea" || field.type === "json") {
                 return (
                   <div key={field.id} className="space-y-2">
-                    <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">{field.label}</label>
+                    <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">
+                      {field.label}
+                      {requiredMark}
+                    </label>
                     {field.description && (
                       <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
                     )}
@@ -331,7 +357,10 @@ export function SelectedTaskPanel({
 
               return (
                 <div key={field.id} className="space-y-2">
-                  <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">{field.label}</label>
+                  <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">
+                    {field.label}
+                    {requiredMark}
+                  </label>
                   {field.description && (
                     <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
                   )}
@@ -355,14 +384,6 @@ export function SelectedTaskPanel({
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="outline"
-                onClick={onReject}
-                disabled={taskSubmitting}
-              >
-                {selectedTask.kind === "approval" ? "Reject" : "Reject task"}
-              </Button>
-              <Button
-                type="button"
                 onClick={selectedTask.workflowPath ? onSubmitAndContinue : onSubmit}
                 disabled={taskSubmitting}
                 isLoading={taskSubmitting}
@@ -370,7 +391,20 @@ export function SelectedTaskPanel({
                 {!taskSubmitting && (selectedTask.workflowPath ? <ArrowUpRight size={14} /> : <Check size={14} />)}
                 {primaryActionLabel}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onReject}
+                disabled={taskSubmitting}
+              >
+                {selectedTask.kind === "approval" ? "Reject" : "Reject task"}
+              </Button>
             </div>
+            {primaryActionShortcutLabel ? (
+              <p className="mt-2 ui-meta-text text-muted-foreground">
+                {primaryActionShortcutLabel}
+              </p>
+            ) : null}
             {onInspect && inspectLabel ? (
               <div className="mt-3">
                 <Button

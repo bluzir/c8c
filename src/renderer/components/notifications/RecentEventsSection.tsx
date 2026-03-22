@@ -2,7 +2,6 @@ import type { ComponentType } from "react"
 import { ArrowUpRight, Check, Inbox } from "lucide-react"
 import type { InboxNotification } from "@/lib/store"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { SectionHeading } from "@/components/ui/page-shell"
 import { cn } from "@/lib/cn"
 import { formatRelativeTime } from "@/components/sidebar/projectSidebarUtils"
@@ -19,6 +18,7 @@ interface RecentEventsSectionProps {
   unreadCount: number
   visibleNotifications: InboxNotification[]
   sourceFilter: "all" | InboxNotification["source"]
+  emphasized?: boolean
   onSourceFilterChange: (value: "all" | InboxNotification["source"]) => void
   onNotificationAction: (notification: InboxNotification) => void
   onMarkRead: (id: string) => void
@@ -30,13 +30,14 @@ export function RecentEventsSection({
   unreadCount,
   visibleNotifications,
   sourceFilter,
+  emphasized = false,
   onSourceFilterChange,
   onNotificationAction,
   onMarkRead,
   levelMeta,
 }: RecentEventsSectionProps) {
   return (
-    <section className="rounded-xl surface-panel p-5 space-y-4">
+    <section className={cn("rounded-xl p-5 space-y-4", emphasized ? "surface-panel" : "border border-hairline/70 bg-surface-1/50")}>
       <SectionHeading
         title="Recent events"
         meta={(
@@ -95,13 +96,10 @@ export function RecentEventsSection({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-body-md font-semibold text-foreground">{notification.title}</h2>
+                      <p className="text-body-md font-semibold text-foreground">{notification.title}</p>
                       <span className={cn("ui-status-badge ui-meta-text", level.badgeClass)}>
                         {SOURCE_LABELS[notification.source]}
                       </span>
-                      {!notification.read && (
-                        <Badge variant="secondary" size="pill">Unread</Badge>
-                      )}
                       <span className="ui-meta-text text-muted-foreground">
                         {formatRelativeTime(notification.createdAt)}
                       </span>
