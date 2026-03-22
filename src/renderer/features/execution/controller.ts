@@ -109,6 +109,9 @@ export class WorkflowExecutionController {
     targetWorkflow: Workflow,
     workflowPathForRun: string | null,
     projectPathForRun: string | null,
+    options?: {
+      preserveExecutionSnapshot?: boolean
+    },
   ): ExecutionStartHandle {
     const workflowKey = toWorkflowExecutionKey(workflowPathForRun)
     const previousState = this.getExecutionState(workflowKey)
@@ -120,7 +123,16 @@ export class WorkflowExecutionController {
     this.previousExecutionSnapshots.set(workflowKey, previousState)
     this.workflowSnapshots.set(workflowKey, structuredClone(targetWorkflow))
     this.updateExecutionForKey(workflowKey, (previous) =>
-      createExecutionStartState(previous, targetWorkflow, workflowPathForRun, projectPathForRun),
+      createExecutionStartState(
+        previous,
+        targetWorkflow,
+        workflowPathForRun,
+        projectPathForRun,
+        Date.now(),
+        {
+          preserveExecutionSnapshot: options?.preserveExecutionSnapshot,
+        },
+      ),
     )
     return {
       workflowKey,

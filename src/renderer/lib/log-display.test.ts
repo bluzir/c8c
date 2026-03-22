@@ -33,4 +33,14 @@ describe("mergeLogEntriesForDisplay", () => {
       { type: "diff", content: "diff --git a", files: ["a.ts"], timestamp: 3 },
     ])
   })
+
+  it("keeps progress text entries separate from normal text chunks", () => {
+    const log: LogEntry[] = [
+      { type: "text", content: "assistant prefix ", timestamp: 1 },
+      { type: "text", content: "[progress] Read is still running (15s)", timestamp: 2 },
+      { type: "text", content: "assistant suffix", timestamp: 3 },
+    ]
+
+    expect(mergeLogEntriesForDisplay(log)).toEqual(log)
+  })
 })

@@ -12,6 +12,7 @@ import type {
   WorkflowNode,
   WorkflowRuntimeMeta,
 } from "@shared/types"
+import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state"
 
 export type { EvalCriterion, EvaluationResult } from "@shared/types"
 
@@ -90,6 +91,10 @@ export interface ResetWorkflowExecutionStateOptions {
   preserveCompletedWork?: boolean
 }
 
+export interface CreateExecutionStartStateOptions {
+  preserveExecutionSnapshot?: boolean
+}
+
 export const DRAFT_WORKFLOW_EXECUTION_KEY = "__draft__"
 
 export function createEmptyWorkflowExecutionState(): WorkflowExecutionState {
@@ -143,20 +148,25 @@ export function hasWorkflowExecutionInspectableResult(state: Pick<
 
 export function buildExecutionSurfaceNotice(state: WorkflowExecutionState): ExecutionSurfaceNotice | null {
   const hasResult = hasWorkflowExecutionInspectableResult(state)
+  const runDisplayState = resolveWorkflowRunDisplayState({
+    runStatus: state.runStatus,
+    runOutcome: state.runOutcome,
+    lastError: state.lastError,
+  })
 
-  if (state.runStatus === "done" && state.runOutcome === "completed") {
+  if (runDisplayState.state === "completed") {
     return {
       level: "success",
       title: "Run complete",
       description: hasResult
         ? "Result is ready to review from this flow."
-        : "Activity is ready to review from this flow.",
-      actionLabel: hasResult ? "View result" : "Open activity",
+        : "Summary is ready to review from this flow.",
+      actionLabel: hasResult ? "View result" : "Open summary",
       actionTarget: hasResult ? "result" : "activity",
     }
   }
 
-  if (state.runStatus === "done" && state.runOutcome === "blocked") {
+  if (runDisplayState.state === "blocked" && runDisplayState.isTerminal) {
     return {
       level: "warning",
       title: "Needs review",
@@ -166,24 +176,24 @@ export function buildExecutionSurfaceNotice(state: WorkflowExecutionState): Exec
     }
   }
 
-  if (state.runStatus === "done" && state.runOutcome === "cancelled") {
+  if (runDisplayState.state === "cancelled") {
     return {
       level: "warning",
       title: "Run cancelled",
       description: hasResult
         ? "The flow stopped before it finished, but partial result is still available to review."
-        : "The flow stopped before it finished. Inspect activity to review the last completed step.",
-      actionLabel: hasResult ? "View partial result" : "Open activity",
+        : "The flow stopped before it finished. Inspect summary to review the last completed step.",
+      actionLabel: hasResult ? "View partial result" : "Open summary",
       actionTarget: hasResult ? "result" : "activity",
     }
   }
 
-  if ((state.runStatus === "done" && (state.runOutcome === "failed" || state.runOutcome === "interrupted")) || state.runStatus === "error") {
+  if (runDisplayState.state === "failed") {
     return {
       level: "error",
       title: "Run needs attention",
-      description: state.lastError || "The flow did not finish successfully. Inspect activity to review the failure.",
-      actionLabel: "Open activity",
+      description: state.lastError || "The flow did not finish successfully. Inspect summary to review the failure.",
+      actionLabel: "Open summary",
       actionTarget: "activity",
     }
   }
@@ -205,10 +215,17 @@ export function createExecutionStartState(
   workflowPath: string | null,
   projectPath: string | null,
   startedAt = Date.now(),
+  options: CreateExecutionStartStateOptions = {},
 ): WorkflowExecutionState {
-  const nodeStates: Record<string, NodeState> = {}
+  const preserveExecutionSnapshot = options.preserveExecutionSnapshot === true
+  const nodeStates: Record<string, NodeState> = preserveExecutionSnapshot
+    ? structuredClone(previousState.nodeStates)
+    : {}
+
   for (const node of workflow.nodes) {
-    nodeStates[node.id] = createPendingNodeState()
+    if (!nodeStates[node.id]) {
+      nodeStates[node.id] = createPendingNodeState()
+    }
   }
 
   return {
@@ -225,13 +242,13 @@ export function createExecutionStartState(
     workflowSnapshot: structuredClone(workflow),
     nodeStates,
     activeNodeId: null,
-    inspectedNodeId: null,
-    evalResults: {},
+    inspectedNodeId: preserveExecutionSnapshot ? previousState.inspectedNodeId : null,
+    evalResults: preserveExecutionSnapshot ? previousState.evalResults : {},
     finalContent: "",
     reportPath: null,
-    runtimeNodes: [],
-    runtimeEdges: [],
-    runtimeMeta: {},
+    runtimeNodes: preserveExecutionSnapshot ? previousState.runtimeNodes : [],
+    runtimeEdges: preserveExecutionSnapshot ? previousState.runtimeEdges : [],
+    runtimeMeta: preserveExecutionSnapshot ? previousState.runtimeMeta : {},
     artifactRecords: [],
     artifactPersistenceStatus: "idle",
     artifactPersistenceError: null,
@@ -598,14 +615,19 @@ export function reduceWorkflowExecutionEvent(
 
 export async function assembleInputWithAttachments(
   baseValue: string,
+  requestedResult: string,
   attachments: InputAttachment[],
   selectedProject: string | null,
   api: WorkflowInputAttachmentApi,
 ): Promise<string> {
-  if (attachments.length === 0) return baseValue
+  const normalizedRequestedResult = requestedResult.trim()
+  const effectiveAttachments = normalizedRequestedResult
+    ? attachments.filter((attachment) => !(attachment.kind === "text" && attachment.label.trim().toLowerCase() === "requested result"))
+    : attachments
+  if (effectiveAttachments.length === 0 && !normalizedRequestedResult) return baseValue
 
   const sections = await Promise.all(
-    attachments.map(async (attachment) => {
+    effectiveAttachments.map(async (attachment) => {
       if (attachment.kind === "file") {
         if (!selectedProject) {
           return `## Attached File: ${attachment.name}\n\n[Cannot read file: no project selected]`
@@ -631,5 +653,9 @@ export async function assembleInputWithAttachments(
     }),
   )
 
-  return [baseValue, "\n---\n# Attachments\n", ...sections].join("\n\n")
+  const contextSections = normalizedRequestedResult
+    ? [`## Requested Result\n\n${normalizedRequestedResult}`, ...sections]
+    : sections
+
+  return [baseValue, "\n---\n# Context\n", ...contextSections].join("\n\n")
 }

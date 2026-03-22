@@ -39,6 +39,7 @@ interface UseExecutionCommandsArgs {
   runStatus: ExecutionRunStatus
   workflow: Workflow
   inputValue: string
+  requestedResult: string
   attachments: InputAttachment[]
   selectedProject: string | null
   selectedWorkflowPath: string | null
@@ -50,8 +51,20 @@ interface UseExecutionCommandsArgs {
   onPreflightWarnings?: (warnings: PreflightWarning[]) => Promise<boolean>
 }
 
+type ExecutionStartWarningMode = "default" | "skip_token_budget"
+
 export function canStartManualContinuation(runStatus: ExecutionRunStatus) {
   return runStatus !== "starting" && runStatus !== "running" && runStatus !== "cancelling"
+}
+
+export function filterExecutionStartWarnings(
+  warnings: PreflightWarning[],
+  mode: ExecutionStartWarningMode = "default",
+) {
+  if (mode === "skip_token_budget") {
+    return warnings.filter((warning) => warning.kind !== "token_budget")
+  }
+  return warnings
 }
 
 export function useExecutionCommands({
@@ -59,6 +72,7 @@ export function useExecutionCommands({
   runStatus,
   workflow,
   inputValue,
+  requestedResult,
   attachments,
   selectedProject,
   selectedWorkflowPath,
@@ -108,6 +122,9 @@ export function useExecutionCommands({
   const preflightExecutionStart = useCallback(async (
     workflowForRun: Workflow,
     fallbackTitle: string,
+    options?: {
+      warningMode?: ExecutionStartWarningMode
+    },
   ): Promise<{ effectiveProvider: ProviderId } | null> => {
     try {
       const preflight = await loadExecutionStartPreflight(window.api, workflowForRun)
@@ -125,8 +142,12 @@ export function useExecutionCommands({
       }
 
       // Surface non-blocking warnings (e.g. token budget) before proceeding
-      if (preflight.warnings.length > 0 && onPreflightWarningsRef.current) {
-        const confirmed = await onPreflightWarningsRef.current(preflight.warnings)
+      const visibleWarnings = filterExecutionStartWarnings(
+        preflight.warnings,
+        options?.warningMode ?? "default",
+      )
+      if (visibleWarnings.length > 0 && onPreflightWarningsRef.current) {
+        const confirmed = await onPreflightWarningsRef.current(visibleWarnings)
         if (!confirmed) return null
       }
 
@@ -156,6 +177,7 @@ export function useExecutionCommands({
 
     const assembledValue = await assembleInputWithAttachments(
       resolvedInput.value,
+      resolvedInput.type !== "text" ? requestedResult : "",
       attachments,
       selectedProject,
       {
@@ -221,6 +243,7 @@ export function useExecutionCommands({
     attachments,
     controller,
     inputValue,
+    requestedResult,
     preflightExecutionStart,
     runStatus,
     selectedProject,
@@ -287,9 +310,25 @@ export function useExecutionCommands({
 
     const workflowKeyForRun = toWorkflowExecutionKey(selectedWorkflowPath ?? null)
     const workflowForRun = controller.getExecutionState(workflowKeyForRun).workflowSnapshot ?? workflow
-    const preflight = await preflightExecutionStart(workflowForRun, "Could not restart from selected node")
+    const preflight = await preflightExecutionStart(
+      workflowForRun,
+      "Could not restart from selected node",
+      {
+        // Resume-from-step only runs the downstream tail, so full-flow worst-case
+        // estimates are misleading here. Keep blocking preflight checks, skip the
+        // generic token-budget warning.
+        warningMode: "skip_token_budget",
+      },
+    )
     if (!preflight) return
-    const startHandle = controller.beginExecution(workflowForRun, selectedWorkflowPath ?? null, selectedProject ?? null)
+    const startHandle = controller.beginExecution(
+      workflowForRun,
+      selectedWorkflowPath ?? null,
+      selectedProject ?? null,
+      {
+        preserveExecutionSnapshot: true,
+      },
+    )
     setActiveExecutionProvider(preflight.effectiveProvider)
     const { workflowForExecution } = prepareWorkflowForExecution(
       workflowForRun,
@@ -377,7 +416,14 @@ export function useExecutionCommands({
 
     const preflight = await preflightExecutionStart(workflowForRun, "Could not continue run")
     if (!preflight) return false
-    const startHandle = controller.beginExecution(workflowForRun, workflowPathForRun, selectedProject ?? null)
+    const startHandle = controller.beginExecution(
+      workflowForRun,
+      workflowPathForRun,
+      selectedProject ?? null,
+      {
+        preserveExecutionSnapshot: true,
+      },
+    )
     setActiveExecutionProvider(preflight.effectiveProvider)
     controller.updateExecutionForKey(startHandle.workflowKey, (previous) => ({
       ...previous,

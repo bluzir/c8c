@@ -84,6 +84,54 @@ describe("workflow execution state", () => {
     expect(nextState.workflowSnapshot).not.toBe(workflow)
   })
 
+  it("can preserve execution snapshot when restarting from a saved failure", () => {
+    const workflow = createWorkflow()
+    const previousState = {
+      ...createEmptyWorkflowExecutionState(),
+      workspace: "/tmp/existing-workspace",
+      selectedPastRun: createPastRun(),
+      inspectedNodeId: "output",
+      runtimeNodes: [...workflow.nodes],
+      runtimeEdges: [...workflow.edges],
+      runtimeMeta: {
+        "branch-1": {
+          subtaskKey: "security",
+          branchIndex: 0,
+          totalBranches: 2,
+          templateId: "fan-out",
+        },
+      },
+      nodeStates: {
+        input: { status: "completed" as const, attempts: 1, log: [] },
+        output: { status: "failed" as const, attempts: 1, log: [], error: "merge failed" },
+        "branch-1": { status: "completed" as const, attempts: 1, log: [] },
+      },
+      evalResults: {
+        output: [{ attempt: 1, score: 0.2, reason: "merge failed", passed: false }],
+      },
+    }
+
+    const nextState = createExecutionStartState(
+      previousState,
+      workflow,
+      "/tmp/research.chain",
+      "/tmp/project",
+      456,
+      { preserveExecutionSnapshot: true },
+    )
+
+    expect(nextState.runStatus).toBe("starting")
+    expect(nextState.runStartedAt).toBe(456)
+    expect(nextState.nodeStates).toEqual(previousState.nodeStates)
+    expect(nextState.runtimeNodes).toEqual(previousState.runtimeNodes)
+    expect(nextState.runtimeEdges).toEqual(previousState.runtimeEdges)
+    expect(nextState.runtimeMeta).toEqual(previousState.runtimeMeta)
+    expect(nextState.inspectedNodeId).toBe("output")
+    expect(nextState.evalResults).toEqual(previousState.evalResults)
+    expect(nextState.finalContent).toBe("")
+    expect(nextState.reportPath).toBeNull()
+  })
+
   it("writes output node content into finalContent", () => {
     const workflow = createWorkflow()
     const previousState = createExecutionStartState(
@@ -438,8 +486,8 @@ describe("workflow execution state", () => {
     expect(notice).toEqual({
       level: "success",
       title: "Run complete",
-      description: "Activity is ready to review from this flow.",
-      actionLabel: "Open activity",
+      description: "Summary is ready to review from this flow.",
+      actionLabel: "Open summary",
       actionTarget: "activity",
     })
   })
@@ -554,6 +602,7 @@ describe("assembleInputWithAttachments", () => {
 
     const result = await assembleInputWithAttachments(
       "Base prompt",
+      "",
       [
         { kind: "file", path: "/tmp/file.txt", name: "file.txt" },
         { kind: "run", runId: "run-1", workspace: "/tmp/run-1", workflowName: "Deep Research" },
@@ -582,6 +631,7 @@ describe("assembleInputWithAttachments", () => {
 
     const result = await assembleInputWithAttachments(
       "Base prompt",
+      "",
       [{ kind: "file", path: "/tmp/file.txt", name: "file.txt" }],
       null,
       api,
@@ -589,5 +639,28 @@ describe("assembleInputWithAttachments", () => {
 
     expect(api.readFileContent).not.toHaveBeenCalled()
     expect(result).toContain("[Cannot read file: no project selected]")
+  })
+
+  it("injects requested result ahead of attachments and deduplicates legacy requested-result text attachments", async () => {
+    const api = {
+      readFileContent: vi.fn(),
+      loadRunResult: vi.fn(),
+    }
+
+    const result = await assembleInputWithAttachments(
+      "/Users/vlad/Code/projects/chain-runner",
+      "Audit the codebase and flag security issues.",
+      [
+        { kind: "text", label: "Requested result", content: "Old duplicate" },
+        { kind: "text", label: "Notes", content: "Keep findings actionable." },
+      ],
+      "/tmp/project",
+      api,
+    )
+
+    expect(result).toContain("## Requested Result")
+    expect(result).toContain("Audit the codebase and flag security issues.")
+    expect(result).toContain("## Notes")
+    expect(result).not.toContain("Old duplicate")
   })
 })

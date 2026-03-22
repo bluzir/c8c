@@ -3,6 +3,7 @@ import { useAtom, useSetAtom } from "jotai"
 import {
   currentWorkflowAtom,
   inputAttachmentsAtom,
+  requestedResultAtom,
   inputValueAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
@@ -52,6 +53,7 @@ export function ExecutionProvider({ children, onPreflightWarnings }: ExecutionPr
   const setApprovalRequests = useSetAtom(approvalRequestsAtom)
   const [workflow, setCurrentWorkflow] = useAtom(currentWorkflowAtom)
   const [inputValue] = useAtom(inputValueAtom)
+  const [requestedResult] = useAtom(requestedResultAtom)
   const [attachments] = useAtom(inputAttachmentsAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
@@ -76,6 +78,7 @@ export function ExecutionProvider({ children, onPreflightWarnings }: ExecutionPr
     controller,
     attachments,
     inputValue,
+    requestedResult,
     runStatus,
     setActiveExecutionProvider,
     selectedProject,

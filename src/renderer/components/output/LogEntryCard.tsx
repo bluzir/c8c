@@ -74,6 +74,17 @@ export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEn
   }
 
   if (entry.type === "text") {
+    if (entry.content.startsWith("[progress]")) {
+      return (
+        <div className="border-l-2 border-status-info/35 pl-3 py-1">
+          <div className="ui-meta-label text-status-info">progress</div>
+          <pre className="ui-meta-text text-muted-foreground whitespace-pre-wrap font-mono mt-1">
+            {entry.content.replace(/^\[progress\]\s*/i, "")}
+          </pre>
+        </div>
+      )
+    }
+
     return (
       <div className="py-1">
         <pre className="text-body-md whitespace-pre-wrap font-mono">{entry.content}</pre>
