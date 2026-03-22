@@ -109,16 +109,20 @@ export function resolveRuntimePolicy(
   }
 }
 
+const MAX_RETRY_BACKOFF_MS = 30_000
+
 export function computeRetryDelayMs(
   policy: ResolvedRetryPolicy,
   retriesUsed: number,
 ): number {
   const base = Math.max(0, policy.waitMs)
   if (base === 0) return 0
-  if (policy.backoff === "linear") return base * Math.max(1, retriesUsed)
-  if (policy.backoff === "exponential")
-    return base * 2 ** Math.max(0, retriesUsed - 1)
-  return base
+  let delay: number
+  if (policy.backoff === "linear") delay = base * Math.max(1, retriesUsed)
+  else if (policy.backoff === "exponential")
+    delay = base * 2 ** Math.max(0, retriesUsed - 1)
+  else delay = base
+  return Math.min(delay, MAX_RETRY_BACKOFF_MS)
 }
 
 function isRateLimitError(text: string): boolean {

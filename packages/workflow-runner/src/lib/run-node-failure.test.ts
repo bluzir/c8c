@@ -87,6 +87,34 @@ describe("run-node-failure", () => {
     ).toBe(100)
   })
 
+  it("caps exponential backoff at 30 seconds", () => {
+    const delay = computeRetryDelayMs(
+      {
+        enabled: true,
+        maxTries: 15,
+        waitMs: 1000,
+        backoff: "exponential",
+        retryOn: new Set([]),
+      },
+      10,
+    )
+    expect(delay).toBe(30_000)
+  })
+
+  it("caps linear backoff at 30 seconds", () => {
+    const delay = computeRetryDelayMs(
+      {
+        enabled: true,
+        maxTries: 50,
+        waitMs: 1000,
+        backoff: "linear",
+        retryOn: new Set([]),
+      },
+      40,
+    )
+    expect(delay).toBe(30_000)
+  })
+
   it("requeues retryable failures instead of stopping", async () => {
     const workspace = await createWorkspace()
     const node = createNode("audit")
