@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react"
+import { useCallback, useEffect, useRef, useState, type Ref } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import type { InputNodeConfig, PermissionMode } from "@shared/types"
-import { createDefaultDesktopMenuState } from "@shared/desktop-commands"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { runIdAtom, runStatusAtom } from "@/features/execution"
@@ -11,25 +11,17 @@ import { workflowHistoryRunsAtom } from "@/features/execution"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import {
   WorkflowPrimaryActions,
-  type ToolbarActionMenuValue,
 } from "@/components/toolbar/WorkflowPrimaryActions"
-import {
-  WorkflowRunControls,
-  type WorkflowValidationGroup,
-} from "@/components/toolbar/WorkflowRunControls"
+import { WorkflowRunControls } from "@/components/toolbar/WorkflowRunControls"
 import { WorkflowRunBlocker } from "@/components/toolbar/WorkflowRunBlocker"
 import { WorkflowToolbarDialogs } from "@/components/toolbar/WorkflowToolbarDialogs"
 import { useBlankWorkflowCreation } from "@/hooks/useBlankWorkflowCreation"
+import { useToolbarCommandBindings } from "@/hooks/useToolbarCommandBindings"
+import { useToolbarDesktopMenuState } from "@/hooks/useToolbarDesktopMenuState"
 import { useToolbarActions } from "@/hooks/useToolbarActions"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import { resolveWorkflowInput } from "@/lib/input-type"
-import {
-  consumeShortcut,
-  isEditableKeyboardTarget,
-  isShortcutConsumed,
-  matchesPrimaryShortcut,
-} from "@/lib/keyboard-shortcuts"
 import {
   currentWorkflowAtom,
   selectedWorkflowPathAtom,
@@ -41,6 +33,10 @@ import {
   desktopRuntimeAtom,
   batchDialogOpenAtom,
   workflowDirtyAtom,
+  defaultProviderAtom,
+  providerAuthStatusAtom,
+  providerAvailabilityAtom,
+  providerSettingsAtom,
   workflowSavedSnapshotAtom,
   mainViewAtom,
   projectSidebarOpenAtom,
@@ -51,7 +47,6 @@ import {
   validationNavigationTargetAtom,
   viewModeAtom,
   flowSurfaceModeAtom,
-  desktopMenuStateAtom,
   outputSurfaceCommandStateAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
@@ -65,11 +60,12 @@ import {
 } from "@/lib/undo-manager"
 import { resolveValidationNavigationTarget } from "@/lib/validation-navigation"
 import { validateWorkflow } from "@/lib/validate-workflow"
-import { getWorkflowNodeLabel } from "@/lib/workflow-labels"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { resolveWorkflowRunAvailability } from "@/components/toolbar/run-availability"
 import type { WorkflowPanelShellState } from "@/components/workflow-panel/WorkflowPanelChrome"
-import { subscribeDesktopCommands } from "@/lib/desktop-command-bus"
+import { dispatchDesktopCommand } from "@/lib/desktop-command-bus"
+import { resolveExecutionStartBlockReason } from "@/features/execution/preflight"
+import type { WorkflowActionMenuAction } from "@/components/toolbar/WorkflowActionMenu"
 
 export function Toolbar({
   onRun,
@@ -90,6 +86,10 @@ export function Toolbar({
   const [workflowPath] = useAtom(selectedWorkflowPathAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [inputValue] = useAtom(inputValueAtom)
+  const defaultProvider = useAtomValue(defaultProviderAtom)
+  const providerSettings = useAtomValue(providerSettingsAtom)
+  const providerAvailability = useAtomValue(providerAvailabilityAtom)
+  const providerAuthStatus = useAtomValue(providerAuthStatusAtom)
   const [workflowDirty] = useAtom(workflowDirtyAtom)
   const [, setWorkflows] = useAtom(workflowsAtom)
   const [, setSkills] = useAtom(skillsAtom)
@@ -101,7 +101,7 @@ export function Toolbar({
   const [chatOpen, setChatOpen] = useAtom(chatPanelOpenAtom)
   const [, setMainView] = useAtom(mainViewAtom)
   const [viewMode, setViewMode] = useAtom(viewModeAtom)
-  const [flowSurfaceMode, setFlowSurfaceMode] = useAtom(flowSurfaceModeAtom)
+  const [flowSurfaceMode] = useAtom(flowSurfaceModeAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
   const [desktopRuntime] = useAtom(desktopRuntimeAtom)
@@ -112,7 +112,6 @@ export function Toolbar({
   const setSelectedNodeId = useSetAtom(selectedNodeIdAtom)
   const setValidationNavigationTarget = useSetAtom(validationNavigationTargetAtom)
   const setBatchOpen = useSetAtom(batchDialogOpenAtom)
-  const setDesktopMenuState = useSetAtom(desktopMenuStateAtom)
   const outputSurfaceCommandState = useAtomValue(outputSurfaceCommandStateAtom)
   const [undoStack, setUndoStack] = useAtom(undoStackAtom)
   const [redoStack, setRedoStack] = useAtom(redoStackAtom)
@@ -129,7 +128,7 @@ export function Toolbar({
   const flashTimerRef = useRef<number | null>(null)
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
-  const { createBlankWorkflow, creatingBlankWorkflow } = useBlankWorkflowCreation({ confirmDiscard })
+  const { createBlankWorkflow } = useBlankWorkflowCreation({ confirmDiscard })
   const {
     refreshProjectData,
     deriveTitleFromPath,
@@ -212,68 +211,27 @@ export function Toolbar({
     required: inputConfig.required,
     defaultValue: inputConfig.defaultValue,
   })
-  const workflowValidation = validateWorkflow(workflow)
+  const workflowValidation = validateWorkflow(workflow, defaultProvider)
   const hasBlockingErrors = workflowValidation.some((issue) => issue.severity === "error")
   const blockingValidationCount = workflowValidation.filter((issue) => issue.severity === "error").length
-  const warningValidationCount = workflowValidation.filter((issue) => issue.severity === "warning").length
-  const groupedValidationIssues = useMemo<WorkflowValidationGroup[]>(() => {
-    const groups = new Map<string, { label: string; issues: typeof workflowValidation }>()
-
-    for (const issue of workflowValidation) {
-      const existing = groups.get(issue.nodeId)
-      if (existing) {
-        existing.issues.push(issue)
-        continue
-      }
-
-      const label = issue.nodeId === "__workflow__"
-        ? "Workflow defaults"
-        : (() => {
-            const node = workflow.nodes.find((candidate) => candidate.id === issue.nodeId)
-            return node ? getWorkflowNodeLabel(node) : issue.nodeId
-          })()
-
-      groups.set(issue.nodeId, { label, issues: [issue] })
-    }
-
-    return [...groups.entries()].map(([nodeId, group]) => ({
-      nodeId,
-      label: group.label,
-      issues: group.issues,
-    }))
-  }, [workflow, workflowValidation])
+  const providerRunBlockReason = resolveExecutionStartBlockReason(workflow, {
+    settings: providerSettings,
+    availability: providerAvailability,
+    auth: providerAuthStatus,
+  })
   const {
     canRun,
     runDisabledReason,
     canBatchRun,
-    batchDisabledReason,
-    hasRunMenuActions,
   } = resolveWorkflowRunAvailability({
     hasSkillNodes,
     inputValid: inputValidation.valid,
     inputValidationMessage: inputValidation.message || null,
     hasBlockingErrors,
     blockingValidationCount,
-    workflowRunBlockReason,
+    workflowRunBlockReason: workflowRunBlockReason || providerRunBlockReason,
   })
-  const saveDisabledReason = isRunning
-    ? "Cannot save while a run is in progress."
-    : isSaving
-      ? "Save in progress."
-      : !workflowDirty
-        ? "No unsaved changes."
-        : null
-
-  const handleRunWithValidation = useCallback(async (mode: PermissionMode = "edit") => {
-    const warnings = workflowValidation.filter((issue) => issue.severity === "warning")
-    if (warnings.length > 0) {
-      toast.warning(`${warnings.length} warning(s)`, {
-        description: warnings.map((warning) => warning.message).join(" "),
-      })
-    }
-    await onRun(mode)
-  }, [onRun, workflowValidation])
-
+  const hasProviderRunBlock = providerRunBlockReason !== null && workflowRunBlockReason === null
   const navigateToValidationIssue = useCallback((issue: (typeof workflowValidation)[number]) => {
     const target = resolveValidationNavigationTarget(workflow, issue, viewMode)
     setViewMode(target.viewMode)
@@ -288,6 +246,29 @@ export function Toolbar({
         : null,
     )
   }, [setSelectedNodeId, setValidationNavigationTarget, setViewMode, viewMode, workflow])
+
+  const handleRunWithValidation = useCallback(async (mode: PermissionMode = "edit") => {
+    const currentValidation = validateWorkflow(workflow, defaultProvider)
+    const blockingIssues = currentValidation.filter((issue) => issue.severity === "error")
+    if (blockingIssues.length > 0) {
+      const firstBlockingIssue = blockingIssues[0] || null
+      toast.warning("Run blocked", {
+        description: firstBlockingIssue?.message || "Fix the flow before running it.",
+      })
+      if (firstBlockingIssue) {
+        navigateToValidationIssue(firstBlockingIssue)
+      }
+      return
+    }
+
+    const warnings = currentValidation.filter((issue) => issue.severity === "warning")
+    if (warnings.length > 0) {
+      toast.warning(`${warnings.length} warning(s)`, {
+        description: warnings.map((warning) => warning.message).join(" "),
+      })
+    }
+    await onRun(mode)
+  }, [defaultProvider, navigateToValidationIssue, onRun, workflow])
 
   const revealRunBlocker = useCallback(() => {
     if (!runDisabledReason) return
@@ -314,11 +295,14 @@ export function Toolbar({
     || shellState === "running"
     || shellState === "paused"
   ) && !terminalResultOwnsPrimaryAction
-  const runShortcutEnabled = shellState === "idle" || shellState === "ready"
+  const runShortcutEnabled = (shellState === "idle" || shellState === "ready") && !workflowReviewMode
+  const reviewingHistory = workflowReviewMode && (shellState === "idle" || shellState === "ready")
   const macToolbarLeadingInset = desktopRuntime.platform === "macos" && desktopRuntime.titlebarHeight > 0 && !sidebarOpen
     ? 108
     : 0
-  const shellBadgeLabel = shellState === "blocked"
+  const shellBadgeLabel = reviewingHistory
+    ? "Reviewing"
+    : shellState === "blocked"
     ? "Blocked"
     : shellState === "running"
       ? runStatus === "starting"
@@ -335,7 +319,9 @@ export function Toolbar({
             : shellState === "cancelled"
               ? "Cancelled"
               : null
-  const shellBadgeVariant = shellState === "blocked"
+  const shellBadgeVariant = reviewingHistory
+    ? "outline"
+    : shellState === "blocked"
     ? "warning"
     : shellState === "running" || shellState === "paused"
       ? "info"
@@ -357,7 +343,7 @@ export function Toolbar({
   }, [])
 
   const handlePrimarySave = useCallback(async () => {
-    if (!workflowDirty || isSaving) return
+    if (!workflowDirty || isSaving || isRunning) return
 
     setIsSaving(true)
     try {
@@ -372,7 +358,7 @@ export function Toolbar({
     } finally {
       setIsSaving(false)
     }
-  }, [flashToolbarStatus, isSaving, save, saveAs, workflowDirty, workflowPath])
+  }, [flashToolbarStatus, isRunning, isSaving, save, saveAs, workflowDirty, workflowPath])
 
   const handleUndo = useCallback(() => {
     const restored = performUndo(workflow, undoStack, setUndoStack, setRedoStack)
@@ -437,7 +423,7 @@ export function Toolbar({
     }
   }, [runControlPending, runId, setRunStatus])
 
-  const handleActionMenu = async (value: ToolbarActionMenuValue) => {
+  const handleActionMenu = async (value: WorkflowActionMenuAction) => {
     switch (value) {
       case "save_as":
         if (await saveAs()) {
@@ -506,74 +492,6 @@ export function Toolbar({
     }
   }
 
-  const desktopMenuState = useMemo(() => {
-    const canEditStructure = runStatus === "idle" && !workflowReviewMode
-    return {
-      file: {
-        save: { enabled: !isRunning && !isSaving && workflowDirty },
-        saveAs: { enabled: !isRunning },
-        export: { enabled: !isRunning },
-        import: { enabled: !isRunning },
-      },
-      edit: {
-        undo: { enabled: canEditStructure && canUndo },
-        redo: { enabled: canEditStructure && canRedo },
-      },
-      view: {
-        defaults: {
-          enabled: canEditStructure,
-          checked: canEditStructure && viewMode === "settings",
-        },
-        editFlow: {
-          enabled: canEditStructure,
-          checked: canEditStructure && viewMode === "list" && flowSurfaceMode === "edit",
-        },
-        toggleAgentPanel: {
-          enabled: true,
-          checked: chatOpen,
-        },
-      },
-      flow: {
-        run: {
-          enabled: runShortcutEnabled && canRun,
-          visible: runShortcutEnabled,
-        },
-        runAgain: {
-          enabled: runStatus === "idle" && workflowPastRuns.length > 0,
-        },
-        rerunFromStep: {
-          enabled: runStatus === "idle" && outputSurfaceCommandState.rerunFromStep,
-        },
-        cancel: {
-          enabled: isRunning,
-          visible: isRunning,
-        },
-        batchRun: {
-          enabled: runShortcutEnabled && canBatchRun,
-        },
-        history: {
-          enabled: runStatus === "idle" && workflowPastRuns.length > 0,
-        },
-      },
-    }
-  }, [
-    canBatchRun,
-    canRedo,
-    canRun,
-    canUndo,
-    chatOpen,
-    flowSurfaceMode,
-    isRunning,
-    isSaving,
-    outputSurfaceCommandState.rerunFromStep,
-    runShortcutEnabled,
-    runStatus,
-    viewMode,
-    workflowDirty,
-    workflowPastRuns.length,
-    workflowReviewMode,
-  ])
-
   useEffect(() => {
     return () => {
       if (flashTimerRef.current) {
@@ -582,147 +500,46 @@ export function Toolbar({
     }
   }, [])
 
-  useEffect(() => {
-    setDesktopMenuState(desktopMenuState)
-  }, [desktopMenuState, setDesktopMenuState])
-
-  useEffect(() => {
-    return () => {
-      setDesktopMenuState(createDefaultDesktopMenuState())
-    }
-  }, [setDesktopMenuState])
-
-  useEffect(() => {
-    return subscribeDesktopCommands((commandId) => {
-      if (commandId === "file.save") {
-        if (workflowDirty) {
-          void handlePrimarySave()
-        }
-        return
-      }
-      if (commandId === "file.save_as") {
-        void saveAs()
-        return
-      }
-      if (commandId === "file.export") {
-        void exportCopy()
-        return
-      }
-      if (commandId === "file.import") {
-        void handleActionMenu("import")
-        return
-      }
-      if (commandId === "edit.undo") {
-        handleUndo()
-        return
-      }
-      if (commandId === "edit.redo") {
-        handleRedo()
-        return
-      }
-      if (commandId === "view.defaults") {
-        openFlowDefaults()
-        return
-      }
-      if (commandId === "view.toggle_agent_panel") {
-        toggleChatPanel()
-        return
-      }
-      if (commandId === "flow.run") {
-        if (canRun) {
-          void handleRunWithValidation("edit")
-        } else if (runShortcutEnabled) {
-          revealRunBlocker()
-        }
-        return
-      }
-      if (commandId === "flow.cancel") {
-        void onCancel()
-        return
-      }
-      if (commandId === "flow.batch_run") {
-        if (runShortcutEnabled && canBatchRun) {
-          setBatchOpen(true)
-        }
-        return
-      }
-    })
-  }, [
-    canBatchRun,
-    canRun,
-    exportCopy,
-    handleActionMenu,
-    handlePrimarySave,
-    handleRedo,
-    handleRunWithValidation,
-    handleUndo,
-    onCancel,
-    openFlowDefaults,
-    revealRunBlocker,
-    runShortcutEnabled,
-    saveAs,
-    setBatchOpen,
-    toggleChatPanel,
-    workflowDirty,
-  ])
-
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isShortcutConsumed(event)) return
-
-      const isEditable = isEditableKeyboardTarget(event.target as HTMLElement | null)
-
-      if (matchesPrimaryShortcut(event, { key: "k", primaryModifierKey: desktopRuntime.primaryModifierKey, shift: true })) {
-        event.preventDefault()
-        toggleChatPanel()
-        return
-      }
-
-      if (matchesPrimaryShortcut(event, { key: ",", primaryModifierKey: desktopRuntime.primaryModifierKey })) {
-        event.preventDefault()
-        setMainView("settings")
-        return
-      }
-
-      if (matchesPrimaryShortcut(event, { key: "s", primaryModifierKey: desktopRuntime.primaryModifierKey })) {
-        if (isEditable) return
-        event.preventDefault()
-        if (workflowDirty) {
-          void handlePrimarySave()
-        }
-        return
-      }
-
-      if (isEditable || !matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey: desktopRuntime.primaryModifierKey })) return
-      if (isRunning) {
-        consumeShortcut(event)
-        void onCancel()
-      } else if (runShortcutEnabled && canRun) {
-        consumeShortcut(event)
-        void handleRunWithValidation("edit")
-      } else if (runShortcutEnabled) {
-        consumeShortcut(event)
-        revealRunBlocker()
-      }
-    }
-
-    window.addEventListener("keydown", handler)
-    return () => {
-      window.removeEventListener("keydown", handler)
-    }
-  }, [
-    canRun,
-    desktopRuntime.primaryModifierKey,
-    handlePrimarySave,
-    handleRunWithValidation,
+  useToolbarDesktopMenuState({
+    runStatus,
+    workflowReviewMode,
     isRunning,
-    onCancel,
-    revealRunBlocker,
-    runShortcutEnabled,
-    setMainView,
-    toggleChatPanel,
+    isSaving,
     workflowDirty,
-  ])
+    canUndo,
+    canRedo,
+    viewMode,
+    flowSurfaceMode,
+    chatOpen,
+    runShortcutEnabled,
+    canRun,
+    canBatchRun,
+    workflowPastRunsCount: workflowPastRuns.length,
+    canRerunFromStep: outputSurfaceCommandState.rerunFromStep,
+  })
+
+  useToolbarCommandBindings({
+    primaryModifierKey: desktopRuntime.primaryModifierKey,
+    workflowDirty,
+    workflowReviewMode,
+    isRunning,
+    runShortcutEnabled,
+    canRun,
+    canBatchRun,
+    onSave: handlePrimarySave,
+    onSaveAs: saveAs,
+    onExport: exportCopy,
+    onImport: () => handleActionMenu("import"),
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    onOpenDefaults: openFlowDefaults,
+    onToggleChat: toggleChatPanel,
+    onRun: () => handleRunWithValidation("edit"),
+    onRevealRunBlocker: revealRunBlocker,
+    onCancel,
+    onOpenBatch: () => setBatchOpen(true),
+    onOpenSettings: () => setMainView("settings"),
+  })
 
   return (
     <>
@@ -756,8 +573,8 @@ export function Toolbar({
           {workflowDirty && (
             <span
               className="h-2 w-2 shrink-0 rounded-full bg-status-warning"
-              title="Unsaved changes"
-              aria-label="Unsaved changes"
+              title={`Unsaved changes — ${primaryShortcutLabel}S to save`}
+              aria-label={`Unsaved changes — ${primaryShortcutLabel}S to save`}
             />
           )}
 
@@ -777,6 +594,18 @@ export function Toolbar({
           )}
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            {reviewingHistory && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => dispatchDesktopCommand("flow.run_again")}
+              >
+                New run
+              </Button>
+            )}
+
             {showRunControls && (
               <WorkflowRunControls
                 controlGroupClass={controlGroupClass}
@@ -786,46 +615,34 @@ export function Toolbar({
                 isStarting={isStarting}
                 runControlPending={runControlPending}
                 runShortcutLabel={runShortcutLabel}
-                workflowValidation={workflowValidation}
-                hasBlockingErrors={hasBlockingErrors}
-                blockingValidationCount={blockingValidationCount}
-                warningValidationCount={warningValidationCount}
-                groupedValidationIssues={groupedValidationIssues}
                 canRun={canRun}
                 runDisabledReason={runDisabledReason}
-                hasRunMenuActions={hasRunMenuActions}
                 canBatchRun={canBatchRun}
-                batchDisabledReason={batchDisabledReason}
                 onPause={() => void handlePauseRun()}
                 onResume={() => void handleResumeRun()}
                 onCancel={() => void onCancel()}
                 onRun={(mode) => void handleRunWithValidation(mode)}
-                onNavigateToValidationIssue={navigateToValidationIssue}
                 onOpenBatch={() => setBatchOpen(true)}
               />
             )}
 
             <WorkflowPrimaryActions
               controlGroupClass={controlGroupClass}
-              canUndo={canUndo}
-              canRedo={canRedo}
               isRunning={isRunning}
               isSaving={isSaving}
-              saveDisabledReason={saveDisabledReason}
+              showSave={workflowDirty || isSaving || saveFlash === "saved"}
               saveFlash={saveFlash}
               primaryShortcutLabel={primaryShortcutLabel}
-              redoShortcutLabel={redoShortcutLabel}
               chatOpen={chatOpen}
               chatShortcutLabel={chatShortcutLabel}
-              creatingBlankWorkflow={creatingBlankWorkflow}
-              hasSelectedProject={Boolean(selectedProject)}
-              hasWorkflowPath={Boolean(workflowPath)}
               agentToggleRef={agentToggleRef}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
+              actionMenuDisabled={isRunning}
+              canManageCurrentFlow={Boolean(workflowPath)}
+              canDeleteCurrentFlow={Boolean(workflowPath) && !isRunning}
+              canDuplicateCurrentFlow={Boolean(workflowPath)}
               onSave={() => void handlePrimarySave()}
-              onActionMenuSelect={(value) => void handleActionMenu(value)}
               onToggleChat={toggleChatPanel}
+              onActionMenu={(action) => { void handleActionMenu(action) }}
             />
           </div>
         </div>
@@ -838,6 +655,8 @@ export function Toolbar({
         runDisabledReason={runDisabledReason}
         workflowValidation={workflowValidation}
         hasBlockingErrors={hasBlockingErrors}
+        showOpenSettingsAction={hasProviderRunBlock}
+        onOpenSettings={() => setMainView("settings")}
         onNavigateToValidationIssue={navigateToValidationIssue}
       />
 

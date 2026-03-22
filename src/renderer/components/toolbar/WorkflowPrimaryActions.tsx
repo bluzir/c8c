@@ -1,63 +1,82 @@
 import type { Ref } from "react"
-import {
-  MessageSquare,
-} from "lucide-react"
+import { Check, MessageSquare, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-
-export type ToolbarActionMenuValue =
-  | "save_as"
-  | "export_copy"
-  | "save_as_template"
-  | "import"
-  | "refresh"
-  | "blank"
-  | "templates"
-  | "generate"
-  | "duplicate"
-  | "rename"
-  | "delete"
+import { WorkflowActionMenu, type WorkflowActionMenuAction } from "@/components/toolbar/WorkflowActionMenu"
 
 interface WorkflowPrimaryActionsProps {
   controlGroupClass: string
-  canUndo: boolean
-  canRedo: boolean
   isRunning: boolean
   isSaving: boolean
-  saveDisabledReason: string | null
+  showSave: boolean
   saveFlash: "saved" | "imported" | "exported" | null
   primaryShortcutLabel: string
-  redoShortcutLabel: string
   chatOpen: boolean
   chatShortcutLabel: string
-  creatingBlankWorkflow: boolean
-  hasSelectedProject: boolean
-  hasWorkflowPath: boolean
   agentToggleRef?: Ref<HTMLButtonElement>
-  onUndo: () => void
-  onRedo: () => void
+  actionMenuDisabled?: boolean
+  canManageCurrentFlow?: boolean
+  canDeleteCurrentFlow?: boolean
+  canDuplicateCurrentFlow?: boolean
   onSave: () => void
-  onActionMenuSelect: (value: ToolbarActionMenuValue) => void
   onToggleChat: () => void
+  onActionMenu: (action: WorkflowActionMenuAction) => void
 }
 
 export function WorkflowPrimaryActions({
+  controlGroupClass,
+  isRunning,
+  isSaving,
+  showSave,
+  saveFlash,
+  primaryShortcutLabel,
   chatOpen,
   chatShortcutLabel,
   agentToggleRef,
+  actionMenuDisabled = false,
+  canManageCurrentFlow = false,
+  canDeleteCurrentFlow = false,
+  canDuplicateCurrentFlow = false,
+  onSave,
   onToggleChat,
+  onActionMenu,
 }: WorkflowPrimaryActionsProps) {
+  const saveLabel = isSaving
+    ? "Saving..."
+    : saveFlash === "saved"
+      ? "Saved"
+      : "Save"
+
   return (
-    <>
+    <div className={controlGroupClass}>
+      {showSave && !isRunning ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={saveFlash === "saved" ? "secondary" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={onSave}
+              isLoading={isSaving}
+            >
+              {!isSaving && (saveFlash === "saved" ? <Check size={14} /> : <Save size={14} />)}
+              {saveLabel}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Save flow ({primaryShortcutLabel}S)</TooltipContent>
+        </Tooltip>
+      ) : null}
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant={chatOpen ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
             ref={agentToggleRef}
             className="gap-1.5"
             onClick={onToggleChat}
             aria-label="Toggle Agent panel"
+            aria-pressed={chatOpen}
           >
             <MessageSquare size={14} />
             Agent
@@ -65,6 +84,14 @@ export function WorkflowPrimaryActions({
         </TooltipTrigger>
         <TooltipContent>Toggle Agent panel ({chatShortcutLabel})</TooltipContent>
       </Tooltip>
-    </>
+
+      <WorkflowActionMenu
+        disabled={actionMenuDisabled}
+        canManageCurrentFlow={canManageCurrentFlow}
+        canDelete={canDeleteCurrentFlow}
+        canDuplicate={canDuplicateCurrentFlow}
+        onAction={onActionMenu}
+      />
+    </div>
   )
 }
