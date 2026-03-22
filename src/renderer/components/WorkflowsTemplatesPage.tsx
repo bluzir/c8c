@@ -455,8 +455,6 @@ export function WorkflowsTemplatesPage() {
       />
 
       <section aria-label="Starting points intro" className="space-y-2 px-1">
-        <p className="section-kicker">Starting points</p>
-        <h2 className="ui-title-text text-foreground">Browse starting points</h2>
         <p className="text-body-sm text-muted-foreground">
           Start broad, then narrow the list only if that helps.
         </p>
