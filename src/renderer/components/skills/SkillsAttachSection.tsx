@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/ui/page-shell"
+import { Skeleton } from "@/components/ui/skeleton"
 import { SkillDetailPanel } from "@/components/SkillDetailPanel"
 import { cn } from "@/lib/cn"
 import { deriveSkillProvenanceLabel, deriveSkillSourceBadge } from "@/lib/skill-fit"
@@ -20,10 +21,10 @@ export function SkillsAttachSection({
   currentFlowLabel,
   groupedSkills,
   selectedSkill,
+  loading = false,
   onSelectSkill,
   onAttachSkill,
   addToFlowDisabledReason,
-  selectedFlowPath,
   onCloseSkillDetail,
 }: {
   filteredSkills: DiscoveredSkill[]
@@ -31,17 +32,19 @@ export function SkillsAttachSection({
   currentFlowLabel: string | null
   groupedSkills: SkillGroup[]
   selectedSkill: DiscoveredSkill | null
+  loading?: boolean
   onSelectSkill: (skill: DiscoveredSkill) => void
   onAttachSkill: (skill: DiscoveredSkill) => void
   addToFlowDisabledReason: string | null
-  selectedFlowPath: string | null
   onCloseSkillDetail: () => void
 }) {
   return (
-    <section className="space-y-3">
+    <section className="space-y-3" aria-busy={loading}>
       <SectionHeading title="Attach skills" meta={
         <Badge variant="outline">
-          {filteredSkills.length !== allSkillsCount
+          {loading
+            ? "Loading"
+            : filteredSkills.length !== allSkillsCount
             ? `${filteredSkills.length}/${allSkillsCount}`
             : filteredSkills.length}
         </Badge>
@@ -60,12 +63,52 @@ export function SkillsAttachSection({
         )}
       </div>
 
-      {filteredSkills.length === 0 ? (
-        <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+      {loading ? (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="space-y-4">
+            {Array.from({ length: 2 }).map((_, sectionIndex) => (
+              <section key={`skills-attach-skeleton-section-${sectionIndex}`} className="overflow-hidden rounded-lg surface-panel">
+                <div className="surface-depth-header flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-28" aria-hidden="true" />
+                    <Skeleton className="h-3 w-40" aria-hidden="true" />
+                  </div>
+                  <Skeleton className="h-5 w-10" aria-hidden="true" />
+                </div>
+                <div className="divide-y divide-hairline">
+                  {Array.from({ length: 4 }).map((__, rowIndex) => (
+                    <div key={`skills-attach-skeleton-row-${sectionIndex}-${rowIndex}`} className="flex items-start gap-3 px-3 py-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Skeleton className="h-4 w-36" aria-hidden="true" />
+                          <Skeleton className="h-4 w-16" aria-hidden="true" />
+                          <Skeleton className="h-4 w-20" aria-hidden="true" />
+                        </div>
+                        <Skeleton className="h-3 w-full" aria-hidden="true" />
+                        <Skeleton className="h-3 w-2/3" aria-hidden="true" />
+                      </div>
+                      <Skeleton className="h-9 w-16" aria-hidden="true" />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          <div className="hidden lg:block rounded-xl border border-hairline/70 bg-surface-2/30 p-4">
+            <div className="space-y-3">
+              <Skeleton className="h-5 w-32" aria-hidden="true" />
+              <Skeleton className="h-4 w-24" aria-hidden="true" />
+              <Skeleton className="h-24 w-full" aria-hidden="true" />
+              <Skeleton className="h-16 w-full" aria-hidden="true" />
+            </div>
+          </div>
+        </div>
+      ) : filteredSkills.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
           No skills match this filter. Install a library or plugin, or clear search.
         </div>
       ) : (
-        <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 flex-1 space-y-4">
             {groupedSkills.map((section) => (
               <section key={section.id} className="rounded-lg surface-panel overflow-hidden">
@@ -144,7 +187,7 @@ export function SkillsAttachSection({
             ))}
           </div>
 
-          {selectedSkill && (
+          {selectedSkill ? (
             <SkillDetailPanel
               skill={selectedSkill}
               onAddToWorkflow={() => onAttachSkill(selectedSkill)}
@@ -152,14 +195,10 @@ export function SkillsAttachSection({
               addDisabledReason={addToFlowDisabledReason}
               onClose={onCloseSkillDetail}
             />
+          ) : (
+            <div className="hidden lg:block" aria-hidden="true" />
           )}
         </div>
-      )}
-
-      {!selectedFlowPath && (
-        <p className="ui-meta-text text-muted-foreground">
-          Open a flow to enable &ldquo;Attach&rdquo;.
-        </p>
       )}
     </section>
   )

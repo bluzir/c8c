@@ -7,90 +7,9 @@ export interface SkillStageFit {
   reason: string
 }
 
-function compactText(parts: Array<string | null | undefined>) {
-  return parts
-    .map((part) => (typeof part === "string" ? part.trim() : ""))
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase()
-}
-
-function normalizeStageKey(stageLabel: string | null | undefined) {
-  const text = (stageLabel || "").trim().toLowerCase()
-  if (!text) return "general"
-  if (text.includes("shape") || text.includes("map")) return "shape"
-  if (text.includes("plan")) return "plan"
-  if (text.includes("implement") || text.includes("build") || text.includes("code")) return "implement"
-  if (text.includes("review")) return "review"
-  if (text.includes("verify") || text.includes("ship") || text.includes("release")) return "verify"
-  return "general"
-}
-
-const STAGE_MATCHERS: Record<string, RegExp[]> = {
-  shape: [
-    /\b(map|shape|scope|spec|brief|research|architecture|repo|codebase|discovery)\b/i,
-    /\b(product|strategy|ux|ui|design)\b/i,
-  ],
-  plan: [
-    /\b(plan|planning|roadmap|tasks|phase|spec|breakdown|implementation plan)\b/i,
-    /\b(strategy|architecture|scope)\b/i,
-  ],
-  implement: [
-    /\b(implement|implementation|build|frontend|backend|code|refactor|fix|develop)\b/i,
-    /\b(component|ui|ux|design system)\b/i,
-  ],
-  review: [
-    /\b(review|audit|critique|qa|quality|polish|ux|ui|design review)\b/i,
-    /\b(playwright|visual|copy quality|accessibility|test|design|design system|frontend)\b/i,
-  ],
-  verify: [
-    /\b(verify|verification|preflight|release|ship|deploy|gate|validation)\b/i,
-    /\b(playwright|qa|quality|test)\b/i,
-  ],
-  general: [],
-}
-
-function countPatternMatches(text: string, patterns: RegExp[]) {
-  return patterns.reduce((count, pattern) => (pattern.test(text) ? count + 1 : count), 0)
-}
-
 export function deriveSkillStageFit(skill: DiscoveredSkill, stageLabel?: string | null): SkillStageFit {
-  const stageKey = normalizeStageKey(stageLabel)
-  const stagePatterns = STAGE_MATCHERS[stageKey] || []
-  const skillText = compactText([
-    skill.name,
-    skill.category,
-    skill.description,
-    skill.type,
-    skill.pluginName,
-    skill.library,
-  ])
-
-  const matchCount = countPatternMatches(skillText, stagePatterns)
-  if (stageKey === "general" || !stageLabel) {
-    return {
-      score: 1,
-      label: "Reusable",
-      reason: "General skill for this flow.",
-    }
-  }
-
-  if (matchCount >= 2) {
-    return {
-      score: 4,
-      label: `Fits ${stageLabel}`,
-      reason: "Name and description match this step.",
-    }
-  }
-
-  if (matchCount === 1) {
-    return {
-      score: 3,
-      label: `Works for ${stageLabel}`,
-      reason: "Likely useful for the current step.",
-    }
-  }
-
+  void skill
+  void stageLabel
   return {
     score: 1,
     label: "Reusable",
@@ -120,9 +39,7 @@ export function compareSkillsForStage(
   right: DiscoveredSkill,
   stageLabel?: string | null,
 ) {
-  const leftFit = deriveSkillStageFit(left, stageLabel)
-  const rightFit = deriveSkillStageFit(right, stageLabel)
-  if (leftFit.score !== rightFit.score) return rightFit.score - leftFit.score
+  void stageLabel
 
   const sourcePriority = (skill: DiscoveredSkill) => {
     const sourceKind = getSkillSourceKind(skill)

@@ -4,10 +4,9 @@ import { cn } from "@/lib/cn"
 import { useWorkflowWithUndo } from "@/hooks/useWorkflowWithUndo"
 import {
   desktopRuntimeAtom,
+  openSkillPickerAtom,
   selectedNodeIdAtom,
-  skillPickerOpenAtom,
   type WorkflowNode,
-  type DiscoveredSkill,
 } from "@/lib/store"
 import { activeNodeIdAtom, inspectedNodeIdAtom, nodeStatesAtom, runtimeMetaAtom } from "@/features/execution"
 import type {
@@ -22,7 +21,6 @@ import type {
   SkillNodeConfig,
 } from "@shared/types"
 import { NodeCard } from "./NodeCard"
-import { SkillPicker } from "./SkillPicker"
 import { ArrowDown as ArrowDownIcon, ArrowRight as ArrowRightIcon } from "lucide-react"
 import { toast } from "sonner"
 import { cloneWorkflow } from "@/lib/workflow-graph-utils"
@@ -38,7 +36,6 @@ import {
   addEvaluatorNodeToWorkflow,
   addFanOutPatternToWorkflow,
   addHumanNodeToWorkflow,
-  addSkillNodeToWorkflow,
   getLinearChainReorderBlockReason,
   getMiddleNodeMoveBlockedReason,
   isLinearChainReorderSafe,
@@ -68,7 +65,7 @@ export function ChainBuilder({
   const [runtimeMeta] = useAtom(runtimeMetaAtom)
   const [builderSelectedNodeId, setBuilderSelectedNodeId] = useAtom(selectedNodeIdAtom)
   const [inspectedNodeId, setInspectedNodeId] = useAtom(inspectedNodeIdAtom)
-  const [, setPickerOpen] = useAtom(skillPickerOpenAtom)
+  const [, openSkillPicker] = useAtom(openSkillPickerAtom)
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null)
   const isReorderSafe = isLinearChainReorderSafe(workflow)
   const reorderBlockReason = useMemo(() => getLinearChainReorderBlockReason(workflow), [workflow])
@@ -173,7 +170,7 @@ export function ChainBuilder({
     const map = new Map<string, string>()
     for (const node of workflow.nodes) {
       if (node.type === "skill") map.set(node.id, node.config.skillRef || "Skill")
-      else if (node.type === "evaluator") map.set(node.id, "Evaluator")
+      else if (node.type === "evaluator") map.set(node.id, "Check")
       else if (node.type === "splitter") map.set(node.id, "Split work")
       else if (node.type === "merger") map.set(node.id, "Merger")
       else if (node.type === "approval") map.set(node.id, "Approval")
@@ -242,18 +239,6 @@ export function ChainBuilder({
       ...prev,
       nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } as typeof n : n)),
     }), { coalesceKey: `node-config:${nodeId}` })
-  }
-
-  const addNode = (skill: DiscoveredSkill) => {
-    let nextSelectedId: string | null = null
-    setWorkflow((prev) => {
-      const next = addSkillNodeToWorkflow(prev, skill)
-      nextSelectedId = selectFirstNewNode(prev, next)
-      return next
-    })
-    if (nextSelectedId) {
-      setSelectedNode(nextSelectedId)
-    }
   }
 
   const addEvaluator = () => {
@@ -350,7 +335,7 @@ export function ChainBuilder({
       event.preventDefault()
 
       if (intent.type === "open_skill_picker") {
-        setPickerOpen(true)
+        openSkillPicker()
         return
       }
 
@@ -371,7 +356,7 @@ export function ChainBuilder({
 
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [flowCardMode, setPickerOpen])
+  }, [flowCardMode, openSkillPicker])
 
   const handleInsertBlock = (value: "evaluator" | "fanout" | "approval" | "human") => {
     if (value === "evaluator") {
@@ -580,7 +565,7 @@ export function ChainBuilder({
 
       <div className="space-y-0">
         {!flowCardMode && !workflow.nodes.some((n) => n.type !== "input" && n.type !== "output") && (
-          <ChainBuilderStartHint compact={compact} onAddFirstStep={() => setPickerOpen(true)} />
+          <ChainBuilderStartHint compact={compact} onAddFirstStep={() => openSkillPicker()} />
         )}
         {runtimeMode ? (
           <div className="space-y-0 border-t border-hairline/70">
@@ -616,7 +601,7 @@ export function ChainBuilder({
             compact={compact}
             hasSkillNodes={hasSkillNodes}
             primaryModifierLabel={desktopRuntime.primaryModifierLabel}
-            onAddSkill={() => setPickerOpen(true)}
+            onAddSkill={() => openSkillPicker()}
             onAddStep={handleInsertBlock}
           />
         )}
@@ -654,9 +639,6 @@ export function ChainBuilder({
           setChainContextMenu(null)
         }}
       />
-
-      <SkillPicker onAddSkill={addNode} />
-
       <ChainBuilderRemoveDialog
         open={!runtimeMode && pendingRemoveId !== null}
         stepLabel={pendingRemoveId ? getNodeDisplayLabel(pendingRemoveId) : ""}

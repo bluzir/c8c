@@ -5,6 +5,7 @@ import type {
 } from "@shared/types"
 import { Badge } from "@/components/ui/badge"
 import { SectionHeading } from "@/components/ui/page-shell"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { SkillLibrary } from "@/lib/store"
 import {
   SkillLibraryCard,
@@ -44,6 +45,7 @@ interface SkillSourcesAdminProps {
   marketplaceAction: SkillsActionState<MarketplaceAction> | null
   pluginAction: SkillsActionState<PluginAction> | null
   refreshing: boolean
+  loading: boolean
   hasQuery: boolean
   onSetLibraryInstalled: (library: SkillLibrary, nextChecked: boolean) => void
   onUpdateLibrary: (library: SkillLibrary) => void
@@ -74,6 +76,7 @@ export function SkillSourcesAdmin({
   marketplaceAction,
   pluginAction,
   refreshing,
+  loading,
   hasQuery,
   onSetLibraryInstalled,
   onUpdateLibrary,
@@ -84,13 +87,35 @@ export function SkillSourcesAdmin({
   onSetPluginEnabled,
   onPreviewPlugin,
 }: SkillSourcesAdminProps) {
-  return (
-    <>
-      <section className="space-y-3">
-        <SectionHeading title="Marketplaces" meta={<Badge variant="outline">{installedMarketplaces.length}/{totalMarketplaceCount}</Badge>} />
+  const renderCardSkeletons = (keyPrefix: string) => (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-hidden="true">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={`${keyPrefix}-${index}`} className="rounded-lg surface-panel px-4 py-3">
+          <div className="flex items-start gap-3">
+            <Skeleton className="h-control-lg w-control-lg rounded-lg" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+            <Skeleton className="h-8 w-16" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 
-        {filteredMarketplaces.length === 0 ? (
-          <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+  return (
+    <div className="space-y-6" aria-busy={loading}>
+      <section className="space-y-3">
+        <SectionHeading title="Marketplaces" meta={<Badge variant="outline">{loading ? "Loading" : `${installedMarketplaces.length}/${totalMarketplaceCount}`}</Badge>} />
+
+        {loading ? renderCardSkeletons("marketplace-skeleton") : filteredMarketplaces.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
             No marketplaces match this filter.
           </div>
         ) : (
@@ -136,10 +161,10 @@ export function SkillSourcesAdmin({
       </section>
 
       <section className="space-y-3">
-        <SectionHeading title="Enabled Plugins" meta={<Badge variant="outline">{enabledPlugins.length}</Badge>} />
+        <SectionHeading title="Enabled plugins" meta={<Badge variant="outline">{loading ? "Loading" : enabledPlugins.length}</Badge>} />
 
-        {enabledPlugins.length === 0 ? (
-          <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+        {loading ? renderCardSkeletons("enabled-plugin-skeleton") : enabledPlugins.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
             Install a marketplace and enable a plugin pack to bring in skills, library flows, or MCP integrations.
           </div>
         ) : (
@@ -168,10 +193,10 @@ export function SkillSourcesAdmin({
 
       {(disabledPlugins.length > 0 || hasQuery) && (
         <section className="space-y-3">
-          <SectionHeading title="Installed But Disabled" meta={<Badge variant="outline">{disabledPlugins.length}</Badge>} />
+          <SectionHeading title="Installed but disabled" meta={<Badge variant="outline">{loading ? "Loading" : disabledPlugins.length}</Badge>} />
 
-          {disabledPlugins.length === 0 ? (
-            <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+          {loading ? renderCardSkeletons("disabled-plugin-skeleton") : disabledPlugins.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
               No disabled plugins match this filter.
             </div>
           ) : (
@@ -200,11 +225,11 @@ export function SkillSourcesAdmin({
       )}
 
       <section className="space-y-3">
-        <SectionHeading title="Installed Legacy Libraries" meta={<Badge variant="outline">{installedLibraries.length}/{libraries.length}</Badge>} />
+        <SectionHeading title="Installed libraries" meta={<Badge variant="outline">{loading ? "Loading" : `${installedLibraries.length}/${libraries.length}`}</Badge>} />
 
-        {installedLibraries.length === 0 ? (
-          <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
-            No legacy libraries installed. Use plugin marketplaces above for the primary packaging model.
+        {loading ? renderCardSkeletons("installed-library-skeleton") : installedLibraries.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
+            No libraries installed. Use plugin marketplaces above for the primary packaging model.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -231,10 +256,10 @@ export function SkillSourcesAdmin({
       </section>
 
       <section className="space-y-3">
-        <SectionHeading title="Legacy Favorites" meta={<Badge variant="outline">{favoriteLibraries.length}</Badge>} />
+        <SectionHeading title="Library favorites" meta={<Badge variant="outline">{loading ? "Loading" : favoriteLibraries.length}</Badge>} />
 
-        {favoriteLibraries.length === 0 ? (
-          <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+        {loading ? renderCardSkeletons("favorite-library-skeleton") : favoriteLibraries.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
             {hasQuery
               ? "No favorite libraries match this filter."
               : "Your favorite libraries are already installed."}
@@ -265,10 +290,10 @@ export function SkillSourcesAdmin({
 
       {(availableLibraries.length > 0 || hasQuery) && (
         <section className="space-y-3">
-          <SectionHeading title="Legacy Available" meta={<Badge variant="outline">{availableLibraries.length}</Badge>} />
+          <SectionHeading title="More libraries" meta={<Badge variant="outline">{loading ? "Loading" : availableLibraries.length}</Badge>} />
 
-          {availableLibraries.length === 0 ? (
-            <div className="rounded-lg surface-panel ui-empty-state px-4 text-body-sm text-muted-foreground">
+          {loading ? renderCardSkeletons("available-library-skeleton") : availableLibraries.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
               No other libraries match this filter.
             </div>
           ) : (
@@ -295,6 +320,6 @@ export function SkillSourcesAdmin({
           )}
         </section>
       )}
-    </>
+    </div>
   )
 }

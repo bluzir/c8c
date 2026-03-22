@@ -59,11 +59,11 @@ export function ChainBuilderAddControls({
             disabled={!hasSkillNodes}
             onSelect={() => onAddStep("evaluator")}
             className="items-start gap-2 py-2"
-            title={!hasSkillNodes ? "Add at least one skill node before inserting an evaluator." : undefined}
+            title={!hasSkillNodes ? "Add at least one skill node before inserting a check." : undefined}
           >
             <BarChart3 size={13} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="text-body-sm font-medium text-foreground">Add Evaluator</div>
+              <div className="text-body-sm font-medium text-foreground">Add Check</div>
               <div className="ui-meta-text text-muted-foreground">
                 {hasSkillNodes
                   ? "Check the previous output and branch or retry when it misses the mark."

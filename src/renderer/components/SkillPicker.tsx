@@ -1,8 +1,10 @@
-import { useState, useMemo, memo, useCallback } from "react"
-import { useAtom } from "jotai"
+import { useEffect, useMemo, useRef, useState, memo, useCallback } from "react"
+import { useAtomValue, useSetAtom } from "jotai"
 import {
   skillsAtom,
+  skillPickerRequestAtom,
   skillPickerOpenAtom,
+  closeSkillPickerAtom,
   type DiscoveredSkill,
 } from "@/lib/store"
 import { getSkillSourceKey, getSkillSourceLabel } from "@/lib/skill-source"
@@ -53,7 +55,7 @@ const SkillRow = memo(function SkillRow({
     <Button
       type="button"
       onClick={() => onAdd(skill)}
-      aria-label={isFeatured ? `Attach ${skill.name}` : `Add ${skill.name} skill`}
+      aria-label={`Add ${skill.name}`}
       variant="ghost"
       size="auto"
       className="ui-interactive-card h-auto w-full justify-start items-start gap-3 rounded-md px-2 py-2 text-left whitespace-normal"
@@ -66,17 +68,15 @@ const SkillRow = memo(function SkillRow({
       <div className="min-w-0 flex-1">
         <div className="ui-badge-row">
           <span className="text-body-md font-medium truncate">{skill.name}</span>
-          <Badge variant={isFeatured || fit.score >= 3 ? "success" : "outline"} size="compact">
-            {fit.label}
-          </Badge>
+          {fit.score > 1 ? (
+            <Badge variant={isFeatured ? "success" : "outline"} size="compact">
+              {fit.label}
+            </Badge>
+          ) : null}
           <Badge variant="outline" size="compact">{sourceBadge}</Badge>
         </div>
         <div className="mt-1 line-clamp-2 ui-meta-text">
-          {isFeatured ? (
-            <span className="text-muted-foreground">{fit.reason}</span>
-          ) : (
-            fit.score >= 3 ? fit.reason : skill.description
-          )}
+          {skill.description}
         </div>
         {isFeatured ? (
           <div className="mt-1 ui-badge-row">
@@ -114,15 +114,26 @@ export function SkillPicker({
   title = "Add Skill",
   description = "Choose a skill to add to your flow",
   searchPlaceholder = "Search skills...",
-  emptyStateMessage = "No skills found. Install a plugin pack in Plugins, keep using legacy libraries, or open a project with local skills.",
+  emptyStateMessage = "No skills available. Open a project with local skills, or visit Skills to connect a skill source.",
   emptyResultsMessage = (query) => `No results for “${query}”`,
   stageLabel = null,
-  attachTargetLabel = "This flow",
+  attachTargetLabel = "this flow",
 }: SkillPickerProps) {
-  const [skills] = useAtom(skillsAtom)
-  const [pickerOpen, setPickerOpen] = useAtom(skillPickerOpenAtom)
+  const skills = useAtomValue(skillsAtom)
+  const pickerOpen = useAtomValue(skillPickerOpenAtom)
+  const request = useAtomValue(skillPickerRequestAtom)
+  const closePicker = useSetAtom(closeSkillPickerAtom)
   const [search, setSearch] = useState("")
   const [sourceFilter, setSourceFilter] = useState<string | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const resolvedTitle = request?.title ?? title
+  const resolvedDescription = request?.description ?? description
+  const resolvedSearchPlaceholder = request?.searchPlaceholder ?? searchPlaceholder
+  const resolvedEmptyStateMessage = request?.emptyStateMessage ?? emptyStateMessage
+  const resolvedEmptyResultsMessage = request?.emptyResultsMessage ?? emptyResultsMessage
+  const resolvedStageLabel = request?.stageLabel ?? stageLabel
+  const resolvedAttachTargetLabel = request?.attachTargetLabel ?? attachTargetLabel
+  const resolvedOnAddSkill = request?.onAddSkill ?? onAddSkill
 
   // Collect unique sources
   const sources = useMemo(() => {
@@ -148,45 +159,55 @@ export function SkillPicker({
           s.description.toLowerCase().includes(q)
         )
       })
-      .sort((left, right) => compareSkillsForStage(left, right, stageLabel))
+      .sort((left, right) => compareSkillsForStage(left, right, resolvedStageLabel))
 
     // Pre-compute fit, source badge, and provenance for each skill once
     const withFit: SkillWithFit[] = filtered.map((skill) => ({
       skill,
-      fit: deriveSkillStageFit(skill, stageLabel),
+      fit: deriveSkillStageFit(skill, resolvedStageLabel),
       sourceBadge: deriveSkillSourceBadge(skill),
       provenanceLabel: deriveSkillProvenanceLabel(skill),
     }))
 
-    const featured = withFit.filter((entry) => entry.fit.score >= 3).slice(0, 6)
-    const featuredPaths = new Set(featured.map((entry) => entry.skill.path))
-    const remaining = withFit.filter((entry) => !featuredPaths.has(entry.skill.path))
-
     const groups = new Map<string, SkillWithFit[]>()
-    for (const entry of remaining) {
+    for (const entry of withFit) {
       const key = entry.skill.category || "uncategorized"
       const list = groups.get(key) || []
       list.push(entry)
       groups.set(key, list)
     }
     return {
-      featured,
       groups,
     }
-  }, [skills, search, sourceFilter, stageLabel])
+  }, [skills, search, sourceFilter, resolvedStageLabel])
 
   const handleAddSkill = useCallback((skill: DiscoveredSkill) => {
-    onAddSkill(skill)
-    setPickerOpen(false)
-  }, [onAddSkill, setPickerOpen])
+    resolvedOnAddSkill(skill)
+    closePicker()
+  }, [closePicker, resolvedOnAddSkill])
+
+  useEffect(() => {
+    if (pickerOpen) {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = 0
+      }
+      return
+    }
+    setSearch("")
+    setSourceFilter(null)
+  }, [pickerOpen])
 
   return (
-    <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-      <CanvasDialogContent className="p-0 gap-0 max-h-[75vh] flex flex-col" showCloseButton>
+    <Dialog open={pickerOpen} onOpenChange={(open) => {
+      if (!open) {
+        closePicker()
+      }
+    }}>
+      <CanvasDialogContent size="lg" className="p-0 gap-0 max-h-[75vh] flex flex-col" showCloseButton>
         <CanvasDialogHeader className="surface-depth-header">
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{resolvedTitle}</DialogTitle>
           <DialogDescription className="sr-only">
-            {description}
+            {resolvedDescription}
           </DialogDescription>
         </CanvasDialogHeader>
 
@@ -203,7 +224,7 @@ export function SkillPicker({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={searchPlaceholder}
+                placeholder={resolvedSearchPlaceholder}
                 aria-label="Search skills"
                 autoFocus
                 className="pl-8"
@@ -241,43 +262,27 @@ export function SkillPicker({
             )}
 
             <div className="flex flex-wrap gap-1.5">
-              <Badge variant="outline" size="compact">Attach to {attachTargetLabel}</Badge>
-              {stageLabel && (
-                <Badge variant="outline" size="compact">Current step: {stageLabel}</Badge>
+              <Badge variant="outline" size="compact">Attach to {resolvedAttachTargetLabel}</Badge>
+              {resolvedStageLabel && (
+                <Badge variant="outline" size="compact">Current step: {resolvedStageLabel}</Badge>
               )}
             </div>
           </div>
 
           {/* Skill list */}
-          <div className="ui-scroll-region flex-1 overflow-y-auto px-3 py-2 bg-surface-1/40">
+          <div ref={scrollRef} className="ui-scroll-region flex-1 overflow-y-auto px-3 py-2 bg-surface-1/40">
             <div role="status" aria-live="polite" aria-atomic="true">
               {skills.length === 0 && (
                 <div className="ui-empty-state text-body-md text-muted-foreground">
-                  {emptyStateMessage}
+                  {resolvedEmptyStateMessage}
                 </div>
               )}
-              {skills.length > 0 && grouped.featured.length === 0 && grouped.groups.size === 0 && (
+              {skills.length > 0 && grouped.groups.size === 0 && (
                 <div className="ui-empty-state text-body-md text-muted-foreground">
-                  {emptyResultsMessage(search)}
+                  {resolvedEmptyResultsMessage(search)}
                 </div>
               )}
             </div>
-
-            {grouped.featured.length > 0 && (
-              <div className="mb-3">
-                <div className="px-2 py-1 section-kicker">
-                  Best fit now
-                </div>
-                {grouped.featured.map((entry) => (
-                  <SkillRow
-                    key={`featured-${entry.skill.path}`}
-                    entry={entry}
-                    isFeatured
-                    onAdd={handleAddSkill}
-                  />
-                ))}
-              </div>
-            )}
 
             {Array.from(grouped.groups.entries()).map(([category, categorySkills]) => (
               <div key={category} className="mb-3">

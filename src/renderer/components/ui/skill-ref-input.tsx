@@ -1,4 +1,4 @@
-import { X } from "lucide-react"
+import { Search, X } from "lucide-react"
 import { useState, useRef, useEffect, useMemo, useId } from "react"
 import { useAtom } from "jotai"
 import { skillsAtom } from "@/lib/store"
@@ -13,9 +13,21 @@ interface SkillRefInputProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  onBrowseAllSkills?: () => void
+  "aria-invalid"?: boolean
+  "aria-describedby"?: string
 }
 
-export function SkillRefInput({ id, value, onChange, placeholder, className }: SkillRefInputProps) {
+export function SkillRefInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+  className,
+  onBrowseAllSkills,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+}: SkillRefInputProps) {
   const [skills] = useAtom(skillsAtom)
   const [open, setOpen] = useState(false)
   const [focusIndex, setFocusIndex] = useState(-1)
@@ -86,13 +98,32 @@ export function SkillRefInput({ id, value, onChange, placeholder, className }: S
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={cn(value && "pr-8", className)}
+        className={cn(onBrowseAllSkills || value ? "pr-16" : undefined, className)}
         autoComplete="off"
         aria-expanded={showListbox}
         aria-controls={listboxId}
         aria-activedescendant={activeOptionId}
         aria-autocomplete="list"
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
       />
+      {onBrowseAllSkills ? (
+        <button
+          type="button"
+          className={cn(
+            "ui-icon-button absolute top-1/2 -translate-y-1/2",
+            value ? "right-8" : "right-1.5",
+          )}
+          aria-label="Browse all skills"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            setOpen(false)
+            onBrowseAllSkills()
+          }}
+        >
+          <Search size={12} />
+        </button>
+      ) : null}
       {value ? (
         <button
           type="button"

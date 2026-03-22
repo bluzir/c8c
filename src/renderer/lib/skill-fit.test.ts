@@ -19,10 +19,10 @@ const BASE_SKILL: DiscoveredSkill = {
 }
 
 describe("skill-fit", () => {
-  it("marks obvious review skills as a strong fit for review", () => {
+  it("stays neutral even when a stage label is present", () => {
     expect(deriveSkillStageFit(BASE_SKILL, "Review")).toMatchObject({
-      score: 4,
-      label: "Fits Review",
+      score: 1,
+      label: "Reusable",
     })
   })
 
@@ -38,7 +38,7 @@ describe("skill-fit", () => {
     expect(deriveSkillSourceBadge(BASE_SKILL)).toBe("Plugin")
   })
 
-  it("sorts better stage fit ahead of generic entries", () => {
+  it("sorts by source priority when stage-specific ranking is unavailable", () => {
     const genericSkill: DiscoveredSkill = {
       ...BASE_SKILL,
       name: "Terminal Helper",
@@ -50,6 +50,6 @@ describe("skill-fit", () => {
       pluginVersion: undefined,
     }
 
-    expect(compareSkillsForStage(BASE_SKILL, genericSkill, "Review")).toBeLessThan(0)
+    expect(compareSkillsForStage(genericSkill, BASE_SKILL, "Review")).toBeLessThan(0)
   })
 })
