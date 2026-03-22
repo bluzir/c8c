@@ -19,6 +19,8 @@ function toClaudeSpawnOptions(options: AgentRunOptions): ClaudeSpawnOptions {
     ...buildProviderExtraArgs("claude", options.mcpConfigPath),
     ...(options.disableSlashCommands ? ["--disable-slash-commands"] : []),
     ...(options.disableBuiltInTools ? ["--tools", ""] : []),
+    ...(options.resumeSessionId ? ["--resume", options.resumeSessionId] : []),
+    ...(options.persistSession === false ? ["--no-session-persistence"] : []),
     ...(options.systemPrompts?.length
       ? ["--append-system-prompt", options.systemPrompts.join("\n\n")]
       : []),

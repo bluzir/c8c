@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { estimateTokenCostUsd } from "@shared/model-pricing"
 import type { NodeMetrics, NodeMeta, ErrorKind } from "@shared/types"
 import type { LogParser } from "./log-parser"
 
@@ -64,16 +65,8 @@ export function classifyError(err: unknown, timedOut: boolean): ErrorKind {
   return "unknown"
 }
 
-// Approximate pricing per 1M tokens (USD) — updated as of 2026-03
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  sonnet: { input: 3, output: 15 },
-  opus: { input: 15, output: 75 },
-  haiku: { input: 0.25, output: 1.25 },
-}
-
 export function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing = MODEL_PRICING[model] || MODEL_PRICING.sonnet
-  return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
+  return estimateTokenCostUsd(model, inputTokens, outputTokens)
 }
 
 export function collectMetrics(logParser: LogParser, startedAt: number): NodeMetrics {
@@ -91,11 +84,13 @@ export function buildNodeMeta(
   model: string,
   skillRef?: string,
   backend?: NodeMeta["backend"],
+  providerSessionId?: string | null,
 ): NodeMeta {
   return {
     model_id: model,
     prompt_hash: createHash("sha256").update(prompt).digest("hex").slice(0, 16),
     ...(skillRef ? { skill_ref: skillRef } : {}),
     ...(backend ? { backend } : {}),
+    ...(providerSessionId ? { provider_session_id: providerSessionId } : {}),
   }
 }

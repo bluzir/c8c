@@ -57,6 +57,7 @@ export class AsyncEventQueue<T> implements AsyncIterable<T> {
 export interface ExecutionEventSinks {
   onStart?: () => void
   onSpawn?: (pid: number) => void
+  onProviderSession?: (sessionId: string) => void
   onLogEntry?: (event: Extract<AgentExecutionEvent, { type: "log-entry" }>["entry"]) => void
   onUsage?: (usage: Extract<AgentExecutionEvent, { type: "usage" }>["usage"]) => void
   onStderr?: (text: string) => void
@@ -271,6 +272,9 @@ export async function drainExecutionHandle(
           break
         case "spawn":
           sinks.onSpawn?.(event.pid)
+          break
+        case "provider-session":
+          sinks.onProviderSession?.(event.sessionId)
           break
         case "log-entry":
           sinks.onLogEntry?.(event.entry)

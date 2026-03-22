@@ -27,9 +27,9 @@
     "smoke:electron:ci": "npm run build:test-mode && node scripts/run-electron-smoke.mjs --json --no-keep-artifacts-on-success",
     "codex:download": "node scripts/download-codex-binary.mjs --version=0.114.0",
     "codex:download:all": "node scripts/download-codex-binary.mjs --version=0.114.0 --all",
-    "prepackage": "npm run build:shared",
+    "prepackage": "npm run canon:check && npm test && npm run build",
     "package": "electron-builder --dir",
-    "prepackage:mac": "npm run build:shared",
+    "prepackage:mac": "npm run canon:check && npm test && npm run build",
     "package:mac": "electron-builder --mac"
   },
   "dependencies": {

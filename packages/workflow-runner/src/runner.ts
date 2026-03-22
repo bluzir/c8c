@@ -1,18 +1,15 @@
 import { execFile as execFileCb } from "node:child_process"
-import { access, appendFile, mkdtemp, mkdir, readFile } from "node:fs/promises"
+import { access, mkdtemp, mkdir, readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { promisify } from "node:util"
+import YAML from "yaml"
 import { drainExecutionHandle } from "./lib/agent-execution.js"
 import { checkOutputHeuristics } from "./lib/output-heuristics.js"
 import { withExecutionSlot } from "./lib/execution-pool.js"
 import { buildEvaluatorPrompt, parseEvaluatorOutput } from "./lib/evaluator.js"
 import {
-  createInitialNodeStates,
-  findReadyNodes,
-  getDownstreamNodeIds,
   getOutgoingEdges,
-  isRunComplete,
 } from "./lib/graph-engine.js"
 import { LogParser } from "./lib/log-parser.js"
 import { buildMergerPrompt, mergeResults } from "./lib/node-executors/merger.js"
@@ -31,13 +28,40 @@ import {
   type Subtask,
 } from "./lib/runtime-graph.js"
 import {
+  createRunInterruptRegistry,
+  persistResolvedApproval,
+  readApprovalDecision,
+} from "./lib/run-interrupts.js"
+import {
   finalizeRunPidManifest,
   initRunPidManifest,
   recordRunPidExit,
   recordRunPidStart,
   type RunPidManifestMode,
 } from "./lib/run-pid-manifest.js"
+import {
+  persistRunState,
+  readWorkflowRunSnapshot,
+  type PersistedRunManifest,
+  type WorkflowRunSnapshot,
+  writeManifest,
+  writeRunResultSnapshot,
+  appendEventLog,
+} from "./lib/run-state-store.js"
+import {
+  createResumeExecutionSession,
+  createRerunExecutionSession,
+  createStartExecutionSession,
+  type WorkflowExecutionSession,
+} from "./lib/run-session.js"
+import {
+  deriveRunStatus,
+  runExecutionLoop,
+  skipUnfinishedNodes,
+  type NodeLifecycleEffect,
+} from "./lib/run-lifecycle.js"
 import { writeFileAtomic } from "./lib/atomic-write.js"
+import { cleanupRunWorkspaces } from "./lib/run-workspace-retention.js"
 import {
   approvalTaskId,
   getWorkflowHilTask,
@@ -45,7 +69,6 @@ import {
   markWorkflowHilTaskConsumed,
   upsertApprovalHilTask,
   upsertHumanHilTask,
-  writeWorkflowHilTaskResponse,
 } from "./hil-store.js"
 import {
   getDefaultModelForProvider,
@@ -82,6 +105,9 @@ import type {
   WorkflowInput,
   WorkflowNode,
 } from "./schema.js"
+
+export { writeWorkflowApprovalDecision } from "./lib/run-interrupts.js"
+export type { PersistedRunManifest, WorkflowRunSnapshot } from "./lib/run-state-store.js"
 
 export type WebSearchBackend = "builtin" | "exa"
 export type ApprovalBehavior = "wait" | "suspend"
@@ -124,53 +150,6 @@ export interface WorkflowRunSummary {
   totalTokensOut: number
   evalScores: Record<string, number>
   durationMs: number
-}
-
-export interface PersistedRunManifest {
-  schemaVersion: number
-  runId: string
-  workflowName: string
-  workflowPath?: string
-  workspace: string
-  startedAt: number
-  updatedAt: number
-  status: RunStatus | "running"
-  mode: RunPidManifestMode | "continue"
-  chainId?: string
-  blockedByTaskId?: string
-  lastBlockingNodeId?: string
-}
-
-interface PersistedRunState {
-  nodeStates: Record<string, NodeState>
-  runtimeNodes?: WorkflowNode[]
-  runtimeEdges?: WorkflowEdge[]
-  runtimeMeta?: Record<string, RuntimeMetaEntry>
-  input?: WorkflowInput
-  humanTasks?: Record<string, NodeState["humanTask"]>
-}
-
-interface PersistedRunResult {
-  runId: string
-  status: RunStatus | "running"
-  workflowName: string
-  workflowPath: string
-  startedAt: number
-  completedAt: number
-  reportPath: string
-  workspace: string
-  totalCost: number
-  totalTokensIn: number
-  totalTokensOut: number
-  evalScores: Record<string, number>
-  durationMs: number
-}
-
-export interface WorkflowRunSnapshot {
-  workspace: string
-  manifest: PersistedRunManifest | null
-  state: PersistedRunState | null
-  result: PersistedRunResult | null
 }
 
 export interface StartWorkflowRunRequest {
@@ -229,20 +208,6 @@ export interface WorkflowRunner {
   getSnapshot(runId: string): Promise<WorkflowRunSnapshot | null>
 }
 
-interface ApprovalResolve {
-  resolve: (result: { approved: boolean; editedContent?: string; timedOut?: boolean }) => void
-}
-
-interface ApprovalResolution {
-  approved: boolean
-  editedContent?: string
-  timedOut?: boolean
-}
-
-interface EvalOverrideResolve {
-  resolve: (overridden: boolean) => void
-}
-
 interface ResolvedRetryPolicy {
   enabled: boolean
   maxTries: number
@@ -262,22 +227,6 @@ interface SpawnTrackingContext {
   mode: RunPidManifestMode
   role: string
   nodeId?: string
-}
-
-interface WorkflowExecutionSession {
-  runId: string
-  mode: RunPidManifestMode
-  workflow: Workflow
-  persistedInput: WorkflowInput
-  workspace: string
-  nodeStates: Record<string, NodeState>
-  runtimeWorkflow: RuntimeWorkflow
-  activatedEdges: Set<string>
-  projectPath?: string
-  workflowPath?: string
-  webSearchBackend?: WebSearchBackend
-  approvalBehavior?: ApprovalBehavior
-  chainId: string
 }
 
 interface WorkflowRuntimeContext {
@@ -328,7 +277,6 @@ class AsyncEventQueue<T> implements AsyncIterable<T> {
 }
 
 const RETRYABLE_ERROR_KINDS: ErrorKind[] = ["tool", "model", "timeout", "unknown", "policy", "network"]
-const RESUMABLE_NODE_STATUSES = new Set(["pending", "queued", "running", "waiting_approval", "waiting_human"])
 const CLAUDE_LIMIT_RE = /\b(rate limit(?:ed)?|usage limit|quota(?: exceeded)?|too many requests|http\s*429|status\s*429|credit balance|billing|exceeded (?:your )?(?:usage|rate|monthly|spend|token) limit|limit reached)\b/i
 const MAX_TURNS_RE = /\b(?:error_max_turns|max turns?|turn limit)\b/i
 const PARTIAL_PROGRESS_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"])
@@ -366,12 +314,25 @@ async function runGitCommand(args: string[], cwd: string): Promise<string> {
 }
 
 export function createFilesystemWorkspaceStore(): WorkflowWorkspaceStore {
+  const retentionSweeps = new Map<string, Promise<void>>()
+
   return {
     async createRunWorkspace(runId: string, projectPath?: string): Promise<string> {
       const workspaceBase = projectPath
         ? join(projectPath, ".c8c", "runs")
         : join(tmpdir(), "c8c-ws")
       await mkdir(workspaceBase, { recursive: true })
+      const existingSweep = retentionSweeps.get(workspaceBase)
+      if (existingSweep) {
+        await existingSweep
+      } else {
+        const sweep = cleanupRunWorkspaces(workspaceBase).then(() => undefined, () => undefined)
+        retentionSweeps.set(workspaceBase, sweep)
+        await sweep
+        if (retentionSweeps.get(workspaceBase) === sweep) {
+          retentionSweeps.delete(workspaceBase)
+        }
+      }
       return mkdtemp(join(workspaceBase, `${runId}-`))
     },
   }
@@ -550,18 +511,27 @@ function selectIncomingContent(
   nodeStates: Record<string, NodeState>,
   fallback: string,
 ): string {
+  const incoming = selectIncomingInput(incomingEdges, nodeStates)
+  return incoming?.content || fallback
+}
+
+function selectIncomingInput(
+  incomingEdges: WorkflowEdge[],
+  nodeStates: Record<string, NodeState>,
+): NodeInput | null {
   const candidates = incomingEdges.flatMap((edge) => {
     const sourceState = nodeStates[edge.source]
-    const content = sourceState?.output?.content
-    if (typeof content !== "string" || content.length === 0) return []
+    const output = sourceState?.output
+    const content = output?.content
+    if (!output || typeof content !== "string" || content.length === 0) return []
     return [{
       edge,
-      content,
+      output,
       completedAt: sourceState.completedAt ?? 0,
     }]
   })
 
-  if (candidates.length === 0) return fallback
+  if (candidates.length === 0) return null
 
   candidates.sort((a, b) => {
     if (a.completedAt !== b.completedAt) return b.completedAt - a.completedAt
@@ -572,7 +542,7 @@ function selectIncomingContent(
     return a.edge.id.localeCompare(b.edge.id)
   })
 
-  return candidates[0].content
+  return candidates[0].output
 }
 
 function compactArtifactLabel(value: string | undefined | null, maxLength = 48): string | null {
@@ -697,6 +667,151 @@ function createNodeOutput(
     content,
     metadata: buildNodeOutputMetadata(node, metadata),
   }
+}
+
+function normalizeDiagnosticSummaryTone(value: unknown): NodeInput["metadata"]["diagnostic_summary"]["tone"] | undefined {
+  return value === "neutral" || value === "warning" || value === "danger"
+    ? value
+    : undefined
+}
+
+function normalizeDiagnosticCount(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined
+  return Math.floor(value)
+}
+
+function normalizeDiagnosticText(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined
+  const normalized = value.trim()
+  return normalized || undefined
+}
+
+function normalizeDiagnosticCategorySummary(
+  value: unknown,
+): NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["categories"][number] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const id = normalizeDiagnosticText(record.id)
+  const label = normalizeDiagnosticText(record.label)
+  if (!id || !label) return null
+  return {
+    id,
+    label,
+    detail: normalizeDiagnosticText(record.detail),
+    severity: normalizeDiagnosticSummaryTone(record.severity),
+    count: normalizeDiagnosticCount(record.count),
+  }
+}
+
+function normalizeDiagnosticFindingSummary(
+  value: unknown,
+): NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["topFindings"][number] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  const id = normalizeDiagnosticText(record.id)
+  const label = normalizeDiagnosticText(record.label)
+  if (!id || !label) return null
+  return {
+    id,
+    label,
+    detail: normalizeDiagnosticText(record.detail),
+    severity: normalizeDiagnosticSummaryTone(record.severity),
+  }
+}
+
+function normalizeDiagnosticSummary(
+  value: unknown,
+): NodeInput["metadata"]["diagnostic_summary"] | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+  const record = value as Record<string, unknown>
+  const severityCountsRecord = (record.severity_counts ?? record.severityCounts) as Record<string, unknown> | undefined
+  const severityCounts = severityCountsRecord && typeof severityCountsRecord === "object" && !Array.isArray(severityCountsRecord)
+    ? {
+        critical: normalizeDiagnosticCount(severityCountsRecord.critical),
+        high: normalizeDiagnosticCount(severityCountsRecord.high),
+        medium: normalizeDiagnosticCount(severityCountsRecord.medium),
+        low: normalizeDiagnosticCount(severityCountsRecord.low),
+        info: normalizeDiagnosticCount(severityCountsRecord.info),
+      }
+    : undefined
+  const categories = Array.isArray(record.categories)
+    ? record.categories
+      .map((entry) => normalizeDiagnosticCategorySummary(entry))
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    : []
+  const topFindingsSource = record.top_findings ?? record.topFindings
+  const topFindings = Array.isArray(topFindingsSource)
+    ? topFindingsSource
+      .map((entry) => normalizeDiagnosticFindingSummary(entry))
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    : []
+  const summary: NodeInput["metadata"]["diagnostic_summary"] = {
+    headline: normalizeDiagnosticText(record.headline),
+    summary: normalizeDiagnosticText(record.summary),
+    tone: normalizeDiagnosticSummaryTone(record.tone),
+    rootCause: normalizeDiagnosticText(record.root_cause ?? record.rootCause),
+    recommendedNextAction: normalizeDiagnosticText(record.recommended_next_action ?? record.recommendedNextAction),
+    severityCounts: severityCounts && Object.values(severityCounts).some((entry) => entry !== undefined)
+      ? severityCounts
+      : undefined,
+    categories: categories.length > 0 ? categories : undefined,
+    topFindings: topFindings.length > 0 ? topFindings : undefined,
+  }
+
+  return Object.values(summary).some((entry) => entry !== undefined) ? summary : undefined
+}
+
+function extractDiagnosticSummaryDocument(
+  content: string,
+): { body: string; diagnosticSummary?: NodeInput["metadata"]["diagnostic_summary"] } {
+  if (!content.startsWith("---")) {
+    return { body: content }
+  }
+  const end = content.indexOf("\n---", 3)
+  if (end === -1) {
+    return { body: content }
+  }
+
+  let parsed: unknown
+  try {
+    parsed = YAML.parse(content.slice(3, end))
+  } catch {
+    return { body: content }
+  }
+
+  const summary = normalizeDiagnosticSummary(
+    parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>).diagnostic_summary
+      : undefined,
+  )
+  if (!summary) {
+    return { body: content }
+  }
+
+  const body = content.slice(end + 4).replace(/^(?:\r?\n)+/, "")
+  return { body, diagnosticSummary: summary }
+}
+
+function createAgentNodeOutput(
+  node: WorkflowNode,
+  content: string,
+  metadata: Omit<Partial<NodeInput["metadata"]>, "source"> = {},
+): NodeInput {
+  const structuredDocument = extractDiagnosticSummaryDocument(content)
+  return createNodeOutput(node, structuredDocument.body, {
+    ...metadata,
+    ...(structuredDocument.diagnosticSummary
+      ? { diagnostic_summary: structuredDocument.diagnosticSummary }
+      : {}),
+  })
+}
+
+function pickPassThroughMetadata(
+  input: NodeInput | null | undefined,
+): Pick<Partial<NodeInput["metadata"]>, "diagnostic_summary"> {
+  return input?.metadata?.diagnostic_summary
+    ? { diagnostic_summary: input.metadata.diagnostic_summary }
+    : {}
 }
 
 function buildContinueOutput(
@@ -945,7 +1060,7 @@ async function buildSkillNodeOutput(
 
   const fileContent = pickPreferredContentFile(primaryFileContent, mirroredFileContent, effectiveInput)
   const selectedOutput = pickSkillOutput(config.outputMode, stdoutText, fileContent, effectiveInput)
-  return createNodeOutput(node, selectedOutput.content || effectiveInput, {
+  return createAgentNodeOutput(node, selectedOutput.content || effectiveInput, {
     output_source: selectedOutput.source,
     ...(partialOnError ? { partial_on_error: true } : {}),
   })
@@ -955,83 +1070,16 @@ async function writeNodeOutputFile(workspace: string, nodeId: string, content: s
   await writeFileAtomic(join(workspace, "outputs", `${sanitizeNodeId(nodeId)}.md`), content)
 }
 
-function serializeNodeStates(nodeStates: Record<string, NodeState>): PersistedRunState["nodeStates"] {
-  const serializableStates: PersistedRunState["nodeStates"] = {}
-  for (const [id, state] of Object.entries(nodeStates)) {
-    serializableStates[id] = {
-      status: state.status,
-      attempts: state.attempts,
-      retriesUsed: state.retriesUsed,
-      policyApplied: state.policyApplied,
-      output: state.output,
-      error: state.error,
-      log: [],
-      startedAt: state.startedAt,
-      completedAt: state.completedAt,
-      metrics: state.metrics,
-      errorKind: state.errorKind,
-      meta: state.meta,
-    }
-  }
-  return serializableStates
+function getClaudeResumeSessionId(
+  providerId: ProviderId,
+  state: NodeState | undefined,
+): string | undefined {
+  if (providerId !== "claude") return undefined
+  if (state?.meta?.backend !== "claude_sdk") return undefined
+  const sessionId = state.meta.provider_session_id?.trim()
+  return sessionId ? sessionId : undefined
 }
 
-function serializeHumanTasks(nodeStates: Record<string, NodeState>): PersistedRunState["humanTasks"] {
-  const humanTasks: PersistedRunState["humanTasks"] = {}
-  for (const [id, state] of Object.entries(nodeStates)) {
-    if (state.humanTask) {
-      humanTasks[id] = state.humanTask
-    }
-  }
-  return humanTasks
-}
-
-async function persistRunState(
-  workspace: string,
-  nodeStates: Record<string, NodeState>,
-  runtimeWorkflow: RuntimeWorkflow,
-  input: WorkflowInput,
-): Promise<void> {
-  await writeFileAtomic(
-    join(workspace, "run-state.json"),
-    JSON.stringify({
-      nodeStates: serializeNodeStates(nodeStates),
-      runtimeNodes: runtimeWorkflow.nodes,
-      runtimeEdges: runtimeWorkflow.edges,
-      runtimeMeta: runtimeWorkflow.runtimeMeta,
-      input,
-      humanTasks: serializeHumanTasks(nodeStates),
-    }, null, 2),
-  )
-}
-
-async function appendEventLog(workspace: string, event: WorkflowEvent): Promise<void> {
-  await appendFile(join(workspace, "events.jsonl"), `${JSON.stringify(event)}\n`, "utf-8")
-}
-
-async function writeManifest(
-  workspace: string,
-  manifest: PersistedRunManifest,
-): Promise<void> {
-  await writeFileAtomic(join(workspace, "manifest.json"), JSON.stringify(manifest, null, 2))
-}
-
-async function writeRunResultSnapshot(
-  workspace: string,
-  payload: PersistedRunResult,
-): Promise<void> {
-  const serialized = JSON.stringify(payload, null, 2)
-  await writeFileAtomic(join(workspace, "result.json"), serialized)
-  await writeFileAtomic(join(workspace, "run-result.json"), serialized)
-}
-
-async function readJsonFile<T>(filePath: string): Promise<T | null> {
-  try {
-    return JSON.parse(await readFile(filePath, "utf-8")) as T
-  } catch {
-    return null
-  }
-}
 
 function normalizeSkillRef(ref: string): string {
   return ref.trim().toLowerCase()
@@ -1213,6 +1261,7 @@ async function spawnProviderTracked(
   callbacks: {
     onExecutionStart?: () => void | Promise<void>
     onSpawn?: (pid: number) => void
+    onProviderSession?: (sessionId: string) => void | Promise<void>
     onLogEntry?: (entry: LogEntry) => void
     onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void
     onStderr?: (text: string) => void
@@ -1246,6 +1295,7 @@ async function spawnProviderTracked(
           tracking.nodeId,
         )
       },
+      onProviderSession: callbacks.onProviderSession,
       onLogEntry: callbacks.onLogEntry,
       onUsage: callbacks.onUsage,
       onStderr: callbacks.onStderr,
@@ -1265,64 +1315,6 @@ async function spawnProviderTracked(
   }
 
   return result
-}
-
-function findResumeNodeId(savedState: PersistedRunState): string | null {
-  const runtimeOrder = (savedState.runtimeNodes || []).map((node) => node.id)
-  const knownIds = new Set(runtimeOrder)
-  const remainingIds = Object.keys(savedState.nodeStates).filter((id) => !knownIds.has(id))
-  const orderedIds = [...runtimeOrder, ...remainingIds]
-
-  for (const nodeId of orderedIds) {
-    const status = savedState.nodeStates[nodeId]?.status
-    if (status && RESUMABLE_NODE_STATUSES.has(status)) return nodeId
-  }
-  return null
-}
-
-function approvalDecisionPath(workspace: string, nodeId: string): string {
-  return join(workspace, "approvals", `${sanitizeNodeId(nodeId)}.decision.json`)
-}
-
-async function readApprovalDecision(
-  workspace: string,
-  nodeId: string,
-): Promise<ApprovalResolution | null> {
-  return readJsonFile<ApprovalResolution>(approvalDecisionPath(workspace, nodeId))
-}
-
-async function persistApprovalDecision(
-  workspace: string,
-  nodeId: string,
-  decision: { approved: boolean; editedContent?: string },
-): Promise<void> {
-  await mkdir(join(workspace, "approvals"), { recursive: true })
-  await writeFileAtomic(
-    approvalDecisionPath(workspace, nodeId),
-    JSON.stringify(decision, null, 2),
-  )
-}
-
-export async function writeWorkflowApprovalDecision(
-  workspace: string,
-  nodeId: string,
-  decision: { approved: boolean; editedContent?: string },
-): Promise<void> {
-  await persistApprovalDecision(workspace, nodeId, decision)
-  const taskId = approvalTaskId(nodeId)
-  try {
-    await writeWorkflowHilTaskResponse({
-      workspace,
-      taskId,
-      data: {
-        approved: decision.approved,
-        editedContent: decision.editedContent,
-      },
-      source: "openclaw",
-    })
-  } catch {
-    // Approval-only runs created before the HIL task store existed may not have task artifacts.
-  }
 }
 
 function isHumanTaskRequest(value: unknown): value is HumanTaskRequest {
@@ -1448,8 +1440,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
   const workspaceStore = deps.workspaceStore || createFilesystemWorkspaceStore()
   const activeRuns = new Map<string, AbortController>()
   const pausedRuns = new Map<string, { paused: boolean; resume: (() => void) | null }>()
-  const pendingApprovals = new Map<string, ApprovalResolve>()
-  const pendingEvalOverrides = new Map<string, EvalOverrideResolve>()
+  const interrupts = createRunInterruptRegistry()
   const runWorkspaces = new Map<string, string>()
 
   const resolveWorkflowProviderId = deps.resolveWorkflowProviderId
@@ -1494,90 +1485,6 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         finish()
       }
       signal.addEventListener("abort", onAbort, { once: true })
-    })
-  }
-
-  function resolvePendingApprovalsForRun(runId: string, approved = false): void {
-    const prefix = `${runId}:`
-    for (const [key, pending] of pendingApprovals.entries()) {
-      if (!key.startsWith(prefix)) continue
-      pending.resolve({ approved })
-      pendingApprovals.delete(key)
-    }
-  }
-
-  function resolvePendingEvalOverridesForRun(runId: string): void {
-    const prefix = `${runId}:`
-    for (const [key, pending] of pendingEvalOverrides.entries()) {
-      if (!key.startsWith(prefix)) continue
-      pending.resolve(false)
-      pendingEvalOverrides.delete(key)
-    }
-  }
-
-  function waitForEvalOverride(
-    runId: string,
-    nodeId: string,
-    signal: AbortSignal,
-  ): Promise<boolean> {
-    const key = `${runId}:${nodeId}`
-    return new Promise<boolean>((resolve) => {
-      let settled = false
-      const finish = (overridden: boolean) => {
-        if (settled) return
-        settled = true
-        pendingEvalOverrides.delete(key)
-        signal.removeEventListener("abort", onAbort)
-        resolve(overridden)
-      }
-
-      const onAbort = () => finish(false)
-      signal.addEventListener("abort", onAbort, { once: true })
-
-      if (signal.aborted) {
-        finish(false)
-        return
-      }
-
-      pendingEvalOverrides.set(key, { resolve: finish })
-    })
-  }
-
-  async function waitForApproval(
-    runId: string,
-    workspace: string,
-    nodeId: string,
-    timeoutMinutes?: number,
-    timeoutAction: "auto_approve" | "auto_reject" | "skip" = "auto_reject",
-  ): Promise<ApprovalResolution> {
-    const persisted = await readApprovalDecision(workspace, nodeId)
-    if (persisted) return persisted
-
-    const key = `${runId}:${nodeId}`
-    const minutes = timeoutMinutes ?? 60
-    return new Promise<ApprovalResolution>((resolve) => {
-      let settled = false
-      let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-      const finish = (result: { approved: boolean; editedContent?: string; timedOut?: boolean }) => {
-        if (settled) return
-        settled = true
-        pendingApprovals.delete(key)
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle)
-        }
-        resolve(result)
-      }
-
-      pendingApprovals.set(key, { resolve: finish })
-
-      if (minutes > 0) {
-        timeoutHandle = setTimeout(() => {
-          finish({
-            approved: timeoutAction === "auto_approve",
-            timedOut: true,
-          })
-        }, minutes * 60_000)
-      }
     })
   }
 
@@ -1714,7 +1621,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         return total
       }
 
-      const processNode = async (nodeId: string): Promise<void> => {
+      const processNode = async (nodeId: string): Promise<NodeLifecycleEffect | void> => {
         if (runtime.controller.signal.aborted) return
         const node = runtimeWorkflow.nodes.find((candidate) => candidate.id === nodeId)
         if (!node) return
@@ -1755,11 +1662,13 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         }
 
         let recoverOutputOnError: (() => Promise<NodeInput | undefined>) | undefined
+        let incomingInput: NodeInput | null = null
         let incomingContent = inputContent
 
         try {
           const incoming = runtimeWorkflow.edges.filter((edge) => edge.target === node.id)
-          incomingContent = selectIncomingContent(incoming, nodeStates, inputContent)
+          incomingInput = selectIncomingInput(incoming, nodeStates)
+          incomingContent = incomingInput?.content || inputContent
 
           let output: NodeInput | null = null
 
@@ -1834,12 +1743,19 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               ].join("\n"))
               const skillModel = workflow.defaults?.model || getDefaultModelForProvider(nodeProviderId)
               let skillBackend: AgentExecutionSummary["backend"]
+              let skillProviderSessionId: string | null | undefined
 
               const updateSkillMetricsAndMeta = () => {
                 const metrics = collectMetrics(logParser, state.startedAt!)
                 metrics.cost_usd = estimateCost(skillModel, metrics.tokens_in, metrics.tokens_out)
                 state.metrics = metrics
-                state.meta = buildNodeMeta(prompt, skillModel, skillRef || undefined, skillBackend)
+                state.meta = buildNodeMeta(
+                  prompt,
+                  skillModel,
+                  skillRef || undefined,
+                  skillBackend,
+                  skillProviderSessionId,
+                )
               }
 
               recoverOutputOnError = async () => {
@@ -1895,6 +1811,16 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               }
 
               let skillStderr = ""
+              const skillResumeSessionId = getClaudeResumeSessionId(nodeProviderId, state)
+              if (skillResumeSessionId) {
+                const resumeEntry = {
+                  type: "text" as const,
+                  content: `[runtime-resume] resuming Claude session ${skillResumeSessionId.slice(0, 8)} for this node\n`,
+                  timestamp: Date.now(),
+                }
+                state.log.push(resumeEntry)
+                await runtime.emitEvent({ type: "node-log", runId, nodeId: node.id, entry: resumeEntry })
+              }
               const result = await spawnProviderTracked(
                 deps,
                 nodeProviderId,
@@ -1903,6 +1829,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   prompt,
                   model: skillModel,
                   maxTurns: config.maxTurns || workflow.defaults?.maxTurns || 120,
+                  persistSession: nodeProviderId === "claude",
+                  resumeSessionId: skillResumeSessionId,
                   permissionMode: "acceptEdits",
                   executionMode: effectivePermissionMode,
                   mcpConfigPath,
@@ -1921,6 +1849,12 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 },
                 {
                   onExecutionStart: beginNodeExecution,
+                  onProviderSession: async (sessionId) => {
+                    skillBackend = "claude_sdk"
+                    skillProviderSessionId = sessionId
+                    updateSkillMetricsAndMeta()
+                    await persistRunState(workspace, nodeStates, runtimeWorkflow, persistedInput)
+                  },
                   onLogEntry: async (entry) => {
                     logParser.appendEntry(entry)
                     state.log.push(entry)
@@ -1938,6 +1872,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 },
               )
               skillBackend = result.backend
+              skillProviderSessionId = result.providerSessionId
 
               for (const entry of logParser.flush()) {
                 state.log.push(entry)
@@ -2002,6 +1937,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               )]
 
               const evalModel = workflow.defaults?.model || getDefaultModelForProvider(evalProviderId)
+              const evalResumeSessionId = getClaudeResumeSessionId(evalProviderId, state)
               const evalSpawnResult = await spawnProviderTracked(
                 deps,
                 evalProviderId,
@@ -2010,6 +1946,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   prompt: evalPrompt,
                   model: evalModel,
                   maxTurns: 1,
+                  persistSession: evalProviderId === "claude",
+                  resumeSessionId: evalResumeSessionId,
                   executionMode: workflow.defaults?.permissionMode,
                   mcpConfigPath,
                   disableBuiltInTools: evalProviderId === "claude",
@@ -2026,6 +1964,16 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 },
                 {
                   onExecutionStart: beginNodeExecution,
+                  onProviderSession: async (sessionId) => {
+                    state.meta = buildNodeMeta(
+                      evalPrompt,
+                      evalModel,
+                      undefined,
+                      "claude_sdk",
+                      sessionId,
+                    )
+                    await persistRunState(workspace, nodeStates, runtimeWorkflow, persistedInput)
+                  },
                   onLogEntry: async (entry) => {
                     logParser.appendEntry(entry)
                     state.log.push(entry)
@@ -2056,7 +2004,13 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               const evalMetrics = collectMetrics(logParser, state.startedAt!)
               evalMetrics.cost_usd = estimateCost(evalModel, evalMetrics.tokens_in, evalMetrics.tokens_out)
               state.metrics = evalMetrics
-              state.meta = buildNodeMeta(evalPrompt, evalModel, undefined, evalSpawnResult.backend)
+              state.meta = buildNodeMeta(
+                evalPrompt,
+                evalModel,
+                undefined,
+                evalSpawnResult.backend,
+                evalSpawnResult.providerSessionId,
+              )
 
               const evalResult = parseEvaluatorOutput(state.log)
               if (!evalResult) {
@@ -2088,6 +2042,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 iteration: state.attempts,
                 fix_instructions: fixInstructions,
                 criteria: evalCriteria,
+                ...pickPassThroughMetadata(incomingInput),
               }
 
               if (passed) {
@@ -2125,11 +2080,13 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     activatedEdges.delete(edge.id)
                   }
                   if (nodeStates[id]) {
+                    const preservedMeta = id === retryTargetId ? nodeStates[id].meta : undefined
                     nodeStates[id] = {
                       status: "pending",
                       attempts: nodeStates[id].attempts,
                       log: [],
                       output: undefined,
+                      ...(preservedMeta ? { meta: preservedMeta } : {}),
                     }
                   }
                 }
@@ -2155,7 +2112,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   attempt: state.attempts,
                 })
 
-                const overridden = await waitForEvalOverride(runId, node.id, runtime.controller.signal)
+                const overridden = await interrupts.waitForEvalOverride(runId, node.id, runtime.controller.signal)
 
                 if (overridden) {
                   await runtime.emitEvent({ type: "eval-overridden", runId, nodeId: node.id })
@@ -2191,8 +2148,10 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               const splitterMaxTurns = Math.max(2, Math.min(4, workflow.defaults?.maxTurns || 4))
               const splitterAllowedTools = workflow.defaults?.allowedTools
               const splitterDisallowedTools = workflow.defaults?.disallowedTools
+              const splitterResumeSessionId = getClaudeResumeSessionId(splitterProviderId, state)
               const splitterPrompts: string[] = []
               let splitterBackend: AgentExecutionSummary["backend"]
+              let splitterProviderSessionId: string | null | undefined
               let totalTokensIn = 0
               let totalTokensOut = 0
               let totalCostUsd = 0
@@ -2210,6 +2169,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     prompt: sanitizedPrompt,
                     model: splitterModel,
                     maxTurns: splitterMaxTurns,
+                    persistSession: splitterProviderId === "claude",
+                    resumeSessionId: splitterPrompts.length === 1 ? splitterResumeSessionId : undefined,
                     executionMode: workflow.defaults?.permissionMode,
                     mcpConfigPath,
                     allowedTools: splitterAllowedTools?.length ? splitterAllowedTools : undefined,
@@ -2227,6 +2188,18 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   },
                   {
                     onExecutionStart: beginNodeExecution,
+                    onProviderSession: async (sessionId) => {
+                      splitterBackend = "claude_sdk"
+                      splitterProviderSessionId = sessionId
+                      state.meta = buildNodeMeta(
+                        sanitizedPrompt,
+                        splitterModel,
+                        undefined,
+                        splitterBackend,
+                        splitterProviderSessionId,
+                      )
+                      await persistRunState(workspace, nodeStates, runtimeWorkflow, persistedInput)
+                    },
                     onLogEntry: async (entry) => {
                       logParser.appendEntry(entry)
                       state.log.push(entry)
@@ -2242,6 +2215,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     },
                   },
                 )
+                splitterProviderSessionId = result.providerSessionId
 
                 for (const entry of logParser.flush()) {
                   state.log.push(entry)
@@ -2329,6 +2303,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 splitterModel,
                 undefined,
                 splitterBackend,
+                splitterProviderSessionId,
               )
 
               const collapsed = collapseSplitterExpansion(runtimeWorkflow, workflow, node.id)
@@ -2427,6 +2402,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 let mergerStderr = ""
                 const mergerProviderId = workflowProviderId
                 const mergerModel = workflow.defaults?.model || getDefaultModelForProvider(mergerProviderId)
+                const mergerResumeSessionId = getClaudeResumeSessionId(mergerProviderId, state)
 
                 const result = await spawnProviderTracked(
                   deps,
@@ -2436,6 +2412,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     prompt: mergePrompt,
                     model: mergerModel,
                     maxTurns: 20,
+                    persistSession: mergerProviderId === "claude",
+                    resumeSessionId: mergerResumeSessionId,
                     executionMode: workflow.defaults?.permissionMode,
                     mcpConfigPath,
                     disableBuiltInTools: mergerProviderId === "claude",
@@ -2452,6 +2430,16 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   },
                   {
                     onExecutionStart: beginNodeExecution,
+                    onProviderSession: async (sessionId) => {
+                      state.meta = buildNodeMeta(
+                        mergePrompt,
+                        mergerModel,
+                        undefined,
+                        "claude_sdk",
+                        sessionId,
+                      )
+                      await persistRunState(workspace, nodeStates, runtimeWorkflow, persistedInput)
+                    },
                     onLogEntry: async (entry) => {
                       logParser.appendEntry(entry)
                       state.log.push(entry)
@@ -2482,8 +2470,14 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 const mergerMetrics = collectMetrics(logParser, state.startedAt!)
                 mergerMetrics.cost_usd = estimateCost(mergerModel, mergerMetrics.tokens_in, mergerMetrics.tokens_out)
                 state.metrics = mergerMetrics
-                state.meta = buildNodeMeta(mergePrompt, mergerModel, undefined, result.backend)
-                output = createNodeOutput(node, logParser.textContent)
+                state.meta = buildNodeMeta(
+                  mergePrompt,
+                  mergerModel,
+                  undefined,
+                  result.backend,
+                  result.providerSessionId,
+                )
+                output = createAgentNodeOutput(node, logParser.textContent)
               }
               break
             }
@@ -2537,11 +2531,10 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 })
 
                 if (approvalBehavior === "suspend") {
-                  suspendedForApproval = true
-                  return
+                  return { suspendedForApproval: true }
                 }
 
-                decision = await waitForApproval(
+                decision = await interrupts.waitForApproval(
                   runId,
                   workspace,
                   node.id,
@@ -2585,11 +2578,10 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               }
 
               if (decision.approved) {
-                output = createNodeOutput(node, decision.editedContent ?? incomingContent)
+                output = createNodeOutput(node, decision.editedContent ?? incomingContent, {
+                  ...pickPassThroughMetadata(incomingInput),
+                })
               } else {
-                if (!decision.timedOut) {
-                  approvalRejected = true
-                }
                 state.status = "failed"
                 state.completedAt = Date.now()
                 state.error = decision.timedOut
@@ -2599,7 +2591,9 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 if (approvalTask) {
                   await markWorkflowHilTaskConsumed(workspace, approvalTask.taskId)
                 }
-                return
+                return !decision.timedOut
+                  ? { approvalRejected: true }
+                  : undefined
               }
               if (approvalTask) {
                 await markWorkflowHilTaskConsumed(workspace, approvalTask.taskId)
@@ -2636,10 +2630,11 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   taskId: taskRecord.taskId,
                   title: taskRecord.state.title,
                 })
-                blockedForHuman = true
-                blockedByTaskId = taskRecord.taskId
-                blockedByNodeId = node.id
-                return
+                return {
+                  blockedForHuman: true,
+                  blockedByTaskId: taskRecord.taskId,
+                  blockedByNodeId: node.id,
+                }
               }
 
               await runtime.emitEvent({
@@ -2665,6 +2660,9 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   resolution: resolvedTask.resolution,
                   answers: resolvedTask.answers,
                 }, null, 2),
+                {
+                  ...pickPassThroughMetadata(incomingInput),
+                },
               )
 
               if (resolvedTask.resolution === "submitted") {
@@ -2696,7 +2694,9 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
 
             case "output":
               await beginNodeExecution()
-              output = createNodeOutput(node, incomingContent)
+              output = createNodeOutput(node, incomingContent, {
+                ...pickPassThroughMetadata(incomingInput),
+              })
               break
           }
 
@@ -2870,111 +2870,58 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         }
       }
 
-      const runningPromises = new Map<string, Promise<void>>()
-      let activeSplitterNodeId: string | null = null
       const stallTimeoutMs = (workflow.defaults?.timeout_minutes || 30) * 60 * 1000 + 60_000
-      let lastProgressAt = Date.now()
-      let suspendedForApproval = false
-      let blockedForHuman = false
-      let approvalRejected = false
-
-      while (!runtime.controller.signal.aborted) {
-        await waitIfPaused(runId, runtime.controller.signal)
-        if (runtime.controller.signal.aborted) break
-        if ((suspendedForApproval || blockedForHuman) && runningPromises.size === 0) break
-
-        const readyNodes = findReadyNodes(runtimeWorkflow, nodeStates, activatedEdges)
-        const newReady = readyNodes.filter((node) => !runningPromises.has(node.id))
-        if (newReady.length === 0 && runningPromises.size === 0) break
-
-        for (const node of newReady) {
-          if (runtime.controller.signal.aborted) break
-          if (runningPromises.size >= maxParallel) break
-
-          if (node.type === "splitter") {
-            if (activeSplitterNodeId && activeSplitterNodeId !== node.id) continue
-            if (runningPromises.size > 0) continue
-          } else if (activeSplitterNodeId) {
-            continue
-          }
-
-          if (nodeStates[node.id]?.status === "pending") {
-            nodeStates[node.id].status = "queued"
-            await runtime.emitEvent({ type: "node-queued", runId, nodeId: node.id })
-          }
-
-          if (node.type === "splitter") activeSplitterNodeId = node.id
-          const promise = processNode(node.id).finally(() => {
-            runningPromises.delete(node.id)
-            if (activeSplitterNodeId === node.id) activeSplitterNodeId = null
-          })
-          runningPromises.set(node.id, promise)
-        }
-
-        if (runningPromises.size > 0) {
-          const sizeBefore = runningPromises.size
-          await Promise.race(runningPromises.values())
-          if (runningPromises.size < sizeBefore) lastProgressAt = Date.now()
-          if (Date.now() - lastProgressAt > stallTimeoutMs) {
-            for (const stalledNodeId of runningPromises.keys()) {
-              const stalledNode = runtimeWorkflow.nodes.find((candidate) => candidate.id === stalledNodeId)
-              const stalledState = nodeStates[stalledNodeId]
-              if (!stalledNode || !stalledState) continue
-              const nodeLabel = stalledNode.type === "skill"
-                ? (stalledNode.config as SkillNodeConfig).skillRef || "skill"
-                : stalledNode.type
-              const elapsedMs = stalledState.startedAt ? Date.now() - stalledState.startedAt : Date.now() - lastProgressAt
-              const stallError = `Node '${nodeLabel}' (${stalledNode.type}) stopped responding after ${Math.round(elapsedMs / 60_000)} minutes. Run was stopped.`
-              stalledState.status = "failed"
-              stalledState.completedAt = Date.now()
-              stalledState.error = stallError
-              await runtime.emitEvent({ type: "node-error", runId, nodeId: stalledNodeId, error: stallError })
-            }
-            runtime.controller.abort()
-          }
-        }
-      }
-
-      if (!suspendedForApproval && !blockedForHuman) {
-        for (const [nodeId, state] of Object.entries(nodeStates)) {
-          if (
-            state.status === "pending"
-            || state.status === "queued"
-            || state.status === "running"
-            || state.status === "waiting_approval"
-            || state.status === "waiting_human"
-          ) {
-            state.status = "skipped"
-            const runtimeNode = runtimeWorkflow.nodes.find((candidate) => candidate.id === nodeId)
-            await runtime.emitEvent({
-              type: "node-done",
-              runId,
-              nodeId,
-              output: runtimeNode
-                ? createNodeOutput(runtimeNode, "", { skipped: true })
-                : { content: "", metadata: { source: nodeId, skipped: true } },
-            })
-          }
-        }
-      }
-
-      const criticalNodeFailed = Object.entries(nodeStates).some(([nodeId, state]) => {
-        if (state.status !== "failed") return false
-        if (runtimeWorkflow.runtimeMeta?.[nodeId]) return false
-        return true
+      const lifecycle = await runExecutionLoop({
+        runId,
+        controller: runtime.controller,
+        nodeStates,
+        runtimeWorkflow,
+        activatedEdges,
+        maxParallel,
+        stallTimeoutMs,
+        waitIfPaused,
+        processNode,
+        emitEvent: runtime.emitEvent,
+        buildSkippedOutput: (nodeId) => {
+          const runtimeNode = runtimeWorkflow.nodes.find((candidate) => candidate.id === nodeId)
+          return runtimeNode
+            ? createNodeOutput(runtimeNode, "", { skipped: true })
+            : { content: "", metadata: { source: nodeId, skipped: true } }
+        },
+        describeStalledNode: (nodeId) => {
+          const stalledNode = runtimeWorkflow.nodes.find((candidate) => candidate.id === nodeId)
+          if (!stalledNode) return `Node '${nodeId}'`
+          const nodeLabel = stalledNode.type === "skill"
+            ? (stalledNode.config as SkillNodeConfig).skillRef || "skill"
+            : stalledNode.type
+          return `Node '${nodeLabel}' (${stalledNode.type})`
+        },
       })
 
-      const finalStatus: RunStatus = blockedForHuman
-        ? "blocked"
-        : suspendedForApproval
-          ? "paused"
-        : approvalRejected
-          ? "cancelled"
-          : runtime.controller.signal.aborted
-            ? "cancelled"
-            : isRunComplete(nodeStates) && !criticalNodeFailed
-              ? "completed"
-              : "failed"
+      blockedByTaskId = lifecycle.blockedByTaskId
+      blockedByNodeId = lifecycle.blockedByNodeId
+
+      if (!lifecycle.suspendedForApproval && !lifecycle.blockedForHuman) {
+        await skipUnfinishedNodes(
+          runId,
+          nodeStates,
+          runtimeWorkflow,
+          runtime.emitEvent,
+          (nodeId) => {
+            const runtimeNode = runtimeWorkflow.nodes.find((candidate) => candidate.id === nodeId)
+            return runtimeNode
+              ? createNodeOutput(runtimeNode, "", { skipped: true })
+              : { content: "", metadata: { source: nodeId, skipped: true } }
+          },
+        )
+      }
+
+      const finalStatus: RunStatus = deriveRunStatus(
+        nodeStates,
+        runtimeWorkflow,
+        lifecycle,
+        runtime.controller.signal.aborted,
+      )
       manifestStatus = finalStatus
 
       let reportPath: string | undefined
@@ -3058,8 +3005,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         blockedByTaskId,
         lastBlockingNodeId: blockedByNodeId,
       })
-      resolvePendingApprovalsForRun(runId, false)
-      resolvePendingEvalOverridesForRun(runId)
+      interrupts.resolvePendingApprovalsForRun(runId, false)
+      interrupts.resolvePendingEvalOverridesForRun(runId)
       activeRuns.delete(runId)
       pausedRuns.delete(runId)
     }
@@ -3113,8 +3060,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
       events: queue,
       result,
       cancel() {
-        resolvePendingApprovalsForRun(runId, false)
-        resolvePendingEvalOverridesForRun(runId)
+        interrupts.resolvePendingApprovalsForRun(runId, false)
+        interrupts.resolvePendingEvalOverridesForRun(runId)
         controller.abort()
       },
       pause() {
@@ -3130,117 +3077,61 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
     async startRun(request: StartWorkflowRunRequest): Promise<WorkflowRunHandle> {
       const runId = request.runId || makeRunId("run")
       const workspace = await workspaceStore.createRunWorkspace(runId, request.projectPath)
-      const nodeStates = createInitialNodeStates(request.workflow)
-      const activatedEdges = new Set<string>()
-      const runtimeWorkflow: RuntimeWorkflow = {
-        ...request.workflow,
-        nodes: [...request.workflow.nodes],
-        edges: [...request.workflow.edges],
-        runtimeMeta: {},
-      }
-
-      return createHandle(runId, workspace, (runtime) => executeWorkflowSession({
+      const session = createStartExecutionSession({
         runId,
-        mode: "run",
         workflow: request.workflow,
-        persistedInput: { type: "text", value: request.input.value },
+        input: request.input,
         workspace,
-        nodeStates,
-        runtimeWorkflow,
-        activatedEdges,
         projectPath: request.projectPath,
         workflowPath: request.workflowPath,
         webSearchBackend: request.webSearchBackend,
         approvalBehavior: request.approvalBehavior,
         chainId: workspace,
-      }, runtime))
+      })
+
+      return createHandle(runId, workspace, (runtime) => executeWorkflowSession(session, runtime))
     },
 
     async resumeRun(request: ResumeWorkflowRunRequest): Promise<WorkflowRunHandle> {
       const runId = request.runId || makeRunId("continue")
-      const savedState = await readJsonFile<PersistedRunState>(join(request.workspace, "run-state.json"))
-      if (!savedState) {
-        throw new Error(`Cannot continue: run state not found in ${request.workspace}`)
-      }
-
-      const fromNodeId = findResumeNodeId(savedState)
-      if (!fromNodeId) {
-        throw new Error("Cannot continue: no unfinished nodes found in run state")
-      }
-
-      return this.rerunFromNode({
-        ...request,
+      const session = await createResumeExecutionSession({
         runId,
-        fromNodeId,
+        workflow: request.workflow,
+        workspace: request.workspace,
+        projectPath: request.projectPath,
+        workflowPath: request.workflowPath,
+        webSearchBackend: request.webSearchBackend,
+        approvalBehavior: request.approvalBehavior,
+        chainId: request.workspace,
       })
+
+      return createHandle(runId, request.workspace, async (runtime) =>
+        executeWorkflowSession(session, runtime),
+      )
     },
 
     async rerunFromNode(request: RerunFromNodeRequest): Promise<WorkflowRunHandle> {
       const runId = request.runId || makeRunId("rerun")
-      const savedState = await readJsonFile<PersistedRunState>(join(request.workspace, "run-state.json"))
-      if (!savedState) {
-        throw new Error(`Cannot rerun: run state not found in ${request.workspace}`)
-      }
-
-      const runtimeWorkflow: RuntimeWorkflow = {
-        ...request.workflow,
-        nodes: savedState.runtimeNodes || [...request.workflow.nodes],
-        edges: savedState.runtimeEdges || [...request.workflow.edges],
-        runtimeMeta: (savedState.runtimeMeta || {}) as RuntimeWorkflow["runtimeMeta"],
-      }
-
-      const nodeStates: Record<string, NodeState> = {}
-      for (const [id, state] of Object.entries(savedState.nodeStates)) {
-        nodeStates[id] = { ...state, log: [] } as NodeState
-      }
-
-      const downstreamIds = new Set(getDownstreamNodeIds(runtimeWorkflow, request.fromNodeId))
-      for (const id of downstreamIds) {
-        if (nodeStates[id]) {
-          nodeStates[id] = { status: "pending", attempts: 0, log: [] }
-        }
-      }
-
-      const activatedEdges = new Set<string>()
-      for (const edge of runtimeWorkflow.edges) {
-        if (!downstreamIds.has(edge.source) && nodeStates[edge.source]?.status === "completed") {
-          activatedEdges.add(edge.id)
-        }
-      }
-
-      const handle = await createHandle(runId, request.workspace, async (runtime) => {
-        for (const id of downstreamIds) {
-          await runtime.emitEvent({ type: "node-start", runId, nodeId: id })
-          await runtime.emitEvent({
-            type: "node-log",
-            runId,
-            nodeId: id,
-            entry: { type: "text", content: "[rerun] resetting node\n", timestamp: Date.now() },
-          })
-        }
-
-        return executeWorkflowSession({
-          runId,
-          mode: "rerun",
-          workflow: request.workflow,
-          persistedInput: savedState.input || { type: "text", value: "" },
-          workspace: request.workspace,
-          nodeStates,
-          runtimeWorkflow,
-          activatedEdges,
-          projectPath: request.projectPath,
-          workflowPath: request.workflowPath,
-          webSearchBackend: request.webSearchBackend,
-          approvalBehavior: request.approvalBehavior,
-          chainId: request.workspace,
-        }, runtime)
+      const session = await createRerunExecutionSession({
+        runId,
+        workflow: request.workflow,
+        workspace: request.workspace,
+        fromNodeId: request.fromNodeId,
+        projectPath: request.projectPath,
+        workflowPath: request.workflowPath,
+        webSearchBackend: request.webSearchBackend,
+        approvalBehavior: request.approvalBehavior,
+        chainId: request.workspace,
       })
+
+      const handle = await createHandle(runId, request.workspace, async (runtime) =>
+        executeWorkflowSession(session, runtime),
+      )
 
       return handle
     },
 
     async resolveApproval(decision: ApprovalDecision): Promise<boolean> {
-      const key = `${decision.runId}:${decision.nodeId}`
       const workspace = decision.workspace || runWorkspaces.get(decision.runId)
       if (workspace) {
         try {
@@ -3248,17 +3139,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             approved: decision.approved,
             editedContent: decision.editedContent,
           }
-          await persistApprovalDecision(workspace, decision.nodeId, persistedDecision)
-          try {
-            await writeWorkflowHilTaskResponse({
-              workspace,
-              taskId: approvalTaskId(decision.nodeId),
-              data: persistedDecision,
-              source: "runtime",
-            })
-          } catch {
-            // Ignore missing task artifacts for older runs.
-          }
+          await persistResolvedApproval(workspace, decision.nodeId, persistedDecision, "runtime")
         } catch (error) {
           logger.warn("workflow-runner", "persist_approval_decision_failed", {
             runId: decision.runId,
@@ -3268,13 +3149,10 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         }
       }
 
-      const pending = pendingApprovals.get(key)
-      if (pending) {
-        pending.resolve({
-          approved: decision.approved,
-          editedContent: decision.editedContent,
-        })
-        pendingApprovals.delete(key)
+      if (interrupts.resolveApproval(decision.runId, decision.nodeId, {
+        approved: decision.approved,
+        editedContent: decision.editedContent,
+      })) {
         return true
       }
 
@@ -3282,11 +3160,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
     },
 
     async resolveEvalOverride(decision: EvalOverrideDecision): Promise<boolean> {
-      const key = `${decision.runId}:${decision.nodeId}`
-      const pending = pendingEvalOverrides.get(key)
-      if (pending) {
-        pending.resolve(true)
-        pendingEvalOverrides.delete(key)
+      if (interrupts.resolveEvalOverride(decision.runId, decision.nodeId)) {
         return true
       }
       return false
@@ -3295,12 +3169,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
     async getSnapshot(runId: string): Promise<WorkflowRunSnapshot | null> {
       const workspace = runWorkspaces.get(runId)
       if (!workspace) return null
-      return {
-        workspace,
-        manifest: await readJsonFile<PersistedRunManifest>(join(workspace, "manifest.json")),
-        state: await readJsonFile<PersistedRunState>(join(workspace, "run-state.json")),
-        result: await readJsonFile<PersistedRunResult>(join(workspace, "result.json")),
-      }
+      return readWorkflowRunSnapshot(workspace)
     },
   }
 }

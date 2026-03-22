@@ -115,8 +115,12 @@ describe("createClaudeSdkExecutionHandle", () => {
     })
 
     const entries: string[] = []
+    const providerSessions: string[] = []
     const usages: Array<{ inputTokens: number; outputTokens: number }> = []
     const summary = await drainExecutionHandle(handle, {
+      onProviderSession: (sessionId) => {
+        providerSessions.push(sessionId)
+      },
       onLogEntry: (entry) => {
         if (entry.type === "text") {
           entries.push(entry.content)
@@ -128,6 +132,7 @@ describe("createClaudeSdkExecutionHandle", () => {
     })
 
     expect(entries).toEqual(["Hello from SDK"])
+    expect(providerSessions).toEqual(["session-1"])
     expect(usages.at(-1)).toEqual({ inputTokens: 3, outputTokens: 4 })
     expect(summary).toMatchObject({
       success: true,
@@ -166,5 +171,143 @@ describe("createClaudeSdkExecutionHandle", () => {
       behavior: "deny",
       message: "Edit is blocked for this run.",
     })
+  })
+
+  it("requests persisted Claude sessions and resumes a prior session when provided", async () => {
+    queryMock.mockReturnValue(createMockQuery([
+      {
+        type: "system",
+        subtype: "init",
+        apiKeySource: "user",
+        claude_code_version: "2.1.45",
+        cwd: "/tmp/project",
+        tools: [],
+        mcp_servers: [],
+        model: "claude-sonnet-4-6",
+        permissionMode: "acceptEdits",
+        slash_commands: [],
+        output_style: "default",
+        skills: [],
+        plugins: [],
+        uuid: "00000000-0000-0000-0000-000000000021",
+        session_id: "session-2",
+      },
+      {
+        type: "result",
+        subtype: "success",
+        duration_ms: 12,
+        duration_api_ms: 12,
+        is_error: false,
+        num_turns: 1,
+        result: "",
+        stop_reason: "end_turn",
+        total_cost_usd: 0,
+        usage: {
+          input_tokens: 1,
+          output_tokens: 1,
+        },
+        modelUsage: {},
+        permission_denials: [],
+        uuid: "00000000-0000-0000-0000-000000000022",
+        session_id: "session-2",
+      },
+    ]))
+
+    const handle = await createClaudeSdkExecutionHandle({
+      workdir: "/tmp/project",
+      prompt: "Continue the previous task",
+      maxTurns: 2,
+      persistSession: true,
+      resumeSessionId: "prior-session-7",
+    })
+
+    const summary = await drainExecutionHandle(handle)
+
+    expect(summary).toMatchObject({
+      success: true,
+      providerSessionId: "session-2",
+    })
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    expect(queryMock.mock.calls[0]?.[0]).toMatchObject({
+      prompt: "Continue the previous task",
+      options: {
+        persistSession: true,
+        resume: "prior-session-7",
+      },
+    })
+  })
+
+  it("emits a heartbeat while Claude is silent for a long thinking stretch", async () => {
+    vi.useFakeTimers()
+    try {
+      queryMock.mockReturnValue({
+        async *[Symbol.asyncIterator]() {
+          yield {
+            type: "system",
+            subtype: "init",
+            apiKeySource: "user",
+            claude_code_version: "2.1.45",
+            cwd: "/tmp/project",
+            tools: [],
+            mcp_servers: [],
+            model: "claude-sonnet-4-6",
+            permissionMode: "plan",
+            slash_commands: [],
+            output_style: "default",
+            skills: [],
+            plugins: [],
+            uuid: "00000000-0000-0000-0000-000000000011",
+            session_id: "session-heartbeat",
+          }
+          await new Promise((resolve) => setTimeout(resolve, 16_000))
+          yield {
+            type: "result",
+            subtype: "success",
+            duration_ms: 16_000,
+            duration_api_ms: 16_000,
+            is_error: false,
+            num_turns: 1,
+            result: "",
+            stop_reason: "end_turn",
+            total_cost_usd: 0,
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+            },
+            modelUsage: {},
+            permission_denials: [],
+            uuid: "00000000-0000-0000-0000-000000000012",
+            session_id: "session-heartbeat",
+          }
+        },
+        close() {},
+      })
+
+      const handle = await createClaudeSdkExecutionHandle({
+        workdir: "/tmp/project",
+        prompt: "Think carefully before responding",
+        maxTurns: 1,
+      })
+
+      const thinkingEntries: string[] = []
+      const summaryPromise = drainExecutionHandle(handle, {
+        onLogEntry: (entry) => {
+          if (entry.type === "thinking") {
+            thinkingEntries.push(entry.content)
+          }
+        },
+      })
+
+      await vi.advanceTimersByTimeAsync(16_000)
+      const summary = await summaryPromise
+
+      expect(summary).toMatchObject({
+        success: true,
+        providerSessionId: "session-heartbeat",
+      })
+      expect(thinkingEntries.some((content) => content.includes("Claude is still working"))).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

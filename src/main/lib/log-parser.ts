@@ -89,6 +89,15 @@ function extractContentBlocks(content: unknown, ctx: ParseContext): LogEntry[] {
   return entries
 }
 
+function formatElapsedSeconds(seconds: number): string {
+  const safeSeconds = Math.max(1, Math.round(seconds))
+  const minutes = Math.floor(safeSeconds / 60)
+  const remainingSeconds = safeSeconds % 60
+  if (minutes === 0) return `${safeSeconds}s`
+  if (remainingSeconds === 0) return `${minutes}m`
+  return `${minutes}m ${remainingSeconds}s`
+}
+
 function parseEvent(event: unknown, ctx: ParseContext): LogEntry[] {
   if (!isRecord(event)) return []
 
@@ -139,6 +148,42 @@ function parseEvent(event: unknown, ctx: ParseContext): LogEntry[] {
   // content_block_start (stream-json tool_use announcements)
   if (event.type === "content_block_start" && isRecord(event.content_block)) {
     return extractContentBlocks([event.content_block], ctx)
+  }
+
+  if (event.type === "tool_progress" && typeof event.tool_name === "string") {
+    const elapsedSeconds = typeof event.elapsed_time_seconds === "number"
+      ? formatElapsedSeconds(event.elapsed_time_seconds)
+      : null
+    return [{
+      type: "text",
+      content: `[progress] ${event.tool_name} is still running${elapsedSeconds ? ` (${elapsedSeconds})` : ""}`,
+      timestamp,
+    }]
+  }
+
+  if (event.type === "tool_use_summary" && typeof event.summary === "string") {
+    return [{
+      type: "text",
+      content: `[progress] ${event.summary}`,
+      timestamp,
+    }]
+  }
+
+  if (event.type === "system" && event.subtype === "task_started" && typeof event.description === "string") {
+    return [{
+      type: "text",
+      content: `[progress] Started task: ${event.description}`,
+      timestamp,
+    }]
+  }
+
+  if (event.type === "system" && event.subtype === "task_notification" && typeof event.summary === "string") {
+    const status = typeof event.status === "string" ? event.status : "updated"
+    return [{
+      type: "text",
+      content: `[progress] Task ${status}: ${event.summary}`,
+      timestamp,
+    }]
   }
 
   // Messages API style: content as array of blocks

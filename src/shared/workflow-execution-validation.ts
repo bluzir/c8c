@@ -51,6 +51,18 @@ export function validateWorkflowForExecution(workflow: Workflow): WorkflowConfig
       pushIssue(issues, node.id, "id", `Duplicate node ID "${node.id}".`)
     }
     seenNodeIds.add(node.id)
+
+    if (node.type === "evaluator") {
+      const retryFrom = node.config.retryFrom?.trim()
+      if (retryFrom && !nodeIds.has(retryFrom)) {
+        pushIssue(
+          issues,
+          node.id,
+          "config.retryFrom",
+          `Retry target "${retryFrom}" does not exist in this workflow.`,
+        )
+      }
+    }
   }
 
   // Cycle detection ignores evaluator fail edges so retry loops remain valid.

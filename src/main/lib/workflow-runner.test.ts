@@ -39,6 +39,8 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
       prompt,
       model: options?.model,
       maxTurns: options?.maxTurns,
+      persistSession: options?.persistSession,
+      resumeSessionId: options?.resume,
       tools: options?.tools,
       permissionMode: options?.permissionMode,
       systemPrompts: typeof options?.systemPrompt === "string"
@@ -88,8 +90,9 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
 
     return {
       async *[Symbol.asyncIterator]() {
+        yield messages[0]
         await run
-        for (const message of messages) {
+        for (const message of messages.slice(1)) {
           yield message
         }
       },
@@ -122,11 +125,12 @@ vi.mock("./telemetry/service", () => ({
 }))
 
 import { spawnClaude } from "@claude-tools/runner"
-import { readFile } from "node:fs/promises"
+import { readFile, writeFile } from "node:fs/promises"
 import type { Workflow, WorkflowEvent, NodeState, SkillNodeConfig } from "@shared/types"
 
 const mockedSpawn = vi.mocked(spawnClaude)
 const mockedReadFile = vi.mocked(readFile)
+const mockedWriteFile = vi.mocked(writeFile)
 
 // Evaluator loop workflow: input → skill → evaluator → output (with fail loop)
 const EVAL_WORKFLOW: Workflow = {
@@ -397,6 +401,105 @@ describe("workflow-runner evaluator loop", () => {
     expect(skillDone).toBeDefined()
     expect(skillDone.output.content).toBe("improved content")
     expect(skillDone.output.metadata.output_source).toBe("content_file")
+  })
+
+  it("preserves diagnostic summaries through evaluator and output nodes", async () => {
+    mockedReadFile.mockResolvedValue("input")
+
+    const diagnosticReport = [
+      "---",
+      "diagnostic_summary:",
+      "  headline: Critical UX debt blocks reliable execution.",
+      "  tone: danger",
+      "  severity_counts:",
+      "    critical: 2",
+      "    high: 3",
+      "  top_findings:",
+      "    - id: approval-dialog-unmount",
+      "      label: Approval dialog unmounts on navigation",
+      "      detail: Users can lose a live approval request when they leave the workflow view.",
+      "      severity: danger",
+      "---",
+      "",
+      "# Audit report",
+      "Body",
+    ].join("\n")
+
+    let callCount = 0
+    mockedSpawn.mockImplementation(async (opts: any) => {
+      callCount += 1
+      if (callCount === 1) {
+        opts.onStdout?.(
+          Buffer.from(
+            `${JSON.stringify({ type: "assistant", subtype: "text", content: diagnosticReport })}\n`,
+          ),
+        )
+      } else {
+        opts.onStdout?.(
+          Buffer.from(
+            `${JSON.stringify({ type: "assistant", subtype: "text", content: "{\"score\": 9, \"reason\": \"Excellent\"}" })}\n`,
+          ),
+        )
+      }
+      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+    })
+
+    const { runWorkflow } = await import("./workflow-runner")
+    await runWorkflow("run-diagnostic-summary", EVAL_WORKFLOW, { type: "text", value: "input" }, mockWindow)
+
+    const outputDone = events.find(
+      (event) => event.type === "node-done" && (event as any).nodeId === "output-1",
+    ) as any
+
+    expect(outputDone).toBeDefined()
+    expect(outputDone.output.content).toBe("# Audit report\nBody")
+    expect(outputDone.output.metadata.diagnostic_summary).toMatchObject({
+      headline: "Critical UX debt blocks reliable execution.",
+      tone: "danger",
+      severityCounts: {
+        critical: 2,
+        high: 3,
+      },
+      topFindings: [
+        {
+          id: "approval-dialog-unmount",
+          label: "Approval dialog unmounts on navigation",
+        },
+      ],
+    })
+  })
+
+  it("persists Claude provider session ids while a node is still running", async () => {
+    mockedSpawn.mockImplementation((opts: any) => new Promise((resolve) => {
+      opts.abortSignal?.addEventListener("abort", () => {
+        resolve({
+          success: false,
+          exitCode: 0,
+          signal: null,
+          killed: true,
+          aborted: true,
+          durationMs: 100,
+        })
+      }, { once: true })
+    }))
+
+    const { runWorkflow, cancelWorkflowRun } = await import("./workflow-runner")
+    const runPromise = runWorkflow(
+      "run-mid-session-persist",
+      SIMPLE_SKILL_WORKFLOW,
+      { type: "text", value: "input" },
+      mockWindow,
+    )
+
+    await waitForCondition(
+      () => mockedWriteFile.mock.calls.some((call) => (
+        typeof call[1] === "string" && call[1].includes('"provider_session_id": "sdk-test-session"')
+      )),
+      "expected run-state persistence with provider session id",
+    )
+
+    expect(cancelWorkflowRun("run-mid-session-persist")).toBe(true)
+    await runPromise
   })
 
   it("completes prompt-only skill nodes without requiring skillRef", async () => {
@@ -742,6 +845,46 @@ describe("workflow-runner evaluator loop", () => {
     const retryPrompt = capturedPrompts[2] // 0-indexed, 3rd call
     expect(retryPrompt).toContain("Rewrite opening paragraph with a surprising statistic")
     expect(retryPrompt).toContain("What to fix")
+  })
+
+  it("resumes the prior Claude session when evaluator retries the same skill node", async () => {
+    let spawnCount = 0
+    mockedSpawn.mockImplementation(async (opts: any) => {
+      spawnCount += 1
+      if (spawnCount === 1 || spawnCount === 3) {
+        opts.onStdout?.(
+          Buffer.from(
+            '{"type":"assistant","subtype":"text","content":"content"}\n',
+          ),
+        )
+      } else if (spawnCount === 2) {
+        opts.onStdout?.(
+          Buffer.from(
+            '{"type":"assistant","subtype":"text","content":"{\\"score\\": 5, \\"reason\\": \\"Needs work\\"}"}\n',
+          ),
+        )
+      } else {
+        opts.onStdout?.(
+          Buffer.from(
+            '{"type":"assistant","subtype":"text","content":"{\\"score\\": 9, \\"reason\\": \\"Looks good\\"}"}\n',
+          ),
+        )
+      }
+      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+    })
+
+    const { runWorkflow } = await import("./workflow-runner")
+    await runWorkflow("run-retry-resume", EVAL_WORKFLOW, { type: "text", value: "test" }, mockWindow)
+
+    expect(mockedSpawn).toHaveBeenCalledTimes(4)
+    expect(mockedSpawn.mock.calls[0]?.[0]).toMatchObject({
+      persistSession: true,
+      resumeSessionId: undefined,
+    })
+    expect(mockedSpawn.mock.calls[2]?.[0]).toMatchObject({
+      persistSession: true,
+      resumeSessionId: "sdk-test-session",
+    })
   })
 
   it("exhausts max retries and waits for override", async () => {
@@ -1433,5 +1576,70 @@ describe("workflow-runner rerun evaluator behavior", () => {
     expect(String(evalError.error || "")).toContain("Evaluator node failed: exit code 9")
     expect(runDone).toBeDefined()
     expect(runDone.status).toBe("failed")
+  })
+
+  it("resumes a saved Claude session when rerunning a node from persisted state", async () => {
+    mockedReadFile.mockImplementation(async (path: any) => {
+      const p = String(path)
+      if (p.endsWith("run-state.json")) {
+        return JSON.stringify({
+          nodeStates: {
+            "input-1": {
+              status: "completed",
+              attempts: 1,
+              log: [],
+              output: { content: "seed input", metadata: { source: "input-1" } },
+            },
+            "skill-1": {
+              status: "completed",
+              attempts: 1,
+              log: [],
+              output: { content: "draft content", metadata: { source: "skill-1" } },
+            },
+            "eval-1": {
+              status: "completed",
+              attempts: 1,
+              log: [],
+              output: { content: "draft content", metadata: { source: "eval-1" } },
+              meta: {
+                model_id: "sonnet",
+                prompt_hash: "1234567890abcdef",
+                backend: "claude_sdk",
+                provider_session_id: "saved-session-42",
+              },
+            },
+            "output-1": { status: "completed", attempts: 1, log: [] },
+          },
+          runtimeNodes: RERUN_EVAL_ONLY_WORKFLOW.nodes,
+          runtimeEdges: RERUN_EVAL_ONLY_WORKFLOW.edges,
+          input: { type: "text", value: "seed input" },
+        })
+      }
+      return "improved content"
+    })
+
+    mockedSpawn.mockImplementation(async (opts: any) => {
+      opts.onStdout?.(
+        Buffer.from(
+          '{"type":"assistant","subtype":"text","content":"{\\"score\\": 9, \\"reason\\": \\"Excellent\\"}"}\n',
+        ),
+      )
+      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+    })
+
+    const { rerunFromNode } = await import("./workflow-runner")
+    await rerunFromNode(
+      "rerun-eval-resume",
+      "eval-1",
+      RERUN_EVAL_ONLY_WORKFLOW,
+      "/tmp/test-ws",
+      mockWindow,
+    )
+
+    expect(mockedSpawn).toHaveBeenCalledTimes(1)
+    expect(mockedSpawn.mock.calls[0]?.[0]).toMatchObject({
+      persistSession: true,
+      resumeSessionId: "saved-session-42",
+    })
   })
 })

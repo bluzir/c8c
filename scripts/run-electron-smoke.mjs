@@ -857,12 +857,34 @@ async function main() {
       continue
     }
 
+    const assertionsCount = report?.assertions?.length ?? 0
+    if (assertionsCount === 0) {
+      failures.push({
+        scenario,
+        code: result.code,
+        signal: result.signal,
+        timedOut: result.timedOut,
+      })
+      scenarioSummaries.push({
+        scenario,
+        ok: false,
+        outputDir,
+        artifactsRetained: true,
+        assertionsCount,
+        unexpectedRendererConsoleCount: report?.rendererConsole?.length ?? 0,
+        ignoredRendererConsoleCount: report?.ignoredRendererConsole?.length ?? 0,
+        error: report?.error ?? "Smoke scenario produced zero assertions",
+      })
+      logLine(`  failed -> ${outputDir} (zero assertions)`)
+      continue
+    }
+
     scenarioSummaries.push({
       scenario,
       ok: true,
       outputDir: options.keepArtifactsOnSuccess ? outputDir : null,
       artifactsRetained: options.keepArtifactsOnSuccess,
-      assertionsCount: report?.assertions?.length ?? 0,
+      assertionsCount,
       unexpectedRendererConsoleCount: report?.rendererConsole?.length ?? 0,
       ignoredRendererConsoleCount: report?.ignoredRendererConsole?.length ?? 0,
       error: null,
@@ -875,8 +897,7 @@ async function main() {
 
   if (failures.length > 0) {
     for (const failure of failures) {
-      const target = options.json ? process.stderr : process.stderr
-      target.write(
+      process.stderr.write(
         `Smoke failed: ${failure.scenario} (code=${failure.code ?? "null"}, signal=${failure.signal ?? "null"}, timedOut=${failure.timedOut})\n`,
       )
     }

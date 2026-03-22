@@ -154,6 +154,46 @@ describe("workflow execution validation", () => {
     ).toBeUndefined()
   })
 
+  it("rejects evaluator retry targets that do not exist", () => {
+    const workflow: Workflow = {
+      version: 1,
+      name: "Broken retry target",
+      nodes: [
+        {
+          id: "input-1",
+          type: "input",
+          position: { x: 0, y: 0 },
+          config: {},
+        },
+        {
+          id: "eval-1",
+          type: "evaluator",
+          position: { x: 160, y: 0 },
+          config: { criteria: "Check quality", threshold: 8, maxRetries: 2, retryFrom: "missing-node" },
+        },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 320, y: 0 },
+          config: {},
+        },
+      ],
+      edges: [
+        { id: "edge-1", source: "input-1", target: "eval-1", type: "default" },
+        { id: "edge-2", source: "eval-1", target: "output-1", type: "pass" },
+      ],
+    }
+
+    expect(validateWorkflowForExecution(workflow)).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        nodeId: "eval-1",
+        field: "config.retryFrom",
+        message: 'Retry target "missing-node" does not exist in this workflow.',
+        severity: "error",
+      }),
+    ]))
+  })
+
   it("formats workflow-level and node-level execution issues for UI display", () => {
     expect(formatWorkflowExecutionIssue({
       nodeId: "__workflow__",

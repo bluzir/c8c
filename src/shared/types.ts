@@ -78,6 +78,8 @@ export interface AgentRunOptions {
   prompt: string
   model?: string
   maxTurns?: number
+  persistSession?: boolean
+  resumeSessionId?: string
   permissionMode?: string
   executionMode?: PermissionMode
   safetyProfile?: SafetyProfile
@@ -122,6 +124,7 @@ export interface AgentExecutionSummary extends AgentRunResult {
 export type AgentExecutionEvent =
   | { type: "start" }
   | { type: "spawn"; pid: number }
+  | { type: "provider-session"; sessionId: string }
   | { type: "log-entry"; entry: LogEntry }
   | { type: "usage"; usage: AgentUsage }
   | { type: "stderr"; text: string }
@@ -824,6 +827,42 @@ export type NodeStatus = "pending" | "queued" | "running" | "completed" | "faile
 
 export type RunStatus = "running" | "paused" | "blocked" | "completed" | "failed" | "cancelled" | "interrupted"
 
+export type DiagnosticSummaryTone = "neutral" | "warning" | "danger"
+
+export interface DiagnosticSeverityCounts {
+  critical?: number
+  high?: number
+  medium?: number
+  low?: number
+  info?: number
+}
+
+export interface DiagnosticCategorySummary {
+  id: string
+  label: string
+  detail?: string
+  severity?: DiagnosticSummaryTone
+  count?: number
+}
+
+export interface DiagnosticFindingSummary {
+  id: string
+  label: string
+  detail?: string
+  severity?: DiagnosticSummaryTone
+}
+
+export interface DiagnosticSummary {
+  headline?: string
+  summary?: string
+  tone?: DiagnosticSummaryTone
+  rootCause?: string
+  recommendedNextAction?: string
+  severityCounts?: DiagnosticSeverityCounts
+  categories?: DiagnosticCategorySummary[]
+  topFindings?: DiagnosticFindingSummary[]
+}
+
 export interface NodeInput {
   content: string
   metadata: {
@@ -836,6 +875,7 @@ export interface NodeInput {
     iteration?: number
     fix_instructions?: string
     criteria?: Array<{ id: string; score: number; weight?: number }>
+    diagnostic_summary?: DiagnosticSummary
     output_source?: "stdout" | "content_file" | "input_fallback"
     partial_on_error?: boolean
     splitter_total_subtasks?: number
@@ -861,6 +901,7 @@ export interface NodeMeta {
   prompt_hash: string
   skill_ref?: string
   backend?: AgentExecutionBackend
+  provider_session_id?: string
 }
 
 export interface NodeState {

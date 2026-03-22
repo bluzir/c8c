@@ -136,6 +136,11 @@ describe("buildNodeMeta", () => {
     expect(meta.backend).toBe("claude_sdk")
   })
 
+  it("includes provider_session_id when provided", () => {
+    const meta = buildNodeMeta("Resume this review", "sonnet", undefined, "claude_sdk", "session-123")
+    expect(meta.provider_session_id).toBe("session-123")
+  })
+
   it("produces deterministic hash for same prompt", () => {
     const a = buildNodeMeta("same prompt", "sonnet")
     const b = buildNodeMeta("same prompt", "sonnet")

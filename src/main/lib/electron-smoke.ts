@@ -1111,7 +1111,7 @@ async function assertBlockedApproveResolutionScenario(
     "body",
     (text) =>
       (text.includes("Create follow-up flow") || text.includes("Start next flow") || text.includes("Continue with Agent"))
-      && text.includes("View activity")
+      && text.includes("View summary")
       && !text.includes("Approve & Continue")
       && !text.includes("On approve"),
   )
@@ -1133,7 +1133,7 @@ async function assertBlockedApproveResolutionScenario(
   recordAssertion(assertions, "Approved blocked work and finished the suspended run", blockedWorkflow.name)
   recordAssertion(assertions, "Persisted approval pass into durable case state", resolvedCaseState.lastGate?.summaryText || "Approval recorded")
   recordAssertion(assertions, "Completed result exposes a follow-up flow CTA", "Create follow-up flow / Start next flow")
-  recordAssertion(assertions, "Completed result still exposes a drill-down path", "View activity")
+  recordAssertion(assertions, "Completed result still exposes a drill-down path", "View summary")
 
   return {
     uiState,

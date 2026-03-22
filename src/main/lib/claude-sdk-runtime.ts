@@ -18,6 +18,9 @@ import { buildClaudeSdkMcpServers } from "./mcp-config"
 type ClaudeSdkQueryFn = typeof import("@anthropic-ai/claude-agent-sdk").query
 
 let cachedClaudeSdkQuery: ClaudeSdkQueryFn | null = null
+const HEARTBEAT_THRESHOLDS_MS = [15_000, 30_000, 60_000] as const
+const HEARTBEAT_REPEAT_MS = 60_000
+const HEARTBEAT_CHECK_INTERVAL_MS = 5_000
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -322,6 +325,24 @@ async function getClaudeSdkQuery(): Promise<ClaudeSdkQueryFn> {
   return cachedClaudeSdkQuery
 }
 
+function formatHeartbeatSilence(ms: number): string {
+  const totalSeconds = Math.max(1, Math.floor(ms / 1_000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  if (minutes === 0) return `${totalSeconds}s`
+  if (seconds === 0) return `${minutes}m`
+  return `${minutes}m ${seconds}s`
+}
+
+function nextHeartbeatThreshold(lastThresholdMs: number | null): number {
+  if (lastThresholdMs === null) return HEARTBEAT_THRESHOLDS_MS[0]
+  const index = HEARTBEAT_THRESHOLDS_MS.indexOf(lastThresholdMs as (typeof HEARTBEAT_THRESHOLDS_MS)[number])
+  if (index >= 0 && index < HEARTBEAT_THRESHOLDS_MS.length - 1) {
+    return HEARTBEAT_THRESHOLDS_MS[index + 1]
+  }
+  return lastThresholdMs + HEARTBEAT_REPEAT_MS
+}
+
 export async function createClaudeSdkExecutionHandle(
   options: AgentRunOptions,
 ): Promise<AgentExecutionHandle> {
@@ -349,9 +370,36 @@ export async function createClaudeSdkExecutionHandle(
 
   let activeQuery: ClaudeSdkQuery | null = null
   let sessionId: string | null = null
+  let lastActivityAt = Date.now()
+  let lastHeartbeatThresholdMs: number | null = null
+  const markActivity = () => {
+    lastActivityAt = Date.now()
+    lastHeartbeatThresholdMs = null
+  }
+  const publishSessionId = (value: string | null | undefined) => {
+    const nextSessionId = typeof value === "string" ? value.trim() : ""
+    if (!nextSessionId || nextSessionId === sessionId) return
+    sessionId = nextSessionId
+    queue.push({ type: "provider-session", sessionId: nextSessionId })
+  }
 
   const done = (async (): Promise<AgentExecutionSummary> => {
     const startedAt = Date.now()
+    const heartbeatInterval = setInterval(() => {
+      if (!activeQuery || sdkAbortController.signal.aborted) return
+      const silenceMs = Date.now() - lastActivityAt
+      const thresholdMs = nextHeartbeatThreshold(lastHeartbeatThresholdMs)
+      if (silenceMs < thresholdMs) return
+      lastHeartbeatThresholdMs = thresholdMs
+      queue.push({
+        type: "log-entry",
+        entry: {
+          type: "thinking",
+          content: `\n\n[runtime] Claude is still working. No new output for ${formatHeartbeatSilence(silenceMs)}.`,
+          timestamp: Date.now(),
+        },
+      })
+    }, HEARTBEAT_CHECK_INTERVAL_MS)
     try {
       const permission = resolveClaudePermissionMode(options)
       const mcpConfigPath = options.mcpConfigPath || parsedArgs.mcpConfigPath
@@ -382,10 +430,12 @@ export async function createClaudeSdkExecutionHandle(
         pathToClaudeCodeExecutable: resolveClaudeExecutablePath(),
         permissionMode: permission.permissionMode,
         allowDangerouslySkipPermissions: permission.allowDangerouslySkipPermissions,
-        persistSession: false,
+        persistSession: options.resumeSessionId ? true : (options.persistSession ?? false),
+        resume: options.resumeSessionId,
         includePartialMessages: true,
         settingSources: toClaudeSettingSources(options.settingSources),
         stderr: (text) => {
+          markActivity()
           queue.push({ type: "stderr", text })
         },
         systemPrompt: buildSystemPrompt(options, parsedArgs),
@@ -399,7 +449,8 @@ export async function createClaudeSdkExecutionHandle(
       let resultMessage: SDKResultMessage | null = null
 
       for await (const message of activeQuery) {
-        sessionId = message.session_id || sessionId
+        markActivity()
+        publishSessionId(message.session_id)
         pushSdkMessageEntries(parser, queue, message, lastUsage)
 
         if (message.type === "assistant" && message.error) {
@@ -472,6 +523,7 @@ export async function createClaudeSdkExecutionHandle(
       queue.push({ type: "finish", summary })
       return summary
     } finally {
+      clearInterval(heartbeatInterval)
       activeQuery?.close()
       if (options.abortSignal) {
         options.abortSignal.removeEventListener("abort", externalAbort)

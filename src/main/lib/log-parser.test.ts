@@ -117,6 +117,41 @@ describe("parseLogLine", () => {
     expect((entry as any).content).toBe("rate limit")
   })
 
+  it("parses SDK tool progress updates", () => {
+    const line = JSON.stringify({
+      type: "tool_progress",
+      tool_name: "Read",
+      elapsed_time_seconds: 18,
+    })
+    const entry = parseLogLine(line)
+    expect(entry).not.toBeNull()
+    expect(entry!.type).toBe("text")
+    expect((entry as any).content).toBe("[progress] Read is still running (18s)")
+  })
+
+  it("parses SDK task lifecycle updates", () => {
+    const started = parseLogLine(JSON.stringify({
+      type: "system",
+      subtype: "task_started",
+      description: "Scan the repository",
+    }))
+    const completed = parseLogLine(JSON.stringify({
+      type: "system",
+      subtype: "task_notification",
+      status: "completed",
+      summary: "Repository scan finished",
+    }))
+
+    expect(started).toMatchObject({
+      type: "text",
+      content: "[progress] Started task: Scan the repository",
+    })
+    expect(completed).toMatchObject({
+      type: "text",
+      content: "[progress] Task completed: Repository scan finished",
+    })
+  })
+
   it("returns null for unknown line format", () => {
     expect(parseLogLine("not json")).toBeNull()
     expect(parseLogLine(JSON.stringify({ type: "system", msg: "init" }))).toBeNull()
