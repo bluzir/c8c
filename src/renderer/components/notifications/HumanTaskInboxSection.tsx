@@ -160,6 +160,7 @@ export function HumanTaskInboxSection({
             taskAnswers={taskAnswers}
             selectedTaskStageMeta={selectedTaskStageMeta}
             primaryActionShortcutLabel={primaryActionShortcutLabel}
+            className="px-4 py-4"
             onOpenWorkflow={onOpenWorkflow}
             onFieldChange={onFieldChange}
             onSubmit={onSubmit}
