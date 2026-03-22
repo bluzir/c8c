@@ -126,10 +126,10 @@ describe("artifact-inspect", () => {
     })
 
     expect(summary).toMatchObject({
-      statusText: "Saved result. No next step is ready from this result alone yet.",
+      statusText: "Saved artifact. No next step is ready from this artifact alone yet.",
       savedFromText: "Saved from a previous run",
-      sourceText: "No upstream results were recorded for this saved result.",
-      readyNextText: "No next step is ready from this result alone yet.",
+      sourceText: "No upstream artifacts were recorded for this saved artifact.",
+      readyNextText: "No next step is ready from this artifact alone yet.",
       readyNextLabels: [],
       latestCheckText: null,
     })

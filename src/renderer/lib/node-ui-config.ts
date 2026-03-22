@@ -1,4 +1,4 @@
-import type { NodeStatus, NodeType } from "@shared/types"
+import type { NodeType } from "@shared/types"
 import {
   BarChart3,
   FileInput,
@@ -26,11 +26,11 @@ export const NODE_LABELS: Record<NodeType, string> = {
   input: "Input",
   output: "Output",
   skill: "Skill",
-  evaluator: "Evaluator",
+  evaluator: "Check",
   splitter: "Split work",
   merger: "Merge",
   approval: "Approval",
-  human: "Human",
+  human: "Human input",
 }
 
 export const NODE_ICON_TONES: Record<NodeType, string> = {
@@ -38,28 +38,8 @@ export const NODE_ICON_TONES: Record<NodeType, string> = {
   output: "border-hairline bg-surface-1 text-muted-foreground",
   skill: "border-foreground/20 bg-foreground/10 text-foreground-subtle",
   evaluator: "border-status-warning/30 bg-status-warning/10 text-status-warning",
-  splitter: "border-foreground/20 bg-foreground/10 text-foreground-subtle",
-  merger: "border-foreground/20 bg-foreground/10 text-foreground-subtle",
-  approval: "border-status-warning/30 bg-status-warning/10 text-status-warning",
+  splitter: "border-status-info/25 bg-status-info/8 text-status-info",
+  merger: "border-status-success/25 bg-status-success/8 text-status-success",
+  approval: "border-status-danger/22 bg-status-danger/8 text-status-danger",
   human: "border-status-warning/30 bg-status-warning/10 text-status-warning",
-}
-
-export const NODE_ACCENTS: Partial<Record<NodeType, string>> = {
-  input: "border-status-info/40",
-  output: "border-hairline",
-  skill: "border-foreground/20",
-  evaluator: "border-status-warning/40",
-  splitter: "border-foreground/20",
-  merger: "border-foreground/20",
-  approval: "border-status-warning/50",
-  human: "border-status-warning/50",
-}
-
-export const STATUS_STYLES: Partial<Record<NodeStatus, string>> = {
-  running: "node-status-running",
-  completed: "node-status-completed",
-  failed: "border-status-danger/60",
-  skipped: "border-status-warning/50",
-  waiting_approval: "border-status-warning/60",
-  waiting_human: "border-status-warning/60",
 }

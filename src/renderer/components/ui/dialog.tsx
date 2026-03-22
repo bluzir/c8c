@@ -58,7 +58,7 @@ const DialogContent = React.forwardRef<
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close className="ui-focus-managed absolute right-4 top-4 rounded-md border border-transparent p-1.5 text-muted-foreground ui-transition-colors ui-motion-fast hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/14 disabled:pointer-events-none">
+          <DialogPrimitive.Close className="ui-focus-managed absolute right-4 top-4 rounded-md border border-transparent p-1.5 text-muted-foreground ui-transition-colors ui-motion-fast hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/14">
             <Cross2Icon className="h-4 w-4" aria-hidden="true" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

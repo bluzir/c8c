@@ -18,7 +18,7 @@ function compactCopy(value: string | undefined | null, maxLength = 72) {
 }
 
 export interface RuntimeStagePresentation {
-  kind: "Input" | "Role" | "Gate" | "Cluster" | "Merge" | "Result"
+  kind: "Input" | "Role" | "Check" | "Cluster" | "Merge" | "Result" | "Approval"
   group: string
   title: string
   outcomeLabel: string

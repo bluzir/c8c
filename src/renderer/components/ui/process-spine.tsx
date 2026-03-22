@@ -7,7 +7,7 @@ function dotClass(state: ProcessSpineStage["state"]) {
   if (state === "blocked") return "bg-status-warning border-status-warning"
   if (state === "next") return "border-status-info bg-transparent"
   if (state === "available") return "bg-muted-foreground/45 border-muted-foreground/45"
-  return "bg-border border-border"
+  return "bg-transparent border-muted-foreground/35"
 }
 
 function rowClass(state: ProcessSpineStage["state"]) {
@@ -16,7 +16,7 @@ function rowClass(state: ProcessSpineStage["state"]) {
   if (state === "blocked") return "border-status-warning/28 bg-status-warning/10 text-foreground"
   if (state === "next") return "border-border/90 bg-surface-2/88 text-foreground"
   if (state === "available") return "border-transparent bg-transparent text-muted-foreground"
-  return "border-transparent bg-transparent text-muted-foreground/70"
+  return "border-transparent bg-transparent text-muted-foreground"
 }
 
 function connectorClass(left: ProcessSpineStage["state"], right: ProcessSpineStage["state"]) {
@@ -37,15 +37,17 @@ function connectorClass(left: ProcessSpineStage["state"], right: ProcessSpineSta
 
 export function ProcessSpine({
   stages,
+  isLive = false,
   className,
 }: {
   stages: ProcessSpineStage[]
+  isLive?: boolean
   className?: string
 }) {
   if (stages.length === 0) return null
 
   return (
-    <section className={cn("rounded-lg border border-hairline bg-surface-1/74 px-2 py-1.5", className)}>
+    <section aria-label="Process stages" className={cn("px-0 py-0", className)}>
       <div className="overflow-x-auto ui-scrollbar-hidden">
         <div className="flex min-w-max items-center gap-1.5">
           {stages.map((stage, index) => (
@@ -60,14 +62,22 @@ export function ProcessSpine({
                 className={cn(
                   "flex items-center gap-2 rounded-md border px-2.5 py-1 text-body-sm transition-colors",
                   rowClass(stage.state),
+                  stage.state === "next" && "font-medium",
                 )}
                 aria-current={stage.state === "current" ? "step" : undefined}
                 title={stage.label}
               >
-                <span
-                  aria-hidden="true"
-                  className={cn("h-2 w-2 shrink-0 rounded-full border", dotClass(stage.state))}
-                />
+                {stage.state === "current" && isLive ? (
+                  <span className="ui-status-beacon shrink-0" aria-hidden="true">
+                    <span className="ui-status-beacon-ring bg-status-info/35" />
+                    <span className="ui-status-beacon-core bg-status-info" />
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className={cn("h-2 w-2 shrink-0 rounded-full border", dotClass(stage.state))}
+                  />
+                )}
                 <span className="max-w-[8.5rem] truncate whitespace-nowrap">{stage.label}</span>
               </div>
             </div>
