@@ -307,6 +307,7 @@ export function useWorkflowCreateDerivedState({
     pendingQuickStart,
     pendingPrimaryActionLabel,
     showComposer,
+    figureOwner,
     showDetailsPanel,
     showRoutingState,
     showStartError,

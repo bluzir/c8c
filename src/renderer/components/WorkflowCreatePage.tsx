@@ -365,6 +365,7 @@ export function WorkflowCreatePage() {
     pendingTemplateCategoryLabel,
     pendingTemplateExecutionSummary,
     showComposer,
+    figureOwner,
     showDetailsPanel,
     showRoutingState,
     showStartError,
