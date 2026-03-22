@@ -39,6 +39,7 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
       prompt,
       model: options?.model,
       maxTurns: options?.maxTurns,
+      tools: options?.tools,
       permissionMode: options?.permissionMode,
       systemPrompts: typeof options?.systemPrompt === "string"
         ? [options.systemPrompt]
@@ -257,6 +258,40 @@ const RERUN_EVAL_ONLY_WORKFLOW: Workflow = {
   ],
 }
 
+const QUEUED_FAN_OUT_WORKFLOW: Workflow = {
+  version: 1,
+  name: "Queued Fan-out",
+  defaults: { model: "sonnet", maxTurns: 10, maxParallel: 10 },
+  nodes: [
+    { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
+    {
+      id: "splitter-1",
+      type: "splitter",
+      position: { x: 200, y: 0 },
+      config: { strategy: "Split into four parallel checks", maxBranches: 4 },
+    },
+    {
+      id: "skill-1",
+      type: "skill",
+      position: { x: 400, y: 0 },
+      config: { skillRef: "test/researcher", prompt: "Inspect this branch." },
+    },
+    {
+      id: "merger-1",
+      type: "merger",
+      position: { x: 700, y: 0 },
+      config: { strategy: "concatenate" },
+    },
+    { id: "output-1", type: "output", position: { x: 900, y: 0 }, config: {} },
+  ],
+  edges: [
+    { id: "e1", source: "input-1", target: "splitter-1", type: "default" },
+    { id: "e2", source: "splitter-1", target: "skill-1", type: "default" },
+    { id: "e3", source: "skill-1", target: "merger-1", type: "default" },
+    { id: "e4", source: "merger-1", target: "output-1", type: "default" },
+  ],
+}
+
 function withSkillRuntime(workflow: Workflow, runtime: Record<string, unknown>): Workflow {
   return {
     ...workflow,
@@ -271,6 +306,19 @@ function withSkillRuntime(workflow: Workflow, runtime: Record<string, unknown>):
       }
     }),
   }
+}
+
+async function waitForCondition(
+  predicate: () => boolean,
+  message: string,
+  attempts = 200,
+): Promise<void> {
+  for (let index = 0; index < attempts; index += 1) {
+    if (predicate()) return
+    await Promise.resolve()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  }
+  throw new Error(message)
 }
 
 describe("workflow-runner evaluator loop", () => {
@@ -959,6 +1007,54 @@ describe("workflow-runner splitter recovery", () => {
     expect((splitterCall?.[0] as any).model).toBe("opus")
   })
 
+  it("gives splitter a bounded multi-turn budget and workflow tool policy", async () => {
+    const workflowWithToolPolicy: Workflow = {
+      ...SPLITTER_RECOVERY_WORKFLOW,
+      defaults: {
+        ...SPLITTER_RECOVERY_WORKFLOW.defaults,
+        maxTurns: 10,
+        allowedTools: ["Read", "Bash"],
+        disallowedTools: ["WebSearch", "mcp__exa__web_search_exa"],
+      },
+    }
+
+    mockedSpawn.mockImplementation(async (opts: any) => {
+      const prompt = String(opts.prompt || "")
+      if (prompt.includes("You are an intelligent task decomposer")) {
+        opts.onStdout?.(
+          Buffer.from(
+            '{"type":"assistant","subtype":"text","content":"[{\\"key\\":\\"a\\",\\"content\\":\\"A\\"},{\\"key\\":\\"b\\",\\"content\\":\\"B\\"}]"}\n',
+          ),
+        )
+      } else {
+        opts.onStdout?.(
+          Buffer.from(
+            '{"type":"assistant","subtype":"text","content":"ok"}\n',
+          ),
+        )
+      }
+      return { success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 }
+    })
+
+    const { runWorkflow } = await import("./workflow-runner")
+    await runWorkflow(
+      "run-splitter-tool-policy",
+      workflowWithToolPolicy,
+      { type: "text", value: "Split into two parts" },
+      mockWindow,
+    )
+
+    const splitterCall = mockedSpawn.mock.calls.find((call) =>
+      String((call[0] as any)?.prompt || "").includes("You are an intelligent task decomposer"),
+    )
+
+    expect(splitterCall).toBeDefined()
+    expect((splitterCall?.[0] as any).maxTurns).toBe(4)
+    expect((splitterCall?.[0] as any).allowedTools).toEqual(["Read", "Bash"])
+    expect((splitterCall?.[0] as any).disallowedTools).toEqual(["WebSearch", "mcp__exa__web_search_exa"])
+    expect((splitterCall?.[0] as any).tools).toBeUndefined()
+  })
+
   it("expands to configured maxBranches when model under-splits rich tabular input", async () => {
     const workflowWith20Branches: Workflow = {
       ...SPLITTER_RECOVERY_WORKFLOW,
@@ -1006,6 +1102,84 @@ ${rows}`
     const expandEvent = events.find((e) => e.type === "nodes-expanded") as any
     expect(expandEvent).toBeDefined()
     expect(expandEvent.newNodeIds.length).toBe(20)
+  })
+
+  it("keeps excess fan-out branches queued until a provider slot is available", async () => {
+    const previousLimit = process.env.C8C_EXECUTION_POOL_LIMIT
+    process.env.C8C_EXECUTION_POOL_LIMIT = "2"
+
+    const branchResolvers: Array<() => void> = []
+    try {
+      mockedSpawn.mockImplementation((opts: any) => {
+        const prompt = String(opts.prompt || "")
+        if (prompt.includes("You are an intelligent task decomposer")) {
+          opts.onStdout?.(
+            Buffer.from(
+              "{\"type\":\"assistant\",\"subtype\":\"text\",\"content\":\"[{\\\"key\\\":\\\"branch-a\\\",\\\"content\\\":\\\"A\\\"},{\\\"key\\\":\\\"branch-b\\\",\\\"content\\\":\\\"B\\\"},{\\\"key\\\":\\\"branch-c\\\",\\\"content\\\":\\\"C\\\"},{\\\"key\\\":\\\"branch-d\\\",\\\"content\\\":\\\"D\\\"}]\"}\n",
+            ),
+          )
+          return Promise.resolve({ success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 })
+        }
+
+        return new Promise((resolve) => {
+          branchResolvers.push(() => {
+            opts.onStdout?.(
+              Buffer.from(
+                "{\"type\":\"assistant\",\"subtype\":\"text\",\"content\":\"branch complete\"}\n",
+              ),
+            )
+            resolve({ success: true, exitCode: 0, signal: null, killed: false, aborted: false, durationMs: 100 })
+          })
+        })
+      })
+
+      const { runWorkflow } = await import("./workflow-runner")
+      const runPromise = runWorkflow(
+        "run-splitter-queued",
+        QUEUED_FAN_OUT_WORKFLOW,
+        { type: "text", value: "Split into four checks" },
+        mockWindow,
+      )
+      const queuedBranchEvents = () => events.filter((event) =>
+        event.type === "node-queued" && event.nodeId.includes("::"),
+      )
+      const startedBranchEvents = () => events.filter((event) =>
+        event.type === "node-start" && event.nodeId.includes("::"),
+      )
+      const completedBranchEvents = () => events.filter((event) =>
+        event.type === "node-done" && event.nodeId.includes("::"),
+      )
+
+      await waitForCondition(
+        () => events.some((event) => event.type === "nodes-expanded")
+          && queuedBranchEvents().length === 4
+          && startedBranchEvents().length === 2
+          && branchResolvers.length === 2,
+        "expected queued branch events before extra provider slots opened",
+      )
+
+      expect(queuedBranchEvents()).toHaveLength(4)
+      expect(startedBranchEvents()).toHaveLength(2)
+
+      branchResolvers.splice(0).forEach((resolve) => resolve())
+
+      await waitForCondition(
+        () => branchResolvers.length === 2,
+        "expected queued branches to start after first execution slots were released",
+      )
+
+      branchResolvers.splice(0).forEach((resolve) => resolve())
+      await runPromise
+
+      expect(startedBranchEvents()).toHaveLength(4)
+      expect(completedBranchEvents()).toHaveLength(4)
+    } finally {
+      if (previousLimit == null) {
+        delete process.env.C8C_EXECUTION_POOL_LIMIT
+      } else {
+        process.env.C8C_EXECUTION_POOL_LIMIT = previousLimit
+      }
+    }
   })
 })
 

@@ -313,6 +313,21 @@ export function reduceWorkflowExecutionEvent(
   completedAt = Date.now(),
 ): WorkflowExecutionTransition {
   switch (event.type) {
+    case "node-queued":
+      return {
+        nextState: {
+          ...previousState,
+          nodeStates: {
+            ...previousState.nodeStates,
+            [event.nodeId]: {
+              ...getNodeState(previousState, event.nodeId),
+              status: "queued",
+            },
+          },
+        },
+        effects: {},
+      }
+
     case "node-start":
       return {
         nextState: {

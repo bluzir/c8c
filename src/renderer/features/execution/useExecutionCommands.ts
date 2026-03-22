@@ -5,7 +5,6 @@ import { errorToUserMessage } from "@/lib/error-message"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
 import {
-  cliStatusAtom,
   providerAuthStatusAtom,
   providerAvailabilityAtom,
   providerSettingsAtom,
@@ -77,7 +76,6 @@ export function useExecutionCommands({
   const setProviderSettings = useSetAtom(providerSettingsAtom)
   const setProviderAvailability = useSetAtom(providerAvailabilityAtom)
   const setProviderAuthStatus = useSetAtom(providerAuthStatusAtom)
-  const setCliStatus = useSetAtom(cliStatusAtom)
   const setValidationErrors = useSetAtom(validationErrorsAtom)
   const recordExecutionError = useCallback((title: string, description?: string) => {
     addNotification({
@@ -116,9 +114,6 @@ export function useExecutionCommands({
       setProviderSettings(preflight.snapshot.diagnostics.settings)
       setProviderAvailability(preflight.snapshot.diagnostics.health)
       setProviderAuthStatus(preflight.snapshot.diagnostics.auth)
-      if (preflight.snapshot.cliStatus) {
-        setCliStatus(preflight.snapshot.cliStatus)
-      }
 
       if (!preflight.ok) {
         const title = formatExecutionPreflightTitle(preflight.effectiveProvider, preflight.reason) || fallbackTitle
@@ -147,7 +142,6 @@ export function useExecutionCommands({
   }, [
     providerSettings,
     recordExecutionError,
-    setCliStatus,
     setProviderAuthStatus,
     setProviderAvailability,
     setProviderSettings,

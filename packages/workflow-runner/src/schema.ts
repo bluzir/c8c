@@ -403,6 +403,7 @@ export interface RuntimeMetaEntry {
 export type WorkflowRuntimeMeta = Record<string, RuntimeMetaEntry>
 
 export type WorkflowEvent =
+  | { type: "node-queued"; runId: string; nodeId: string }
   | { type: "node-start"; runId: string; nodeId: string }
   | { type: "node-log"; runId: string; nodeId: string; entry: LogEntry }
   | { type: "node-done"; runId: string; nodeId: string; output: NodeInput }

@@ -174,6 +174,26 @@ describe("workflow execution state", () => {
     expect(transition.nextState.runtimeMeta["branch-1"]?.templateId).toBe("template")
   })
 
+  it("marks queued nodes separately from running nodes", () => {
+    const workflow = createWorkflow()
+    const previousState = createExecutionStartState(
+      createEmptyWorkflowExecutionState(),
+      workflow,
+      "/tmp/research.chain",
+      "/tmp/project",
+      123,
+    )
+
+    const transition = reduceWorkflowExecutionEvent(previousState, {
+      type: "node-queued",
+      runId: "run-1",
+      nodeId: "input",
+    })
+
+    expect(transition.nextState.nodeStates.input.status).toBe("queued")
+    expect(transition.nextState.activeNodeId).toBeNull()
+  })
+
   it("produces approval side effects separately from state", () => {
     const workflow = createWorkflow()
     const previousState = createExecutionStartState(

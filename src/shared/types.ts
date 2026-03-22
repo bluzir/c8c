@@ -974,6 +974,7 @@ export type LogEntry =
 // ── IPC Events ──────────────────────────────────────────
 
 export type WorkflowEvent =
+  | { type: "node-queued"; runId: string; nodeId: string }
   | { type: "node-start"; runId: string; nodeId: string }
   | { type: "node-log"; runId: string; nodeId: string; entry: LogEntry }
   | { type: "node-done"; runId: string; nodeId: string; output: NodeInput }

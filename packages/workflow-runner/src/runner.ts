@@ -1211,6 +1211,7 @@ async function spawnProviderTracked(
   options: AgentRunOptions,
   tracking: SpawnTrackingContext,
   callbacks: {
+    onExecutionStart?: () => void | Promise<void>
     onSpawn?: (pid: number) => void
     onLogEntry?: (entry: LogEntry) => void
     onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void
@@ -1230,6 +1231,7 @@ async function spawnProviderTracked(
       })
     }
 
+    await callbacks.onExecutionStart?.()
     const handle = await deps.startProviderTask(providerId, options)
     return drainExecutionHandle(handle, {
       onSpawn: (pid) => {
@@ -1719,13 +1721,17 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         const isRuntimeClone = Boolean(runtimeWorkflow.runtimeMeta?.[node.id])
         const runtimePolicy = resolveRuntimePolicy(node, isRuntimeClone)
         const state = nodeStates[node.id]
-        state.status = "running"
-        state.startedAt = Date.now()
-        state.attempts++
         state.policyApplied = undefined
         state.retriesUsed = state.retriesUsed || 0
-
-        await runtime.emitEvent({ type: "node-start", runId, nodeId: node.id })
+        let executionStarted = false
+        const beginNodeExecution = async (): Promise<void> => {
+          if (executionStarted) return
+          executionStarted = true
+          state.status = "running"
+          state.startedAt = Date.now()
+          state.attempts++
+          await runtime.emitEvent({ type: "node-start", runId, nodeId: node.id })
+        }
 
         if (node.type !== "input" && node.type !== "output") {
           const budgetCost = workflow.defaults?.budget_cost_usd
@@ -1759,6 +1765,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
 
           switch (node.type) {
             case "input":
+              await beginNodeExecution()
               output = createNodeOutput(node, inputContent)
               break
 
@@ -1913,6 +1920,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   nodeId: node.id,
                 },
                 {
+                  onExecutionStart: beginNodeExecution,
                   onLogEntry: async (entry) => {
                     logParser.appendEntry(entry)
                     state.log.push(entry)
@@ -2017,6 +2025,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                   nodeId: node.id,
                 },
                 {
+                  onExecutionStart: beginNodeExecution,
                   onLogEntry: async (entry) => {
                     logParser.appendEntry(entry)
                     state.log.push(entry)
@@ -2179,6 +2188,9 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               const splitterProviderId = await resolveNodeProviderId(node, workflow)
               const splitterModel = workflow.defaults?.model || getDefaultModelForProvider(splitterProviderId)
               const maxBranches = splitterConfig.maxBranches || 8
+              const splitterMaxTurns = Math.max(2, Math.min(4, workflow.defaults?.maxTurns || 4))
+              const splitterAllowedTools = workflow.defaults?.allowedTools
+              const splitterDisallowedTools = workflow.defaults?.disallowedTools
               const splitterPrompts: string[] = []
               let splitterBackend: AgentExecutionSummary["backend"]
               let totalTokensIn = 0
@@ -2197,10 +2209,11 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     workdir: projectPath || workspace,
                     prompt: sanitizedPrompt,
                     model: splitterModel,
-                    maxTurns: 1,
+                    maxTurns: splitterMaxTurns,
                     executionMode: workflow.defaults?.permissionMode,
                     mcpConfigPath,
-                    disableBuiltInTools: splitterProviderId === "claude",
+                    allowedTools: splitterAllowedTools?.length ? splitterAllowedTools : undefined,
+                    disallowedTools: splitterDisallowedTools?.length ? splitterDisallowedTools : undefined,
                     addDirs: [],
                     abortSignal: runtime.controller.signal,
                     timeout: 2 * 60 * 1000,
@@ -2213,6 +2226,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     nodeId: node.id,
                   },
                   {
+                    onExecutionStart: beginNodeExecution,
                     onLogEntry: async (entry) => {
                       logParser.appendEntry(entry)
                       state.log.push(entry)
@@ -2395,6 +2409,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               }
 
               if (mergerConfig.strategy === "concatenate") {
+                await beginNodeExecution()
                 const mergerModel = workflow.defaults?.model || getDefaultModelForProvider(workflowProviderId)
                 state.metrics = {
                   tokens_in: 0,
@@ -2436,6 +2451,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                     nodeId: node.id,
                   },
                   {
+                    onExecutionStart: beginNodeExecution,
                     onLogEntry: async (entry) => {
                       logParser.appendEntry(entry)
                       state.log.push(entry)
@@ -2473,6 +2489,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             }
 
             case "approval": {
+              await beginNodeExecution()
               const approvalConfig = node.config as ApprovalNodeConfig
               state.status = "waiting_approval"
               const approvalContent = approvalConfig.show_content ? incomingContent : ""
@@ -2591,6 +2608,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             }
 
             case "human": {
+              await beginNodeExecution()
               const humanConfig = node.config as HumanNodeConfig
               state.status = "waiting_human"
               const resolvedTask = await readHumanTaskResponse(workspace, node.id)
@@ -2677,6 +2695,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             }
 
             case "output":
+              await beginNodeExecution()
               output = createNodeOutput(node, incomingContent)
               break
           }
@@ -2881,6 +2900,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
 
           if (nodeStates[node.id]?.status === "pending") {
             nodeStates[node.id].status = "queued"
+            await runtime.emitEvent({ type: "node-queued", runId, nodeId: node.id })
           }
 
           if (node.type === "splitter") activeSplitterNodeId = node.id

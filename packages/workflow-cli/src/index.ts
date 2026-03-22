@@ -440,6 +440,8 @@ function printHilTaskDetails(task: WorkflowHilTaskRecord): void {
 
 function renderEventHuman(event: WorkflowEvent): string {
   switch (event.type) {
+    case "node-queued":
+      return `queued ${event.nodeId}`
     case "node-start":
       return `start ${event.nodeId}`
     case "node-done":
