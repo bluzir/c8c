@@ -183,15 +183,26 @@ nodes:
     config:
       skillRef: gtm/email-prompt-building
       prompt: |-
-        Build one self-contained first-email prompt for this market.
+        Build one self-contained outreach packet for this market.
 
-        It must encode:
+        In section 1, write the Approved Prompt. It must encode:
         - voice rules
         - proof selection logic
         - banned phrasing
         - hypothesis-specific P1 angles
         - CTA calibration
         - field usage for the actual contact data available
+
+        In section 2, write a Branching Manifest with up to 6 branch candidates derived from the promoted contacts.
+        For each branch candidate include:
+        - branch_label
+        - target row IDs or a precise row-selection rule
+        - tier
+        - primary hypothesis
+        - role family
+        - strongest proof points
+        - banned angles to avoid
+        - expected CTA level
   - id: splitter-1
     type: splitter
     position:
@@ -199,14 +210,18 @@ nodes:
       y: 220
     config:
       strategy: |-
-        Create up to 6 copy branches from the promoted contacts.
+        Input includes an Approved Prompt and a Branching Manifest. Create one self-contained branch per manifest entry.
 
-        Branch by meaningful combination of:
+        Each branch must preserve:
+        - the Approved Prompt
+        - branch_label
+        - the target rows or row-selection rule
         - tier
         - primary hypothesis
         - role family
-
-        Exclude contacts missing enough data for credible outreach.
+        - strongest proof points
+        - banned angles to avoid
+        - expected CTA level
       maxBranches: 6
   - id: email-generation-1
     type: skill

@@ -67,15 +67,32 @@ nodes:
     config:
       skillRef: marketing/Content Creator
       prompt: >-
-        Analyze this content. Extract key ideas, main argument, supporting data, and quotable moments.
-        Identify the core message and the most compelling hooks for each target channel.
+        Analyze this content and build a distribution packet with these sections:
+        - Source Thesis
+        - Core Facts and Proof
+        - Reusable Hooks
+        - Channel Plan
+
+        In Channel Plan, include one explicit entry per requested target channel. For each entry include:
+        - channel
+        - audience_or_context
+        - format_constraints
+        - CTA_style
+        - must_keep
+        - can_change
+
+        Do not invent channels that were not requested.
   - id: splitter-1
     type: splitter
     position:
       x: 640
       y: 200
     config:
-      strategy: "Split into platform-specific content adaptation tasks based on the channels specified in the input. Each task should be a self-contained rewriting brief for that platform."
+      strategy: >-
+        Input includes a distribution packet with a Channel Plan. Create one self-contained branch per channel entry.
+        Each branch must preserve the source thesis, core facts, reusable hooks, and the full channel-plan details for
+        that platform. Do not invent extra channels beyond the plan.
+      maxBranches: 8
   - id: channel-writer-1
     type: skill
     position:

@@ -3,6 +3,12 @@ import { getBuiltinTemplates } from "./templates"
 import type { WorkflowTemplate } from "@shared/types"
 import { validateWorkflow } from "./graph-engine"
 
+function getTemplateOrThrow(id: string): WorkflowTemplate {
+  const template = getBuiltinTemplates().find((t) => t.id === id)
+  expect(template, `Template "${id}" should exist`).toBeDefined()
+  return template!
+}
+
 describe("getBuiltinTemplates", () => {
   it("returns an array of templates", () => {
     const templates = getBuiltinTemplates()
@@ -87,6 +93,64 @@ describe("getBuiltinTemplates", () => {
         expect(cfg.skillRefs, `Template "${id}" evaluator "${evaluator.id}" should define skillRefs`).toBeDefined()
         expect(cfg.skillRefs).toEqual(expect.arrayContaining(["infostyle", "slop-check"]))
       }
+    }
+  })
+
+  it("repo-wide code audit templates map the repo before fan-out", () => {
+    for (const id of ["full-stack-code-audit", "ux-ui-polish-audit", "cto-optimise-audit"]) {
+      const template = getTemplateOrThrow(id)
+      const inputNode = template.workflow.nodes.find((node) => node.id === "input-1" && node.type === "input")
+      const mapperNode = template.workflow.nodes.find((node) => node.id === "mapper-1" && node.type === "skill")
+      const splitterNode = template.workflow.nodes.find((node) => node.id === "splitter-1" && node.type === "splitter")
+
+      expect(inputNode).toBeDefined()
+      expect((inputNode!.config as { inputType?: string }).inputType).toBe("directory")
+      expect(mapperNode, `Template "${id}" should include mapper-1`).toBeDefined()
+      expect(splitterNode, `Template "${id}" should include splitter-1`).toBeDefined()
+      expect(template.workflow.defaults?.permissionMode, `Template "${id}" should run in plan mode`).toBe("plan")
+      expect(template.workflow.edges.some((edge) => edge.source === "input-1" && edge.target === "mapper-1")).toBe(true)
+      expect(template.workflow.edges.some((edge) => edge.source === "mapper-1" && edge.target === "splitter-1")).toBe(true)
+      expect(template.workflow.edges.some((edge) => edge.source === "input-1" && edge.target === "splitter-1")).toBe(false)
+    }
+  })
+
+  it("competitor fan-out template requires an explicit competitor table", () => {
+    const template = getTemplateOrThrow("competitor-ad-intelligence")
+    const contextNode = template.workflow.nodes.find((node) => node.id === "context-1" && node.type === "skill")
+    const splitterNode = template.workflow.nodes.find((node) => node.id === "splitter-1" && node.type === "splitter")
+    const contextPrompt = String((contextNode?.config as { prompt?: string })?.prompt || "")
+    const splitterStrategy = String((splitterNode?.config as { strategy?: string })?.strategy || "")
+
+    expect(contextPrompt).toContain("Competitor Table")
+    expect(splitterStrategy).toContain("one self-contained branch per competitor row")
+    expect((splitterNode?.config as { maxBranches?: number })?.maxBranches).toBe(5)
+  })
+
+  it("distribution and meeting fan-out templates require explicit branch manifests", () => {
+    const distribution = getTemplateOrThrow("content-distribution-bundle")
+    const distributionAnalyzer = distribution.workflow.nodes.find((node) => node.id === "analyzer-1" && node.type === "skill")
+    const distributionSplitter = distribution.workflow.nodes.find((node) => node.id === "splitter-1" && node.type === "splitter")
+    expect(String((distributionAnalyzer?.config as { prompt?: string })?.prompt || "")).toContain("Channel Plan")
+    expect(String((distributionSplitter?.config as { strategy?: string })?.strategy || "")).toContain("Channel Plan")
+
+    const meeting = getTemplateOrThrow("meeting-actions-plan")
+    const meetingSummarizer = meeting.workflow.nodes.find((node) => node.id === "summarizer-1" && node.type === "skill")
+    const meetingSplitter = meeting.workflow.nodes.find((node) => node.id === "splitter-1" && node.type === "splitter")
+    expect(String((meetingSummarizer?.config as { prompt?: string })?.prompt || "")).toContain("Action Register")
+    expect(String((meetingSplitter?.config as { strategy?: string })?.strategy || "")).toContain("Action Register")
+  })
+
+  it("outreach fan-out templates build a branching manifest before splitter", () => {
+    for (const id of ["segmented-outreach-launchpad", "new-vertical-to-live-campaign"]) {
+      const template = getTemplateOrThrow(id)
+      const promptBuilder = template.workflow.nodes.find((node) => node.id === "prompt-builder-1" && node.type === "skill")
+      const splitter = template.workflow.nodes.find((node) => node.id === "splitter-1" && node.type === "splitter")
+      const prompt = String((promptBuilder?.config as { prompt?: string })?.prompt || "")
+      const strategy = String((splitter?.config as { strategy?: string })?.strategy || "")
+
+      expect(prompt, `Template "${id}" should ask for a branching manifest`).toContain("Branching Manifest")
+      expect(strategy, `Template "${id}" splitter should consume the approved prompt plus branching manifest`).toContain("Approved Prompt")
+      expect(strategy).toContain("Branching Manifest")
     }
   })
 })

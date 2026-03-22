@@ -79,9 +79,9 @@ nodes:
     config:
       skillRef: gtm/email-prompt-building
       prompt: |-
-        Build a self-contained first-email prompt for this campaign.
+        Build a self-contained outreach packet for this campaign.
 
-        The prompt must bake in:
+        In section 1, write the Approved Prompt. It must bake in:
         - voice rules
         - banned phrasing
         - proof-point selection logic
@@ -89,7 +89,18 @@ nodes:
         - CTA calibration by audience and message angle
         - exact instructions for using the actual fields present in the segmented contact list
 
-        The resulting prompt should be good enough that email-generation does not need to reread external files.
+        In section 2, write a Branching Manifest with up to 6 branch candidates derived from the segmented contact list.
+        For each branch candidate include:
+        - branch_label
+        - target row IDs or a precise row-selection rule
+        - shared hypothesis
+        - tier or cohort
+        - role family
+        - proof points to emphasize
+        - banned angles to avoid
+        - expected CTA level
+
+        The resulting packet should be good enough that downstream generation does not need to reread external files.
   - id: prompt-eval-1
     type: evaluator
     position:
@@ -114,17 +125,15 @@ nodes:
       y: 220
     config:
       strategy: |-
-        Create up to 6 message branches from the approved segmented list.
+        Input includes an Approved Prompt and a Branching Manifest. Create one self-contained branch per manifest entry.
 
-        Branching rules:
-        - make one branch per meaningful hypothesis or cohort
-        - keep Tier 1 rows isolated enough for individualized copy
-        - group Tier 2 rows by shared hypothesis
-        - exclude Tier 3 and rows missing required contact data
-
-        Each branch should carry:
-        - the target rows
+        Each branch must preserve:
+        - the Approved Prompt
+        - branch_label
+        - the target rows or row-selection rule
         - the shared hypothesis
+        - tier or cohort
+        - role family
         - the proof points most likely to fit
         - banned angles to avoid
         - the expected CTA level

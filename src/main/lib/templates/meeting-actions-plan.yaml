@@ -42,14 +42,30 @@ nodes:
       y: 200
     config:
       skillRef: support/Executive Summary Generator
-      prompt: "Create a concise executive summary of the meeting: key outcomes, decisions made, and strategic implications."
+      prompt: >-
+        Create a meeting action packet with these sections:
+        - Executive Summary
+        - Decisions Log
+        - Action Register
+
+        In Action Register, list every distinct action item explicitly. For each item include:
+        - action_id
+        - task
+        - suggested owner if known, otherwise unknown
+        - dependencies or blockers
+        - timing signal or deadline hint if present
+
+        Keep the packet concise, but do not drop action items for the sake of brevity.
   - id: splitter-1
     type: splitter
     position:
       x: 900
       y: 200
     config:
-      strategy: Extract each distinct action item as a separate task to be prioritized and planned.
+      strategy: >-
+        Input includes an Action Register. Create one self-contained branch per action item. Preserve the action_id,
+        task, owner hint, dependencies, and any timing signal so the downstream planner can prioritize and schedule it.
+      maxBranches: 20
   - id: pm-1
     type: skill
     position:

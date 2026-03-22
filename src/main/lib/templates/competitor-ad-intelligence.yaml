@@ -38,18 +38,32 @@ nodes:
     config:
       skillRef: researcher
       prompt: >-
-        From the input, extract and structure:
-        1) Your product positioning and key differentiators
-        2) Monthly ad budget and constraints (assume under $1K if not specified)
-        3) Current channels and what's working/not working
-        4) Competitor list with known positioning
+        From the input, build a structured competitor intelligence packet with these sections:
+        1) Product Context
+        2) Budget and Constraints (assume under $1K/month if not specified)
+        3) Current Channel Context
+        4) Competitor Table
+
+        In Competitor Table, include one row per competitor with columns:
+        - competitor_id
+        - competitor_name
+        - known_positioning
+        - likely_channels_to_inspect
+        - notes
+
+        Keep the table explicit enough that one downstream branch can be created per competitor row.
   - id: splitter-1
     type: splitter
     position:
       x: 640
       y: 200
     config:
-      strategy: "Split into per-competitor analysis tasks. Each task should research one competitor's ad strategy, messaging, channels, and spend patterns."
+      strategy: >-
+        Input includes product context, budget constraints, current channels, and a Competitor Table. Create one
+        self-contained branch per competitor row. Each branch must preserve the shared product/budget context and
+        include the full competitor row details so the downstream researcher can audit exactly one competitor's ad
+        strategy, messaging, channels, and spend patterns.
+      maxBranches: 5
   - id: extractor-1
     type: skill
     position:

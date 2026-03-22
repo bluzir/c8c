@@ -2,14 +2,15 @@ id: full-stack-code-audit
 stage: code
 emoji: "\U0001F6E1"
 headline: Audit a codebase across security, quality, and architecture
-how: Splits codebase into audit areas, reviews each, synthesizes findings, and creates an audit report
-input: A codebase path or repository
-output: Audit report covering security, quality, architecture, and test coverage
-use_when: Your codebase grew and you are not sure where the real risks are.
+how: Maps the project, fans out repo-wide audit tracks across core engineering lenses, and merges findings into one prioritized report
+input: A project directory or repository path with the codebase to audit
+output: Repo-wide audit report covering security, code quality, architecture, and test coverage
+use_when: Your codebase grew and you need one deep pass across the real risks, not a surface-level summary.
 time: ~10-15 min.
 steps:
-  - Split codebase into audit areas (security, quality, architecture, tests)
-  - Review each area in parallel
+  - Map the project across code, runtime, and test surfaces
+  - Fan out repo-wide audit tracks by engineering lens
+  - Review each lens in parallel against the full codebase
   - Synthesize findings into a prioritized audit report
 execution_policy:
   profile_id: solo_operator
@@ -18,62 +19,107 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Full-Stack Code Audit
-description: Split codebase into audit areas, review security/quality/architecture/tests, synthesize
-  findings, create audit report
+description: Map the full project, audit the entire codebase through security, quality, architecture,
+  and test lenses, then produce one prioritized report
 defaults:
   model: sonnet
   maxTurns: 120
-  timeout_minutes: 30
+  timeout_minutes: 45
+  maxParallel: 4
+  permissionMode: plan
 nodes:
   - id: input-1
     type: input
     position:
       x: 0
       y: 200
-    config: {}
+    config:
+      inputType: directory
+      required: true
+      placeholder: /path/to/project
+  - id: mapper-1
+    type: skill
+    position:
+      x: 280
+      y: 200
+    config:
+      prompt: >-
+        Inspect the entire project in the current working directory and create a concise but comprehensive audit map.
+        Identify the main product/runtime surfaces, architectural modules, trust and data boundaries, major configs and
+        scripts, test surfaces, and representative high-risk files or directories. Output markdown with sections:
+        System Overview, Product and Runtime Surfaces, Trust and Data Boundaries, Quality and Test Surfaces, Tooling and
+        Delivery Surfaces, and Representative File Paths. Do not audit or recommend fixes yet.
   - id: splitter-1
     type: splitter
     position:
-      x: 300
+      x: 560
       y: 200
     config:
-      strategy: "Create 4 audit focus areas: Security (vulnerabilities, auth, input validation), Code Quality (patterns,
-        naming, complexity), Architecture (structure, dependencies, scalability), Test Coverage (missing tests, quality
-        of assertions)."
+      strategy: |-
+        From the project map, create exactly 4 parallel repo-wide audit tasks. Each task must inspect the ENTIRE
+        project from one audit lens:
+        1) security, auth, secrets, trust boundaries, and input validation
+        2) code quality, complexity, consistency, and maintainability
+        3) architecture, module boundaries, dependencies, and scalability risks
+        4) test coverage, assertion quality, and verification gaps
+
+        Each task must be fully self-contained and include:
+        - lens name
+        - what to inspect across the whole codebase
+        - representative modules/files from the project map
+        - what good looks like for that lens
+        Avoid overlap where possible, but keep every task grounded in the full project.
       maxBranches: 4
   - id: auditor-1
     type: skill
     position:
-      x: 600
+      x: 860
       y: 200
     config:
       skillRef: dev/code-reviewer
-      prompt: Perform a deep audit of this codebase focused on the assigned area. Find specific issues with file paths and
-        line numbers. Rate severity (critical/high/medium/low). Provide fix recommendations.
+      prompt: >-
+        Using the assigned audit task and the current working directory, audit the ENTIRE project from this lens.
+        Inspect actual code, configs, scripts, dependencies, tests, and runtime surfaces. Do not edit files. Output a
+        structured markdown report with sections: Lens Summary, Findings, and Recommendations. Every finding must
+        include severity (critical/high/medium/low), engineering or product impact, evidence with file paths and line
+        numbers when possible, and a concrete fix recommendation.
   - id: merger-1
     type: merger
     position:
-      x: 900
+      x: 1160
       y: 200
     config:
       strategy: summarize
-      prompt: Synthesize all audit findings into a comprehensive report. Organize by severity, include executive summary with
-        overall health score, and prioritize remediation roadmap.
+      prompt: |-
+        Merge the branch outputs into one full-stack code audit report for the whole project.
+
+        Structure the report as:
+        - Executive summary
+        - Overall health scorecard by lens
+        - Critical issues first, then high/medium/low findings
+        - Cross-cutting hotspots seen in multiple branches
+        - Prioritized remediation roadmap: now / next / later
+        - File, module, and workflow hotspots
+
+        Deduplicate overlaps, preserve concrete evidence, and keep the report directly actionable.
   - id: evaluator-1
     type: evaluator
     position:
-      x: 1200
+      x: 1460
       y: 200
     config:
-      criteria: "Score 1-10: finding specificity (exact file/line refs?), severity accuracy (proportional ratings?),
-        remediation quality (actionable fixes?), and coverage breadth (all areas examined?)."
+      criteria: >-
+        Score 1-10 on: (1) full-project coverage across security, quality, architecture, and test surfaces, (2)
+        specificity of evidence with file or line references, (3) severity accuracy and prioritization, (4)
+        actionability of fixes, and (5) usefulness of the final report as an audit backlog. Fail if the report is
+        generic, misses major codebase surfaces, or lacks concrete evidence.
       threshold: 7
       maxRetries: 2
       retryFrom: splitter-1
   - id: approval-1
     type: approval
     position:
-      x: 1500
+      x: 1760
       y: 200
     config:
       message: Check the audit findings. Mark any false positives or known trade-offs before the system generates fix recommendations.
@@ -84,20 +130,27 @@ nodes:
   - id: report-1
     type: skill
     position:
-      x: 1800
+      x: 2060
       y: 200
     config:
-      prompt: "Output as structured markdown with clear sections, not a presentation. Include: overall health score, findings by category, top 10 critical issues,
-        and remediation roadmap with estimated effort."
+      prompt: >-
+        Output as structured markdown with clear sections, not a presentation. Include: overall health score,
+        findings by category, top 10 critical issues, and a remediation roadmap with estimated effort.
   - id: output-1
     type: output
     position:
-      x: 2100
+      x: 2360
       y: 200
-    config: {}
+    config:
+      title: Full-Stack Audit Report
+      format: markdown
 edges:
-  - id: e-input-splitter
+  - id: e-input-mapper
     source: input-1
+    target: mapper-1
+    type: default
+  - id: e-mapper-splitter
+    source: mapper-1
     target: splitter-1
     type: default
   - id: e-splitter-auditor
