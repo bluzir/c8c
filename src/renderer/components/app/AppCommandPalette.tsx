@@ -34,10 +34,18 @@ function actionIcon(action: AppShellCommandAction) {
   if (action === "add_project") return Folder
   if (action === "runs_dashboard") return Activity
   if (action === "process_library") return LayoutTemplate
+  if (action === "lab") return Activity
+  if (action === "skills") return Zap
   if (action === "attach_skill") return Zap
   if (action === "inbox") return Inbox
   return Settings2
 }
+
+const EMPTY_STATE_SUGGESTIONS = [
+  "Try a flow name, project folder, or action",
+  "Use Start to open the guided flow setup",
+  "Open Runs dashboard for active and recent flows",
+] as const
 
 function isActionEntry(entry: AppShellCommandEntry): entry is AppShellActionEntry {
   return entry.kind === "action"
@@ -137,9 +145,29 @@ export function AppCommandPalette({
     onOpenChange(false)
   }
 
+  const entryShortcutLabel = (entry: AppShellCommandEntry) => {
+    if (entry.kind === "action") {
+      if (entry.action === "new_process") return `${primaryModifierLabel}N`
+      if (entry.action === "attach_skill") return `${primaryModifierLabel}⇧S`
+      if (entry.action === "settings") return `${primaryModifierLabel},`
+      return null
+    }
+    if (entry.kind !== "desktop_command") return null
+    if (entry.commandId === "file.save") return `${primaryModifierLabel}S`
+    if (entry.commandId === "edit.undo") return `${primaryModifierLabel}Z`
+    if (entry.commandId === "edit.redo") return `${primaryModifierLabel}⇧Z`
+    if (entry.commandId === "flow.run") return `${primaryModifierLabel}↵`
+    return null
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <CanvasDialogContent size="lg" className="max-w-[44rem] gap-0 p-0" showCloseButton={false}>
+      <CanvasDialogContent
+        size="lg"
+        className="max-w-[44rem] gap-0 p-0"
+        showCloseButton={false}
+        aria-label="Command palette"
+      >
         <CanvasDialogHeader className="command-center-header">
           <DialogTitle className="sr-only">Command palette</DialogTitle>
           <DialogDescription className="sr-only">
@@ -173,11 +201,23 @@ export function AppCommandPalette({
                       if (!entry) return
                       event.preventDefault()
                       handleActivate(entry)
+                      return
+                    }
+                    if (event.key === "Home") {
+                      event.preventDefault()
+                      setSelectionMode("keyboard")
+                      setSelectedIndex(0)
+                      return
+                    }
+                    if (event.key === "End") {
+                      event.preventDefault()
+                      setSelectionMode("keyboard")
+                      setSelectedIndex(Math.max(0, filteredEntries.length - 1))
                     }
                   }}
                   placeholder="Jump to a flow, project, or action"
                   className="h-auto border-0 bg-transparent px-0 py-0 text-body-md shadow-none focus-visible:ring-0"
-                  aria-label="Command palette"
+                  aria-label="Search flows, projects, and actions"
                 />
               </div>
               <span className="command-center-kbd">
@@ -203,10 +243,22 @@ export function AppCommandPalette({
             }
           }}
         >
+          <span className="sr-only" aria-live="polite" aria-atomic="true">
+            {query
+              ? filteredEntries.length === 0
+                ? "No results"
+                : `${filteredEntries.length} result${filteredEntries.length === 1 ? "" : "s"}`
+              : ""}
+          </span>
           <CanvasDialogBody className="py-2">
             {filteredEntries.length === 0 ? (
               <div className="command-center-empty">
-                Nothing matches this query
+                <span>Nothing matches this query</span>
+                <div className="mt-2 space-y-1 text-sidebar-meta text-muted-foreground">
+                  {EMPTY_STATE_SUGGESTIONS.map((suggestion) => (
+                    <p key={suggestion}>{suggestion}</p>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -228,12 +280,16 @@ export function AppCommandPalette({
                             if (selectionMode !== "pointer") return
                             setSelectedIndex(index)
                           }}
+                          onFocus={() => {
+                            setSelectionMode("keyboard")
+                            setSelectedIndex(index)
+                          }}
                           onClick={() => handleActivate(entry)}
                           className={cn(
                             "command-center-row",
                             isSelected && "command-center-row--selected",
                           )}
-                          aria-selected={isSelected}
+                          aria-current={isSelected ? "true" : undefined}
                         >
                           <span className="command-center-icon">
                             {entry.kind === "workflow" ? (
@@ -264,6 +320,10 @@ export function AppCommandPalette({
                                 {entry.metaLabel}
                               </span>
                             )
+                          ) : entryShortcutLabel(entry) ? (
+                            <span className="command-center-kbd">
+                              {entryShortcutLabel(entry)}
+                            </span>
                           ) : null}
                         </button>
                       )
@@ -276,9 +336,10 @@ export function AppCommandPalette({
         </div>
         <CanvasDialogFooter className="command-center-footer">
           <div className="flex flex-wrap items-center gap-3 text-sidebar-meta text-muted-foreground">
-            <span>↑↓ Move</span>
-            <span>Enter Open</span>
-            <span>Esc Close</span>
+            <span><kbd className="command-center-kbd">↑</kbd><kbd className="command-center-kbd">↓</kbd> Move</span>
+            <span><kbd className="command-center-kbd">Home</kbd><kbd className="command-center-kbd">End</kbd> Jump</span>
+            <span><kbd className="command-center-kbd">Enter</kbd> Open</span>
+            <span><kbd className="command-center-kbd">Esc</kbd> Close</span>
           </div>
           <span className="text-sidebar-meta text-muted-foreground">
             Start, open, switch

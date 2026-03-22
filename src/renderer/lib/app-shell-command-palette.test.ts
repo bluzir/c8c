@@ -39,7 +39,7 @@ describe("app-shell-command-palette", () => {
     ])
   })
 
-  it("builds a project-aware start entry for intent-like queries", () => {
+  it("builds a project-aware start entry without intent classification", () => {
     const entry = buildAppShellStartEntry({
       query: "ux ui polish",
       selectedProject: "/tmp/vibecon",
@@ -48,14 +48,14 @@ describe("app-shell-command-palette", () => {
 
     expect(entry).toMatchObject({
       kind: "start",
-      label: "Review it: ux ui polish",
+      label: "Start: ux ui polish",
       projectPath: "/tmp/vibecon",
       projectLabel: "vibecon",
       requiresProjectSelection: false,
     })
   })
 
-  it("groups intent queries into start new and existing matches", () => {
+  it("keeps guided start available alongside existing workflow matches", () => {
     const actions = buildAppShellActionEntries()
     const projects = ["/tmp/vibecon", "/tmp/other"]
     const workflows = buildAppShellWorkflowEntries({
@@ -86,17 +86,17 @@ describe("app-shell-command-palette", () => {
     })
 
     expect(sections.map((section) => section.label)).toEqual([
-      "Start new",
       "Open in current project",
       "Open in other projects",
+      "Start new",
     ])
-    expect(sections[0]?.entries[0]).toMatchObject({
+    expect(sections[2]?.entries[0]).toMatchObject({
       kind: "start",
-      label: "Review it: ux ui polish",
+      label: "Start: ux ui polish",
     })
   })
 
-  it("keeps navigation queries focused on actions", () => {
+  it("keeps navigation queries focused on actions while still offering guided start", () => {
     const sections = buildAppShellCommandSections({
       query: "settings",
       actions: buildAppShellActionEntries(),
@@ -110,8 +110,12 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions"])
+    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
     expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Settings"])
+    expect(sections[1]?.entries[0]).toMatchObject({
+      kind: "start",
+      label: "Start: settings",
+    })
   })
 
   it("surfaces attach skill as an action", () => {
@@ -128,7 +132,7 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions"])
+    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
     expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Attach skill"])
   })
 
@@ -146,8 +150,26 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions"])
+    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
     expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Runs dashboard"])
+  })
+
+  it("surfaces lab when the beta workspace is enabled", () => {
+    const sections = buildAppShellCommandSections({
+      query: "lab",
+      actions: buildAppShellActionEntries({ includeLab: true }),
+      desktopCommands: [],
+      projectEntries: buildAppShellProjectEntries({
+        projects: ["/tmp/vibecon"],
+        selectedProject: "/tmp/vibecon",
+      }),
+      workflows: [],
+      selectedProject: "/tmp/vibecon",
+      projects: ["/tmp/vibecon"],
+    })
+
+    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
+    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Lab"])
   })
 
   it("surfaces project matches as switch targets", () => {
@@ -165,7 +187,7 @@ describe("app-shell-command-palette", () => {
       projects,
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Switch project"])
+    expect(sections.map((section) => section.label)).toEqual(["Switch project", "Start new"])
     expect(sections[0]?.entries[0]).toMatchObject({
       kind: "project",
       label: "content-os",

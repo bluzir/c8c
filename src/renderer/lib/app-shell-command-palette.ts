@@ -3,13 +3,14 @@ import type { DesktopCommandId, DesktopMenuState } from "@shared/desktop-command
 import type { WorkflowExecutionState } from "@/lib/workflow-execution"
 import type { OutputSurfaceCommandState } from "@/lib/output-surface-commands"
 import { formatRelativeTime, projectFolderName, workflowHasActiveRunStatus } from "@/components/sidebar/projectSidebarUtils"
-import { inferResultModeFromText } from "@/lib/result-modes"
 
 export type AppShellCommandAction =
   | "new_process"
   | "add_project"
   | "runs_dashboard"
   | "process_library"
+  | "lab"
+  | "skills"
   | "attach_skill"
   | "inbox"
   | "settings"
@@ -48,7 +49,7 @@ export interface AppShellStartEntry {
   label: string
   subtitle: string
   prompt: string
-  modeId: ResultModeId
+  modeId?: ResultModeId
   projectPath: string | null
   projectLabel: string | null
   requiresProjectSelection: boolean
@@ -87,15 +88,12 @@ export interface AppShellCommandSection {
   entries: AppShellCommandEntry[]
 }
 
-const PROCESS_INTENT_RE = /\b(start|build|make|create|fix|ship|review|verify|audit|map|shape|plan|implement|polish|refactor|improve|debug|launch|design|research)\b|сделай|собери|запусти|проведи|проверь|почини|подготов|отревью|сделать|ревью|аудит|полиш|карта|план|рефактор/i
 const EMPTY_OPEN_RECENT_LIMIT = 8
 const SEARCH_CURRENT_PROJECT_LIMIT = 5
 const SEARCH_OTHER_PROJECT_LIMIT = 5
 const SEARCH_PROJECT_LIMIT = 6
 const SEARCH_ACTION_LIMIT = 4
 const SEARCH_DESKTOP_COMMAND_LIMIT = 6
-
-type AppShellHelpMode = "do" | "plan" | "review"
 
 function normalize(value: string) {
   return value.trim().toLowerCase()
@@ -111,25 +109,12 @@ function truncateLabel(value: string, maxLength = 48) {
   return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`
 }
 
-function inferHelpModeFromPrompt(prompt: string): AppShellHelpMode {
-  if (/\b(plan|planning|roadmap|spec|scope|outline|phase plan|распиши|спланир|план|roadmap)\b/i.test(prompt)) {
-    return "plan"
-  }
-  if (/\b(review|verify|audit|polish|qa|check|ship|preflight|отревью|проверь|аудит|полиш|вериф|ревью)\b/i.test(prompt)) {
-    return "review"
-  }
-  return "do"
-}
-
-function formatStartLabel(prompt: string, helpMode: AppShellHelpMode) {
+function formatStartLabel(prompt: string) {
   const promptLabel = truncateLabel(prompt)
-  if (helpMode === "plan") return `Plan it: ${promptLabel}`
-  if (helpMode === "review") return `Review it: ${promptLabel}`
-  return `Do it: ${promptLabel}`
+  return `Start: ${promptLabel}`
 }
 
 function formatStartSubtitle(
-  helpMode: AppShellHelpMode,
   projectLabel: string | null,
   requiresProjectAdd: boolean,
   requiresProjectSelection: boolean,
@@ -140,13 +125,7 @@ function formatStartSubtitle(
   if (requiresProjectSelection) {
     return "Open the guided start and choose the target project."
   }
-  if (helpMode === "plan") {
-    return `Plan it${projectLabel ? ` in ${projectLabel}` : ""}. The system will choose the right path after submit.`
-  }
-  if (helpMode === "review") {
-    return `Review it${projectLabel ? ` in ${projectLabel}` : ""}. The system will choose the right path after submit.`
-  }
-  return `Do it${projectLabel ? ` in ${projectLabel}` : ""}. The system will choose the right path after submit.`
+  return `Open the guided start${projectLabel ? ` in ${projectLabel}` : ""}. The system will choose the right path after submit.`
 }
 
 function actionEntry(
@@ -181,12 +160,20 @@ function desktopCommandEntry(
   }
 }
 
-export function buildAppShellActionEntries(): AppShellActionEntry[] {
+export function buildAppShellActionEntries({
+  includeLab = false,
+}: {
+  includeLab?: boolean
+} = {}): AppShellActionEntry[] {
   return [
     actionEntry("new_process", "New flow", ["new", "create", "start", "flow", "process"], "Create a flow in your project"),
     actionEntry("add_project", "Add project", ["add", "project", "folder", "workspace"], "Open a project folder"),
     actionEntry("runs_dashboard", "Runs dashboard", ["runs", "dashboard", "triage", "activity", "background"], "Triage active and recent flows"),
-    actionEntry("process_library", "Library", ["library", "template", "starting point", "flow", "process"], "Browse starting points and templates"),
+    actionEntry("process_library", "Starting points", ["library", "template", "starting point", "flow", "process"], "Browse guided starts and templates"),
+    ...(includeLab
+      ? [actionEntry("lab", "Lab", ["lab", "factory", "cases", "outcome"], "Open the lab workspace for reusable outcomes")]
+      : []),
+    actionEntry("skills", "Skills", ["skills", "tools", "capabilities"], "Open connected skills and local sources"),
     actionEntry("attach_skill", "Attach skill", ["attach", "add", "skill", "tool", "step"], "Open the skill picker for the current flow"),
     actionEntry("inbox", "Inbox", ["inbox", "approval", "tasks", "notifications"], "View approvals and pending tasks"),
     actionEntry("settings", "Settings", ["settings", "preferences", "configuration"], "Configure providers and defaults"),
@@ -352,28 +339,6 @@ function filterWorkflowEntries(
   })
 }
 
-function isActionLikeQuery(query: string, actions: AppShellActionEntry[]) {
-  const normalizedQuery = normalize(query)
-  if (!normalizedQuery) return false
-  const singleToken = !/\s/.test(normalizedQuery)
-
-  return actions.some((entry) => {
-    const label = entry.label.toLowerCase()
-    if (label === normalizedQuery) return true
-    return entry.keywords.some((keyword) => {
-      if (keyword === normalizedQuery) return true
-      if (!singleToken) return false
-      return keyword.startsWith(normalizedQuery) && normalizedQuery.length >= 3
-    })
-  })
-}
-
-function looksLikeProcessIntent(query: string) {
-  const normalizedQuery = query.trim()
-  if (!normalizedQuery) return false
-  return /\s/.test(normalizedQuery) || PROCESS_INTENT_RE.test(normalizedQuery)
-}
-
 export function buildAppShellStartEntry({
   query,
   selectedProject,
@@ -391,7 +356,6 @@ export function buildAppShellStartEntry({
   const requiresProjectAdd = !projectPath && projects.length === 0
   const requiresProjectSelection = !projectPath && projects.length > 1
   const promptLabel = truncateLabel(prompt)
-  const helpMode = inferHelpModeFromPrompt(prompt)
 
   return {
     kind: "start",
@@ -400,10 +364,9 @@ export function buildAppShellStartEntry({
       ? `Add project to start “${promptLabel}”`
       : requiresProjectSelection
       ? `Choose project for “${promptLabel}”`
-      : formatStartLabel(prompt, helpMode),
-    subtitle: formatStartSubtitle(helpMode, projectLabel, requiresProjectAdd, requiresProjectSelection),
+      : formatStartLabel(prompt),
+    subtitle: formatStartSubtitle(projectLabel, requiresProjectAdd, requiresProjectSelection),
     prompt,
-    modeId: inferResultModeFromText(prompt),
     projectPath,
     projectLabel,
     requiresProjectSelection,
@@ -504,7 +467,7 @@ export function buildAppShellCommandSections({
       || entry.action === "output_view_history"
       || entry.action === "output_rerun_from_step"
       || entry.action === "output_use_in_new_flow")
-    const navigateActions = actions.filter((entry) => entry.action === "inbox" || entry.action === "settings")
+    const navigateActions = actions.filter((entry) => entry.action === "runs_dashboard" || entry.action === "lab" || entry.action === "skills" || entry.action === "inbox" || entry.action === "settings")
     const flowActions = desktopCommands.slice(0, 5)
     const recentWorkflows = workflows.slice(0, EMPTY_OPEN_RECENT_LIMIT)
     const switchProjects = projectEntries.filter((entry) => !entry.selected).slice(0, 5)
@@ -532,16 +495,14 @@ export function buildAppShellCommandSections({
     .filter((entry) => entry.projectPath !== selectedProject)
     .slice(0, SEARCH_OTHER_PROJECT_LIMIT)
 
-  const startEntry = !isActionLikeQuery(query, actions) && looksLikeProcessIntent(query)
-    ? buildAppShellStartEntry({ query, selectedProject, projects })
-    : null
+  const startEntry = buildAppShellStartEntry({ query, selectedProject, projects })
 
   const sections: AppShellCommandSection[] = []
-  if (startEntry) sections.push({ id: "start_new", label: "Start new", entries: [startEntry] })
   if (filteredProjects.length > 0) sections.push({ id: "projects", label: "Switch project", entries: filteredProjects })
   if (currentProjectMatches.length > 0) sections.push({ id: "current_project", label: "Open in current project", entries: currentProjectMatches })
   if (otherProjectMatches.length > 0) sections.push({ id: "other_projects", label: "Open in other projects", entries: otherProjectMatches })
   if (filteredDesktopCommands.length > 0) sections.push({ id: "desktop_commands", label: "Flow actions", entries: filteredDesktopCommands })
   if (filteredActions.length > 0) sections.push({ id: "actions", label: "Actions", entries: filteredActions })
+  if (startEntry) sections.push({ id: "start_new", label: "Start new", entries: [startEntry] })
   return sections
 }
