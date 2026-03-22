@@ -441,8 +441,8 @@ export function ArtifactsPage() {
     return (
       <PageShell>
         <PageHeader
-          title="Artifacts"
-          subtitle="Choose a project in the sidebar to see reusable artifacts and start the next step from them."
+          title="Results"
+          subtitle="Choose a project in the sidebar to see reusable results and start the next step from them."
           actions={(
             <Button variant="outline" size="sm" onClick={() => setMainView("thread")}>
               <FolderOpen size={14} />
@@ -457,13 +457,13 @@ export function ArtifactsPage() {
   return (
     <PageShell>
       <PageHeader
-        title="Artifacts"
+        title="Results"
         subtitle={
           selectedCaseOption
-            ? `Reusable artifacts for ${selectedCaseOption.label}. Stay in one track and open the next step without rebuilding context in the terminal.`
+            ? `Reusable results for ${selectedCaseOption.label}. Stay in one track and open the next step without rebuilding context in the terminal.`
             : selectedFactoryLabel
-              ? `Reusable artifacts for ${selectedFactoryLabel}. Stay inside one lab while you review outputs and launch the next step.`
-              : `Reusable artifacts for ${projectFolderName(selectedProject)}. Use them to open the next step without rebuilding context in the terminal.`
+              ? `Reusable results for ${selectedFactoryLabel}. Stay inside one lab while you review outputs and launch the next step.`
+              : `Reusable results for ${projectFolderName(selectedProject)}. Use them to open the next step without rebuilding context in the terminal.`
         }
         actions={(
           <>
@@ -489,9 +489,9 @@ export function ArtifactsPage() {
         ariaLabel="Result controls"
         query={query}
         onQueryChange={setQuery}
-        searchPlaceholder="Search artifacts or next steps"
-        searchAriaLabel="Search artifacts"
-        summary={`${filteredArtifacts.length} artifact${filteredArtifacts.length === 1 ? "" : "s"}`}
+        searchPlaceholder="Search results or next steps"
+        searchAriaLabel="Search results"
+        summary={`${filteredArtifacts.length} result${filteredArtifacts.length === 1 ? "" : "s"}`}
         filters={(
           <>
             <span className="ui-meta-text hidden text-muted-foreground lg:inline-flex">Kind</span>
@@ -546,7 +546,7 @@ export function ArtifactsPage() {
         {selectedFactoryLabel && !selectedCaseOption ? (
           <ScopeBanner
             eyebrow="Lab scope"
-            description={`Showing artifacts for ${selectedFactoryLabel}. Go back to the lab when you need a different outcome or path.`}
+            description={`Showing results for ${selectedFactoryLabel}. Go back to the lab when you need a different outcome or path.`}
             actions={factoryBetaEnabled ? (
               <Button variant="outline" size="sm" onClick={() => setMainView("factory")}>
                 <Rocket size={14} />
@@ -577,7 +577,7 @@ export function ArtifactsPage() {
         ) : null}
 
         <SectionHeading
-          title={selectedFactoryLabel ? `${selectedFactoryLabel} artifacts` : "Project artifacts"}
+          title={selectedFactoryLabel ? `${selectedFactoryLabel} results` : "Project results"}
           meta={compatibleTemplates.length > 0 ? (
             <span className="ui-meta-text text-muted-foreground">
               {compatibleTemplates.length} ready next step{compatibleTemplates.length === 1 ? "" : "s"}
@@ -595,15 +595,15 @@ export function ArtifactsPage() {
           </div>
         ) : artifactsLoading || templatesLoading ? (
           <div className="ui-empty-state rounded-xl border border-dashed border-hairline bg-surface-2/30 px-4 text-body-sm text-muted-foreground">
-            Loading project artifacts and next steps...
+            Loading project results and next steps...
           </div>
         ) : filteredArtifacts.length === 0 ? (
           <div className="ui-empty-state rounded-xl border border-dashed border-hairline bg-surface-2/30 px-4 text-body-sm text-muted-foreground">
             {factoryScopeArtifacts.length === 0
               ? selectedFactoryLabel
-                ? `No artifacts have been saved for ${selectedFactoryLabel} yet. Run the first step to create reusable outputs.`
-                : "No artifacts saved yet. Run a first step to create reusable outputs."
-              : "No artifacts match this filter."}
+                ? `No results have been saved for ${selectedFactoryLabel} yet. Run the first step to create reusable outputs.`
+                : "No results saved yet. Run a first step to create reusable outputs."
+              : "No results match this filter."}
           </div>
         ) : (
           <div className={cn("grid grid-cols-1 gap-4", selectedArtifact && "xl:grid-cols-[minmax(0,1fr)_28rem]")}>

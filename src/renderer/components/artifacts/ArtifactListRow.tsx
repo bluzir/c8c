@@ -105,14 +105,14 @@ export function ArtifactListRow({
           </div>
           {supportingArtifactCount > 1 ? (
             <span className="ui-meta-text text-muted-foreground">
-              {supportingArtifactCount} supporting artifact{supportingArtifactCount === 1 ? "" : "s"}
+              {supportingArtifactCount} supporting result{supportingArtifactCount === 1 ? "" : "s"}
             </span>
           ) : null}
         </div>
 
         {matchingTemplates.length === 0 ? (
           <div className="mt-2 text-body-sm text-muted-foreground">
-            No next steps are ready from this artifact alone yet.
+            No next steps are ready from this result alone yet.
           </div>
         ) : (
           <div className="mt-3 space-y-2">

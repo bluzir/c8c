@@ -54,7 +54,7 @@ export function ArtifactInspectPanel({
         eyebrow={(
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="outline" className="ui-meta-text px-2 py-0">
-              Saved artifact
+              Saved result
             </Badge>
             <Badge variant="outline" className="ui-meta-text px-2 py-0">
               {formatArtifactContractLabel(artifact.kind)}
