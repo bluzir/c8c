@@ -3,8 +3,9 @@ import { handleChatMessage, cancelChatSession, getActiveChatSession } from "../l
 import { loadChatHistory, clearChatHistory } from "../lib/chat-storage"
 import type { ChatConversation, ChatSessionSnapshot, Workflow } from "@shared/types"
 import { resolve, extname } from "node:path"
-import { allowedProjectRoots, allowedWorkflowRoots, assertWithinRoots } from "../lib/security-paths"
+import { allowedWorkflowRoots, assertRegisteredProjectPath, assertWithinRoots } from "../lib/security-paths"
 import { logError, logInfo } from "../lib/structured-log"
+import { parseWorkflowPayload } from "@shared/workflow-payload"
 
 async function assertWorkflowPath(workflowPath: string): Promise<string> {
   const resolvedPath = resolve(workflowPath)
@@ -14,15 +15,6 @@ async function assertWorkflowPath(workflowPath: string): Promise<string> {
   }
   const workflowRoots = await allowedWorkflowRoots()
   return assertWithinRoots(resolvedPath, workflowRoots, "Workflow path")
-}
-
-async function assertProjectPath(projectPath: string): Promise<string> {
-  const resolvedPath = resolve(projectPath)
-  const allowedRoots = await allowedProjectRoots()
-  if (!allowedRoots.some((root) => root === resolvedPath)) {
-    throw new Error("Project path is not registered")
-  }
-  return resolvedPath
 }
 
 export function registerChatHandlers() {
@@ -38,13 +30,14 @@ export function registerChatHandlers() {
       currentWorkflow: Workflow,
     ): Promise<string> => {
       const safeWorkflowPath = await assertWorkflowPath(workflowPath)
-      const safeProjectPath = await assertProjectPath(projectPath)
+      const safeProjectPath = await assertRegisteredProjectPath(projectPath)
+      const safeWorkflow = parseWorkflowPayload(currentWorkflow, "Workflow payload")
       logInfo("chat-ipc", "send_message_called", {
         workflowPath: safeWorkflowPath,
         messageLength: message.length,
         projectPath: safeProjectPath,
-        hasWorkflow: !!currentWorkflow,
-        nodeCount: currentWorkflow?.nodes?.length ?? 0,
+        hasWorkflow: true,
+        nodeCount: safeWorkflow.nodes.length,
       })
       try {
         const window = BrowserWindow.fromWebContents(event.sender)
@@ -52,7 +45,7 @@ export function registerChatHandlers() {
           safeWorkflowPath,
           message,
           safeProjectPath,
-          currentWorkflow,
+          safeWorkflow,
           window && !window.isDestroyed() ? window : null,
         )
         logInfo("chat-ipc", "send_message_completed", { workflowPath: safeWorkflowPath, sessionId })

@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
   const telemetryLocalTest = env.C8C_TELEMETRY_LOCAL_TEST === "1"
     || env.C8C_TELEMETRY_LOCAL_TEST === "true"
   const testMode = env.C8C_TEST_MODE === "1" || env.C8C_TEST_MODE === "true"
+  if (buildFlavor === "release" && testMode) {
+    throw new Error("C8C_TEST_MODE must be disabled for release builds")
+  }
   const explicitTelemetryProvider = env.C8C_TELEMETRY_PROVIDER === "posthog"
     ? "posthog"
     : env.C8C_TELEMETRY_PROVIDER === "noop"

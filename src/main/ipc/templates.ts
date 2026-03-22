@@ -13,8 +13,8 @@ import {
 import { trackTelemetryEvent } from "../lib/telemetry/service"
 import { summarizeMissingWorkflowSkillRefs } from "../lib/telemetry/workflow-usage"
 import type { DiscoveredSkill, GenerationProgress, Workflow, WorkflowTemplate } from "@shared/types"
-import { allowedProjectRoots } from "../lib/security-paths"
-import { resolve, join } from "node:path"
+import { assertRegisteredProjectPath } from "../lib/security-paths"
+import { join } from "node:path"
 import { mkdir } from "node:fs/promises"
 import { saveChain } from "../lib/chain-io"
 import { toWorkflowFileStem } from "@shared/workflow-name"
@@ -64,12 +64,7 @@ function bindGenerateLifecycle(sender: WebContents): void {
 
 async function resolveGenerateWorkdir(projectPath?: string): Promise<string> {
   if (!projectPath) return process.cwd()
-  const resolvedPath = resolve(projectPath)
-  const projectRoots = await allowedProjectRoots()
-  if (!projectRoots.some((root) => root === resolvedPath)) {
-    throw new Error("Project path is not registered")
-  }
-  return resolvedPath
+  return assertRegisteredProjectPath(projectPath)
 }
 
 export function registerTemplateHandlers() {

@@ -6,6 +6,54 @@ interface CostWarningState {
   warning: PreflightWarning | null
 }
 
+interface CostWarningController {
+  handlePreflightWarnings: (warnings: PreflightWarning[]) => Promise<boolean>
+  confirm: () => void
+  cancel: () => void
+  setOpen: (open: boolean) => void
+}
+
+export function createCostWarningController(
+  setState: (state: CostWarningState) => void,
+): CostWarningController {
+  let resolver: ((confirmed: boolean) => void) | null = null
+  let open = false
+
+  return {
+    async handlePreflightWarnings(warnings: PreflightWarning[]): Promise<boolean> {
+      const budgetWarning = warnings.find((warning) => warning.kind === "token_budget")
+      if (!budgetWarning) return true
+      if (open) return false
+
+      return new Promise<boolean>((resolve) => {
+        open = true
+        resolver = resolve
+        setState({ open: true, warning: budgetWarning })
+      })
+    },
+    confirm() {
+      open = false
+      setState({ open: false, warning: null })
+      resolver?.(true)
+      resolver = null
+    },
+    cancel() {
+      open = false
+      setState({ open: false, warning: null })
+      resolver?.(false)
+      resolver = null
+    },
+    setOpen(nextOpen: boolean) {
+      if (!nextOpen) {
+        open = false
+        setState({ open: false, warning: null })
+        resolver?.(false)
+        resolver = null
+      }
+    },
+  }
+}
+
 /**
  * Manages the cost warning dialog lifecycle.
  *
@@ -16,35 +64,26 @@ interface CostWarningState {
  */
 export function useCostWarning() {
   const [state, setState] = useState<CostWarningState>({ open: false, warning: null })
-  const resolverRef = useRef<((confirmed: boolean) => void) | null>(null)
+  const controllerRef = useRef<CostWarningController | null>(null)
+  if (!controllerRef.current) {
+    controllerRef.current = createCostWarningController(setState)
+  }
 
-  const handlePreflightWarnings = useCallback(async (warnings: PreflightWarning[]): Promise<boolean> => {
-    const budgetWarning = warnings.find((w) => w.kind === "token_budget")
-    if (!budgetWarning) return true
-
-    return new Promise<boolean>((resolve) => {
-      resolverRef.current = resolve
-      setState({ open: true, warning: budgetWarning })
-    })
+  const handlePreflightWarnings = useCallback((warnings: PreflightWarning[]) => {
+    return controllerRef.current!.handlePreflightWarnings(warnings)
   }, [])
 
   const confirm = useCallback(() => {
-    setState({ open: false, warning: null })
-    resolverRef.current?.(true)
-    resolverRef.current = null
+    controllerRef.current!.confirm()
   }, [])
 
   const cancel = useCallback(() => {
-    setState({ open: false, warning: null })
-    resolverRef.current?.(false)
-    resolverRef.current = null
+    controllerRef.current!.cancel()
   }, [])
 
   const setOpen = useCallback((open: boolean) => {
-    if (!open) {
-      cancel()
-    }
-  }, [cancel])
+    controllerRef.current!.setOpen(open)
+  }, [])
 
   return {
     costWarningOpen: state.open,

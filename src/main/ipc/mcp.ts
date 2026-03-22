@@ -69,7 +69,11 @@ export function registerMcpHandlers() {
   })
 
   ipcMain.handle("mcp:list-all-servers", async (_event, provider: ProviderId) => {
-    return resolveMcpProvider(provider).listAllServers?.() ?? []
+    try {
+      return resolveMcpProvider(provider).listAllServers?.() ?? []
+    } catch {
+      return []
+    }
   })
 
   ipcMain.handle("mcp:list-plugin-servers", async () => {

@@ -5,14 +5,21 @@ import type {
   ClaudeCodeSubscriptionStatus,
   DesktopPlatform,
   DesktopRuntimeInfo,
+  ProviderAuthStatus,
   ProviderDiagnostics,
+  ProviderHealth,
   ProviderId,
   ProviderSettings,
   TelemetryUiEvent,
 } from "@shared/types"
 import { createDefaultDesktopMenuState, type DesktopCommandId, type DesktopMenuState } from "@shared/desktop-commands"
 import { getClaudeCodeSubscriptionStatus } from "../lib/claude-subscription"
-import { allowedOpenPathRoots, allowedProjectRoots, assertWithinRoots } from "../lib/security-paths"
+import {
+  allowedOpenPathRoots,
+  allowedProjectRoots,
+  assertWithinRoots,
+  isRegisteredRoot,
+} from "../lib/security-paths"
 import { resolve } from "node:path"
 import { isTestMode } from "../lib/runtime-paths"
 import {
@@ -35,6 +42,9 @@ const execFile = promisify(execFileCb)
 
 let runtimeWindowProvider: (() => BrowserWindow | null) | null = null
 let desktopMenuState: DesktopMenuState = createDefaultDesktopMenuState()
+
+const PROVIDER_DIAGNOSTICS_TIMEOUT_MS = 4_000
+const MAX_CODEX_API_KEY_LENGTH = 8_192
 
 function desktopPlatform(): DesktopPlatform {
   if (process.platform === "darwin") return "macos"
@@ -196,6 +206,104 @@ async function resolveGitBranch(projectPath: string): Promise<string | null> {
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: () => T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timeout = setTimeout(() => {
+      resolve(fallback())
+    }, timeoutMs)
+
+    promise.then((value) => {
+      clearTimeout(timeout)
+      resolve(value)
+    }).catch(() => {
+      clearTimeout(timeout)
+      resolve(fallback())
+    })
+  })
+}
+
+function timedOutProviderHealth(provider: ProviderId): ProviderHealth {
+  return {
+    provider,
+    available: false,
+    error: `Timed out after ${PROVIDER_DIAGNOSTICS_TIMEOUT_MS}ms`,
+  }
+}
+
+function timedOutProviderAuth(provider: ProviderId): ProviderAuthStatus {
+  return {
+    provider,
+    state: "unknown",
+    authenticated: false,
+    error: `Timed out after ${PROVIDER_DIAGNOSTICS_TIMEOUT_MS}ms`,
+  }
+}
+
+function parseProviderSettingsPatch(patch: unknown): Partial<ProviderSettings> {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
+    throw new Error("Invalid provider settings payload")
+  }
+
+  const candidate = patch as Record<string, unknown>
+  const normalized: Partial<ProviderSettings> = {}
+  const allowedKeys = new Set(["defaultProvider", "safetyProfile", "features"])
+  for (const key of Object.keys(candidate)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error(`Invalid provider settings field: ${key}`)
+    }
+  }
+
+  if ("defaultProvider" in candidate) {
+    if (candidate.defaultProvider !== "claude" && candidate.defaultProvider !== "codex") {
+      throw new Error("Invalid provider settings payload")
+    }
+    normalized.defaultProvider = candidate.defaultProvider
+  }
+
+  if ("safetyProfile" in candidate) {
+    const safetyProfile = candidate.safetyProfile
+    if (
+      safetyProfile !== "safe_readonly"
+      && safetyProfile !== "workspace_auto"
+      && safetyProfile !== "workspace_untrusted"
+      && safetyProfile !== "ci_readonly"
+      && safetyProfile !== "dangerous"
+    ) {
+      throw new Error("Invalid provider settings payload")
+    }
+    normalized.safetyProfile = safetyProfile
+  }
+
+  if ("features" in candidate) {
+    const features = candidate.features
+    if (!features || typeof features !== "object" || Array.isArray(features)) {
+      throw new Error("Invalid provider settings payload")
+    }
+    const featuresRecord = features as Record<string, unknown>
+    if (Object.keys(featuresRecord).some((key) => key !== "codexProvider")) {
+      throw new Error("Invalid provider settings payload")
+    }
+    if ("codexProvider" in featuresRecord && typeof featuresRecord.codexProvider !== "boolean") {
+      throw new Error("Invalid provider settings payload")
+    }
+    normalized.features = {
+      codexProvider: Boolean(featuresRecord.codexProvider),
+    }
+  }
+
+  return normalized
+}
+
+function parseCodexApiKey(apiKey: unknown): string {
+  if (typeof apiKey !== "string") {
+    throw new Error("Codex API key must be a string")
+  }
+  if (apiKey.length > MAX_CODEX_API_KEY_LENGTH) {
+    throw new Error(`Codex API key must be ${MAX_CODEX_API_KEY_LENGTH} characters or fewer`)
+  }
+  return apiKey
+}
+
 async function getProviderDiagnostics(): Promise<ProviderDiagnostics> {
   const providerSettings = await getProviderSettings()
   if (isTestMode()) {
@@ -242,10 +350,26 @@ async function getProviderDiagnostics(): Promise<ProviderDiagnostics> {
 
   const [settings, claudeHealth, codexHealth, claudeAuth, codexAuth] = await Promise.all([
     Promise.resolve(providerSettings),
-    resolveAgentProvider("claude").checkAvailability(),
-    resolveAgentProvider("codex").checkAvailability(),
-    resolveAgentProvider("claude").getAuthStatus(),
-    resolveAgentProvider("codex").getAuthStatus(),
+    withTimeout(
+      resolveAgentProvider("claude").checkAvailability(),
+      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+      () => timedOutProviderHealth("claude"),
+    ),
+    withTimeout(
+      resolveAgentProvider("codex").checkAvailability(),
+      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+      () => timedOutProviderHealth("codex"),
+    ),
+    withTimeout(
+      resolveAgentProvider("claude").getAuthStatus(),
+      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+      () => timedOutProviderAuth("claude"),
+    ),
+    withTimeout(
+      resolveAgentProvider("codex").getAuthStatus(),
+      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+      () => timedOutProviderAuth("codex"),
+    ),
   ])
 
   return {
@@ -294,7 +418,7 @@ export function registerSystemHandlers() {
     }
     const safeProjectPath = resolve(projectPath)
     const allowedProjects = await allowedProjectRoots()
-    if (!allowedProjects.some((root) => root === safeProjectPath)) {
+    if (!allowedProjects.some((root) => isRegisteredRoot(safeProjectPath, root))) {
       return { branch: null }
     }
     const branch = await resolveGitBranch(safeProjectPath)
@@ -313,11 +437,11 @@ export function registerSystemHandlers() {
   })
 
   ipcMain.handle("system:update-provider-settings", async (_event, patch: Partial<ProviderSettings>) => {
-    return updateProviderSettings(patch)
+    return updateProviderSettings(parseProviderSettingsPatch(patch))
   })
 
   ipcMain.handle("system:set-codex-api-key", async (_event, apiKey: string) => {
-    await setCodexApiKey(apiKey)
+    await setCodexApiKey(parseCodexApiKey(apiKey))
     return getProviderDiagnostics()
   })
 

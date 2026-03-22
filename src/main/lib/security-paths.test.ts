@@ -2,7 +2,12 @@ import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { describe, expect, it } from "vitest"
-import { assertWithinRoots, isWithinRoot } from "./security-paths"
+import {
+  assertRegisteredRoots,
+  assertWithinRoots,
+  isRegisteredRoot,
+  isWithinRoot,
+} from "./security-paths"
 
 function createTempLayout() {
   const baseDir = mkdtempSync(join(tmpdir(), "c8c-security-paths-"))
@@ -83,6 +88,22 @@ describe("security path helpers", () => {
 
       expect(isWithinRoot(candidate, rootAlias)).toBe(true)
       expect(assertWithinRoots(candidate, [rootAlias], "Path")).toBe(candidate)
+    } finally {
+      cleanup()
+    }
+  })
+
+  it("matches registered roots across symlink aliases without allowing nested descendants", () => {
+    const { baseDir, rootDir, cleanup } = createTempLayout()
+    try {
+      const rootAlias = join(baseDir, "root-link")
+      symlinkSync(rootDir, rootAlias)
+
+      expect(isRegisteredRoot(rootAlias, rootDir)).toBe(true)
+      expect(assertRegisteredRoots(rootAlias, [rootDir], "Project path")).toBe(rootAlias)
+      expect(() => assertRegisteredRoots(join(rootDir, "nested"), [rootDir], "Project path")).toThrow(
+        "Project path is not registered",
+      )
     } finally {
       cleanup()
     }

@@ -21,7 +21,7 @@ import type {
 } from "@shared/types"
 import { getDefaultModelForProvider } from "@shared/provider-metadata"
 import { prepareTemporaryMcpConfig } from "./mcp-config"
-import { scanAllSkills } from "./skill-scanner"
+import { getCachedProjectSkills } from "./skill-scan-cache"
 import { resolveWorkflowProviderId, startProviderInteractive } from "./provider-runtime"
 import {
   applyChatEventToActiveSession,
@@ -190,6 +190,7 @@ async function runTurn(
   prompt: string,
   systemPrompt: string,
   projectPath: string,
+  mcpConfigPath: string | undefined,
   sessionId: string,
   workflowPath: string,
   window: BrowserWindow | null,
@@ -199,7 +200,6 @@ async function runTurn(
   let stderrOutput = ""
   let streamedEntries = 0
   const providerModel = getDefaultModelForProvider(providerId)
-  const runtimeMcpConfig = await prepareTemporaryMcpConfig(projectPath)
 
   console.log("[runTurn] spawning provider...", {
     provider: providerId,
@@ -209,78 +209,74 @@ async function runTurn(
     promptLen: prompt.length,
   })
 
-  try {
-    const handle = await startProviderInteractive(providerId, {
-      workdir: projectPath,
-      prompt,
-      model: providerModel,
-      maxTurns: 1,
-      systemPrompts: [systemPrompt],
-      mcpConfigPath: runtimeMcpConfig.path,
-      disableBuiltInTools: providerId === "claude",
-      disableSlashCommands: providerId === "claude",
-      timeout: 120_000,
-      abortSignal,
-    })
+  const handle = await startProviderInteractive(providerId, {
+    workdir: projectPath,
+    prompt,
+    model: providerModel,
+    maxTurns: 1,
+    systemPrompts: [systemPrompt],
+    mcpConfigPath,
+    disableBuiltInTools: providerId === "claude",
+    disableSlashCommands: providerId === "claude",
+    timeout: 120_000,
+    abortSignal,
+  })
 
-    const result = await drainExecutionHandle(handle, {
-      onLogEntry: (entry) => {
-        streamedEntries++
-        logParser.appendEntry(entry)
-        if (entry.type === "text") {
-          sendChatEvent(window, {
-            type: "text-delta",
-            sessionId,
-            workflowPath,
-            content: entry.content,
-          })
-        } else if (entry.type === "thinking") {
-          sendChatEvent(window, {
-            type: "thinking",
-            sessionId,
-            workflowPath,
-            content: entry.content,
-          })
-        }
-      },
-      onUsage: (usage) => {
-        logParser.applyUsage(usage)
-      },
-      onStderr: (text) => {
-        stderrOutput += text
-        if (stderrOutput.length <= 500) {
-          console.log("[runTurn] stderr:", text.trimEnd())
-        }
-      },
-      onError: (text) => {
-        console.error("[runTurn] provider error:", text)
-      },
-    })
+  const result = await drainExecutionHandle(handle, {
+    onLogEntry: (entry) => {
+      streamedEntries++
+      logParser.appendEntry(entry)
+      if (entry.type === "text") {
+        sendChatEvent(window, {
+          type: "text-delta",
+          sessionId,
+          workflowPath,
+          content: entry.content,
+        })
+      } else if (entry.type === "thinking") {
+        sendChatEvent(window, {
+          type: "thinking",
+          sessionId,
+          workflowPath,
+          content: entry.content,
+        })
+      }
+    },
+    onUsage: (usage) => {
+      logParser.applyUsage(usage)
+    },
+    onStderr: (text) => {
+      stderrOutput += text
+      if (stderrOutput.length <= 500) {
+        console.log("[runTurn] stderr:", text.trimEnd())
+      }
+    },
+    onError: (text) => {
+      console.error("[runTurn] provider error:", text)
+    },
+  })
 
-    console.log("[runTurn] spawnClaude finished:", {
-      success: result.success,
-      exitCode: result.exitCode,
-      aborted: result.aborted,
-      killed: result.killed,
-      signal: result.signal,
-      streamedEntries,
-      stderrLen: stderrOutput.length,
-      textContentLen: logParser.textContent.length,
-      entriesCount: logParser.entries.length,
-    })
+  console.log("[runTurn] spawnClaude finished:", {
+    success: result.success,
+    exitCode: result.exitCode,
+    aborted: result.aborted,
+    killed: result.killed,
+    signal: result.signal,
+    streamedEntries,
+    stderrLen: stderrOutput.length,
+    textContentLen: logParser.textContent.length,
+    entriesCount: logParser.entries.length,
+  })
 
-    if (stderrOutput) {
-      console.log("[runTurn] stderr full:", stderrOutput.slice(0, 1000))
-    }
-
-    if (result.aborted) {
-      return { text: "", aborted: true }
-    }
-
-    return { text: logParser.textContent, aborted: false }
-  } finally {
-    await runtimeMcpConfig.cleanup()
+  if (stderrOutput) {
+    console.log("[runTurn] stderr full:", stderrOutput.slice(0, 1000))
   }
+
+  if (result.aborted) {
+    return { text: "", aborted: true }
+  }
+
+  return { text: logParser.textContent, aborted: false }
 }
 
 async function executeParsedToolCall(
@@ -452,7 +448,7 @@ export async function handleChatMessage(
 
     // Load skills and build context
     console.log("[chat-agent] scanning skills...")
-    const skills = await scanAllSkills(projectPath)
+    const skills = await getCachedProjectSkills(projectPath)
     console.log("[chat-agent] found", skills.length, "skills")
 
     const categoryTree = buildCategoryTree(skills)
@@ -502,94 +498,100 @@ export async function handleChatMessage(
       return sessionId
     }
 
-    // Build prompts
-    const systemPrompt = buildSystemPrompt(toolCtx.workflow, skills)
-    console.log("[chat-agent] system prompt length:", systemPrompt.length)
+    const runtimeMcpConfig = await prepareTemporaryMcpConfig(projectPath)
+    try {
+      // Build prompts
+      const systemPrompt = buildSystemPrompt(toolCtx.workflow, skills)
+      console.log("[chat-agent] system prompt length:", systemPrompt.length)
 
-    // Tool call loop (max 10 iterations to prevent infinite loops)
-    const assistantTurns: AssistantTurn[] = []
-    const maxIterations = 10
+      // Tool call loop (max 10 iterations to prevent infinite loops)
+      const assistantTurns: AssistantTurn[] = []
+      const maxIterations = 10
 
-    for (let i = 0; i < maxIterations; i++) {
-      if (abortController.signal.aborted) {
-        console.log("[chat-agent] aborted before iteration", i)
-        break
-      }
-
-      console.log("[chat-agent] --- turn iteration", i, "---")
-
-      const prompt = i === 0
-        ? buildConversationPrompt(conversation.messages.slice(0, -1), message)
-        : buildConversationPrompt(conversation.messages, "Continue processing tool results. If no more tools needed, provide your final response.")
-
-      console.log("[chat-agent] prompt length:", prompt.length)
-      console.log("[chat-agent] calling runTurn...")
-
-      const { text, aborted } = await runTurn(
-        await resolveWorkflowProviderId(toolCtx.workflow),
-        prompt,
-        systemPrompt,
-        projectPath,
-        sessionId,
-        workflowPath,
-        window,
-        abortController.signal,
-      )
-
-      console.log("[chat-agent] runTurn returned: textLen=", text.length, "aborted=", aborted)
-
-      if (aborted) {
-        console.log("[chat-agent] turn was aborted")
-        break
-      }
-
-      // Parse tool calls from the response
-      const toolCalls = parseToolCallsFromText(text)
-      assistantTurns.push({ text, hasToolCalls: toolCalls.length > 0 })
-      console.log("[chat-agent] parsed", toolCalls.length, "tool calls")
-
-      if (toolCalls.length === 0) {
-        console.log("[chat-agent] no tool calls, conversation turn complete")
-        break
-      }
-
-      // Process tool calls
-      for (const call of toolCalls) {
+      for (let i = 0; i < maxIterations; i++) {
         if (abortController.signal.aborted) {
+          console.log("[chat-agent] aborted before iteration", i)
           break
         }
-        await executeParsedToolCall(call, toolCtx, conversation, window, sessionId, workflowPath)
+
+        console.log("[chat-agent] --- turn iteration", i, "---")
+
+        const prompt = i === 0
+          ? buildConversationPrompt(conversation.messages.slice(0, -1), message)
+          : buildConversationPrompt(conversation.messages, "Continue processing tool results. If no more tools needed, provide your final response.")
+
+        console.log("[chat-agent] prompt length:", prompt.length)
+        console.log("[chat-agent] calling runTurn...")
+
+        const { text, aborted } = await runTurn(
+          await resolveWorkflowProviderId(toolCtx.workflow),
+          prompt,
+          systemPrompt,
+          projectPath,
+          runtimeMcpConfig.path,
+          sessionId,
+          workflowPath,
+          window,
+          abortController.signal,
+        )
+
+        console.log("[chat-agent] runTurn returned: textLen=", text.length, "aborted=", aborted)
+
+        if (aborted) {
+          console.log("[chat-agent] turn was aborted")
+          break
+        }
+
+        // Parse tool calls from the response
+        const toolCalls = parseToolCallsFromText(text)
+        assistantTurns.push({ text, hasToolCalls: toolCalls.length > 0 })
+        console.log("[chat-agent] parsed", toolCalls.length, "tool calls")
+
+        if (toolCalls.length === 0) {
+          console.log("[chat-agent] no tool calls, conversation turn complete")
+          break
+        }
+
+        // Process tool calls
+        for (const call of toolCalls) {
+          if (abortController.signal.aborted) {
+            break
+          }
+          await executeParsedToolCall(call, toolCtx, conversation, window, sessionId, workflowPath)
+        }
       }
+
+      const selectedAssistantText = selectAssistantTurnText(assistantTurns)
+      const fallbackAssistantText = assistantTurns.length > 0
+        ? assistantTurns[assistantTurns.length - 1].text
+        : ""
+      const displayText = sanitizeAssistantText(selectedAssistantText || fallbackAssistantText)
+
+      console.log("[chat-agent] final displayText length:", displayText.length)
+      console.log("[chat-agent] displayText preview:", displayText.slice(0, 300))
+
+      // Add assistant message to conversation
+      const assistantMessage: ChatMessage = {
+        id: nextMessageId("assistant"),
+        role: "assistant",
+        content: displayText,
+        timestamp: Date.now(),
+      }
+
+      await finalizeConversationTurn(
+        workflowPath,
+        conversation,
+        assistantMessage,
+        toolCtx,
+        window,
+        sessionId,
+      )
+
+      console.log("[chat-agent] === TURN COMPLETE ===", sessionId)
+      return sessionId
+    } finally {
+      await runtimeMcpConfig.cleanup()
     }
-
-    const selectedAssistantText = selectAssistantTurnText(assistantTurns)
-    const fallbackAssistantText = assistantTurns.length > 0
-      ? assistantTurns[assistantTurns.length - 1].text
-      : ""
-    const displayText = sanitizeAssistantText(selectedAssistantText || fallbackAssistantText)
-
-    console.log("[chat-agent] final displayText length:", displayText.length)
-    console.log("[chat-agent] displayText preview:", displayText.slice(0, 300))
-
-    // Add assistant message to conversation
-    const assistantMessage: ChatMessage = {
-      id: nextMessageId("assistant"),
-      role: "assistant",
-      content: displayText,
-      timestamp: Date.now(),
-    }
-
-    await finalizeConversationTurn(
-      workflowPath,
-      conversation,
-      assistantMessage,
-      toolCtx,
-      window,
-      sessionId,
-    )
-
-    console.log("[chat-agent] === TURN COMPLETE ===", sessionId)
-    return sessionId
   } catch (err) {
     console.error("[chat-agent] === ERROR ===", err)
     if (conversation) {

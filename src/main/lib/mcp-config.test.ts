@@ -16,6 +16,7 @@ import {
   buildClaudeExtraArgs,
   buildClaudeSdkMcpServers,
   buildProviderExtraArgs,
+  invalidateMcpConfigCache,
   prepareTemporaryMcpConfig,
   prepareWorkspaceMcpConfig,
 } from "./mcp-config"
@@ -384,6 +385,66 @@ describe("buildClaudeSdkMcpServers", () => {
         headers: {
           Authorization: "Bearer token",
         },
+      },
+    })
+  })
+
+  it("drops cached config after explicit invalidation", async () => {
+    const root = await mkdtemp(join(tmpdir(), "mcp-sdk-invalidate-"))
+    const mcpPath = join(root, ".mcp.json")
+
+    await writeFile(
+      mcpPath,
+      JSON.stringify({
+        mcpServers: {
+          github: {
+            command: "node",
+            args: ["./v1.js"],
+          },
+        },
+      }),
+      "utf-8",
+    )
+
+    expect(buildClaudeSdkMcpServers(mcpPath)).toEqual({
+      github: {
+        type: "stdio",
+        command: "node",
+        args: ["./v1.js"],
+        env: undefined,
+      },
+    })
+
+    await writeFile(
+      mcpPath,
+      JSON.stringify({
+        mcpServers: {
+          github: {
+            command: "node",
+            args: ["./v2.js"],
+          },
+        },
+      }),
+      "utf-8",
+    )
+
+    expect(buildClaudeSdkMcpServers(mcpPath)).toEqual({
+      github: {
+        type: "stdio",
+        command: "node",
+        args: ["./v1.js"],
+        env: undefined,
+      },
+    })
+
+    invalidateMcpConfigCache(mcpPath)
+
+    expect(buildClaudeSdkMcpServers(mcpPath)).toEqual({
+      github: {
+        type: "stdio",
+        command: "node",
+        args: ["./v2.js"],
+        env: undefined,
       },
     })
   })

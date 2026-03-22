@@ -1,6 +1,7 @@
 import { ipcMain } from "electron"
-import { mergeDiscoveredSkills, scanAllSkills } from "../lib/skill-scanner"
+import { mergeDiscoveredSkills } from "../lib/skill-scanner"
 import { scanAllLibraries } from "../lib/libraries"
+import { getCachedProjectSkills, invalidateProjectSkillScan } from "../lib/skill-scan-cache"
 import { scaffoldMissingSkills } from "../lib/skill-scaffold"
 import { trackTelemetryEvent } from "../lib/telemetry/service"
 import { summarizeMissingWorkflowSkillRefs } from "../lib/telemetry/workflow-usage"
@@ -8,8 +9,12 @@ import { logError, logInfo } from "../lib/structured-log"
 import { writeFileAtomic } from "../lib/atomic-write"
 import type { DiscoveredSkill, Workflow } from "@shared/types"
 import { mkdir, access, readFile } from "node:fs/promises"
-import { join, resolve } from "node:path"
-import { allowedProjectRoots, allowedOpenPathRoots, assertWithinRoots } from "../lib/security-paths"
+import { basename, join, resolve } from "node:path"
+import {
+  allowedSkillContentRoots,
+  assertRegisteredProjectPath,
+  assertWithinRoots,
+} from "../lib/security-paths"
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -20,22 +25,23 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function assertProjectPath(projectPath: string): Promise<string> {
-  const resolvedPath = resolve(projectPath)
-  const projectRoots = await allowedProjectRoots()
-  if (!projectRoots.some((root) => root === resolvedPath)) {
-    throw new Error("Project path is not registered")
-  }
-  return resolvedPath
-}
-
 const scanInFlightByProject = new Map<string, Promise<DiscoveredSkill[]>>()
+
+async function assertSkillContentPath(filePath: string): Promise<string> {
+  const resolvedPath = resolve(filePath)
+  const fileName = basename(resolvedPath)
+  if (!fileName.toLowerCase().endsWith(".md") || fileName.toLowerCase() === "readme.md") {
+    throw new Error("Skill file path must reference a skill markdown file")
+  }
+  const roots = await allowedSkillContentRoots()
+  return assertWithinRoots(resolvedPath, roots, "Skill file path")
+}
 
 export function registerSkillsHandlers() {
   ipcMain.handle(
     "skills:scan",
     async (_e, projectPath: string): Promise<DiscoveredSkill[]> => {
-      const safeProjectPath = await assertProjectPath(projectPath)
+      const safeProjectPath = await assertRegisteredProjectPath(projectPath)
       const existingScan = scanInFlightByProject.get(safeProjectPath)
       if (existingScan) {
         logInfo("skills-ipc", "scan_reused_inflight", { projectPath: safeProjectPath })
@@ -51,7 +57,7 @@ export function registerSkillsHandlers() {
       const scanPromise = (async (): Promise<DiscoveredSkill[]> => {
         try {
           const [coreSkills, librarySkills] = await Promise.all([
-            scanAllSkills(safeProjectPath),
+            getCachedProjectSkills(safeProjectPath),
             scanAllLibraries(),
           ])
 
@@ -115,7 +121,7 @@ export function registerSkillsHandlers() {
       availableSkills: Pick<DiscoveredSkill, "name" | "category">[],
       projectPath: string,
     ): Promise<Workflow> => {
-      const safeProjectPath = await assertProjectPath(projectPath)
+      const safeProjectPath = await assertRegisteredProjectPath(projectPath)
       const startedAt = Date.now()
       const before = summarizeMissingWorkflowSkillRefs(workflow, availableSkills)
 
@@ -152,7 +158,7 @@ export function registerSkillsHandlers() {
   )
 
   ipcMain.handle("skills:create-template", async (_e, projectPath: string) => {
-    const safeProjectPath = await assertProjectPath(projectPath)
+    const safeProjectPath = await assertRegisteredProjectPath(projectPath)
     const skillsDir = join(safeProjectPath, ".claude", "skills")
     await mkdir(skillsDir, { recursive: true })
 
@@ -165,7 +171,12 @@ export function registerSkillsHandlers() {
     }
 
     const title = `New Skill ${index === 1 ? "" : index}`.trim()
-    const template = `# ${title}
+    const template = `---
+name: ${title}
+description: Describe what this skill should do.
+---
+
+# ${title}
 
 ## Purpose
 Describe what this skill should do.
@@ -185,6 +196,7 @@ Describe what this skill should do.
 `
 
     await writeFileAtomic(filePath, template)
+    invalidateProjectSkillScan(safeProjectPath)
     void trackTelemetryEvent("skill_template_created", {
       source: "manual",
       status: "success",
@@ -196,10 +208,8 @@ Describe what this skill should do.
   ipcMain.handle(
     "skills:read-content",
     async (_e, filePath: string): Promise<string> => {
-      const resolvedPath = resolve(filePath)
-      const roots = await allowedOpenPathRoots()
-      assertWithinRoots(resolvedPath, roots, "Skill file path")
-      return readFile(resolvedPath, "utf-8")
+      const safeFilePath = await assertSkillContentPath(filePath)
+      return readFile(safeFilePath, "utf-8")
     },
   )
 }

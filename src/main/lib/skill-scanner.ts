@@ -3,6 +3,7 @@ import { join, basename, resolve } from "node:path"
 import matter from "gray-matter"
 import type { DiscoveredSkill, InstalledPlugin } from "@shared/types"
 import { ensurePluginMarketplacesDir, listInstalledPlugins } from "./plugins"
+import { isWithinRoot } from "./security-paths"
 import { logWarn } from "./structured-log"
 
 const SCAN_DIRS = ["skills", "agents", "commands"] as const
@@ -32,10 +33,30 @@ function normalizeString(value: unknown): string | undefined {
   return trimmed || undefined
 }
 
-function isWithinRoot(candidatePath: string, rootPath: string): boolean {
-  const candidate = resolve(candidatePath)
-  const root = resolve(rootPath)
-  return candidate === root || candidate.startsWith(`${root}/`) || candidate.startsWith(`${root}\\`)
+function normalizeStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const normalized = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (normalized.length === 0) return undefined
+  return [...new Set(normalized)]
+}
+
+function normalizePositiveInteger(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined
+  const normalized = Math.floor(value)
+  return normalized >= 1 ? normalized : undefined
+}
+
+function skillFrontmatterMetadata(data: Record<string, unknown>) {
+  return {
+    model: normalizeString(data.model),
+    tools: normalizeStringList(data.tools),
+    maxTurns: normalizePositiveInteger(data.maxTurns ?? data.max_turns),
+    allowedTools: normalizeStringList(data.allowedTools ?? data.allowed_tools),
+    disallowedTools: normalizeStringList(data.disallowedTools ?? data.disallowed_tools),
+  }
 }
 
 function resolveSafePath(rootPath: string, pathValue?: string): string | null {
@@ -146,11 +167,7 @@ async function scanDirectory(
             path: fullPath,
             format,
             sourceScope,
-            model: data.model,
-            tools: data.tools,
-            maxTurns: data.maxTurns || data.max_turns,
-            allowedTools: data.allowedTools || data.allowed_tools,
-            disallowedTools: data.disallowedTools || data.disallowed_tools,
+            ...skillFrontmatterMetadata(data),
             ...extraFields,
           })
         } catch (error) {
@@ -217,11 +234,7 @@ async function scanCodexSkillDirs(
           path: skillFile,
           format: "codex-skill",
           sourceScope,
-          model: data.model,
-          tools: data.tools,
-          maxTurns: data.maxTurns || data.max_turns,
-          allowedTools: data.allowedTools || data.allowed_tools,
-          disallowedTools: data.disallowedTools || data.disallowed_tools,
+          ...skillFrontmatterMetadata(data),
           ...extraFields,
         })
         continue

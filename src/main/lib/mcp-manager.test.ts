@@ -207,6 +207,78 @@ describe("mcp-manager", () => {
     })
   })
 
+  it("reuses cached healthy discovery results per project", async () => {
+    await mkdir(testState.homeDir, { recursive: true })
+    await writeFile(
+      join(testState.homeDir, ".claude.json"),
+      JSON.stringify({
+        mcpServers: {
+          github: { command: "node", args: ["./github.js"] },
+        },
+      }, null, 2),
+      "utf8",
+    )
+
+    execClaudeMock.mockResolvedValue({
+      stdout: "Tools:\n- search: Search GitHub\n",
+      stderr: "",
+    })
+
+    const { discoverMcpTools } = await loadMcpManager()
+    const first = await discoverMcpTools(undefined, projectPath)
+    const second = await discoverMcpTools(undefined, projectPath)
+
+    expect(first).toEqual(second)
+    expect(execClaudeMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("invalidates cached discovery after a server mutation succeeds", async () => {
+    await mkdir(testState.homeDir, { recursive: true })
+    await writeFile(
+      join(testState.homeDir, ".claude.json"),
+      JSON.stringify({
+        mcpServers: {
+          github: { command: "node", args: ["./github.js"] },
+        },
+      }, null, 2),
+      "utf8",
+    )
+
+    execClaudeMock
+      .mockResolvedValueOnce({
+        stdout: "Tools:\n- search: Search GitHub\n",
+        stderr: "",
+      })
+      .mockResolvedValueOnce({
+        stdout: "",
+        stderr: "",
+      })
+      .mockResolvedValueOnce({
+        stdout: "Tools:\n- fetch: Fetch issue\n",
+        stderr: "",
+      })
+
+    const { addMcpServer, discoverMcpTools } = await loadMcpManager()
+    await discoverMcpTools(undefined, projectPath)
+    await expect(addMcpServer(createServer({
+      name: "github",
+      scope: "user",
+      type: "stdio",
+      command: "node",
+      args: ["./github.js"],
+    }))).resolves.toEqual({ success: true })
+
+    await expect(discoverMcpTools(undefined, projectPath)).resolves.toEqual([
+      {
+        name: "fetch",
+        serverName: "github",
+        qualifiedName: "mcp__github__fetch",
+        description: "Fetch issue",
+      },
+    ])
+    expect(execClaudeMock).toHaveBeenCalledTimes(3)
+  })
+
   it("serializes concurrent user-scope mutations so updates are not lost", async () => {
     await mkdir(testState.homeDir, { recursive: true })
     const claudeConfigPath = join(testState.homeDir, ".claude.json")

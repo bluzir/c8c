@@ -80,11 +80,14 @@ export class CodexMcpProvider implements McpProvider {
     try {
       const args = ["mcp", "add", server.name]
       if (server.type === "stdio") {
+        if (!server.command) {
+          return { success: false, error: "command is required for stdio transport" }
+        }
         for (const [key, value] of Object.entries(server.env || {})) {
           args.push("--env", `${key}=${value}`)
         }
         args.push("--")
-        args.push(server.command || "")
+        args.push(server.command)
         args.push(...(server.args || []))
       } else {
         args.push("--url", server.url || "")

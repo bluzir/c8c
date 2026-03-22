@@ -243,4 +243,20 @@ describe("mcp IPC", () => {
     await expect(handler!(undefined, "claude", "/unsafe/project")).resolves.toEqual([])
     expect(listServersMock).not.toHaveBeenCalled()
   })
+
+  it("fails closed when list-all-servers provider resolution throws", async () => {
+    resolveMcpProviderMock.mockImplementation(() => {
+      throw new Error("bad provider")
+    })
+
+    const { registerMcpHandlers } = await import("./mcp")
+    registerMcpHandlers()
+
+    const handler = ipcHandlers.get("mcp:list-all-servers") as
+      | ((event: unknown, provider: string) => Promise<unknown[]>)
+      | undefined
+    expect(handler).toBeDefined()
+
+    await expect(handler!(undefined, "claude")).resolves.toEqual([])
+  })
 })

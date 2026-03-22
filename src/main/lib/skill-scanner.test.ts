@@ -203,6 +203,44 @@ describe("skill-scanner", () => {
     })
   })
 
+  it("normalizes tool restriction frontmatter before exposing discovered skills", async () => {
+    const projectRoot = join(root, "project")
+
+    await writeText(
+      join(projectRoot, ".claude", "skills", "content", "writer.md"),
+      [
+        "---",
+        "name: writer",
+        "description: normalized",
+        "tools:",
+        "  - Read",
+        "  - \"  Read  \"",
+        "  - \"\"",
+        "allowed_tools:",
+        "  - Edit",
+        "  - \" Edit \"",
+        "  - \"\"",
+        "disallowed_tools:",
+        "  - Bash",
+        "  - \"  \"",
+        "max_turns: 3",
+        "---",
+        "",
+      ].join("\n"),
+    )
+
+    const { scanAllSkills } = await import("./skill-scanner")
+    const skills = await scanAllSkills(projectRoot)
+    const writer = skills.find((skill) => skill.name === "writer")
+
+    expect(writer).toMatchObject({
+      tools: ["Read"],
+      allowedTools: ["Edit"],
+      disallowedTools: ["Bash"],
+      maxTurns: 3,
+    })
+  })
+
   it("skips user skill discovery when the home directory is unavailable", async () => {
     delete process.env.HOME
     delete process.env.USERPROFILE

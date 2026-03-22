@@ -105,6 +105,14 @@ async function readMcpConfig(filePath: string): Promise<McpConfig | null> {
   }
 }
 
+export function invalidateMcpConfigCache(filePath?: string): void {
+  if (filePath) {
+    mcpConfigCache.delete(resolve(filePath))
+    return
+  }
+  mcpConfigCache.clear()
+}
+
 function findUpwards(startDir: string, relativePath: string): string | undefined {
   let dir = resolve(startDir)
   while (true) {

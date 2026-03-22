@@ -46,5 +46,6 @@ describe("main security helpers", () => {
     expect(shouldApplyRendererCsp("http://127.0.0.1:5173/", "http://127.0.0.1:5173")).toBe(true)
     expect(shouldApplyRendererCsp("http://127.0.0.1:4173/", "http://127.0.0.1:5173")).toBe(false)
     expect(shouldApplyRendererCsp("file:///tmp/index.html", "http://127.0.0.1:5173")).toBe(false)
+    expect(shouldApplyRendererCsp("file:///tmp/index.html")).toBe(true)
   })
 })

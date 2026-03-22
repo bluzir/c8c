@@ -1,11 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DiscoveredSkill } from "@shared/types"
 
 const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>()
 
 const scanAllSkillsMock = vi.fn<(...args: unknown[]) => Promise<DiscoveredSkill[]>>()
 const scanAllLibrariesMock = vi.fn<(...args: unknown[]) => Promise<DiscoveredSkill[]>>()
-const allowedProjectRootsMock = vi.fn<(...args: unknown[]) => Promise<string[]>>()
+const assertRegisteredProjectPathMock = vi.fn<(...args: unknown[]) => Promise<string>>()
+const allowedSkillContentRootsMock = vi.fn<(...args: unknown[]) => Promise<string[]>>()
+const assertWithinRootsMock = vi.fn<(...args: unknown[]) => string>((candidatePath) => candidatePath as string)
 const trackTelemetryEventMock = vi.fn<(...args: unknown[]) => Promise<void>>(() => Promise.resolve())
 
 vi.mock("electron", () => ({
@@ -33,16 +38,28 @@ vi.mock("../lib/skill-scanner", () => ({
   },
 }))
 
+vi.mock("../lib/skill-scan-cache", () => ({
+  getCachedProjectSkills: (...args: unknown[]) => scanAllSkillsMock(...args),
+  invalidateProjectSkillScan: vi.fn(),
+}))
+
 vi.mock("../lib/libraries", () => ({
+  ensureLibrariesDir: vi.fn(),
   scanAllLibraries: (...args: unknown[]) => scanAllLibrariesMock(...args),
 }))
 
 vi.mock("../lib/security-paths", () => ({
-  allowedProjectRoots: (...args: unknown[]) => allowedProjectRootsMock(...args),
+  assertRegisteredProjectPath: (...args: unknown[]) => assertRegisteredProjectPathMock(...args),
+  allowedSkillContentRoots: (...args: unknown[]) => allowedSkillContentRootsMock(...args),
+  assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
 }))
 
 vi.mock("../lib/skill-scaffold", () => ({
   scaffoldMissingSkills: vi.fn(),
+}))
+
+vi.mock("../lib/plugins", () => ({
+  ensurePluginMarketplacesDir: vi.fn(),
 }))
 
 vi.mock("../lib/telemetry/service", () => ({
@@ -75,11 +92,21 @@ function deferred<T>() {
 }
 
 describe("skills IPC scan lock", () => {
+  let workspace: string
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
     ipcHandlers.clear()
-    allowedProjectRootsMock.mockResolvedValue(["/project"])
+    assertRegisteredProjectPathMock.mockImplementation(async (projectPath: string) => projectPath)
+    allowedSkillContentRootsMock.mockResolvedValue(["/project/.claude/skills"])
+  })
+
+  afterEach(async () => {
+    if (workspace) {
+      await rm(workspace, { recursive: true, force: true })
+      workspace = ""
+    }
   })
 
   it("dedupes concurrent scans for the same project", async () => {
@@ -144,5 +171,48 @@ describe("skills IPC scan lock", () => {
     expect(firstResult[1]?.path).toBe(projectSkillB.path)
     expect(firstResult[2]?.path).toBe(librarySkillDuplicate.path)
     expect(firstResult[3]?.path).toBe(librarySkillUnique.path)
+  })
+
+  it("creates new skill templates with frontmatter metadata", async () => {
+    workspace = await mkdtemp(join(tmpdir(), "skills-ipc-test-"))
+    assertRegisteredProjectPathMock.mockResolvedValue(workspace)
+
+    const { registerSkillsHandlers } = await import("./skills")
+    registerSkillsHandlers()
+
+    const createTemplateHandler = ipcHandlers.get("skills:create-template") as
+      | ((event: unknown, projectPath: string) => Promise<string>)
+      | undefined
+    expect(createTemplateHandler).toBeDefined()
+
+    const createdPath = await createTemplateHandler!(undefined, workspace)
+    const template = await readFile(createdPath, "utf-8")
+
+    expect(template).toContain("---")
+    expect(template).toContain("name: New Skill")
+    expect(template).toContain("description: Describe what this skill should do.")
+    expect(template).toContain("# New Skill")
+  })
+
+  it("reads skill content only from markdown skill files inside allowed skill roots", async () => {
+    workspace = await mkdtemp(join(tmpdir(), "skills-ipc-test-"))
+    const skillPath = join(workspace, ".claude", "skills", "writer.md")
+    await mkdir(join(workspace, ".claude", "skills"), { recursive: true })
+    await writeFile(skillPath, "# Writer\n", "utf-8")
+    allowedSkillContentRootsMock.mockResolvedValue([join(workspace, ".claude", "skills")])
+    assertWithinRootsMock.mockImplementation((candidatePath) => candidatePath as string)
+
+    const { registerSkillsHandlers } = await import("./skills")
+    registerSkillsHandlers()
+
+    const readHandler = ipcHandlers.get("skills:read-content") as
+      | ((event: unknown, filePath: string) => Promise<string>)
+      | undefined
+    expect(readHandler).toBeDefined()
+
+    await expect(readHandler!(undefined, skillPath)).resolves.toBe("# Writer\n")
+    await expect(readHandler!(undefined, join(workspace, ".claude", "skills", "writer.txt"))).rejects.toThrow(
+      "Skill file path must reference a skill markdown file",
+    )
   })
 })

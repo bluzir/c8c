@@ -10,6 +10,21 @@ interface PersistedEventsTail {
   truncated: boolean
 }
 
+function isMissingFile(error: unknown): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && String((error as { code?: unknown }).code) === "ENOENT"
+}
+
+function decodeUtf8TailBuffer(buffer: Buffer): string {
+  let start = 0
+  while (start < buffer.length && (buffer[start] & 0b11000000) === 0b10000000) {
+    start += 1
+  }
+  return buffer.subarray(start).toString("utf-8")
+}
+
 function isNodeLogEvent(event: WorkflowEvent): event is Extract<WorkflowEvent, { type: "node-log" }> {
   return event.type === "node-log"
 }
@@ -78,33 +93,40 @@ export function mergeNodeLogsIntoSnapshot(
 
 export async function readPersistedEventsTail(workspace: string): Promise<PersistedEventsTail | null> {
   const eventsPath = join(workspace, "events.jsonl")
-  const info = await stat(eventsPath)
-  if (info.size <= MAX_PERSISTED_EVENTS_BYTES) {
-    return {
-      raw: await readFile(eventsPath, "utf-8"),
-      truncated: false,
-    }
-  }
-
-  const retainedBytes = Math.min(info.size, MAX_PERSISTED_EVENTS_BYTES)
-  const readOffset = Math.max(0, info.size - retainedBytes)
-  const buffer = Buffer.alloc(retainedBytes)
-  const handle = await open(eventsPath, "r")
   try {
-    await handle.read(buffer, 0, retainedBytes, readOffset)
-  } finally {
-    await handle.close()
-  }
+    const info = await stat(eventsPath)
+    if (info.size <= MAX_PERSISTED_EVENTS_BYTES) {
+      return {
+        raw: await readFile(eventsPath, "utf-8"),
+        truncated: false,
+      }
+    }
 
-  logWarn("run-snapshot-ipc", "events_tail_truncated", {
-    workspace,
-    size: info.size,
-    retainedBytes,
-  })
+    const retainedBytes = Math.min(info.size, MAX_PERSISTED_EVENTS_BYTES)
+    const readOffset = Math.max(0, info.size - retainedBytes)
+    const buffer = Buffer.alloc(retainedBytes)
+    const handle = await open(eventsPath, "r")
+    try {
+      await handle.read(buffer, 0, retainedBytes, readOffset)
+    } finally {
+      await handle.close()
+    }
 
-  return {
-    raw: buffer.toString("utf-8"),
-    truncated: true,
+    logWarn("run-snapshot-ipc", "events_tail_truncated", {
+      workspace,
+      size: info.size,
+      retainedBytes,
+    })
+
+    return {
+      raw: decodeUtf8TailBuffer(buffer),
+      truncated: true,
+    }
+  } catch (error) {
+    if (isMissingFile(error)) {
+      return null
+    }
+    throw error
   }
 }
 

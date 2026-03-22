@@ -1,5 +1,6 @@
+import { existsSync, realpathSync } from "node:fs"
 import { readdir, readFile, mkdir, access, rm } from "node:fs/promises"
-import { join, basename } from "node:path"
+import { join, basename, dirname, relative, resolve } from "node:path"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import matter from "gray-matter"
@@ -13,6 +14,28 @@ function librariesDir(): string {
   return join(resolveAppHomeDir(), ".c8c", "libraries")
 }
 
+function canonicalizePath(inputPath: string): string {
+  const resolvedPath = resolve(inputPath)
+  if (existsSync(resolvedPath)) {
+    return realpathSync(resolvedPath)
+  }
+  const parentPath = dirname(resolvedPath)
+  if (parentPath === resolvedPath) {
+    return resolvedPath
+  }
+  return join(canonicalizePath(parentPath), basename(resolvedPath))
+}
+
+function assertWithinLibrariesDir(candidatePath: string, rootPath: string): string {
+  const candidate = canonicalizePath(candidatePath)
+  const root = canonicalizePath(rootPath)
+  const rel = relative(root, candidate)
+  if (rel === "" || (!rel.startsWith("..") && !rel.includes("..\\"))) {
+    return resolve(candidatePath)
+  }
+  throw new Error("Library path is outside allowed directories")
+}
+
 function errorCode(error: unknown): string | undefined {
   if (typeof error === "object" && error !== null && "code" in error) {
     const code = (error as { code?: unknown }).code
@@ -23,6 +46,38 @@ function errorCode(error: unknown): string | undefined {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function normalizeString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed || undefined
+}
+
+function normalizeStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const normalized = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (normalized.length === 0) return undefined
+  return [...new Set(normalized)]
+}
+
+function normalizePositiveInteger(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined
+  const normalized = Math.floor(value)
+  return normalized >= 1 ? normalized : undefined
+}
+
+function skillFrontmatterMetadata(data: Record<string, unknown>) {
+  return {
+    model: normalizeString(data.model),
+    tools: normalizeStringList(data.tools),
+    maxTurns: normalizePositiveInteger(data.maxTurns ?? data.max_turns),
+    allowedTools: normalizeStringList(data.allowedTools ?? data.allowed_tools),
+    disallowedTools: normalizeStringList(data.disallowedTools ?? data.disallowed_tools),
+  }
 }
 
 export interface SkillLibrary {
@@ -142,7 +197,8 @@ export async function ensureLibrariesDir(): Promise<string> {
 }
 
 export async function getLibraryPath(id: string): Promise<string> {
-  return join(librariesDir(), id)
+  const dir = await ensureLibrariesDir()
+  return assertWithinLibrariesDir(join(dir, id), dir)
 }
 
 export async function installLibrary(lib: Omit<SkillLibrary, "installed">): Promise<void> {
@@ -161,7 +217,8 @@ export async function installLibrary(lib: Omit<SkillLibrary, "installed">): Prom
 }
 
 export async function removeLibrary(id: string): Promise<void> {
-  const dest = join(librariesDir(), id)
+  const dir = await ensureLibrariesDir()
+  const dest = assertWithinLibrariesDir(join(dir, id), dir)
   if (await exists(dest)) {
     await rm(dest, { recursive: true, force: true })
   }
@@ -254,11 +311,7 @@ async function scanFlatCategories(
           path: fullPath,
           format: "claude-markdown",
           sourceScope: "library",
-          model: data.model,
-          tools: data.tools,
-          maxTurns: data.maxTurns || data.max_turns,
-          allowedTools: data.allowedTools || data.allowed_tools,
-          disallowedTools: data.disallowedTools || data.disallowed_tools,
+          ...skillFrontmatterMetadata(data),
         })
       } catch (error) {
         if (errorCode(error) !== "ENOENT") {
@@ -319,11 +372,7 @@ async function scanSkillDirs(
         path: skillFile,
         format: "codex-skill",
         sourceScope: "library",
-        model: data.model,
-        tools: data.tools,
-        maxTurns: data.maxTurns || data.max_turns,
-        allowedTools: data.allowedTools || data.allowed_tools,
-        disallowedTools: data.disallowedTools || data.disallowed_tools,
+        ...skillFrontmatterMetadata(data),
       })
     } catch (error) {
       if (errorCode(error) !== "ENOENT") {

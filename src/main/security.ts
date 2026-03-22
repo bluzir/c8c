@@ -68,9 +68,12 @@ export function applyContentSecurityPolicyHeader(
 
 export function shouldApplyRendererCsp(requestUrl: string, rendererUrl?: string): boolean {
   const rendererOrigin = parseRendererOrigin(rendererUrl)
-  if (!rendererOrigin) return false
   try {
-    return new URL(requestUrl).origin === rendererOrigin
+    const parsed = new URL(requestUrl)
+    if (rendererOrigin) {
+      return parsed.origin === rendererOrigin
+    }
+    return parsed.protocol === "file:"
   } catch {
     return false
   }

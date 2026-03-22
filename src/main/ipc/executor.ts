@@ -59,12 +59,14 @@ import {
 import { formatWorkflowExecutionIssue, validateWorkflowForExecution } from "@shared/workflow-execution-validation"
 import { sendWorkflowEvent } from "../workflow-notifications"
 import { hydratePersistedRunSnapshotLogs, readPersistedEventsTail } from "./run-snapshot"
+import { parseWorkflowPayload } from "@shared/workflow-payload"
 
 let runCounter = 0
 let batchCounter = 0
 const activeWindowExecutions = new Map<number, Set<string>>()
 const windowLifecycleBindings = new Set<number>()
 const HUMAN_TASK_STATUSES = new Set(["open", "answered", "rejected", "timed_out", "consumed"])
+const MAX_CONCURRENT_EXECUTIONS_PER_WINDOW = 8
 
 function isHumanTaskLifecycleStatus(value: unknown): value is HumanTaskPointer["status"] {
   return typeof value === "string" && HUMAN_TASK_STATUSES.has(value)
@@ -253,6 +255,28 @@ async function resolveSafeStartProjectPath(
       startError: createExecutionStartError(errorMessage(error)),
     }
   }
+}
+
+function resolveSafeWorkflowPayload(
+  workflow: unknown,
+  action: string,
+): { workflow?: Workflow; startError?: ExecutionStartError } {
+  try {
+    return { workflow: parseWorkflowPayload(workflow, "Workflow payload") }
+  } catch (error) {
+    const message = errorMessage(error)
+    logWarn("executor-ipc", "workflow_payload_validation_failed", {
+      action,
+      error: message,
+    })
+    return {
+      startError: createExecutionStartError(message, "validation"),
+    }
+  }
+}
+
+function hasReachedWindowExecutionCap(windowId: number): boolean {
+  return (activeWindowExecutions.get(windowId)?.size ?? 0) >= MAX_CONCURRENT_EXECUTIONS_PER_WINDOW
 }
 
 async function assertRunWorkspacePath(workspace: string): Promise<string> {
@@ -676,6 +700,13 @@ function createValidationStartError(workflow: Workflow): ExecutionStartError | n
   )
 }
 
+function createExecutionLimitStartError(): ExecutionStartError {
+  return createExecutionStartError(
+    `Too many active executions in this window. Close or cancel a run before starting another (max ${MAX_CONCURRENT_EXECUTIONS_PER_WINDOW}).`,
+    "preflight",
+  )
+}
+
 async function createExecutionStartBlocker(
   workflow: Workflow,
   precheckEvent: string,
@@ -713,6 +744,10 @@ export function registerExecutorHandlers() {
       if (!window) return null
       const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:run")
       if (startError) return startError
+      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:run")
+      if (workflowError) return workflowError
+      workflow = safeWorkflow!
+      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
 
       const startBlocker = await createExecutionStartBlocker(workflow, "run_precheck_failed")
       if (startBlocker) return startBlocker
@@ -799,6 +834,10 @@ export function registerExecutorHandlers() {
       if (!window) return null
       const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:rerun-from")
       if (startError) return startError
+      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:rerun-from")
+      if (workflowError) return workflowError
+      workflow = safeWorkflow!
+      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
 
       const startBlocker = await createExecutionStartBlocker(workflow, "rerun_precheck_failed")
       if (startBlocker) return startBlocker
@@ -873,6 +912,10 @@ export function registerExecutorHandlers() {
       if (!window) return null
       const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:continue")
       if (startError) return startError
+      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:continue")
+      if (workflowError) return workflowError
+      workflow = safeWorkflow!
+      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
 
       const startBlocker = await createExecutionStartBlocker(workflow, "continue_precheck_failed")
       if (startBlocker) return startBlocker
@@ -1050,6 +1093,10 @@ export function registerExecutorHandlers() {
       if (!window) return null
       const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:run-batch")
       if (startError) return startError
+      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:run-batch")
+      if (workflowError) return workflowError
+      workflow = safeWorkflow!
+      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
 
       const startBlocker = await createExecutionStartBlocker(workflow, "batch_precheck_failed")
       if (startBlocker) return startBlocker

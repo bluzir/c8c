@@ -314,11 +314,11 @@ describe("executor IPC", () => {
     {
       name: "run",
       channel: "executor:run",
-      invoke: (event: unknown, projectPath?: string) => {
+      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
         const handler = getHandler<
           (event: unknown, workflow: Workflow, input: WorkflowInput, projectPath?: string, workflowPath?: string) => Promise<ExecutionStartResult>
         >("executor:run")
-        return handler(event, TEST_WORKFLOW, TEST_INPUT, projectPath, "/tmp/workflow.chain")
+        return handler(event, workflow, TEST_INPUT, projectPath, "/tmp/workflow.chain")
       },
       targetMock: runWorkflowMock,
       projectPathArgIndex: 4,
@@ -326,7 +326,7 @@ describe("executor IPC", () => {
     {
       name: "rerun-from",
       channel: "executor:rerun-from",
-      invoke: (event: unknown, projectPath?: string) => {
+      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
         const handler = getHandler<
           (
             event: unknown,
@@ -337,7 +337,7 @@ describe("executor IPC", () => {
             workflowPath?: string,
           ) => Promise<ExecutionStartResult>
         >("executor:rerun-from")
-        return handler(event, "input", TEST_WORKFLOW, "/reports/workspace", projectPath, "/tmp/workflow.chain")
+        return handler(event, "input", workflow, "/reports/workspace", projectPath, "/tmp/workflow.chain")
       },
       targetMock: rerunFromNodeMock,
       projectPathArgIndex: 5,
@@ -345,7 +345,7 @@ describe("executor IPC", () => {
     {
       name: "continue",
       channel: "executor:continue",
-      invoke: (event: unknown, projectPath?: string) => {
+      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
         const handler = getHandler<
           (
             event: unknown,
@@ -355,7 +355,7 @@ describe("executor IPC", () => {
             workflowPath?: string,
           ) => Promise<ExecutionStartResult>
         >("executor:continue")
-        return handler(event, TEST_WORKFLOW, "/reports/workspace", projectPath, "/tmp/workflow.chain")
+        return handler(event, workflow, "/reports/workspace", projectPath, "/tmp/workflow.chain")
       },
       targetMock: continueRunFromWorkspaceMock,
       projectPathArgIndex: 4,
@@ -363,7 +363,7 @@ describe("executor IPC", () => {
     {
       name: "run-batch",
       channel: "executor:run-batch",
-      invoke: (event: unknown, projectPath?: string) => {
+      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
         const handler = getHandler<
           (
             event: unknown,
@@ -375,7 +375,7 @@ describe("executor IPC", () => {
             workflowPath?: string,
           ) => Promise<ExecutionStartResult>
         >("executor:run-batch")
-        return handler(event, TEST_WORKFLOW, [TEST_INPUT], 1, false, projectPath, "/tmp/workflow.chain")
+        return handler(event, workflow, [TEST_INPUT], 1, false, projectPath, "/tmp/workflow.chain")
       },
       targetMock: runBatchMock,
       projectPathArgIndex: 6,
@@ -411,6 +411,54 @@ describe("executor IPC", () => {
     expect(scaffoldMissingSkillsMock).toHaveBeenCalledWith(TEST_WORKFLOW, [], "/safe/project")
     expect(targetMock).toHaveBeenCalledTimes(1)
     expect(targetMock.mock.calls[0]?.[projectPathArgIndex]).toBe("/safe/project")
+  })
+
+  it.each(startCases)("returns a structured validation error for malformed workflow payload in $name", async ({ invoke, targetMock }) => {
+    const { registerExecutorHandlers } = await import("./executor")
+    registerExecutorHandlers()
+    const owner = createEvent(1)
+
+    const result = await invoke(owner.event, undefined, {
+      version: 1,
+      name: "Broken",
+      nodes: [{ id: "input", type: "input", position: { x: "0", y: 0 }, config: {} }],
+      edges: [],
+    } as unknown as Workflow)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        code: "validation",
+        error: 'Workflow payload node "input" position must include finite x/y numbers.',
+      }),
+    )
+    expect(targetMock).not.toHaveBeenCalled()
+  })
+
+  it("caps concurrent executions per window before starting another run", async () => {
+    const runDeferred = createDeferred<void>()
+    runWorkflowMock.mockReturnValue(runDeferred.promise)
+
+    const { registerExecutorHandlers } = await import("./executor")
+    registerExecutorHandlers()
+    const owner = createEvent(1)
+    const runHandler = getHandler<
+      (event: unknown, workflow: Workflow, input: WorkflowInput, projectPath?: string, workflowPath?: string) => Promise<ExecutionStartResult>
+    >("executor:run")
+
+    for (let index = 0; index < 8; index += 1) {
+      const result = await runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT)
+      expect(typeof result).toBe("string")
+    }
+
+    await expect(runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT)).resolves.toEqual(
+      expect.objectContaining({
+        code: "preflight",
+        error: "Too many active executions in this window. Close or cancel a run before starting another (max 8).",
+      }),
+    )
+
+    runDeferred.resolve()
+    await runDeferred.promise
   })
 
   const runMutationCases = [

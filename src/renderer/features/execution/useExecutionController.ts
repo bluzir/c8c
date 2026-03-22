@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { useAtomValue } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError } from "@/lib/toast-error"
@@ -14,7 +14,12 @@ import type {
   WorkflowExecutionState,
   WorkflowNode,
 } from "@/lib/workflow-execution"
-import { inboxNotificationsAtom, workflowTemplateContextsAtom, type CreateInboxNotification } from "@/lib/store"
+import {
+  hasCompletedFirstFlowAtom,
+  inboxNotificationsAtom,
+  workflowTemplateContextsAtom,
+  type CreateInboxNotification,
+} from "@/lib/store"
 import type { ActiveExecutionSnapshot, RunResult, WorkflowEvent } from "@shared/types"
 import { useInboxNotifications } from "@/hooks/useInboxNotifications"
 
@@ -150,6 +155,7 @@ export function useExecutionController({
   const { addNotification, removeByPersistentKeys } = useInboxNotifications()
   const inboxNotifications = useAtomValue(inboxNotificationsAtom)
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
+  const setHasCompletedFirstFlow = useSetAtom(hasCompletedFirstFlowAtom)
   const commitExecutionStateRef = useRef(commitExecutionState)
   const updateApprovalRequestsRef = useRef(updateApprovalRequests)
   const setPastRunsRef = useRef(setPastRuns)
@@ -210,11 +216,7 @@ export function useExecutionController({
         })
 
         if (state.runOutcome === "completed") {
-          try {
-            localStorage.setItem("c8c:has-completed-first-flow", JSON.stringify(true))
-          } catch {
-            // localStorage may be unavailable in some environments
-          }
+          setHasCompletedFirstFlow(true)
         }
 
         if (

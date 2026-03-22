@@ -28,38 +28,46 @@ describe("mcp-tools-cache", () => {
 
   it("returns cached tools before TTL expiry", () => {
     const tools = [createTool("search")]
-    setCachedTools("server-a", tools)
+    setCachedTools("server-a", tools, "/project-a")
 
-    expect(getCachedTools("server-a")).toEqual(tools)
+    expect(getCachedTools("server-a", "/project-a")).toEqual(tools)
   })
 
   it("expires stale entries after the TTL", () => {
-    setCachedTools("server-a", [createTool("search")])
+    setCachedTools("server-a", [createTool("search")], "/project-a")
 
     vi.advanceTimersByTime(5 * 60 * 1000 + 1)
 
-    expect(getCachedTools("server-a")).toBeNull()
+    expect(getCachedTools("server-a", "/project-a")).toBeNull()
   })
 
   it("invalidates a single server or the whole cache", () => {
-    setCachedTools("server-a", [createTool("search")])
-    setCachedTools("server-b", [createTool("fetch")])
+    setCachedTools("server-a", [createTool("search")], "/project-a")
+    setCachedTools("server-b", [createTool("fetch")], "/project-a")
 
-    invalidateCache("server-a")
-    expect(getCachedTools("server-a")).toBeNull()
-    expect(getCachedTools("server-b")).toEqual([createTool("fetch")])
+    invalidateCache("server-a", "/project-a")
+    expect(getCachedTools("server-a", "/project-a")).toBeNull()
+    expect(getCachedTools("server-b", "/project-a")).toEqual([createTool("fetch")])
 
     invalidateCache()
-    expect(getCachedTools("server-b")).toBeNull()
+    expect(getCachedTools("server-b", "/project-a")).toBeNull()
   })
 
   it("prunes expired entries while collecting all cached tools", () => {
-    setCachedTools("server-a", [createTool("search")])
+    setCachedTools("server-a", [createTool("search")], "/project-a")
     vi.advanceTimersByTime(5 * 60 * 1000 + 1)
-    setCachedTools("server-b", [createTool("fetch")])
+    setCachedTools("server-b", [createTool("fetch")], "/project-a")
 
-    expect(getAllCachedTools()).toEqual([createTool("fetch")])
-    expect(getCachedTools("server-a")).toBeNull()
-    expect(getCachedTools("server-b")).toEqual([createTool("fetch")])
+    expect(getAllCachedTools("/project-a")).toEqual([createTool("fetch")])
+    expect(getCachedTools("server-a", "/project-a")).toBeNull()
+    expect(getCachedTools("server-b", "/project-a")).toEqual([createTool("fetch")])
+  })
+
+  it("isolates entries with the same server name across projects", () => {
+    setCachedTools("server-a", [createTool("search")], "/project-a")
+    setCachedTools("server-a", [createTool("fetch")], "/project-b")
+
+    expect(getCachedTools("server-a", "/project-a")).toEqual([createTool("search")])
+    expect(getCachedTools("server-a", "/project-b")).toEqual([createTool("fetch")])
   })
 })

@@ -2,22 +2,13 @@ import { ipcMain } from "electron"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { execFile } from "node:child_process"
 import { join, resolve, relative } from "node:path"
-import { allowedProjectRoots, assertWithinRoots } from "../lib/security-paths"
+import { assertRegisteredProjectPath, assertWithinRoots } from "../lib/security-paths"
 
 const MAX_RESULTS = 500
 const MAX_FILE_SIZE = 100 * 1024 // ~100KB
 
-async function assertProjectPath(projectPath: string): Promise<string> {
-  const resolvedPath = resolve(projectPath)
-  const projectRoots = await allowedProjectRoots()
-  if (!projectRoots.some((root) => root === resolvedPath)) {
-    throw new Error("Project path is not registered")
-  }
-  return resolvedPath
-}
-
 export async function gitLsFiles(projectPath: string, query?: string): Promise<string[]> {
-  const safePath = await assertProjectPath(projectPath)
+  const safePath = await assertRegisteredProjectPath(projectPath)
 
   return new Promise((resolve, reject) => {
     execFile(
@@ -80,7 +71,7 @@ export function registerFilesHandlers() {
       projectPath: string,
       query?: string,
     ): Promise<{ name: string; relativePath: string }[]> => {
-      const safePath = await assertProjectPath(projectPath)
+      const safePath = await assertRegisteredProjectPath(projectPath)
 
       try {
         const files = await gitLsFiles(safePath, query)
@@ -104,7 +95,7 @@ export function registerFilesHandlers() {
       filePath: string,
       projectPath: string,
     ): Promise<{ content: string; truncated: boolean }> => {
-      const safePath = await assertProjectPath(projectPath)
+      const safePath = await assertRegisteredProjectPath(projectPath)
       const resolvedFile = resolve(safePath, filePath)
       assertWithinRoots(resolvedFile, [safePath], "File path")
 

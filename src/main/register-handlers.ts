@@ -1,3 +1,4 @@
+import { ipcMain } from "electron"
 import type { BrowserWindow } from "electron"
 import { registerIpcHandlers } from "./ipc/projects"
 import { registerSkillsHandlers } from "./ipc/skills"
@@ -15,7 +16,9 @@ import { registerMcpHandlers } from "./ipc/mcp"
 import { registerFilesHandlers } from "./ipc/files"
 import { registerFactoryHandlers } from "./ipc/factory"
 import { registerTestHarnessHandlers } from "./ipc/test-harness"
+import { withGuardedIpcRegistration } from "./lib/ipc-guard"
 import { isTestMode } from "./lib/runtime-paths"
+import { logError, logInfo } from "./lib/structured-log"
 
 export function registerMainHandlers(
   getMainWindow: () => BrowserWindow | null,
@@ -38,12 +41,22 @@ export function registerMainHandlers(
     ...(isTestMode() ? [["test-harness", registerTestHarnessHandlers] as const] : []),
   ] as const
 
+  const failedDomains: string[] = []
+
   for (const [name, register] of handlers) {
     try {
-      register()
-      console.log(`[main] ✓ ${name} handlers registered`)
+      withGuardedIpcRegistration(ipcMain, register)
+      logInfo("register-handlers", "domain_registered", { name })
     } catch (error) {
-      console.error(`[main] ✗ FAILED to register ${name} handlers:`, error)
+      failedDomains.push(name)
+      logError("register-handlers", "domain_registration_failed", {
+        name,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
+  }
+
+  if (failedDomains.length > 0) {
+    throw new Error(`Failed to register IPC handler domains: ${failedDomains.join(", ")}`)
   }
 }

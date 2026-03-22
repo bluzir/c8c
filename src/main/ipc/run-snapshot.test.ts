@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import type { PersistedRunSnapshot } from "@shared/types"
-import { loadPersistedNodeLogs, mergeNodeLogsIntoSnapshot, parsePersistedNodeLogs } from "./run-snapshot"
+import { loadPersistedNodeLogs, mergeNodeLogsIntoSnapshot, parsePersistedNodeLogs, readPersistedEventsTail } from "./run-snapshot"
 
 describe("run snapshot log hydration", () => {
   it("parses node logs from persisted workflow events", () => {
@@ -77,7 +77,7 @@ describe("run snapshot log hydration", () => {
     it("loads only the retained tail of oversized events files", async () => {
       workspace = await mkdtemp(join(tmpdir(), "run-snapshot-test-"))
       const eventsPath = join(workspace, "events.jsonl")
-      const oversizedPrefix = "x".repeat(5 * 1024 * 1024 + 128)
+      const oversizedPrefix = `${"x".repeat(5 * 1024 * 1024 + 127)}€`
       const tailEvents = [
         JSON.stringify({
           type: "node-log",
@@ -102,6 +102,12 @@ describe("run snapshot log hydration", () => {
           { type: "thinking", content: "still here", timestamp: 21 },
         ],
       })
+    })
+
+    it("returns null when the events file is missing", async () => {
+      workspace = await mkdtemp(join(tmpdir(), "run-snapshot-test-"))
+
+      await expect(readPersistedEventsTail(workspace)).resolves.toBeNull()
     })
   })
 })
