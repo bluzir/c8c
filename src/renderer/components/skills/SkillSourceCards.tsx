@@ -33,7 +33,7 @@ export function MarketplaceCard({
 }) {
   return (
     <article className="ui-interactive-card rounded-lg surface-panel px-4 py-3 flex items-center gap-3">
-      <div className="h-control-lg w-control-lg rounded-lg border border-border bg-surface-2 flex items-center justify-center">
+      <div className="h-control-lg w-control-lg rounded-lg bg-surface-2 flex items-center justify-center">
         <Store size={18} className="text-muted-foreground" />
       </div>
 
@@ -112,7 +112,7 @@ export function PluginCard({
 }) {
   return (
     <article className="ui-interactive-card rounded-lg surface-panel px-4 py-3 flex items-center gap-3">
-      <div className="h-control-lg w-control-lg rounded-lg border border-border bg-surface-2 flex items-center justify-center">
+      <div className="h-control-lg w-control-lg rounded-lg bg-surface-2 flex items-center justify-center">
         <Package size={18} className="text-muted-foreground" />
       </div>
 
@@ -187,7 +187,7 @@ export function SkillLibraryCard({
         "flex items-center gap-3",
       )}
     >
-      <div className="h-control-lg w-control-lg rounded-lg border border-border bg-surface-2 flex items-center justify-center">
+      <div className="h-control-lg w-control-lg rounded-lg bg-surface-2 flex items-center justify-center">
         <Library size={18} className="text-muted-foreground" />
       </div>
 

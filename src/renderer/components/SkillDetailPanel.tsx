@@ -98,7 +98,7 @@ export function SkillDetailPanel({
     <aside className="w-full lg:w-[22rem] lg:max-h-[calc(100vh-var(--titlebar-height)-6rem)] lg:self-start lg:sticky lg:top-0 flex-shrink-0 overflow-hidden rounded-xl surface-panel flex flex-col">
       <header className="border-b border-border px-4 py-4">
         <div className="flex items-start gap-3">
-          <div className="surface-inset-card flex h-control-lg w-control-lg shrink-0 items-center justify-center p-0">
+          <div className="flex h-control-lg w-control-lg shrink-0 items-center justify-center rounded-lg bg-surface-2">
             <Wrench size={16} className="text-muted-foreground" />
           </div>
 

@@ -139,8 +139,8 @@ export function SkillsAttachSection({
                           onClick={() => onSelectSkill(skill)}
                           aria-pressed={isSelected}
                           className={cn(
-                            "ui-interactive-card min-w-0 flex-1 !justify-start gap-3 rounded-md border border-transparent text-left !whitespace-normal",
-                            isSelected && "surface-inset-card shadow-inset-highlight",
+                            "ui-interactive-card min-w-0 flex-1 !justify-start gap-3 rounded-md text-left !whitespace-normal",
+                            isSelected && "bg-surface-2/70",
                           )}
                         >
                           <div className="min-w-0 flex-1 space-y-1.5">
