@@ -13,19 +13,119 @@ import {
 import { OutputPanelHistoryContent } from "@/components/output/OutputPanelHistoryContent"
 import { OutputPanelLogContent } from "@/components/output/OutputPanelLogContent"
 import { ResultTab } from "@/components/output/ResultTab"
-import type { ArtifactRecord, LoadedRunResult, RunResult, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  ErrorKind,
+  LoadedRunResult,
+  RunResult,
+  WorkflowTemplate,
+} from "@shared/types"
 import { ExecutionSurfaceNoticeBanner } from "@/components/ui/execution-surface-notice"
 import { useOutputPanelActions } from "@/components/output/useOutputPanelActions"
 import { useOutputPanelCommandBindings } from "@/components/output/useOutputPanelCommandBindings"
 import { useOutputPanelDerivedState } from "@/components/output/useOutputPanelDerivedState"
 import { useOutputPanelSurfaceState } from "@/components/output/useOutputPanelSurfaceState"
-import type { OutputTabRequest, OutputTabValue } from "@/components/output/outputPanelTypes"
+import type {
+  OutputTabRequest,
+  OutputTabValue,
+} from "@/components/output/outputPanelTypes"
 import { cn } from "@/lib/cn"
+
+function deriveFailureRecovery(
+  errorKind: ErrorKind | null | undefined,
+  errorText: string | null | undefined,
+) {
+  const normalized = (errorText || "").toLowerCase()
+
+  if (
+    normalized.includes("api key") ||
+    normalized.includes("not authenticated") ||
+    normalized.includes("not logged in") ||
+    normalized.includes("login required") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("401") ||
+    normalized.includes("403")
+  ) {
+    return {
+      categoryLabel: "Authentication issue",
+      hint: "Check provider login or API key in Settings, then retry the failing step.",
+    }
+  }
+
+  if (
+    normalized.includes("rate limit") ||
+    normalized.includes("too many requests") ||
+    normalized.includes("429")
+  ) {
+    return {
+      categoryLabel: "Rate limit",
+      hint: "Wait a moment, then retry the failing step.",
+    }
+  }
+
+  if (
+    errorKind === "timeout" ||
+    normalized.includes("timed out") ||
+    normalized.includes("timeout")
+  ) {
+    return {
+      categoryLabel: "Timeout",
+      hint: "Retry the step or raise the timeout if this work usually runs longer.",
+    }
+  }
+
+  if (
+    errorKind === "network" ||
+    normalized.includes("network") ||
+    normalized.includes("socket") ||
+    normalized.includes("dns") ||
+    normalized.includes("fetch failed") ||
+    normalized.includes("econn")
+  ) {
+    return {
+      categoryLabel: "Network issue",
+      hint: "Check connectivity or retry once the upstream service is reachable.",
+    }
+  }
+
+  if (
+    errorKind === "policy" ||
+    normalized.includes("policy") ||
+    normalized.includes("blocked by")
+  ) {
+    return {
+      categoryLabel: "Flow rule block",
+      hint: "Review the active rules or approval policy, then retry the blocked step.",
+    }
+  }
+
+  if (errorKind === "tool" || normalized.includes("tool")) {
+    return {
+      categoryLabel: "Tool failure",
+      hint: "Inspect the step log for the failing tool call, then retry this step.",
+    }
+  }
+
+  if (errorKind === "model") {
+    return {
+      categoryLabel: "Model error",
+      hint: "Retry the step. If it repeats, inspect the prompt or provider state.",
+    }
+  }
+
+  return {
+    categoryLabel: "Execution error",
+    hint: "Inspect the failing step, then retry from there if the issue looks transient.",
+  }
+}
 
 // ── Main OutputPanel ─────────────────────────────────────
 
 export function OutputPanel({
-  onOpenReport = (path: string) => { void window.api.openReport(path) },
+  onOpenReport = (path: string) => {
+    void window.api.openReport(path)
+  },
   onRerunFrom,
   onContinueRun,
   requestedTab,
@@ -46,7 +146,10 @@ export function OutputPanel({
   onUseInNewFlow = null,
 }: {
   onOpenReport?: (path: string) => void | Promise<void>
-  onRerunFrom?: (nodeId: string, options?: { workspace?: string | null }) => Promise<void> | void
+  onRerunFrom?: (
+    nodeId: string,
+    options?: { workspace?: string | null },
+  ) => Promise<void> | void
   onContinueRun?: (run: RunResult) => Promise<void> | void
   requestedTab?: OutputTabRequest | null
   reviewingPastRun?: boolean
@@ -93,7 +196,8 @@ export function OutputPanel({
     runId,
     evalOverrideNodeIds,
   } = useOutputPanel()
-  const [outputContextMenu, setOutputContextMenu] = useState<OutputPanelContextMenuState>(null)
+  const [outputContextMenu, setOutputContextMenu] =
+    useState<OutputPanelContextMenuState>(null)
   const {
     selectedReviewRun,
     rerunWorkspace,
@@ -184,37 +288,81 @@ export function OutputPanel({
     if (!selectedStageId) return null
     return workflow.nodes.find((n) => n.id === selectedStageId) ?? null
   }, [selectedStageId, workflow.nodes])
-  const displayNodeIds = useMemo(() => allDisplayNodes.map((node) => node.id), [allDisplayNodes])
-  const summaryProgressItems = useMemo(() => ([
-    workflowStepCount > 0 ? `${completedStageCount}/${workflowStepCount} done` : null,
-    failedStageCount > 0
-      ? `${failedStageCount} need${failedStageCount === 1 ? "s" : ""} attention`
-      : blockedStageCount > 0
-        ? `${blockedStageCount} blocked`
-        : runningStageCount > 0
-          ? `${runningStageCount} running`
-          : pendingStageCount > 0 && completedStageCount === 0
-            ? "Ready to run"
-            : null,
-  ].filter(Boolean) as string[]), [
-    blockedStageCount,
-    completedStageCount,
-    failedStageCount,
-    pendingStageCount,
-    runningStageCount,
-    workflowStepCount,
-  ])
+  const displayNodeIds = useMemo(
+    () => allDisplayNodes.map((node) => node.id),
+    [allDisplayNodes],
+  )
+  const summaryProgressItems = useMemo(
+    () =>
+      [
+        workflowStepCount > 0
+          ? `${completedStageCount}/${workflowStepCount} done`
+          : null,
+        failedStageCount > 0
+          ? `${failedStageCount} need${failedStageCount === 1 ? "s" : ""} attention`
+          : blockedStageCount > 0
+            ? `${blockedStageCount} blocked`
+            : runningStageCount > 0
+              ? `${runningStageCount} running`
+              : pendingStageCount > 0 && completedStageCount === 0
+                ? "Ready to run"
+                : null,
+      ].filter(Boolean) as string[],
+    [
+      blockedStageCount,
+      completedStageCount,
+      failedStageCount,
+      pendingStageCount,
+      runningStageCount,
+      workflowStepCount,
+    ],
+  )
   const historyScopeLabel = useMemo(
-    () => `History: ${selectedReviewRun?.workflowName || executionWorkflowName || workflow.name || "Flow"}`,
+    () =>
+      `History: ${selectedReviewRun?.workflowName || executionWorkflowName || workflow.name || "Flow"}`,
     [executionWorkflowName, selectedReviewRun?.workflowName, workflow.name],
   )
+  const primaryFailedStep = useMemo(() => {
+    const [nodeId, state] = failedNodeErrors[0] || []
+    if (!nodeId || !state) return null
+    const node =
+      allDisplayNodes.find((candidate) => candidate.id === nodeId) || null
+    return {
+      id: nodeId,
+      label: node?.label || nodeId,
+      error: state.error || null,
+      errorKind: displayNodeStates[nodeId]?.errorKind || null,
+    }
+  }, [allDisplayNodes, displayNodeStates, failedNodeErrors])
+  const failureRecovery = useMemo(
+    () =>
+      deriveFailureRecovery(
+        primaryFailedStep?.errorKind,
+        primaryFailedStep?.error,
+      ),
+    [primaryFailedStep?.error, primaryFailedStep?.errorKind],
+  )
+  const retryStepLabel =
+    selectedStagePresentation?.title || primaryFailedStep?.label || null
 
-  const handleRerunFrom = useCallback((nodeId: string) => {
-    if (!onRerunFrom || !rerunWorkspace) return
-    void onRerunFrom(nodeId, { workspace: rerunWorkspace })
-  }, [onRerunFrom, rerunWorkspace])
-  const canInspectActivity = !showIdleState && (!reviewingRunHistory || canInspectSavedRun)
-  const canInspectLog = !showIdleState && Boolean(selectedStageId) && (!reviewingRunHistory || canInspectSavedRun)
+  const handleRerunFrom = useCallback(
+    (nodeId: string) => {
+      if (!onRerunFrom || !rerunWorkspace) return
+      void onRerunFrom(nodeId, { workspace: rerunWorkspace })
+    },
+    [onRerunFrom, rerunWorkspace],
+  )
+  const canInspectActivity =
+    !showIdleState && (!reviewingRunHistory || canInspectSavedRun)
+  const canInspectLog =
+    !showIdleState &&
+    Boolean(selectedStageId) &&
+    (!reviewingRunHistory || canInspectSavedRun)
+  const failureTargetNodeId = primaryFailedStep?.id || selectedStageId || null
+  const canInspectFailureLog =
+    !showIdleState &&
+    Boolean(failureTargetNodeId) &&
+    (!reviewingRunHistory || canInspectSavedRun)
   const canInspectHistory = pastRuns.length > 0
   const {
     activeTab,
@@ -241,6 +389,24 @@ export function OutputPanel({
     setSurfaceNotice,
     onOpenInbox,
   })
+  const inspectFailure = useCallback(() => {
+    const failureNodeId = failureTargetNodeId
+    if (!failureNodeId) return
+    setInspectedNodeId(failureNodeId)
+    if (canInspectFailureLog) {
+      setActiveTab("log")
+      return
+    }
+    if (canInspectActivity) {
+      setActiveTab("nodes")
+    }
+  }, [
+    canInspectActivity,
+    canInspectFailureLog,
+    failureTargetNodeId,
+    setInspectedNodeId,
+    setActiveTab,
+  ])
   const {
     handleCopyResult,
     handleOpenReport,
@@ -263,10 +429,10 @@ export function OutputPanel({
     selectedStageId: selectedStageRerunNodeId,
     showArtifactContinuation,
     canTriggerNextStageShortcut: Boolean(
-      nextStageTemplate
-      && onRunNextStage
-      && artifactPersistenceStatus !== "saving"
-      && !nextStagePending,
+      nextStageTemplate &&
+      onRunNextStage &&
+      artifactPersistenceStatus !== "saving" &&
+      !nextStagePending,
     ),
     onRunNextStage,
     onUseInNewFlow,
@@ -276,75 +442,97 @@ export function OutputPanel({
     onRerunFrom: handleRerunFrom,
   })
 
-  const savedRunLoadingNotice = reviewingRunHistory && reviewedRunLoading ? (
-    <div className="flex items-center gap-2 px-1 py-2 ui-meta-text text-muted-foreground">
-      <Loader2 size={14} className="animate-spin shrink-0" />
-      Loading saved run details…
-    </div>
-  ) : null
-  const savedRunErrorNotice = reviewingRunHistory && !reviewedRunLoading && reviewedRunError ? (
-    <ExecutionSurfaceNoticeBanner
-      notice={{
-        level: "error",
-        title: "Saved run unavailable",
-        description: reviewedRunError,
-        actionLabel: "",
-        actionTarget: "result",
-      }}
-    />
-  ) : null
-  const savedRunSnapshotNotice = reviewingRunHistory && !reviewedRunLoading && !reviewedRunError && !reviewSnapshot ? (
-    <ExecutionSurfaceNoticeBanner
-      notice={{
-        level: "warning",
-        title: "Saved snapshot missing",
-        description: "This saved run still has its final result, but the full step snapshot is unavailable.",
-        actionLabel: "",
-        actionTarget: "result",
-      }}
-    />
-  ) : null
-  const runAttentionBanner = !reviewingRunHistory && (runStatus === "error" || runOutcome === "failed" || runOutcome === "interrupted") ? (
-    <ExecutionSurfaceNoticeBanner
-      notice={{
-        level: "error",
-        title: "Run needs attention",
-        description: failedNodeErrors.length === 0
-          ? "Inspect the activity log for the failing step or the last interrupted step."
-          : "One or more steps failed during the latest run.",
-        actionLabel: "",
-        actionTarget: "activity",
-      }}
-      children={failedNodeErrors.length > 0 ? (
-        <div className="space-y-1 text-body-sm text-status-danger">
-          {failedNodeErrors.map(([id, s]) => {
-            const node = allDisplayNodes.find((n) => n.id === id)
-            const errorText = s.error || "Unknown error"
-            const isLong = errorText.length > 140
-            return isLong ? (
-              <details key={id} className="text-status-danger/80">
-                <summary className="cursor-pointer list-none">
-                  <span className="font-medium">{node?.label || id}:</span>{" "}
-                  {errorText.slice(0, 140)}…
-                </summary>
-                <pre className="mt-1 whitespace-pre-wrap text-status-danger/70 pl-4 text-body-sm">{errorText}</pre>
-              </details>
-            ) : (
-              <div key={id} className="text-status-danger/80">
-                <span className="font-medium">{node?.label || id}:</span>{" "}
-                {errorText}
-              </div>
-            )
-          })}
-        </div>
-      ) : null}
-    />
-  ) : null
-  const errorFigureOwnsSurface = !reviewingRunHistory
-    && showResultSurface
-    && (runStatus === "error" || effectiveRunOutcome === "failed" || effectiveRunOutcome === "interrupted")
+  const savedRunLoadingNotice =
+    reviewingRunHistory && reviewedRunLoading ? (
+      <div className="flex items-center gap-2 px-1 py-2 ui-meta-text text-muted-foreground">
+        <Loader2 size={14} className="animate-spin shrink-0" />
+        Loading saved run details…
+      </div>
+    ) : null
+  const savedRunErrorNotice =
+    reviewingRunHistory && !reviewedRunLoading && reviewedRunError ? (
+      <ExecutionSurfaceNoticeBanner
+        notice={{
+          level: "error",
+          title: "Saved run unavailable",
+          description: reviewedRunError,
+          actionLabel: "",
+          actionTarget: "result",
+        }}
+      />
+    ) : null
+  const savedRunSnapshotNotice =
+    reviewingRunHistory &&
+    !reviewedRunLoading &&
+    !reviewedRunError &&
+    !reviewSnapshot ? (
+      <ExecutionSurfaceNoticeBanner
+        notice={{
+          level: "warning",
+          title: "Saved snapshot missing",
+          description:
+            "This saved run still has its final result, but the full step snapshot is unavailable.",
+          actionLabel: "",
+          actionTarget: "result",
+        }}
+      />
+    ) : null
+  const runAttentionBanner =
+    !reviewingRunHistory &&
+    (runStatus === "error" ||
+      runOutcome === "failed" ||
+      runOutcome === "interrupted") ? (
+      <ExecutionSurfaceNoticeBanner
+        notice={{
+          level: "error",
+          title: "Run needs attention",
+          description:
+            failedNodeErrors.length === 0
+              ? "Inspect the activity log for the failing step or the last interrupted step."
+              : `${failureRecovery.categoryLabel}. ${failureRecovery.hint}`,
+          actionLabel: canInspectFailureLog
+            ? "Inspect step log"
+            : "Inspect summary",
+          actionTarget: "activity",
+        }}
+        onAction={failedNodeErrors.length > 0 ? inspectFailure : null}
+        children={
+          failedNodeErrors.length > 0 ? (
+            <div className="space-y-1 text-body-sm text-status-danger">
+              {failedNodeErrors.map(([id, s]) => {
+                const node = allDisplayNodes.find((n) => n.id === id)
+                const errorText = s.error || "Unknown error"
+                const isLong = errorText.length > 140
+                return isLong ? (
+                  <details key={id} className="text-status-danger/80">
+                    <summary className="cursor-pointer list-none">
+                      <span className="font-medium">{node?.label || id}:</span>{" "}
+                      {errorText.slice(0, 140)}…
+                    </summary>
+                    <pre className="mt-1 whitespace-pre-wrap text-status-danger/70 pl-4 text-body-sm">
+                      {errorText}
+                    </pre>
+                  </details>
+                ) : (
+                  <div key={id} className="text-status-danger/80">
+                    <span className="font-medium">{node?.label || id}:</span>{" "}
+                    {errorText}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null
+        }
+      />
+    ) : null
+  const errorFigureOwnsSurface =
+    !reviewingRunHistory &&
+    showResultSurface &&
+    (runStatus === "error" ||
+      effectiveRunOutcome === "failed" ||
+      effectiveRunOutcome === "interrupted")
   const tabOptions = useMemo(() => {
-    const options: Array<{ value: OutputTabValue, label: string }> = []
+    const options: Array<{ value: OutputTabValue; label: string }> = []
     if (canInspectActivity) {
       options.push({ value: "nodes", label: "Summary" })
     }
@@ -360,17 +548,16 @@ export function OutputPanel({
     return options
   }, [canInspectActivity, canInspectHistory, canInspectLog, showResultSurface])
 
-  const activityOwnsSurface = !showIdleState
-    && activeTab === "nodes"
-    && !reviewingRunHistory
-    && !errorFigureOwnsSurface
-  const scopeLabel = activeTab === "nodes"
-    ? null
-    : activeTab === "result"
-    ? selectedResultScopeLabel
-    : activeTab === "history"
-      ? historyScopeLabel
-      : selectedStageScopeLabel
+  const activityOwnsSurface =
+    !showIdleState && activeTab === "nodes" && !errorFigureOwnsSurface
+  const scopeLabel =
+    activeTab === "nodes"
+      ? selectedStageScopeLabel || null
+      : activeTab === "result"
+        ? selectedResultScopeLabel
+        : activeTab === "history"
+          ? historyScopeLabel
+          : selectedStageScopeLabel
 
   return (
     <>
@@ -379,9 +566,7 @@ export function OutputPanel({
         onValueChange={(next) => setActiveTab(next as OutputTabValue)}
         className={cn(
           "ui-fade-slide-in",
-          fillHeight
-            ? "flex min-h-0 flex-1 flex-col gap-2.5"
-            : "space-y-2.5",
+          fillHeight ? "flex min-h-0 flex-1 flex-col gap-2.5" : "space-y-2.5",
         )}
       >
         <OutputPanelHeader
@@ -394,52 +579,75 @@ export function OutputPanel({
           selectedReviewStatus={selectedReviewRun?.status || null}
           tabOptions={tabOptions}
         />
-        {!reviewingRunHistory
-          && !errorFigureOwnsSurface
-          && surfaceNotice
-          && !(showResultSurface && activeTab === "result")
-          && !(activeTab === "nodes" && Boolean(runAttentionBanner)) && (
-          <ExecutionSurfaceNoticeBanner
-            notice={surfaceNotice}
-            onAction={
-              surfaceNotice.actionTarget === "inbox" && !onOpenInbox
-                ? null
-                : handleSurfaceNoticeAction
-            }
-            onDismiss={() => setSurfaceNotice(null)}
-          />
-        )}
+        {!reviewingRunHistory &&
+          !errorFigureOwnsSurface &&
+          surfaceNotice &&
+          !(showResultSurface && activeTab === "result") &&
+          !(activeTab === "nodes" && Boolean(runAttentionBanner)) && (
+            <ExecutionSurfaceNoticeBanner
+              notice={surfaceNotice}
+              onAction={
+                surfaceNotice.actionTarget === "inbox" && !onOpenInbox
+                  ? null
+                  : handleSurfaceNoticeAction
+              }
+              onDismiss={() => setSurfaceNotice(null)}
+            />
+          )}
 
         <TabsContent
           value="nodes"
-          className={cn("mt-0 ui-fade-slide-in", fillHeight && "min-h-0 flex-1 overflow-y-auto")}
+          className={cn(
+            "mt-0 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1 overflow-y-auto",
+          )}
         >
           {savedRunLoadingNotice}
           {savedRunErrorNotice}
           {savedRunSnapshotNotice}
           {(!reviewingRunHistory || canInspectSavedRun) && (
-            <div className={cn(activityOwnsSurface && "rounded-lg surface-panel px-4 py-4")}>
+            <div
+              className={cn(
+                activityOwnsSurface && "rounded-xl surface-elevated px-4 py-4",
+              )}
+            >
               <ActivityTab
                 showIdleState={showIdleState}
+                isStartingState={runStatus === "starting"}
                 selectedStagePresentation={selectedStagePresentation}
                 selectedStageContextLabelClass={selectedStageContextLabelClass}
                 selectedStageContextLabel={selectedStageContextLabel}
                 selectedStageBranchLabel={selectedStageBranchLabel}
                 selectedStageBranchDetail={selectedStageBranchDetail}
                 runProgressItems={summaryProgressItems}
-                resultReadyLabel={hasResult
-                  ? (selectedResultScopeLabel.replace(/^Result from:\s*/u, "") || selectedResultPresentation?.artifactLabel || "Result")
-                  : null}
+                resultReadyLabel={
+                  hasResult
+                    ? selectedResultScopeLabel.replace(
+                        /^Result from:\s*/u,
+                        "",
+                      ) ||
+                      selectedResultPresentation?.artifactLabel ||
+                      "Result"
+                    : null
+                }
                 onViewResult={showResultSurface ? activateResultSurface : null}
                 selectedStageBranchSummary={selectedStageBranchSummary}
-                onOpenBranchLog={canInspectLog ? (nodeId: string) => {
-                  setInspectedNodeId(nodeId)
-                  setActiveTab("log")
-                } : null}
+                onOpenBranchLog={
+                  canInspectLog
+                    ? (nodeId: string) => {
+                        setInspectedNodeId(nodeId)
+                        setActiveTab("log")
+                      }
+                    : null
+                }
                 budgetWarning={budgetWarning}
                 budgetWarningClassName={budgetWarningClassName}
-                onViewStepLog={canInspectLog ? () => focusStageSurface("log") : null}
-                runAttentionNotice={errorFigureOwnsSurface ? null : runAttentionBanner}
+                onViewStepLog={
+                  canInspectLog ? () => focusStageSurface("log") : null
+                }
+                runAttentionNotice={
+                  errorFigureOwnsSurface ? null : runAttentionBanner
+                }
               />
             </div>
           )}
@@ -447,7 +655,10 @@ export function OutputPanel({
 
         <TabsContent
           value="log"
-          className={cn("mt-2 ui-fade-slide-in", fillHeight && "min-h-0 flex-1 overflow-y-auto")}
+          className={cn(
+            "mt-2 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1 overflow-y-auto",
+          )}
         >
           <OutputPanelLogContent
             showIdleState={showIdleState}
@@ -475,7 +686,10 @@ export function OutputPanel({
 
         <TabsContent
           value="result"
-          className={cn("mt-2 ui-fade-slide-in", fillHeight && "min-h-0 flex-1 overflow-y-auto")}
+          className={cn(
+            "mt-2 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1 overflow-y-auto",
+          )}
         >
           {showResultSurface ? (
             <ResultTab
@@ -521,10 +735,30 @@ export function OutputPanel({
               canStartFreshRun={canStartFreshRun}
               onStartNewRun={onStartNewRun}
               canRerunSelectedStage={canRerunSelectedStage}
-              onRerunSelectedStage={selectedStageRerunNodeId && canRerunSelectedStage ? () => handleRerunFrom(selectedStageRerunNodeId) : null}
-              onViewActivity={canInspectActivity ? () => focusStageSurface("nodes") : null}
+              onRerunSelectedStage={
+                selectedStageRerunNodeId && canRerunSelectedStage
+                  ? () => handleRerunFrom(selectedStageRerunNodeId)
+                  : null
+              }
+              onViewActivity={
+                canInspectActivity ? () => focusStageSurface("nodes") : null
+              }
+              onInspectFailure={
+                failedNodeErrors.length > 0 && canInspectFailureLog
+                  ? inspectFailure
+                  : null
+              }
               onEditFlow={onEditFlow}
               failedNodeErrors={failedNodeErrors}
+              failureCategoryLabel={
+                failedNodeErrors.length > 0
+                  ? failureRecovery.categoryLabel
+                  : null
+              }
+              failureHint={
+                failedNodeErrors.length > 0 ? failureRecovery.hint : null
+              }
+              retryStepLabel={retryStepLabel}
               canUseInNewFlow={Boolean(onUseInNewFlow) && !reviewingRunHistory}
               onUseInNewFlow={onUseInNewFlow}
               onOpenArtifact={handleOpenArtifact}
@@ -550,7 +784,10 @@ export function OutputPanel({
 
         <TabsContent
           value="history"
-          className={cn("mt-2 ui-fade-slide-in", fillHeight && "min-h-0 flex-1")}
+          className={cn(
+            "mt-2 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1",
+          )}
         >
           <OutputPanelHistoryContent
             fillHeight={fillHeight}
