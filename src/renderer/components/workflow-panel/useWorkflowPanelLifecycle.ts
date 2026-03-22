@@ -77,7 +77,12 @@ export function useWorkflowPanelLifecycle({
 
   const workflowTitleFromPath = useCallback((path: string | null) => {
     if (!path) return "flow"
-    return path.split(/[\\/]/).pop()?.replace(/\.(chain|yaml|yml)$/i, "") || "flow"
+    return (
+      path
+        .split(/[\\/]/)
+        .pop()
+        ?.replace(/\.(chain|yaml|yml)$/i, "") || "flow"
+    )
   }, [])
 
   const scrollOutputPanelIntoListViewport = useCallback((padding = 12) => {
@@ -96,7 +101,10 @@ export function useWorkflowPanelLifecycle({
 
     const nextTop = panelAboveViewport
       ? listScrollRegion.scrollTop + panelRect.top - regionRect.top - padding
-      : listScrollRegion.scrollTop + panelRect.bottom - regionRect.bottom + padding
+      : listScrollRegion.scrollTop +
+        panelRect.bottom -
+        regionRect.bottom +
+        padding
 
     listScrollRegion.scrollTo({ top: Math.max(0, nextTop), behavior: "smooth" })
     return true
@@ -114,7 +122,13 @@ export function useWorkflowPanelLifecycle({
   }, [])
 
   useEffect(() => {
-    if (!runStartedAt || (runStatus !== "running" && runStatus !== "starting" && runStatus !== "cancelling" && runStatus !== "paused")) {
+    if (
+      !runStartedAt ||
+      (runStatus !== "running" &&
+        runStatus !== "starting" &&
+        runStatus !== "cancelling" &&
+        runStatus !== "paused")
+    ) {
       setElapsed("")
       return
     }
@@ -126,7 +140,11 @@ export function useWorkflowPanelLifecycle({
   }, [runStartedAt, runStatus])
 
   useEffect(() => {
-    if (viewMode === "list" && runStatus === "running" && pendingListAutoScrollRef.current) {
+    if (
+      viewMode === "list" &&
+      runStatus === "running" &&
+      pendingListAutoScrollRef.current
+    ) {
       scrollOutputPanelIntoListViewport(16)
       pendingListAutoScrollRef.current = false
     }
@@ -145,7 +163,7 @@ export function useWorkflowPanelLifecycle({
   useEffect(() => {
     setShowEntryEditor(false)
     setPrepareNewRun(false)
-    setShowSavedRunReview(true)
+    setShowSavedRunReview(false)
     setOutputTabRequest(null)
     pendingListAutoScrollRef.current = false
     idleReviewAutoScrollKeyRef.current = null
@@ -170,7 +188,9 @@ export function useWorkflowPanelLifecycle({
     if (!inputPanel) return
     inputPanel.scrollIntoView({ behavior: "smooth", block: "start" })
     window.requestAnimationFrame(() => {
-      const focusTarget = inputPanel.querySelector<HTMLElement>("textarea, input, [contenteditable='true']")
+      const focusTarget = inputPanel.querySelector<HTMLElement>(
+        "textarea, input, [contenteditable='true']",
+      )
       focusTarget?.focus()
     })
   }, [])
@@ -180,7 +200,9 @@ export function useWorkflowPanelLifecycle({
     if (!panel) return
     panel.scrollIntoView({ behavior: "smooth", block: "start" })
     window.requestAnimationFrame(() => {
-      const focusTarget = panel.querySelector<HTMLElement>("button, textarea, input, select, [contenteditable='true']")
+      const focusTarget = panel.querySelector<HTMLElement>(
+        "button, textarea, input, select, [contenteditable='true']",
+      )
       focusTarget?.focus()
     })
   }, [])
