@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import {
-  CanvasDialogContent,
-  CanvasDialogFooter,
-  CanvasDialogHeader,
-  Dialog,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 
 interface CancelFlowConfirmDialogProps {
   open: boolean
@@ -36,37 +28,22 @@ export function CancelFlowConfirmDialog({
   }, [open, runStartedAt])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <CanvasDialogContent
-        showCloseButton={false}
-        size="sm"
-        onInteractOutside={(event) => event.preventDefault()}
-      >
-        <CanvasDialogHeader className="surface-warning-soft">
-          <DialogTitle>Cancel this flow?</DialogTitle>
-          <DialogDescription>
-            This flow has been running for {displayMinutes} minutes.
-            Cancelling will stop all remaining steps but keep any partial results.
-          </DialogDescription>
-        </CanvasDialogHeader>
-        <CanvasDialogFooter>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            autoFocus
-          >
-            Keep running
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={onConfirmCancel}
-          >
-            Cancel flow
-          </Button>
-        </CanvasDialogFooter>
-      </CanvasDialogContent>
-    </Dialog>
+    <SingleDecisionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Cancel this flow?"
+      description={(
+        <>
+          This flow has been running for {displayMinutes} minutes.
+          {" "}Cancelling will stop all remaining steps but keep any partial results.
+        </>
+      )}
+      confirmLabel="Cancel flow"
+      cancelLabel="Keep running"
+      onConfirm={onConfirmCancel}
+      confirmVariant="destructive"
+      size="sm"
+      preventOutsideDismiss
+    />
   )
 }

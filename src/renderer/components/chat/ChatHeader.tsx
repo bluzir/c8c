@@ -2,16 +2,7 @@ import { useState } from "react"
 import { Undo2, Trash2, PanelRightClose, Loader2 } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
-import { Button } from "@/components/ui/button"
-import {
-  CanvasDialogContent,
-  CanvasDialogHeader,
-  CanvasDialogFooter,
-  Dialog,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from "@/components/ui/dialog"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 
 interface ChatHeaderProps {
   onClose: () => void
@@ -125,29 +116,17 @@ export function ChatHeader({
         <TooltipContent>Close Agent panel</TooltipContent>
       </Tooltip>
 
-      <Dialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
-        <CanvasDialogContent showCloseButton={false}>
-          <CanvasDialogHeader>
-            <DialogTitle>Clear Agent history?</DialogTitle>
-            <DialogDescription>Clear the current conversation? This cannot be undone.</DialogDescription>
-          </CanvasDialogHeader>
-          <CanvasDialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
-            </DialogClose>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => {
-                setConfirmClearOpen(false)
-                onClear()
-              }}
-            >
-              Clear
-            </Button>
-          </CanvasDialogFooter>
-        </CanvasDialogContent>
-      </Dialog>
+      <SingleDecisionDialog
+        open={confirmClearOpen}
+        onOpenChange={setConfirmClearOpen}
+        title="Clear Agent history?"
+        description="Clear the current conversation?"
+        note="This cannot be undone."
+        noteTone="danger"
+        confirmLabel="Clear"
+        onConfirm={onClear}
+        confirmVariant="destructive"
+      />
     </div>
   )
 }

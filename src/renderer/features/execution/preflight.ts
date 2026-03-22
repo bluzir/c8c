@@ -1,4 +1,5 @@
 import type { C8cApi } from "@shared/c8c-api"
+import { getModelPricing, resolveModelFamily } from "@shared/model-pricing"
 import { PROVIDER_LABELS, resolveWorkflowProvider, workflowRequiresProvider } from "@shared/provider-metadata"
 import type {
   ClaudeCodeSubscriptionStatus,
@@ -22,6 +23,7 @@ export interface PreflightWarning {
   message: string
   detail: string
   estimatedCostUsd: number
+  worstCaseInvocations: number
 }
 
 export interface ExecutionPreflightSuccess {
@@ -204,8 +206,12 @@ function collectPreflightWarnings(
   settings: ProviderSettings,
 ): PreflightWarning[] {
   const warnings: PreflightWarning[] = []
+  const effectiveProvider = resolveEffectiveExecutionProvider(workflow, settings)
+  if (effectiveProvider === "codex") {
+    return warnings
+  }
   const defaultModel = workflow.defaults?.model
-    ?? (settings.defaultProvider === "claude" ? "sonnet" : undefined)
+    ?? "sonnet"
   const budgetWarning = evaluateTokenBudgetWarning(workflow, defaultModel)
   if (budgetWarning) {
     warnings.push(budgetWarning)
@@ -297,16 +303,6 @@ export function resolveExecutionStartBlockReason(
 // ── Token Budget Estimation ─────────────────────────────
 
 /**
- * Approximate pricing per 1M tokens (USD).
- * Mirrors MODEL_PRICING in packages/workflow-runner/src/lib/observability.ts.
- */
-const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  sonnet: { input: 3, output: 15 },
-  opus: { input: 15, output: 75 },
-  haiku: { input: 0.25, output: 1.25 },
-}
-
-/**
  * Conservative average tokens per skill invocation, keyed by model family.
  * Used for worst-case estimation when no historical data is available.
  */
@@ -321,14 +317,6 @@ const DEFAULT_EVALUATOR_MAX_RETRIES = 0
 
 /** Default cost threshold (USD) above which a preflight warning is emitted. */
 export const DEFAULT_COST_WARNING_THRESHOLD_USD = 5
-
-function resolveModelFamily(model: string | undefined): string {
-  if (!model) return "sonnet"
-  const lower = model.toLowerCase()
-  if (lower.includes("opus")) return "opus"
-  if (lower.includes("haiku")) return "haiku"
-  return "sonnet"
-}
 
 export interface FlowCostEstimate {
   totalSkillNodes: number
@@ -374,6 +362,9 @@ export function estimateFlowCost(workflow: Workflow, defaultModel?: string): Flo
   const skillNodes = workflow.nodes.filter((n) => n.type === "skill")
   const splitterNodes = workflow.nodes.filter((n) => n.type === "splitter")
   const evaluatorNodes = workflow.nodes.filter((n) => n.type === "evaluator")
+  const summarizeMergerNodes = workflow.nodes.filter(
+    (node) => node.type === "merger" && node.config.strategy === "summarize",
+  )
 
   const totalSkillNodes = skillNodes.length
   const breakdown: FlowCostBreakdownItem[] = []
@@ -388,6 +379,15 @@ export function estimateFlowCost(workflow: Workflow, defaultModel?: string): Flo
 
   // Start with base skill count
   let worstCaseInvocations = totalSkillNodes
+
+  if (summarizeMergerNodes.length > 0) {
+    worstCaseInvocations += summarizeMergerNodes.length
+    breakdown.push({
+      label: `${summarizeMergerNodes.length} summarize merger${summarizeMergerNodes.length === 1 ? "" : "s"}`,
+      kind: "evaluator",
+      multiplier: 1,
+    })
+  }
 
   // Splitter fan-out: each splitter multiplies downstream skills
   for (const splitter of splitterNodes) {
@@ -439,7 +439,7 @@ export function estimateFlowCost(workflow: Workflow, defaultModel?: string): Flo
   // Assume roughly equal input/output token split
   const inputTokens = avgTokens * 0.6
   const outputTokens = avgTokens * 0.4
-  const pricing = MODEL_PRICING[modelFamily] ?? MODEL_PRICING.sonnet
+  const pricing = getModelPricing(modelFamily)
   const costPerInvocation = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
   const estimatedCostUsd = worstCaseInvocations * costPerInvocation
 
@@ -577,5 +577,6 @@ export function evaluateTokenBudgetWarning(
     message: `This flow could use up to ~$${costFormatted} in the worst case (${estimate.worstCaseInvocations} skill invocations). Continue?`,
     detail,
     estimatedCostUsd: estimate.estimatedCostUsd,
+    worstCaseInvocations: estimate.worstCaseInvocations,
   }
 }

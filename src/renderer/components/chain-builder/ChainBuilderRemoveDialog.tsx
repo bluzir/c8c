@@ -1,14 +1,4 @@
-import { Button } from "@/components/ui/button"
-import {
-  CanvasDialogBody,
-  CanvasDialogContent,
-  CanvasDialogFooter,
-  CanvasDialogHeader,
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 
 interface ChainBuilderRemoveDialogProps {
   open: boolean
@@ -24,26 +14,19 @@ export function ChainBuilderRemoveDialog({
   onConfirm,
 }: ChainBuilderRemoveDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <CanvasDialogContent showCloseButton={false}>
-        <CanvasDialogHeader>
-          <DialogTitle>Remove step?</DialogTitle>
-          <DialogDescription>This will remove the step and its connections from the flow.</DialogDescription>
-        </CanvasDialogHeader>
-        <CanvasDialogBody>
-          <p className="text-body-md text-muted-foreground">
-            Remove &ldquo;{stepLabel}&rdquo; from this flow?
-          </p>
-        </CanvasDialogBody>
-        <CanvasDialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button variant="destructive" onClick={onConfirm}>
-            Remove
-          </Button>
-        </CanvasDialogFooter>
-      </CanvasDialogContent>
-    </Dialog>
+    <SingleDecisionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Remove step?"
+      description="This removes the step and its connections from the current flow."
+      body={(
+        <p className="text-body-sm text-foreground">
+          Remove &ldquo;{stepLabel}&rdquo; from this flow?
+        </p>
+      )}
+      confirmLabel="Remove"
+      onConfirm={onConfirm}
+      confirmVariant="destructive"
+    />
   )
 }

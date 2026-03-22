@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 
 interface WorkflowToolbarDialogsProps {
   renameDialogOpen: boolean
@@ -71,25 +72,19 @@ export function WorkflowToolbarDialogs({
         </CanvasDialogContent>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
-        <CanvasDialogContent showCloseButton={false}>
-          <CanvasDialogHeader>
-            <DialogTitle>Delete flow</DialogTitle>
-            <DialogDescription>
-              Delete &ldquo;{deleteLabel}&rdquo;?{workflowDirty ? " You have unsaved changes that will be lost." : ""} The flow file will be permanently removed.
-              <span className="block mt-1 text-status-danger font-medium">This cannot be undone.</span>
-            </DialogDescription>
-          </CanvasDialogHeader>
-          <CanvasDialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
-            </DialogClose>
-            <Button variant="destructive" size="sm" onClick={onCommitDelete}>
-              Delete
-            </Button>
-          </CanvasDialogFooter>
-        </CanvasDialogContent>
-      </Dialog>
+      <SingleDecisionDialog
+        open={deleteDialogOpen}
+        onOpenChange={onDeleteDialogOpenChange}
+        title="Delete flow"
+        description={
+          <>Delete &ldquo;{deleteLabel}&rdquo;?{workflowDirty ? " You have unsaved changes that will be lost." : ""} The flow file will be permanently removed.</>
+        }
+        note="This cannot be undone."
+        noteTone="danger"
+        confirmLabel="Delete"
+        onConfirm={onCommitDelete}
+        confirmVariant="destructive"
+      />
 
       <Dialog open={templateDialogOpen} onOpenChange={onTemplateDialogOpenChange}>
         <CanvasDialogContent showCloseButton={false}>

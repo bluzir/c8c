@@ -484,7 +484,7 @@ export function StageStartApprovalDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onCancel}>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
           <Button size="sm" onClick={() => { void Promise.resolve(onApprove()) }}>

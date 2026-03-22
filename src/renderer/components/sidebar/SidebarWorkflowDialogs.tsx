@@ -262,6 +262,8 @@ export function SidebarWorkflowDialogs({
           " The flow file will be permanently removed."
         }
         confirmLabel="Delete"
+        confirmVariant="destructive"
+        note="This cannot be undone."
         onConfirm={() => void commitDeleteWorkflow()}
       />
 

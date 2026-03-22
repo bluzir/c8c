@@ -862,6 +862,7 @@ describe("evaluateTokenBudgetWarning", () => {
     expect(warning).not.toBeNull()
     expect(warning!.kind).toBe("token_budget")
     expect(warning!.estimatedCostUsd).toBeGreaterThan(DEFAULT_COST_WARNING_THRESHOLD_USD)
+    expect(warning!.worstCaseInvocations).toBeGreaterThan(1)
     expect(warning!.message).toContain("$")
     expect(warning!.message).toContain("worst case")
   })

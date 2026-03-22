@@ -1,13 +1,4 @@
-import { Button } from "@/components/ui/button"
-import {
-  CanvasDialogContent,
-  CanvasDialogFooter,
-  CanvasDialogHeader,
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 
 interface SidebarConfirmDialogProps {
   open: boolean
@@ -17,6 +8,7 @@ interface SidebarConfirmDialogProps {
   confirmLabel: string
   onConfirm: () => void
   confirmVariant?: "destructive" | "default"
+  note?: string
 }
 
 export function SidebarConfirmDialog({
@@ -26,43 +18,21 @@ export function SidebarConfirmDialog({
   description,
   confirmLabel,
   onConfirm,
-  confirmVariant = "destructive",
+  confirmVariant = "default",
+  note,
 }: SidebarConfirmDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <CanvasDialogContent
-        showCloseButton={false}
-        onInteractOutside={(event) => {
-          if (confirmVariant === "destructive") {
-            event.preventDefault()
-          }
-        }}
-      >
-        <CanvasDialogHeader className={confirmVariant === "destructive" ? "surface-danger-soft" : undefined}>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {description}
-            {confirmVariant === "destructive" && (
-              <span className="block mt-1 text-status-danger font-medium">This cannot be undone.</span>
-            )}
-          </DialogDescription>
-        </CanvasDialogHeader>
-        <CanvasDialogFooter>
-          <DialogClose asChild>
-            <Button variant="ghost" size="sm">Cancel</Button>
-          </DialogClose>
-          <Button
-            variant={confirmVariant}
-            size="sm"
-            onClick={() => {
-              onConfirm()
-              onOpenChange(false)
-            }}
-          >
-            {confirmLabel}
-          </Button>
-        </CanvasDialogFooter>
-      </CanvasDialogContent>
-    </Dialog>
+    <SingleDecisionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      description={description}
+      note={note}
+      noteTone={confirmVariant === "destructive" ? "danger" : "muted"}
+      confirmLabel={confirmLabel}
+      onConfirm={onConfirm}
+      confirmVariant={confirmVariant}
+      preventOutsideDismiss={confirmVariant === "destructive"}
+    />
   )
 }
