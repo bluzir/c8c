@@ -26,6 +26,7 @@ import {
   workflowCreateSourceArtifactsAtom,
   workflowCreateSourceAttachmentsAtom,
   workflowEntryStateAtom,
+  setWorkflowRequestedResultForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   workflowDirtyAtom,
   workflowSavedSnapshotAtom,
@@ -65,6 +66,7 @@ import { matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
 import {
   buildGeneratedWorkflowEntryState,
   buildTemplateRunContext,
+  getRequestedResultFromEntryState,
   mergeInputAttachments,
   type WorkflowEntryState,
 } from "@/lib/workflow-entry"
@@ -223,6 +225,7 @@ export function WorkflowCreatePage() {
   const [, setPendingCreateMessage] = useAtom(workflowCreatePendingMessageAtom)
   const [, setQueuedAutoRunPath] = useAtom(workflowQueuedAutoRunPathAtom)
   const [, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
+  const setWorkflowRequestedResultForKey = useSetAtom(setWorkflowRequestedResultForKeyAtom)
   const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const [promptHelperOpen, setPromptHelperOpen] = useState(false)
@@ -417,6 +420,16 @@ export function WorkflowCreatePage() {
   ) => {
     const loadedWorkflow = await window.api.loadWorkflow(filePath)
     const refreshedWorkflows = await window.api.listProjectWorkflows(projectPath)
+    const nextEntryState =
+      options?.entryState
+      ?? (options?.pendingEntryRequest
+        ? buildGeneratedWorkflowEntryState({
+          workflow: loadedWorkflow,
+          workflowPath: filePath,
+          request: options.pendingEntryRequest,
+          source: "agent_create",
+        })
+        : null)
 
     setSelectedProject(projectPath)
     setWorkflows(refreshedWorkflows)
@@ -443,17 +456,11 @@ export function WorkflowCreatePage() {
         ? { ...prev, [filePath]: options.pendingEntryRequest }
         : prev
     ))
-    setWorkflowEntryState(
-      options?.entryState
-        ?? (options?.pendingEntryRequest
-          ? buildGeneratedWorkflowEntryState({
-            workflow: loadedWorkflow,
-            workflowPath: filePath,
-            request: options.pendingEntryRequest,
-            source: "agent_create",
-          })
-          : null)
-    )
+    setWorkflowEntryState(nextEntryState)
+    setWorkflowRequestedResultForKey({
+      key: toWorkflowExecutionKey(filePath),
+      value: getRequestedResultFromEntryState(nextEntryState) || null,
+    })
     setWorkflowTemplateContextForKey({
       key: toWorkflowExecutionKey(filePath),
       context: options?.templateContext ?? null,
@@ -808,7 +815,7 @@ export function WorkflowCreatePage() {
       await openWorkflowFile(filePath, targetProjectPath, {
         pendingMessage: message,
         pendingEntryRequest: message,
-        initialInputValue: "",
+        initialInputValue: message,
         initialAttachments: sourceAttachments,
       })
     } catch (error) {
