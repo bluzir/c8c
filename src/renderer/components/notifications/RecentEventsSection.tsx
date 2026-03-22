@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn"
 import { formatRelativeTime } from "@/components/sidebar/projectSidebarUtils"
 
 const SOURCE_LABELS: Record<InboxNotification["source"], string> = {
-  workflow: "Workflow",
+  workflow: "Flow",
   batch: "Batch",
   agent: "Agent",
   system: "System",
