@@ -1,8 +1,6 @@
 import type { ReactNode } from "react"
 import { ArrowRight } from "lucide-react"
-import ReactMarkdown, { type Components as MarkdownComponents } from "react-markdown"
-import rehypeHighlight from "rehype-highlight"
-import remarkGfm from "remark-gfm"
+import ReactMarkdown from "react-markdown"
 
 import { useVerdictData } from "@/components/output/useVerdictData"
 import { Button } from "@/components/ui/button"
@@ -15,31 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/cn"
+import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import type { ArtifactRecord, EvaluationResult, NodeState, RunResult } from "@shared/types"
 
 const MARKDOWN_PROSE_CLASS = "prose-c8c"
-const MARKDOWN_COMPONENTS: MarkdownComponents = {
-  a: ({ href, children, ...props }) => {
-    const safeHref = typeof href === "string" ? href : ""
-    return (
-      <a
-        {...props}
-        href={safeHref}
-        target="_blank"
-        rel="noreferrer noopener"
-        onClick={(event) => {
-          if (!safeHref) {
-            event.preventDefault()
-          }
-        }}
-      >
-        {children}
-      </a>
-    )
-  },
-}
 
 function stripLeadingMarkdownHeading(value: string) {
   return value.replace(/^\s*# .*(?:\r?\n)+(?:\r?\n)*/u, "")
@@ -182,6 +161,7 @@ export function ResultTab({
   })
   const terminalVariant = verdictData.terminalVariant
   const isDocumentSurface = verdictData.surfaceMode === "document"
+  const isDiagnosticSurface = verdictData.variant === "diagnostic"
   const savedArtifactsLabel = artifactRecords.length > 0
     ? compactLine([
         visibleArtifactContinuation.map((artifact) => artifact.title).join(" · "),
@@ -226,7 +206,7 @@ export function ResultTab({
             void Promise.resolve(onUseInNewFlow())
           }}
         >
-          Continue with Agent
+          {verdictData.followUpLabel || "Continue with Agent"}
         </Button>,
       )
     }
@@ -242,7 +222,7 @@ export function ResultTab({
           }}
         >
           <ArrowRight size={12} />
-          Continue with Agent
+          {verdictData.followUpLabel || "Continue with Agent"}
         </Button>,
       )
     }
@@ -319,6 +299,31 @@ export function ResultTab({
   const visibleSavedArtifacts = visibleArtifactContinuation.slice(0, 2)
   const hiddenSavedArtifactCount = Math.max(0, artifactRecords.length - visibleSavedArtifacts.length)
   const documentMetaLine = compactLine([visibleProvenanceLabel, evidenceLine])
+  const evidencePanel = verdictData.evidencePanelItems.length > 0 ? (
+    <section className="space-y-2 border-t border-hairline pt-3">
+      {verdictData.evidencePanelTitle ? (
+        <div className="ui-meta-label text-muted-foreground">{verdictData.evidencePanelTitle}</div>
+      ) : null}
+      <div className="space-y-2">
+        {verdictData.evidencePanelItems.map((item) => {
+          const toneClass = item.tone === "danger"
+            ? "text-status-danger"
+            : item.tone === "warning"
+              ? "text-status-warning"
+              : "text-foreground"
+          return (
+            <div key={item.id} className="flex items-start justify-between gap-3 rounded-md bg-surface-2/35 px-3 py-2">
+              <div className="min-w-0">
+                <div className="text-body-sm font-medium text-foreground">{item.id}</div>
+                <div className="ui-meta-text text-muted-foreground">{item.detail}</div>
+              </div>
+              <div className={cn("shrink-0 text-body-sm font-medium", toneClass)}>{item.scoreLabel}</div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  ) : null
   const artifactLinkStrip = showArtifactContinuation && visibleSavedArtifacts.length > 0 ? (
     <div className="border-t border-hairline pt-3">
       <div className="ui-meta-label text-muted-foreground">Saved files</div>
@@ -384,7 +389,7 @@ export function ResultTab({
                 </div>
               ) : (
                 <div className={MARKDOWN_PROSE_CLASS}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={MARKDOWN_COMPONENTS}>
+                  <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
                     {renderedResultContent}
                   </ReactMarkdown>
                 </div>
@@ -421,6 +426,8 @@ export function ResultTab({
                 {actionItems}
               </div>
             )}
+
+            {evidencePanel}
 
             {((showArtifactContinuation && continuationReferenceLine) || verdictData.preservedText) && (
               <p className="border-t border-hairline pt-3 text-body-sm text-muted-foreground">
@@ -459,7 +466,7 @@ export function ResultTab({
         </DisclosurePanel>
       )}
 
-      <div className="px-1 py-1">
+      <div className={isDisplayedResultEmpty ? "px-1 py-1" : "px-4 py-4"}>
         {!isDocumentSurface && (
           isDisplayedResultEmpty ? (
             <div className="ui-meta-text text-muted-foreground">
@@ -470,8 +477,8 @@ export function ResultTab({
                   : "No result yet. Results appear here when the flow completes."}
             </div>
           ) : (
-            <div className={MARKDOWN_PROSE_CLASS}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={MARKDOWN_COMPONENTS}>
+            <div className={cn(MARKDOWN_PROSE_CLASS, isDiagnosticSurface && "pt-1")}>
+              <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
                 {renderedResultContent}
               </ReactMarkdown>
             </div>

@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button"
 import { getSkillSourceKind, getSkillSourceLabel } from "@/lib/skill-source"
 import { analyzeSkillSafety, type SkillSafetyWarning } from "@/lib/skill-safety"
 import type { DiscoveredSkill } from "@shared/types"
-import ReactMarkdown, { type Components as MarkdownComponents } from "react-markdown"
-import remarkGfm from "remark-gfm"
+import ReactMarkdown from "react-markdown"
 import {
   X,
   Loader2,
@@ -21,6 +20,7 @@ import {
   Info,
   type LucideIcon,
 } from "lucide-react"
+import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 
 const SEVERITY_STYLES: Record<
   SkillSafetyWarning["severity"],
@@ -29,25 +29,6 @@ const SEVERITY_STYLES: Record<
   danger: { surface: "surface-danger-soft", text: "text-status-danger", icon: ShieldAlert },
   warning: { surface: "surface-warning-soft", text: "text-status-warning", icon: AlertTriangle },
   info: { surface: "surface-info-soft", text: "text-status-info", icon: Info },
-}
-
-const MARKDOWN_COMPONENTS: MarkdownComponents = {
-  a: ({ href, children, ...props }) => {
-    const safeHref = typeof href === "string" ? href : ""
-    return (
-      <a
-        {...props}
-        href={safeHref}
-        target="_blank"
-        rel="noreferrer noopener"
-        onClick={(event) => {
-          if (!safeHref) event.preventDefault()
-        }}
-      >
-        {children}
-      </a>
-    )
-  },
 }
 
 interface SkillDetailPanelProps {
@@ -241,7 +222,7 @@ export function SkillDetailPanel({
               </div>
             )}
             <div className="prose-c8c">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+              <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
                 {content}
               </ReactMarkdown>
             </div>

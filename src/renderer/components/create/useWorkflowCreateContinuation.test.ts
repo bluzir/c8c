@@ -1,161 +1,113 @@
-import { describe, expect, it } from "vitest"
-import type { ArtifactRecord, HumanTaskSummary } from "@shared/types"
-import { startWorkflowCreateContinuationResourceLoad } from "./useWorkflowCreateContinuation"
+import type { ArtifactRecord, CaseStateRecord, HumanTaskSummary } from "@shared/types"
+import { describe, expect, it, vi } from "vitest"
+import {
+  readWorkflowCreateContinuationResources,
+  startWorkflowCreateContinuationResourceLoad,
+} from "./useWorkflowCreateContinuation"
 
-function flushMicrotasks() {
-  return new Promise<void>((resolve) => queueMicrotask(resolve))
+function createArtifactRecord(id: string): ArtifactRecord {
+  return { id } as ArtifactRecord
 }
 
-function createArtifact(id: string): ArtifactRecord {
-  return {
-    id,
-    kind: "requirements_spec",
-    title: `Artifact ${id}`,
-    projectPath: "/tmp/project",
-    workspace: "/tmp/workspace",
-    runId: `run-${id}`,
-    relativePath: `.c8c/artifacts/${id}.md`,
-    contentPath: `/tmp/project/.c8c/artifacts/${id}.md`,
-    metadataPath: `/tmp/project/.c8c/artifacts/${id}.json`,
-    createdAt: 1,
-    updatedAt: 1,
-  }
+function createCaseStateRecord(caseId: string): CaseStateRecord {
+  return { caseId } as CaseStateRecord
 }
 
-function createTask(id: string): HumanTaskSummary {
-  return {
-    task: `Task ${id}`,
-    taskId: `task-${id}`,
-    kind: "approval",
-    status: "open",
-    workspace: "/tmp/workspace",
-    chainId: `chain-${id}`,
-    sourceRunId: `run-${id}`,
-    nodeId: `approval-${id}`,
-    workflowName: `Workflow ${id}`,
-    workflowPath: `/tmp/project/${id}.flow.yaml`,
-    projectPath: "/tmp/project",
-    title: `Approve ${id}`,
-    createdAt: 1,
-    updatedAt: 1,
-    responseRevision: 0,
-    allowEdit: true,
-  }
+function createHumanTaskSummary(taskId: string): HumanTaskSummary {
+  return { taskId } as HumanTaskSummary
 }
 
-function deferred<T>() {
-  let resolvePromise: ((value: T) => void) | null = null
-  const promise = new Promise<T>((resolve) => {
-    resolvePromise = resolve
+describe("readWorkflowCreateContinuationResources", () => {
+  it("returns all resources when every reader succeeds", async () => {
+    const result = await readWorkflowCreateContinuationResources({
+      projectPath: "/tmp/project",
+      listProjectArtifacts: vi.fn().mockResolvedValue([createArtifactRecord("artifact-1")]),
+      listProjectCaseStates: vi.fn().mockResolvedValue([createCaseStateRecord("case-1")]),
+      listHumanTasks: vi.fn().mockResolvedValue([createHumanTaskSummary("task-1")]),
+    })
+
+    expect(result).toEqual({
+      resources: {
+        artifacts: [createArtifactRecord("artifact-1")],
+        caseStates: [createCaseStateRecord("case-1")],
+        humanTasks: [createHumanTaskSummary("task-1")],
+      },
+      error: null,
+    })
   })
 
-  return {
-    promise,
-    resolve(value: T) {
-      resolvePromise?.(value)
-    },
-  }
-}
+  it("keeps partial resources and returns a combined error when one reader fails", async () => {
+    const result = await readWorkflowCreateContinuationResources({
+      projectPath: "/tmp/project",
+      listProjectArtifacts: vi.fn().mockResolvedValue([createArtifactRecord("artifact-1")]),
+      listProjectCaseStates: vi.fn().mockRejectedValue(new Error("case states unavailable")),
+      listHumanTasks: vi.fn().mockResolvedValue([createHumanTaskSummary("task-1")]),
+    })
 
-describe("useWorkflowCreateContinuation loader", () => {
-  it("clears stale resources immediately when switching projects", () => {
+    expect(result.resources).toEqual({
+      artifacts: [createArtifactRecord("artifact-1")],
+      caseStates: [],
+      humanTasks: [createHumanTaskSummary("task-1")],
+    })
+    expect(result.error).toBeInstanceOf(Error)
+    expect((result.error as Error).message).toContain("case states unavailable")
+  })
+})
+
+describe("startWorkflowCreateContinuationResourceLoad", () => {
+  it("ignores stale responses after a newer request starts", async () => {
+    let resolveFirst: ((value: {
+      resources: {
+        artifacts: ArtifactRecord[]
+        caseStates: CaseStateRecord[]
+        humanTasks: HumanTaskSummary[]
+      }
+      error: null
+    }) => void) | null = null
     const requestIdRef = { current: 0 }
-    const state = {
-      artifacts: [createArtifact("stale")],
-      humanTasks: [createTask("stale")],
-      loading: false,
-    }
+    const loaded: Array<{
+      artifacts: ArtifactRecord[]
+      caseStates: CaseStateRecord[]
+      humanTasks: HumanTaskSummary[]
+    }> = []
+    const errors: unknown[] = []
+    const loadingStates: boolean[] = []
 
     startWorkflowCreateContinuationResourceLoad({
-      projectPath: "/tmp/project-beta",
+      projectPath: "/tmp/project-a",
+      requestIdRef,
+      readResources: () => new Promise((resolve) => {
+        resolveFirst = resolve
+      }),
+      onReset: vi.fn(),
+      onLoaded: (resources) => loaded.push(resources),
+      onError: (error) => errors.push(error),
+      onLoadingChange: (loading) => loadingStates.push(loading),
+    })
+
+    startWorkflowCreateContinuationResourceLoad({
+      projectPath: "/tmp/project-b",
       requestIdRef,
       readResources: async () => ({
-        artifacts: [createArtifact("fresh")],
-        caseStates: [],
-        humanTasks: [createTask("fresh")],
+        resources: { artifacts: [createArtifactRecord("fresh")], caseStates: [], humanTasks: [] },
+        error: null,
       }),
-      onReset: () => {
-        state.artifacts = []
-        state.humanTasks = []
-      },
-      onLoaded: (resources) => {
-        state.artifacts = resources.artifacts
-        state.humanTasks = resources.humanTasks
-      },
-      onLoadingChange: (loading) => {
-        state.loading = loading
-      },
+      onReset: vi.fn(),
+      onLoaded: (resources) => loaded.push(resources),
+      onError: (error) => errors.push(error),
+      onLoadingChange: (loading) => loadingStates.push(loading),
     })
 
-    expect(state.artifacts).toEqual([])
-    expect(state.humanTasks).toEqual([])
-    expect(state.loading).toBe(true)
-  })
-
-  it("ignores stale results from an older project request", async () => {
-    const requestIdRef = { current: 0 }
-    const alpha = deferred<{ artifacts: ArtifactRecord[]; caseStates: []; humanTasks: HumanTaskSummary[] }>()
-    const beta = deferred<{ artifacts: ArtifactRecord[]; caseStates: []; humanTasks: HumanTaskSummary[] }>()
-    const state = {
-      artifacts: [] as ArtifactRecord[],
-      humanTasks: [] as HumanTaskSummary[],
-      loading: false,
-    }
-
-    startWorkflowCreateContinuationResourceLoad({
-      projectPath: "/tmp/project-alpha",
-      requestIdRef,
-      readResources: () => alpha.promise,
-      onReset: () => {
-        state.artifacts = []
-        state.humanTasks = []
-      },
-      onLoaded: (resources) => {
-        state.artifacts = resources.artifacts
-        state.humanTasks = resources.humanTasks
-      },
-      onLoadingChange: (loading) => {
-        state.loading = loading
-      },
+    resolveFirst?.({
+      resources: { artifacts: [createArtifactRecord("stale")], caseStates: [], humanTasks: [] },
+      error: null,
     })
+    await Promise.resolve()
+    await Promise.resolve()
 
-    startWorkflowCreateContinuationResourceLoad({
-      projectPath: "/tmp/project-beta",
-      requestIdRef,
-      readResources: () => beta.promise,
-      onReset: () => {
-        state.artifacts = []
-        state.humanTasks = []
-      },
-      onLoaded: (resources) => {
-        state.artifacts = resources.artifacts
-        state.humanTasks = resources.humanTasks
-      },
-      onLoadingChange: (loading) => {
-        state.loading = loading
-      },
-    })
-
-    alpha.resolve({
-      artifacts: [createArtifact("alpha")],
-      caseStates: [],
-      humanTasks: [createTask("alpha")],
-    })
-    await flushMicrotasks()
-
-    expect(state.artifacts).toEqual([])
-    expect(state.humanTasks).toEqual([])
-    expect(state.loading).toBe(true)
-
-    beta.resolve({
-      artifacts: [createArtifact("beta")],
-      caseStates: [],
-      humanTasks: [createTask("beta")],
-    })
-    await flushMicrotasks()
-
-    expect(state.artifacts.map((artifact) => artifact.id)).toEqual(["beta"])
-    expect(state.humanTasks.map((task) => task.taskId)).toEqual(["task-beta"])
-    expect(state.loading).toBe(false)
+    expect(loaded).toEqual([{ artifacts: [createArtifactRecord("fresh")], caseStates: [], humanTasks: [] }])
+    expect(errors).toEqual([])
+    expect(loadingStates).toContain(true)
+    expect(loadingStates.at(-1)).toBe(false)
   })
 })

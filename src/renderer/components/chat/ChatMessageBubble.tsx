@@ -3,36 +3,14 @@ import { AlertCircle, ChevronRight, CheckCircle2, Wrench, Loader2, Bot } from "l
 import { cn } from "@/lib/cn"
 import type { ChatMessageDisplay } from "@/lib/store"
 import { isToolResultError, summarizeToolCall, summarizeToolResult } from "@/lib/chat-tool-summary"
-import ReactMarkdown, { type Components as MarkdownComponents } from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeHighlight from "rehype-highlight"
+import ReactMarkdown from "react-markdown"
 import { CopyButton } from "@/components/ui/copy-button"
+import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 
 interface ChatMessageBubbleProps {
   message: ChatMessageDisplay
   groupedWithPrevious?: boolean
   groupedWithNext?: boolean
-}
-
-const MARKDOWN_COMPONENTS: MarkdownComponents = {
-  a: ({ href, children, ...props }) => {
-    const safeHref = typeof href === "string" ? href : ""
-    return (
-      <a
-        {...props}
-        href={safeHref}
-        target="_blank"
-        rel="noreferrer noopener"
-        onClick={(event) => {
-          if (!safeHref) {
-            event.preventDefault()
-          }
-        }}
-      >
-        {children}
-      </a>
-    )
-  },
 }
 
 function compactPreview(value: string | undefined, maxLen = 120): string | null {
@@ -85,7 +63,7 @@ export function ChatMessageBubble({
           ) : (
             <>
               <div className="prose-c8c">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={MARKDOWN_COMPONENTS}>
+                <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
                   {message.content}
                 </ReactMarkdown>
               </div>

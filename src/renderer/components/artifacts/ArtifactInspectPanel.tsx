@@ -1,37 +1,15 @@
 import { ArrowUpRight, FileStack, FileText, Loader2, X } from "lucide-react"
-import ReactMarkdown, { type Components as MarkdownComponents } from "react-markdown"
-import rehypeHighlight from "rehype-highlight"
-import remarkGfm from "remark-gfm"
+import ReactMarkdown from "react-markdown"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { ScopeBanner } from "@/components/ui/scope-banner"
 import { SummaryRail } from "@/components/ui/summary-rail"
 import { cn } from "@/lib/cn"
+import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 import { deriveArtifactInspectSummary } from "@/lib/artifact-inspect"
 import { deriveTemplateExecutionDisciplineLabels, deriveTemplateJourneyStageLabel, formatArtifactContractLabel } from "@/lib/workflow-entry"
 import type { ArtifactRecord, CaseStateRecord, WorkflowTemplate } from "@shared/types"
-
-const MARKDOWN_COMPONENTS: MarkdownComponents = {
-  a: ({ href, children, ...props }) => {
-    const safeHref = typeof href === "string" ? href : ""
-    return (
-      <a
-        {...props}
-        href={safeHref}
-        target="_blank"
-        rel="noreferrer noopener"
-        onClick={(event) => {
-          if (!safeHref) {
-            event.preventDefault()
-          }
-        }}
-      >
-        {children}
-      </a>
-    )
-  },
-}
 
 export function ArtifactInspectPanel({
   artifact,
@@ -76,7 +54,7 @@ export function ArtifactInspectPanel({
         eyebrow={(
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="outline" className="ui-meta-text px-2 py-0">
-              Saved result
+              Saved artifact
             </Badge>
             <Badge variant="outline" className="ui-meta-text px-2 py-0">
               {formatArtifactContractLabel(artifact.kind)}
@@ -191,7 +169,7 @@ export function ArtifactInspectPanel({
           </div>
         ) : content ? (
           <div className={cn("max-h-[420px] overflow-y-auto rounded-lg border border-hairline bg-surface-1 px-4 py-4", "prose-c8c")}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={MARKDOWN_COMPONENTS}>
+            <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>
               {content}
             </ReactMarkdown>
           </div>

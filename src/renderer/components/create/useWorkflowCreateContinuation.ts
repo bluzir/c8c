@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ArtifactRecord, CaseStateRecord, HumanTaskSummary, WorkflowTemplate } from "@shared/types"
+import { errorToUserMessage } from "@/lib/error-message"
+import { toastErrorFromCatch } from "@/lib/toast-error"
 import {
   deriveWorkflowCreateContinuations,
   resolveWorkflowCreateContinuationPresentation,
@@ -12,19 +14,92 @@ interface WorkflowCreateContinuationResources {
   humanTasks: HumanTaskSummary[]
 }
 
+interface WorkflowCreateContinuationReadResult {
+  resources: WorkflowCreateContinuationResources
+  error: unknown | null
+}
+
+function combineWorkflowCreateContinuationErrors(errors: unknown[]): unknown | null {
+  if (errors.length === 0) return null
+  if (errors.length === 1) return errors[0] || null
+
+  return new Error(errors.map((error) => errorToUserMessage(error)).join("; "))
+}
+
+async function readWorkflowCreateContinuationResource<T>({
+  read,
+  fallback,
+}: {
+  read: () => Promise<T>
+  fallback: T
+}): Promise<{ value: T; error: unknown | null }> {
+  try {
+    return {
+      value: await read(),
+      error: null,
+    }
+  } catch (error) {
+    return {
+      value: fallback,
+      error,
+    }
+  }
+}
+
+export async function readWorkflowCreateContinuationResources({
+  projectPath,
+  listProjectArtifacts,
+  listProjectCaseStates,
+  listHumanTasks,
+}: {
+  projectPath: string
+  listProjectArtifacts: (projectPath: string) => Promise<ArtifactRecord[]>
+  listProjectCaseStates: (projectPath: string) => Promise<CaseStateRecord[]>
+  listHumanTasks: (projectPath: string) => Promise<HumanTaskSummary[]>
+}): Promise<WorkflowCreateContinuationReadResult> {
+  const [artifactsResult, caseStatesResult, humanTasksResult] = await Promise.all([
+    readWorkflowCreateContinuationResource({
+      read: () => listProjectArtifacts(projectPath),
+      fallback: [] as ArtifactRecord[],
+    }),
+    readWorkflowCreateContinuationResource({
+      read: () => listProjectCaseStates(projectPath),
+      fallback: [] as CaseStateRecord[],
+    }),
+    readWorkflowCreateContinuationResource({
+      read: () => listHumanTasks(projectPath),
+      fallback: [] as HumanTaskSummary[],
+    }),
+  ])
+
+  return {
+    resources: {
+      artifacts: artifactsResult.value,
+      caseStates: caseStatesResult.value,
+      humanTasks: humanTasksResult.value,
+    },
+    error: combineWorkflowCreateContinuationErrors(
+      [artifactsResult.error, caseStatesResult.error, humanTasksResult.error]
+        .filter((error): error is unknown => error !== null),
+    ),
+  }
+}
+
 export function startWorkflowCreateContinuationResourceLoad({
   projectPath,
   requestIdRef,
   readResources,
   onReset,
   onLoaded,
+  onError,
   onLoadingChange,
 }: {
   projectPath: string | null
   requestIdRef: { current: number }
-  readResources: (projectPath: string) => Promise<WorkflowCreateContinuationResources>
+  readResources: (projectPath: string) => Promise<WorkflowCreateContinuationReadResult>
   onReset: () => void
   onLoaded: (resources: WorkflowCreateContinuationResources) => void
+  onError?: (error: unknown) => void
   onLoadingChange: (loading: boolean) => void
 }) {
   const requestId = requestIdRef.current + 1
@@ -40,9 +115,12 @@ export function startWorkflowCreateContinuationResourceLoad({
   onLoadingChange(true)
 
   void readResources(projectPath)
-    .then((resources) => {
+    .then(({ resources, error }) => {
       if (requestIdRef.current !== requestId) return
       onLoaded(resources)
+      if (error) {
+        onError?.(error)
+      }
     })
     .finally(() => {
       if (requestIdRef.current === requestId) {
@@ -76,18 +154,12 @@ export function useWorkflowCreateContinuation({
     startWorkflowCreateContinuationResourceLoad({
       projectPath,
       requestIdRef,
-      readResources: async (nextProjectPath) => {
-        const [nextArtifacts, nextCaseStates, nextHumanTasks] = await Promise.all([
-          window.api.listProjectArtifacts(nextProjectPath).catch(() => [] as ArtifactRecord[]),
-          window.api.listProjectCaseStates(nextProjectPath).catch(() => [] as CaseStateRecord[]),
-          window.api.listHumanTasks(nextProjectPath).catch(() => [] as HumanTaskSummary[]),
-        ])
-        return {
-          artifacts: nextArtifacts,
-          caseStates: nextCaseStates,
-          humanTasks: nextHumanTasks,
-        }
-      },
+      readResources: (nextProjectPath) => readWorkflowCreateContinuationResources({
+        projectPath: nextProjectPath,
+        listProjectArtifacts: (path) => window.api.listProjectArtifacts(path),
+        listProjectCaseStates: (path) => window.api.listProjectCaseStates(path),
+        listHumanTasks: (path) => window.api.listHumanTasks(path),
+      }),
       onReset: () => {
         setArtifacts([])
         setCaseStates([])
@@ -97,6 +169,9 @@ export function useWorkflowCreateContinuation({
         setArtifacts(resources.artifacts)
         setCaseStates(resources.caseStates)
         setHumanTasks(resources.humanTasks)
+      },
+      onError: (error) => {
+        toastErrorFromCatch("Could not load saved-work suggestions", error)
       },
       onLoadingChange: setResourcesLoading,
     })
