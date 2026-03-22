@@ -2,6 +2,9 @@ import { useEffect, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
   activeExecutionProviderAtom,
+  batchDialogOpenAtom,
+  batchProgressAtom,
+  batchStatusAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
   desktopRuntimeAtom,
@@ -62,6 +65,8 @@ export function AppStatusBar() {
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [selectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
   const [desktopRuntime] = useAtom(desktopRuntimeAtom)
+  const [batchStatus] = useAtom(batchStatusAtom)
+  const [batchProgress] = useAtom(batchProgressAtom)
   const [defaultProvider] = useAtom(defaultProviderAtom)
   const [activeExecutionProvider] = useAtom(activeExecutionProviderAtom)
   const [runStatus] = useAtom(runStatusAtom)
@@ -72,6 +77,7 @@ export function AppStatusBar() {
   const [runtimeNodes] = useAtom(runtimeNodesAtom)
   const [workflowExecutionStates] = useAtom(workflowExecutionStatesAtom)
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
+  const setBatchDialogOpen = useSetAtom(batchDialogOpenAtom)
   // undefined = loading, null = no git, string = branch name
   const [branch, setBranch] = useState<string | null | undefined>(undefined)
   const [elapsed, setElapsed] = useState("")
@@ -102,6 +108,7 @@ export function AppStatusBar() {
   const redoShortcutLabel = `${primaryShortcutLabel}⇧Z`
   const selectedWorkflowKey = toWorkflowExecutionKey(selectedWorkflowPath)
   const trackedRunCount = Object.values(workflowExecutionStates).filter(isDashboardVisibleState).length
+  const isBatchRunning = batchStatus === "running"
   const workflowProvider = workflow.defaults?.provider || defaultProvider
   const displayedProvider = isRunInFlight(runStatus) ? activeExecutionProvider : workflowProvider
   const backgroundRunCount = Object.entries(workflowExecutionStates).reduce((count, [workflowKey, state]) => {
@@ -211,27 +218,27 @@ export function AppStatusBar() {
     <>
       <footer
         aria-label="Application status bar"
-        className="surface-depth-footer h-control-md shrink-0 backdrop-blur-sm"
+        className="surface-depth-footer h-control-sm shrink-0"
       >
         <div className="h-full px-6 flex items-center justify-between ui-meta-text text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <span className="control-badge border border-hairline bg-surface-1/70 text-foreground-subtle">
+          <div className="flex items-center gap-3">
+            <span className="control-badge border border-hairline bg-surface-1/70 text-muted-foreground">
               {PROVIDER_LABELS[displayedProvider]}
             </span>
             {selectedProject ? (
-              <span className="control-badge max-w-56 truncate border border-hairline bg-surface-1/70 text-foreground-subtle">
+              <span className="control-badge max-w-56 truncate border border-hairline bg-surface-1/70 text-muted-foreground">
                 {folderName(selectedProject)}
               </span>
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {showRunProgress && (
               <span
                 role="status"
                 aria-live="polite"
                 className={cn(
-                  "ui-status-badge h-control-sm gap-1.5 px-2 ui-elevation-inset",
+                  "ui-status-badge h-control-xs gap-1.5 px-2",
                   runProgressClass,
                 )}
               >
@@ -242,15 +249,29 @@ export function AppStatusBar() {
               </span>
             )}
             {backgroundRunCount > 0 && (
-              <span className="ui-status-badge ui-status-badge-info h-control-sm px-2 ui-elevation-inset">
+              <span className="ui-status-badge ui-status-badge-info h-control-xs px-2">
                 {backgroundRunCount} run{backgroundRunCount === 1 ? "" : "s"} in background
               </span>
+            )}
+            {isBatchRunning && (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setBatchDialogOpen(true)}
+              >
+                <Loader2 size={12} className="animate-spin" />
+                Batch
+                <span className="tabular-nums">
+                  {batchProgress.completed}/{batchProgress.total}
+                </span>
+              </Button>
             )}
             {trackedRunCount > 0 && (
               <Button
                 variant="ghost"
                 size="xs"
-                className="gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+                className="gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setMultiRunDashboardOpen(true)}
               >
                 <Activity size={12} />
@@ -258,10 +279,10 @@ export function AppStatusBar() {
                 <span className="tabular-nums">{trackedRunCount}</span>
               </Button>
             )}
-            {selectedProject && (
-              <span className="control-badge gap-2 border border-hairline bg-surface-1/70 ui-elevation-inset">
+            {selectedProject && typeof branch === "string" && branch.length > 0 && (
+              <span className="control-badge gap-2 border border-hairline bg-surface-1/70 text-muted-foreground">
                 <GitBranch size={12} aria-hidden="true" />
-                {branch === undefined ? <span className="opacity-60">Checking git...</span> : (branch ?? "No git branch")}
+                {branch}
               </span>
             )}
             <Tooltip>

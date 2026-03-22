@@ -1,9 +1,12 @@
 import {
-  FilePlus2,
+  Activity,
+  FileStack,
   FolderOpen,
   Inbox,
   LayoutTemplate,
+  Workflow,
   Puzzle,
+  Plus,
   PanelLeftClose,
 } from "lucide-react"
 import { SidebarNavItem } from "@/components/sidebar/SidebarNavItem"
@@ -12,16 +15,19 @@ import type { ReactNode } from "react"
 
 type ProjectSidebarChromeProps = {
   mainView: string
+  runsDashboardOpen: boolean
   unreadInboxCount: number
-  pendingApprovalCount: number
   hasProjects: boolean
   workflowSearchQuery: string
   showSearch: boolean
   onSearchChange: (value: string) => void
+  onOpenThread: () => void
   onOpenCreate: () => void
   onOpenStartingPoints: () => void
+  onOpenArtifacts: () => void
   onOpenSkills: () => void
   onOpenInbox: () => void
+  onOpenRunsDashboard: () => void
   onAddProject: () => void
   onToggleVisibility?: () => void
   showVisibilityToggle?: boolean
@@ -38,43 +44,61 @@ function inboxMeta(unreadInboxCount: number): ReactNode {
 
 export function ProjectSidebarChrome({
   mainView,
+  runsDashboardOpen,
   unreadInboxCount,
-  pendingApprovalCount,
   hasProjects,
   workflowSearchQuery,
   showSearch,
   onSearchChange,
+  onOpenThread,
   onOpenCreate,
   onOpenStartingPoints,
+  onOpenArtifacts,
   onOpenSkills,
   onOpenInbox,
+  onOpenRunsDashboard,
   onAddProject,
   onToggleVisibility,
   showVisibilityToggle = false,
 }: ProjectSidebarChromeProps) {
   return (
     <>
-      <div className="space-y-px px-1.5 pt-2.5 pb-1">
-        <SidebarNavItem
-          icon={FilePlus2}
-          label="New flow"
-          active={mainView === "workflow_create"}
-          onClick={onOpenCreate}
-        />
+      {showVisibilityToggle && onToggleVisibility ? (
+        <div className="flex justify-end px-1.5 pt-1.5 pb-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                data-sidebar-item="true"
+                className="ui-icon-button hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
+                onClick={onToggleVisibility}
+                aria-label="Hide sidebar"
+              >
+                <PanelLeftClose size={12} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Hide sidebar</TooltipContent>
+          </Tooltip>
+        </div>
+      ) : null}
 
+      <div className="px-2.5 pt-2.5 pb-1 section-kicker text-muted-foreground">Workspace</div>
+      <div className="space-y-px px-1.5 pb-2">
+        <SidebarNavItem
+          icon={Workflow}
+          label="Flow"
+          active={mainView === "thread"}
+          onClick={onOpenThread}
+        />
+      </div>
+
+      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">Browse</div>
+      <div className="space-y-px px-1.5 pb-2">
         <SidebarNavItem
           icon={LayoutTemplate}
-          label="Library"
+          label="Starting points"
           active={mainView === "templates"}
           onClick={onOpenStartingPoints}
-        />
-
-        <SidebarNavItem
-          icon={Inbox}
-          label="Inbox"
-          active={mainView === "inbox"}
-          onClick={onOpenInbox}
-          meta={inboxMeta(unreadInboxCount)}
         />
         <SidebarNavItem
           icon={Puzzle}
@@ -82,35 +106,49 @@ export function ProjectSidebarChrome({
           active={mainView === "skills"}
           onClick={onOpenSkills}
         />
+        <SidebarNavItem
+          icon={FileStack}
+          label="Artifacts"
+          active={mainView === "artifacts"}
+          onClick={onOpenArtifacts}
+        />
+      </div>
+
+      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">Review</div>
+      <div className="space-y-px px-1.5 pb-1">
+        <SidebarNavItem
+          icon={Activity}
+          label="Runs"
+          active={runsDashboardOpen}
+          onClick={onOpenRunsDashboard}
+        />
+        <SidebarNavItem
+          icon={Inbox}
+          label="Inbox"
+          active={mainView === "inbox"}
+          onClick={onOpenInbox}
+          meta={inboxMeta(unreadInboxCount)}
+        />
       </div>
 
       <div className="px-2.5 pt-3 pb-1.5">
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2">
-            <span className="section-kicker">Flows</span>
-            {pendingApprovalCount > 0 ? (
-              <span className="text-sidebar-meta text-status-warning">
-                {pendingApprovalCount} approval{pendingApprovalCount === 1 ? "" : "s"}
-              </span>
-            ) : null}
-          </span>
+          <span className="section-kicker">Flows</span>
           <div className="flex items-center gap-1">
-            {showVisibilityToggle && onToggleVisibility && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    data-sidebar-item="true"
-                    className="ui-icon-button hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
-                    onClick={onToggleVisibility}
-                    aria-label="Hide sidebar"
-                  >
-                  <PanelLeftClose size={12} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  data-sidebar-item="true"
+                  className="ui-icon-button hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
+                  onClick={onOpenCreate}
+                  aria-label="New flow"
+                >
+                  <Plus size={12} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent>Hide sidebar</TooltipContent>
+              <TooltipContent>New flow</TooltipContent>
             </Tooltip>
-            )}
             {hasProjects ? (
               <Tooltip>
                 <TooltipTrigger asChild>

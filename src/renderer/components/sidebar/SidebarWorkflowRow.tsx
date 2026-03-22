@@ -50,8 +50,6 @@ export function SidebarWorkflowRow({
 
   return (
     <div
-      role="option"
-      aria-selected={isSelected}
       onContextMenu={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -103,7 +101,7 @@ export function SidebarWorkflowRow({
         </button>
 
         {(unreadNotification !== "none" || statusLabel || idleMetaLabel) && (
-          <span className="flex flex-shrink-0 items-center gap-1.25 pr-1">
+          <span className="flex flex-shrink-0 items-center gap-1.5 pr-1">
             {unreadNotification !== "none" && (
               <span
                 title={unreadNotificationTitle || undefined}
@@ -126,9 +124,10 @@ export function SidebarWorkflowRow({
             {!statusLabel && idleMetaLabel && (
               <span
                 className={cn(
-                  "ui-meta-text tabular-nums ui-transition-colors ui-motion-fast",
+                  "max-w-[9rem] truncate text-sidebar-meta tabular-nums ui-transition-colors ui-motion-fast",
                   isSelected ? "text-foreground/62" : "text-muted-foreground",
                 )}
+                title={idleMetaLabel}
               >
                 {idleMetaLabel}
               </span>

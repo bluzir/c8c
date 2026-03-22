@@ -73,7 +73,7 @@ export function SidebarProjectWorkflowList({
 
   return (
     <div className="mt-0.5 ml-7 space-y-px">
-      <div role="listbox" aria-label={`${projectLabel} flows`}>
+      <div role="list" aria-label={`${projectLabel} flows`}>
         {isProjectLoading && filteredProjectWorkflows.length === 0
           ? Array.from({ length: PROJECT_WORKFLOW_LOADING_ROWS }, (_, index) => (
             <div
@@ -147,6 +147,7 @@ export function SidebarProjectWorkflowList({
         <button
           type="button"
           data-sidebar-item="true"
+          aria-expanded={isWorkflowListExpanded}
           onClick={onToggleExpanded}
           className="ui-pressable ml-1 inline-flex h-6 items-center rounded-md px-1.5 text-sidebar-meta text-muted-foreground hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
         >

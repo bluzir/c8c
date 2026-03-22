@@ -55,6 +55,8 @@ interface SidebarWorkflowDialogsProps {
   selectedWorkflowPath: string | null
   workflowDirty: boolean
   commitDeleteWorkflow: () => Promise<void>
+  selectedProject: string | null
+  copyWorkflowToProject: (workflow: WorkflowFile, projectPath: string) => Promise<void>
   pendingRemoveProject: string | null
   setPendingRemoveProject: (projectPath: string | null) => void
   removingSelectedDirtyProject: boolean
@@ -80,6 +82,8 @@ export function SidebarWorkflowDialogs({
   selectedWorkflowPath,
   workflowDirty,
   commitDeleteWorkflow,
+  selectedProject,
+  copyWorkflowToProject,
   pendingRemoveProject,
   setPendingRemoveProject,
   removingSelectedDirtyProject,
@@ -139,15 +143,57 @@ export function SidebarWorkflowDialogs({
           </>
         )}
         {sidebarContextMenu?.scope === "global_workflow" && (
-          <DropdownMenuItem
-            onSelect={() => {
-              if (!sidebarContextMenu) return
-              void selectGlobalWorkflow(sidebarContextMenu.workflow)
-              setSidebarContextMenu(null)
-            }}
-          >
-            Open global flow
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (!sidebarContextMenu) return
+                void selectGlobalWorkflow(sidebarContextMenu.workflow)
+                setSidebarContextMenu(null)
+              }}
+            >
+              Open global flow
+            </DropdownMenuItem>
+            {selectedProject ? (
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (!sidebarContextMenu || !selectedProject) return
+                  setSidebarContextMenu(null)
+                  void copyWorkflowToProject(sidebarContextMenu.workflow, selectedProject)
+                }}
+              >
+                Copy to {projectFolderName(selectedProject)}
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem
+              onSelect={() => {
+                if (!sidebarContextMenu) return
+                requestRenameWorkflow(sidebarContextMenu.workflow)
+                setSidebarContextMenu(null)
+              }}
+            >
+              Rename global flow
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (!sidebarContextMenu) return
+                const workflow = sidebarContextMenu.workflow
+                setSidebarContextMenu(null)
+                void duplicateWorkflow(workflow)
+              }}
+            >
+              Duplicate global flow
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-status-danger focus:text-status-danger"
+              onSelect={() => {
+                if (!sidebarContextMenu) return
+                requestDeleteWorkflow(sidebarContextMenu.workflow)
+                setSidebarContextMenu(null)
+              }}
+            >
+              Delete global flow
+            </DropdownMenuItem>
+          </>
         )}
         {sidebarContextMenu?.scope === "project" && sidebarContextMenu.projectPath && (
           <>

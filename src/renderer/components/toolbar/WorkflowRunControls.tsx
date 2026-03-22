@@ -1,15 +1,8 @@
-import { Loader2, Play, Square } from "lucide-react"
+import { Loader2, Pause, Play, Rows3, Square } from "lucide-react"
 import type { PermissionMode } from "@shared/types"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
-import type { ValidationError } from "@/lib/validate-workflow"
-
-export interface WorkflowValidationGroup {
-  nodeId: string
-  label: string
-  issues: ValidationError[]
-}
 
 interface WorkflowRunControlsProps {
   controlGroupClass: string
@@ -19,21 +12,13 @@ interface WorkflowRunControlsProps {
   isStarting: boolean
   runControlPending: "pause" | "resume" | null
   runShortcutLabel: string
-  workflowValidation: ValidationError[]
-  hasBlockingErrors: boolean
-  blockingValidationCount: number
-  warningValidationCount: number
-  groupedValidationIssues: WorkflowValidationGroup[]
   canRun: boolean
   runDisabledReason: string | null
-  hasRunMenuActions: boolean
   canBatchRun: boolean
-  batchDisabledReason: string | null
   onPause: () => void
   onResume: () => void
   onCancel: () => void
   onRun: (mode: PermissionMode) => void
-  onNavigateToValidationIssue: (issue: ValidationError) => void
   onOpenBatch: () => void
 }
 
@@ -45,21 +30,13 @@ export function WorkflowRunControls({
   isStarting,
   runControlPending,
   runShortcutLabel,
-  workflowValidation,
-  hasBlockingErrors,
-  blockingValidationCount,
-  warningValidationCount,
-  groupedValidationIssues,
   canRun,
   runDisabledReason,
-  hasRunMenuActions,
   canBatchRun,
-  batchDisabledReason,
   onPause,
   onResume,
   onCancel,
   onRun,
-  onNavigateToValidationIssue,
   onOpenBatch,
 }: WorkflowRunControlsProps) {
   return (
@@ -80,34 +57,54 @@ export function WorkflowRunControls({
           {isPaused ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="ui-fade-slide-in-trailing gap-1.5"
-                  onClick={onResume}
-                  disabled={runControlPending !== null}
-                >
-                  {runControlPending === "resume" ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                  {runControlPending === "resume" ? "Resuming..." : "Resume"}
-                </Button>
+                <span className="inline-flex">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="ui-fade-slide-in-trailing gap-1.5"
+                    onClick={onResume}
+                    disabled={runControlPending !== null}
+                  >
+                    {runControlPending === "resume" ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                    {runControlPending === "resume" ? "Resuming..." : "Resume"}
+                  </Button>
+                </span>
               </TooltipTrigger>
               <TooltipContent>Resume run</TooltipContent>
             </Tooltip>
           ) : (
-            <></>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ui-fade-slide-in-trailing gap-1.5"
+                    onClick={onPause}
+                    disabled={runControlPending !== null || isStarting}
+                  >
+                    {runControlPending === "pause" ? <Loader2 size={14} className="animate-spin" /> : <Pause size={14} />}
+                    {runControlPending === "pause" ? "Pausing..." : "Pause"}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{runControlPending === "pause" ? "Pausing run..." : "Pause after the current step"}</TooltipContent>
+            </Tooltip>
           )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant={isPaused ? "outline" : "destructive"}
-                size="sm"
-                className="ui-fade-slide-in-trailing"
-                onClick={onCancel}
-                disabled={isCancelling || isStarting}
-              >
-                {isCancelling ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
-                {isCancelling ? "Stopping..." : isStarting ? "Connecting..." : "Cancel"}
-              </Button>
+              <span className="inline-flex">
+                <Button
+                  variant={isPaused ? "outline" : "destructive"}
+                  size="sm"
+                  className="ui-fade-slide-in-trailing"
+                  onClick={onCancel}
+                  disabled={isCancelling || isStarting}
+                >
+                  {isCancelling ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
+                  {isCancelling ? "Stopping..." : isStarting ? "Connecting..." : "Cancel"}
+                </Button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
               {isCancelling ? "Stopping run..." : isStarting ? "Connecting to CLI..." : `Cancel run (${runShortcutLabel})`}
@@ -118,20 +115,39 @@ export function WorkflowRunControls({
         <div className="flex items-center gap-0.5 rounded-lg control-cluster p-0.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => onRun("edit")}
-                disabled={!canRun}
-                className="min-w-[5.75rem] gap-1.5 rounded-md pr-3 shadow-[inset_0_1px_0_hsl(var(--primary-foreground)/0.2),0_0_0_1px_hsl(var(--hairline)/0.22)]"
-                title={runDisabledReason || undefined}
-              >
-                <Play size={14} />
-                Run
-              </Button>
+              <span className="inline-flex">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onRun("edit")}
+                  disabled={!canRun}
+                  className="gap-1.5 rounded-md"
+                >
+                  <Play size={14} />
+                  Run
+                </Button>
+              </span>
             </TooltipTrigger>
             <TooltipContent>{runDisabledReason || `Run in edit mode (${runShortcutLabel})`}</TooltipContent>
           </Tooltip>
+          {canBatchRun ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 rounded-md"
+                    onClick={onOpenBatch}
+                  >
+                    <Rows3 size={14} />
+                    Batch
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Run this flow across multiple inputs</TooltipContent>
+            </Tooltip>
+          ) : null}
         </div>
       )}
     </div>

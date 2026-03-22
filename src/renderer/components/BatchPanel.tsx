@@ -102,6 +102,7 @@ export function BatchPanel() {
   const [inputText, setInputText] = useState("")
   const [concurrency, setConcurrency] = useState(2)
   const [stopOnFailure, setStopOnFailure] = useState(false)
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false)
 
   const inputs = inputText
     .split("\n")
@@ -154,21 +155,29 @@ export function BatchPanel() {
     downloadText(`batch-results-${stamp}.csv`, toBatchCsv(batchItems, inputs), "text/csv;charset=utf-8")
   }, [batchItems, inputs])
 
+  const resetBatchState = useCallback(() => {
+    setInputText("")
+    setBatchStatus("idle")
+    setBatchError(null)
+    setBatchItems([])
+    setBatchSummary(null)
+    setBatchProgress({ completed: 0, total: 0, running: 0 })
+    setConfirmResetOpen(false)
+  }, [setBatchError, setBatchItems, setBatchProgress, setBatchStatus, setBatchSummary])
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen && isRunning) return
-        setOpen(nextOpen)
-      }}
-    >
-      <CanvasDialogContent
-        size="xl"
-        showCloseButton={!isRunning}
-        className="w-[min(100%-2rem,42rem)] max-h-[80vh] flex flex-col p-0 gap-0"
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
       >
+        <CanvasDialogContent
+          size="xl"
+          showCloseButton={true}
+          className="w-[min(100%-2rem,42rem)] max-h-[80vh] flex flex-col p-0 gap-0"
+        >
           <CanvasDialogHeader className="surface-depth-header border-b border-hairline">
-            <DialogTitle>Batch Run</DialogTitle>
+            <DialogTitle>Run on multiple inputs</DialogTitle>
             <DialogDescription>
               Run this flow on multiple inputs. Enter one input per line.
             </DialogDescription>
@@ -198,27 +207,37 @@ export function BatchPanel() {
                 rows={8}
                 className="font-mono text-body-sm"
               />
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="batch-concurrency">Concurrency:</Label>
-                  <Input
-                    id="batch-concurrency"
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={concurrency}
-                    onChange={(e) => setConcurrency(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
-                    className="w-16 h-control-sm ui-meta-text"
-                  />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="batch-concurrency">Concurrency (max 10)</Label>
+                    <Input
+                      id="batch-concurrency"
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={concurrency}
+                      onChange={(e) => setConcurrency(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                      className="w-16 h-control-sm ui-meta-text"
+                    />
+                  </div>
+                  <p className="ui-meta-text text-muted-foreground">
+                    Up to 10 inputs run in parallel.
+                  </p>
                 </div>
-                <Label htmlFor="batch-stop-on-failure" className="flex items-center gap-1.5 cursor-pointer">
-                  <Checkbox
-                    id="batch-stop-on-failure"
-                    checked={stopOnFailure}
-                    onChange={(e) => setStopOnFailure(e.target.checked)}
-                  />
-                  Stop on first failure
-                </Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="batch-stop-on-failure" className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      id="batch-stop-on-failure"
+                      checked={stopOnFailure}
+                      onChange={(e) => setStopOnFailure(e.target.checked)}
+                    />
+                    Stop on first failure
+                  </Label>
+                  <p className="ui-meta-text text-muted-foreground">
+                    Stops queueing new items after the first failure. In-flight items still finish.
+                  </p>
+                </div>
               </div>
               <div className="ui-meta-text text-muted-foreground">
                 {inputs.length} input{inputs.length !== 1 ? "s" : ""} detected
@@ -238,17 +257,15 @@ export function BatchPanel() {
                   {batchProgress.running > 0 && `, ${batchProgress.running} in progress`}
                 </span>
               </div>
+              <p className="ui-meta-text text-muted-foreground">
+                Closing this panel does not stop the batch. You can reopen it from the toolbar or status bar.
+              </p>
               <div className="ui-progress-track">
                 <div
                   className="ui-progress-bar ui-running-pulse"
                   style={{ transform: `scaleX(${batchProgress.total > 0 ? batchProgress.completed / batchProgress.total : 0})` }}
                 />
               </div>
-              <BatchInputPreview
-                inputs={inputs}
-                items={batchItems}
-                runningCount={batchProgress.running}
-              />
               <BatchItemList items={batchItems} inputs={inputs} />
             </div>
           )}
@@ -300,7 +317,7 @@ export function BatchPanel() {
 
         <CanvasDialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost" size="sm" disabled={isRunning}>Close</Button>
+            <Button variant="ghost" size="sm">{isRunning ? "Hide" : "Close"}</Button>
           </DialogClose>
           {isRunning ? (
             <Button variant="destructive" size="sm" onClick={cancelBatch}>
@@ -318,12 +335,11 @@ export function BatchPanel() {
               <Button
                 size="sm"
                 onClick={() => {
-                  setInputText("")
-                  setBatchStatus("idle")
-                  setBatchError(null)
-                  setBatchItems([])
-                  setBatchSummary(null)
-                  setBatchProgress({ completed: 0, total: 0, running: 0 })
+                  if (batchItems.length > 0) {
+                    setConfirmResetOpen(true)
+                    return
+                  }
+                  resetBatchState()
                 }}
               >
                 New Batch
@@ -341,8 +357,36 @@ export function BatchPanel() {
             </Button>
           )}
         </CanvasDialogFooter>
-      </CanvasDialogContent>
-    </Dialog>
+        </CanvasDialogContent>
+      </Dialog>
+      <Dialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
+        <CanvasDialogContent size="md" showCloseButton={false}>
+          <CanvasDialogHeader>
+            <DialogTitle>Discard this batch?</DialogTitle>
+            <DialogDescription>
+              Starting a new batch will discard these {batchItems.length} result{batchItems.length === 1 ? "" : "s"} from the current session view.
+            </DialogDescription>
+          </CanvasDialogHeader>
+          <CanvasDialogBody className="space-y-2">
+            <p className="ui-meta-text text-muted-foreground">
+              Export the results first if you still need them outside this session.
+            </p>
+          </CanvasDialogBody>
+          <CanvasDialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={batchItems.length === 0}>
+              <Download size={14} />
+              Export CSV
+            </Button>
+            <Button size="sm" onClick={resetBatchState}>
+              New batch
+            </Button>
+          </CanvasDialogFooter>
+        </CanvasDialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -370,71 +414,6 @@ function SummaryCard({
         )}
       >
         {value}
-      </div>
-    </div>
-  )
-}
-
-function BatchInputPreview({
-  inputs,
-  items,
-  runningCount,
-}: {
-  inputs: string[]
-  items: BatchItemResult[]
-  runningCount: number
-}) {
-  if (inputs.length === 0) return null
-  const previewCount = Math.min(inputs.length, 12)
-  const hasHidden = inputs.length > previewCount
-
-  const statusByIndex = new Map<number, "completed" | "failed" | "running" | "waiting">()
-  for (const item of items) {
-    if (item.status === "completed") statusByIndex.set(item.input_index, "completed")
-    else if (item.status === "failed") statusByIndex.set(item.input_index, "failed")
-    else statusByIndex.set(item.input_index, "running")
-  }
-
-  const STATUS_STYLE: Record<string, { className: string; label: string }> = {
-    completed: { className: "ui-status-badge-success", label: "done" },
-    failed: { className: "ui-status-badge-danger", label: "failed" },
-    running: { className: "ui-status-badge-info", label: "running" },
-    waiting: { className: "border-hairline bg-surface-3 text-foreground-subtle", label: "waiting" },
-  }
-
-  return (
-    <div className="rounded-md border border-hairline bg-surface-2/70 p-2">
-      <div className="ui-meta-text text-muted-foreground mb-1">Inputs preview</div>
-      {runningCount > 0 && (
-        <div className="ui-meta-text text-muted-foreground mb-1">
-          {runningCount} item{runningCount !== 1 ? "s" : ""} currently running
-        </div>
-      )}
-      <div className="space-y-1 max-h-40 overflow-y-auto ui-scroll-region">
-        {inputs.slice(0, previewCount).map((value, index) => {
-          const status = statusByIndex.get(index) || "waiting"
-          const style = STATUS_STYLE[status]
-          return (
-            <div key={`preview-${index}-${value}`} className="flex items-center gap-2 ui-meta-text ui-fade-slide-in">
-              <span className="text-muted-foreground w-8">#{index + 1}</span>
-              <span
-                className={cn(
-                  "ui-status-badge font-mono ui-transition-colors",
-                  "[transition-duration:var(--motion-base)] [transition-timing-function:var(--ease-standard)]",
-                  style.className,
-                )}
-              >
-                {style.label}
-              </span>
-              <span className="truncate text-foreground-subtle">{value}</span>
-            </div>
-          )
-        })}
-        {hasHidden && (
-          <div className="ui-meta-text text-muted-foreground">
-            +{inputs.length - previewCount} more
-          </div>
-        )}
       </div>
     </div>
   )
@@ -482,7 +461,7 @@ function BatchItemList({ items, inputs }: { items: BatchItemResult[]; inputs?: s
                 )}
               >
                 {item.status === "completed"
-                  ? "Passed"
+                  ? "Completed"
                   : item.status === "cancelled" || item.status === "interrupted"
                     ? "Cancelled"
                     : item.error || "Failed"}

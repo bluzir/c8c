@@ -278,7 +278,7 @@ export function deriveSidebarWorkflowRowState({
       unreadNotification: "none",
       unreadNotificationTitle: null,
       statusLabel: "New",
-      statusBadgeClass: "border border-hairline bg-surface-2/80 text-muted-foreground",
+      statusBadgeClass: "ui-status-badge border border-hairline bg-surface-2/80 text-muted-foreground",
       showStatusSpinner: false,
     }
   }

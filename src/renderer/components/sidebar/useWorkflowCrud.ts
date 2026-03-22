@@ -478,6 +478,23 @@ export function useWorkflowCrud({
     }
   }
 
+  const copyWorkflowToProject = async (workflow: WorkflowFile, projectPath: string) => {
+    try {
+      const loadedWorkflow = await window.api.loadWorkflow(workflow.path)
+      await window.api.createWorkflow(projectPath, loadedWorkflow.name || workflow.name || "flow", loadedWorkflow)
+      const refreshed = await window.api.listProjectWorkflows(projectPath)
+      if (projectPath === selectedProject) {
+        setWorkflows(refreshed)
+      } else {
+        setProjectWorkflowsCache((prev) => ({ ...prev, [projectPath]: refreshed }))
+      }
+      const projectName = projectPath.split(/[\\/]/).filter(Boolean).pop() || projectPath
+      toast.success(`Copied to ${projectName}`)
+    } catch (error) {
+      toastErrorFromCatch("Could not copy flow to project", error)
+    }
+  }
+
   return {
     pendingRenameWorkflow,
     setPendingRenameWorkflow,
@@ -499,5 +516,6 @@ export function useWorkflowCrud({
     requestDeleteWorkflow,
     commitDeleteWorkflow,
     duplicateWorkflow,
+    copyWorkflowToProject,
   }
 }
