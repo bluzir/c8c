@@ -502,10 +502,10 @@ export function WorkflowsTemplatesPage() {
             </Select>
             <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as TemplateLibraryFilterKey)}>
               <SelectTrigger className="h-control-sm min-w-[12rem]">
-                <SelectValue placeholder="Stage" />
+                <SelectValue placeholder="Step" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All stages</SelectItem>
+                <SelectItem value="all">All steps</SelectItem>
                 {availableStageFilters.map(({ stage }) => (
                   <SelectItem key={stage} value={stage}>
                     {STAGE_META[stage].label}
@@ -557,7 +557,7 @@ export function WorkflowsTemplatesPage() {
                     <div className="px-1">
                       <p className="section-kicker">Guided entries</p>
                       <p className="mt-1 text-body-sm text-muted-foreground">
-                        Start with the first stage, then continue through saved work as the path progresses.
+                        Start with the first step, then continue through saved work as the path progresses.
                       </p>
                     </div>
                     {renderTemplateGrid(filteredTemplateEntries.guidedEntries)}
