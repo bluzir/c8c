@@ -41,10 +41,16 @@ describe("yaml-io", () => {
     )
   })
 
-  it("rejects YAML objects without workflow arrays", async () => {
+  it("rejects legacy step-based YAML workflows", async () => {
     workspace = await mkdtemp(join(tmpdir(), "yaml-io-test-"))
-    const filePath = join(workspace, "missing-arrays.yaml")
-    await writeFile(filePath, "name: Broken workflow", "utf-8")
+    const filePath = join(workspace, "legacy.yaml")
+    await writeFile(filePath, [
+      "description: Legacy workflow",
+      "steps:",
+      "  - key: draft",
+      "    agent: writer",
+      "    prompt: Write",
+    ].join("\n"), "utf-8")
 
     await expect(loadChainYaml(filePath)).rejects.toThrow(
       "Invalid workflow YAML: missing nodes or edges array",

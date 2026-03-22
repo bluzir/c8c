@@ -7,16 +7,18 @@ import {
   ensureChainsDir,
 } from "../lib/yaml-io"
 import { loadChain, saveChain, listChainFiles } from "../lib/chain-io"
-import { yamlToChain } from "../lib/migrate"
 import { join, basename, dirname, extname, resolve } from "node:path"
-import type { ChainDefinition } from "../lib/chain-runner"
 import type { Workflow } from "@shared/types"
 import {
   normalizeWorkflowTitle,
   toWorkflowFileStem,
 } from "@shared/workflow-name"
 import { moveChatHistory } from "../lib/chat-storage"
-import { allowedProjectRoots, allowedWorkflowRoots, assertWithinRoots } from "../lib/security-paths"
+import {
+  allowedWorkflowRoots,
+  assertRegisteredProjectPath as assertRegisteredProjectRoot,
+  assertWithinRoots,
+} from "../lib/security-paths"
 
 async function pathExists(path: string): Promise<boolean> {
   const { access } = await import("node:fs/promises")
@@ -86,46 +88,26 @@ async function withWorkflowRootGuidance<T>(
   }
 }
 
-function defaultWorkflowFilename(data: Workflow | ChainDefinition): string {
-  const title = "nodes" in data
-    ? normalizeWorkflowTitle((data as Workflow).name || "")
-    : ""
+function defaultWorkflowFilename(data: Workflow): string {
+  const title = normalizeWorkflowTitle(data.name || "")
   return `${toWorkflowFileStem(title || "flow")}.chain`
 }
 
 async function saveWorkflowDefinition(
   filePath: string,
-  data: Workflow | ChainDefinition,
+  data: Workflow,
 ): Promise<string> {
   if (filePath.endsWith(".chain")) {
-    if ("nodes" in data) {
-      await saveChain(filePath, data as Workflow)
-    } else {
-      const name = basename(filePath, ".chain")
-      const workflow = yamlToChain(data as ChainDefinition, name)
-      await saveChain(filePath, workflow)
-    }
+    await saveChain(filePath, data)
     return filePath
   }
 
-  if ("steps" in data) {
-    await saveChainYaml(filePath, data as ChainDefinition)
-    return filePath
-  }
-
-  const chainPath = filePath.replace(/\.(yaml|yml)$/, ".chain")
-  await assertWorkflowFilePath(chainPath)
-  await saveChain(chainPath, data as Workflow)
-  return chainPath
+  await saveChainYaml(filePath, data)
+  return filePath
 }
 
 async function assertRegisteredProjectPath(projectPath: string): Promise<string> {
-  const resolvedPath = resolve(projectPath)
-  const projectRoots = await allowedProjectRoots()
-  if (!projectRoots.some((root) => root === resolvedPath)) {
-    throw new Error("Project path is not registered")
-  }
-  return resolvedPath
+  return assertRegisteredProjectRoot(projectPath)
 }
 
 export function registerWorkflowsHandlers() {
@@ -151,35 +133,21 @@ export function registerWorkflowsHandlers() {
     if (safeFilePath.endsWith(".chain")) {
       return loadChain(safeFilePath)
     } else {
-      // Legacy YAML — load and convert on the fly
-      const legacy = await loadChainYaml(safeFilePath)
-      const name = basename(safeFilePath).replace(/\.(yaml|yml)$/, "")
-      return yamlToChain(legacy, name)
+      return loadChainYaml(safeFilePath)
     }
   })
 
   ipcMain.handle(
     "workflows:save",
-    async (_e, filePath: string, data: Workflow | ChainDefinition) => {
+    async (_e, filePath: string, data: Workflow) => {
       const safeFilePath = await assertWorkflowFilePath(filePath)
-      // Detect format: Workflow has `nodes`, ChainDefinition has `steps`
-      if ("nodes" in data) {
-        // New Workflow format — always save as .chain
-        const chainPath = safeFilePath.replace(/\.(yaml|yml)$/, ".chain")
-        await assertWorkflowFilePath(chainPath)
-        await saveChain(chainPath, data as Workflow)
-        return chainPath
-      } else {
-        // Legacy ChainDefinition — save as YAML
-        await saveChainYaml(safeFilePath, data as ChainDefinition)
-        return safeFilePath
-      }
+      return saveWorkflowDefinition(safeFilePath, data)
     },
   )
 
   ipcMain.handle(
     "workflows:save-as",
-    async (_e, data: Workflow | ChainDefinition, projectPath?: string) => {
+    async (_e, data: Workflow, projectPath?: string) => {
       return withWorkflowRootGuidance("Flow save destination", async () => {
         const window = BrowserWindow.getFocusedWindow()
         if (!window) return null
@@ -193,7 +161,7 @@ export function registerWorkflowsHandlers() {
           defaultPath: join(defaultDir, defaultWorkflowFilename(data)),
           filters: [
             { name: "Chain Flow", extensions: ["chain"] },
-            { name: "YAML (legacy)", extensions: ["yaml", "yml"] },
+            { name: "Workflow YAML", extensions: ["yaml", "yml"] },
           ],
         })
 
@@ -206,7 +174,7 @@ export function registerWorkflowsHandlers() {
 
   ipcMain.handle(
     "workflows:export-copy",
-    async (_e, data: Workflow | ChainDefinition, projectPath?: string) => {
+    async (_e, data: Workflow, projectPath?: string) => {
       return withWorkflowRootGuidance("Flow export destination", async () => {
         const window = BrowserWindow.getFocusedWindow()
         if (!window) return null
@@ -220,7 +188,7 @@ export function registerWorkflowsHandlers() {
           defaultPath: join(defaultDir, defaultWorkflowFilename(data)),
           filters: [
             { name: "Chain Flow", extensions: ["chain"] },
-            { name: "YAML (legacy)", extensions: ["yaml", "yml"] },
+            { name: "Workflow YAML", extensions: ["yaml", "yml"] },
           ],
         })
 
@@ -245,13 +213,11 @@ export function registerWorkflowsHandlers() {
       if (result.canceled || !result.filePaths[0]) return null
       const safeFilePath = await assertWorkflowFilePath(result.filePaths[0])
 
-      let chain: Workflow | ChainDefinition
+      let chain: Workflow
       if (safeFilePath.endsWith(".chain")) {
         chain = await loadChain(safeFilePath)
       } else {
-        const legacy = await loadChainYaml(safeFilePath)
-        const name = basename(safeFilePath).replace(/\.(yaml|yml)$/, "")
-        chain = yamlToChain(legacy, name)
+        chain = await loadChainYaml(safeFilePath)
       }
 
       return { filePath: safeFilePath, chain }
@@ -260,35 +226,26 @@ export function registerWorkflowsHandlers() {
 
   ipcMain.handle(
     "workflows:create",
-    async (_e, projectPath: string, name: string, data: Workflow | ChainDefinition) => {
+    async (_e, projectPath: string, name: string, data: Workflow) => {
       const { mkdir } = await import("node:fs/promises")
       const safeProjectPath = await assertRegisteredProjectPath(projectPath)
       const dir = join(safeProjectPath, ".c8c")
       await mkdir(dir, { recursive: true })
-
-      if ("nodes" in data) {
-        const workflow = data as Workflow
-        const normalizedTitle = normalizeWorkflowTitle(workflow.name || name)
-        const fileStem = toWorkflowFileStem(name || normalizedTitle)
-        const filePath = await uniqueWorkflowPath(dir, fileStem, ".chain")
-        await saveChain(filePath, {
-          ...workflow,
-          name: normalizedTitle || workflow.name || name,
-        })
-        return filePath
-      } else {
-        const fileStem = toWorkflowFileStem(name)
-        const filePath = await uniqueWorkflowPath(dir, fileStem, ".yaml")
-        await saveChainYaml(filePath, data as ChainDefinition)
-        return filePath
-      }
+      const normalizedTitle = normalizeWorkflowTitle(data.name || name)
+      const fileStem = toWorkflowFileStem(name || normalizedTitle)
+      const filePath = await uniqueWorkflowPath(dir, fileStem, ".chain")
+      await saveChain(filePath, {
+        ...data,
+        name: normalizedTitle || data.name || name,
+      })
+      return filePath
     },
   )
 
   ipcMain.handle(
     "workflows:rename",
     async (_e, filePath: string, nextTitle: string) => {
-      const { rename } = await import("node:fs/promises")
+      const { rename, unlink } = await import("node:fs/promises")
       const safeFilePath = await assertWorkflowFilePath(filePath)
       const dir = dirname(safeFilePath)
       const extension = extname(safeFilePath).toLowerCase()
@@ -300,21 +257,25 @@ export function registerWorkflowsHandlers() {
 
       const destinationPath = join(
         dir,
-        `${toWorkflowFileStem(normalizedTitle)}${extension}`,
+        `${toWorkflowFileStem(normalizedTitle)}.chain`,
       )
       await assertWorkflowFilePath(destinationPath)
       if (destinationPath !== safeFilePath && (await pathExists(destinationPath))) {
         throw new Error(`Flow "${normalizedTitle}" already exists`)
       }
 
-      if (destinationPath !== safeFilePath) {
-        await rename(safeFilePath, destinationPath)
-        await moveChatHistory(safeFilePath, destinationPath)
-      }
-
       if (extension === ".chain") {
+        if (destinationPath !== safeFilePath) {
+          await rename(safeFilePath, destinationPath)
+          await moveChatHistory(safeFilePath, destinationPath)
+        }
         const workflow = await loadChain(destinationPath)
         await saveChain(destinationPath, { ...workflow, name: normalizedTitle })
+      } else {
+        const workflow = await loadChainYaml(safeFilePath)
+        await saveChain(destinationPath, { ...workflow, name: normalizedTitle })
+        await moveChatHistory(safeFilePath, destinationPath)
+        await unlink(safeFilePath)
       }
 
       return destinationPath
@@ -335,12 +296,12 @@ export function registerWorkflowsHandlers() {
       await saveChain(destPath, { ...workflow, name: copyName })
       return destPath
     } else {
-      const legacy = await loadChainYaml(safeFilePath)
+      const workflow = await loadChainYaml(safeFilePath)
       const originalName = basename(safeFilePath).replace(/\.(yaml|yml)$/, "")
       const copyName = `${originalName}-copy`
       const copyStem = toWorkflowFileStem(copyName)
-      const destPath = await uniqueWorkflowPath(dir, copyStem, extension)
-      await saveChainYaml(destPath, legacy)
+      const destPath = await uniqueWorkflowPath(dir, copyStem, ".chain")
+      await saveChain(destPath, { ...workflow, name: copyName })
       return destPath
     }
   })
