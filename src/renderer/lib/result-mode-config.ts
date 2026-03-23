@@ -50,6 +50,35 @@ const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
   content: [
     {
       id: "content_goal",
+      label: "Content goal",
+      placeholder:
+        "Write posts, build a content calendar, research trends, or review existing drafts.",
+    },
+    {
+      id: "audience",
+      label: "Audience",
+      placeholder:
+        "Who reads this — founders, developers, marketers — and where they see it.",
+      type: "textarea",
+    },
+    {
+      id: "tone_of_voice",
+      label: "Tone and constraints",
+      placeholder:
+        "Tone of voice rules, no-slop requirements, brand constraints, or channel format.",
+      type: "textarea",
+    },
+    {
+      id: "volume_and_quality",
+      label: "Success signal",
+      placeholder:
+        "What good content looks like for this — specific, on-voice, publishable without rewrites.",
+      type: "textarea",
+    },
+  ],
+  marketing: [
+    {
+      id: "content_goal",
       label: "Marketing goal",
       placeholder:
         "Validate a segment, shape a GTM angle, plan SEO content, or build a launch campaign.",
@@ -79,9 +108,9 @@ const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
   courses: [
     {
       id: "course_outcome",
-      label: "Content goal",
+      label: "Course goal",
       placeholder:
-        "Publish a content system, produce a newsletter series, or shape a course-style asset set.",
+        "Build a course, workshop, or structured lesson set from your expertise.",
     },
     {
       id: "audience",
@@ -94,14 +123,14 @@ const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
       id: "format_and_depth",
       label: "Format and source material",
       placeholder:
-        "Posts, newsletter, guide, course, workshop, lesson set, plus the raw material available.",
+        "Course, workshop, lesson set, plus the raw material available.",
       type: "textarea",
     },
     {
       id: "launch_needs",
-      label: "Publishing or launch needs",
+      label: "Launch needs",
       placeholder:
-        "Approvals, launch assets, delivery format, cadence, or other downstream needs.",
+        "Approvals, launch assets, delivery format, or platform constraints.",
       type: "textarea",
     },
   ],
@@ -112,11 +141,11 @@ const RESULT_MODE_CONFIG_LABELS: Record<string, string> = {
   source_context: "Product context",
   quality_bar: "Quality bar",
   strategist_checkpoints: "Decision checkpoints",
-  content_goal: "Marketing goal",
+  content_goal: "Content goal",
   channel_and_audience: "Market and audience",
-  tone_of_voice: "Angles and constraints",
+  tone_of_voice: "Tone and constraints",
   volume_and_quality: "Success signal",
-  course_outcome: "Content goal",
+  course_outcome: "Course goal",
   audience: "Audience",
   format_and_depth: "Format and source material",
   launch_needs: "Publishing or launch needs",

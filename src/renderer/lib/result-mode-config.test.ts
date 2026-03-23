@@ -16,7 +16,7 @@ describe("result-mode-config", () => {
       }),
     ).toEqual({
       content_goal: "30 launch posts",
-      channel_and_audience: "",
+      audience: "",
       tone_of_voice: "",
       volume_and_quality: "",
     })
@@ -39,7 +39,7 @@ describe("result-mode-config", () => {
         audience: "Designers moving into AI",
       }),
     ).toEqual([
-      { label: "Content goal", value: "Launch a workshop" },
+      { label: "Course goal", value: "Launch a workshop" },
       { label: "Audience", value: "Designers moving into AI" },
     ])
   })
@@ -50,7 +50,7 @@ describe("result-mode-config", () => {
       mode,
       {
         content_goal: "Generate 10 posts",
-        channel_and_audience: "LinkedIn for AI founders",
+        audience: "AI founders on LinkedIn",
         tone_of_voice: "",
         volume_and_quality: "",
       },
@@ -63,9 +63,9 @@ describe("result-mode-config", () => {
       },
     )
 
-    expect(seed).toContain("Marketing brief:")
+    expect(seed).toContain("Content brief:")
     expect(seed).toContain("Generate 10 posts")
-    expect(seed).toContain("LinkedIn for AI founders")
+    expect(seed).toContain("AI founders on LinkedIn")
     expect(seed).toContain("Focus on recent agent launches.")
     expect(seed).toContain("No generic advice.")
   })
@@ -84,7 +84,7 @@ describe("result-mode-config", () => {
       },
     )
 
-    expect(seed).toContain("Build a starter flow for the Content result mode.")
+    expect(seed).toContain("Build a starter flow for the Courses result mode.")
     expect(seed).toContain("First useful result")
   })
 })

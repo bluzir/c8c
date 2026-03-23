@@ -9,10 +9,10 @@ import {
 
 describe("result-mode-factory", () => {
   it("builds a marketing factory outcome with parsed targets and saved recipe packs", () => {
-    const mode = getResultMode("content")
+    const mode = getResultMode("marketing")
     const factory = buildFactoryFromResultMode({
       mode,
-      values: normalizeResultModeConfig("content", {
+      values: normalizeResultModeConfig("marketing", {
         content_goal:
           "Generate 100 Facebook posts about AI agents in the next 30 days",
         channel_and_audience:
@@ -24,7 +24,7 @@ describe("result-mode-factory", () => {
       now: 1700000000000,
     })
 
-    expect(factory.modeId).toBe("content")
+    expect(factory.modeId).toBe("marketing")
     expect(factory.outcome?.title).toContain("100 Facebook posts")
     expect(factory.outcome?.targetCount).toBe(100)
     expect(factory.outcome?.targetUnit).toBe("posts")
@@ -92,13 +92,10 @@ describe("result-mode-factory", () => {
 
     expect(factory.id).toBe(existing.id)
     expect(factory.modeId).toBe("courses")
-    expect(factory.recipe?.packIds).toEqual([
-      "content-factory-alpha",
-      "courses-factory-alpha",
-    ])
+    expect(factory.recipe?.packIds).toEqual(["courses-factory-alpha"])
     expect(factory.recipe?.strategistCheckpoints).toEqual([
-      "Approve voice and structure",
-      "Approve sample asset quality",
+      "Approve structure and curriculum",
+      "Approve lesson quality",
     ])
   })
 

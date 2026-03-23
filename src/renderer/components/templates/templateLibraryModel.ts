@@ -59,8 +59,9 @@ export function deriveCreateModeId(
   selectedTemplate: WorkflowTemplate | null,
 ): ResultModeId {
   if (selectedTemplate?.pack?.id === "courses-factory-alpha") return "courses"
+  if (selectedTemplate?.pack?.id === "content-factory-alpha") return "content"
   if (activeCategory === "product") return "development"
-  if (activeCategory === "marketing") return "content"
-  if (activeCategory === "content") return "courses"
+  if (activeCategory === "marketing") return "marketing"
+  if (activeCategory === "content") return "content"
   return fallbackModeId
 }

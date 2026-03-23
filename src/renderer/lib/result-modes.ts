@@ -59,33 +59,13 @@ const DEVELOPMENT_TEMPLATE_IDS = new Set([
   "gstack-web-quality-board",
 ])
 
-const CONTENT_PACK_IDS = new Set(["ai-cmo"])
+const CONTENT_PACK_IDS = new Set(["content-factory-alpha"])
 
-const COURSES_PACK_IDS = new Set([
-  "content-factory-alpha",
-  "courses-factory-alpha",
-])
+const MARKETING_PACK_IDS = new Set(["ai-cmo"])
+
+const COURSES_PACK_IDS = new Set(["courses-factory-alpha"])
 
 const CONTENT_TEMPLATE_IDS = new Set([
-  "competitor-ad-intelligence",
-  "lead-research-machine",
-  "segment-research-gate",
-  "seed-account-map-pipeline",
-  "vertical-pain-to-target-list",
-  "raw-list-to-verified-contacts",
-  "segmented-outreach-launchpad",
-  "new-vertical-to-live-campaign",
-  "cold-outreach-pipeline",
-  "landing-audit-loop",
-  "landing-page-generator",
-  "content-pipeline",
-  "copy-quality-pipeline",
-  "indispensable-jtbd-pipeline",
-  "irresistible-resonance-pipeline",
-  "twitter-growth-machine",
-])
-
-const COURSES_TEMPLATE_IDS = new Set([
   "content-trend-watch",
   "content-idea-backlog",
   "content-editorial-calendar",
@@ -98,7 +78,26 @@ const COURSES_TEMPLATE_IDS = new Set([
   "copy-quality-pipeline",
   "content-pipeline",
   "predictable-text-factory",
+])
+
+const MARKETING_TEMPLATE_IDS = new Set([
+  "competitor-ad-intelligence",
+  "lead-research-machine",
+  "segment-research-gate",
+  "seed-account-map-pipeline",
+  "vertical-pain-to-target-list",
+  "raw-list-to-verified-contacts",
+  "segmented-outreach-launchpad",
+  "new-vertical-to-live-campaign",
+  "cold-outreach-pipeline",
+  "landing-audit-loop",
   "landing-page-generator",
+  "indispensable-jtbd-pipeline",
+  "irresistible-resonance-pipeline",
+  "twitter-growth-machine",
+])
+
+const COURSES_TEMPLATE_IDS = new Set([
   "courses-audience-offer",
   "courses-curriculum-map",
   "courses-lesson-system",
@@ -126,13 +125,29 @@ const DEVELOPMENT_METADATA_TOKENS = [
 ]
 
 const CONTENT_METADATA_TOKENS = [
+  "content",
+  "post",
+  "copy",
+  "editorial",
+  "newsletter",
+  "draft",
+  "publish",
+  "trend",
+  "calendar",
+  "repurpose",
+  "tone of voice",
+  "slop",
+  "blog",
+  "social",
+]
+
+const MARKETING_METADATA_TOKENS = [
   "marketing",
   "growth",
   "seo",
   "geo",
   "reddit",
   "hacker news",
-  "trend",
   "campaign",
   "landing page",
   "positioning",
@@ -149,13 +164,6 @@ const CONTENT_METADATA_TOKENS = [
 ]
 
 const COURSES_METADATA_TOKENS = [
-  "content",
-  "post",
-  "copy",
-  "editorial",
-  "newsletter",
-  "draft",
-  "publish",
   "course",
   "curriculum",
   "lesson",
@@ -172,13 +180,10 @@ const COURSES_METADATA_TOKENS = [
 
 const COURSES_STAGE_TOKENS = [
   "audience",
-  "positioning",
   "offer",
   "lesson",
   "curriculum",
   "launch",
-  "draft",
-  "publish",
 ]
 
 const QUICK_STARTS_BY_MODE: Partial<
@@ -478,20 +483,51 @@ export const RESULT_MODES: WorkflowResultMode[] = [
   },
   {
     id: "content",
+    label: "Content",
+    emoji: "✍️",
+    summary:
+      "Turn ideas into posts, calendars, and publishable content with voice and quality control.",
+    useFor:
+      "Posts, newsletters, editorial calendars, trend research, content repurposing, and quality review.",
+    youProvide:
+      "A topic, trend brief, audience, tone of voice rules, or existing material to repurpose.",
+    youGetFirst: "Trend digest, editorial calendar, or draft post.",
+    userRole: "Approve voice, angle, and quality before publishing.",
+    packIds: ["content-factory-alpha"],
+    templateIds: Array.from(CONTENT_TEMPLATE_IDS),
+    stagePreferences: ["content", "research", "strategy"],
+    startTemplateId: "content-trend-watch",
+    startActionLabel: "Start from request",
+    guidedPath: ["Understand", "Plan", "Build", "Check", "Ship"],
+    runtimeLine: "Chooses the right path after you submit.",
+    composerPlaceholder:
+      "Describe the content you want — a post, a calendar, a trend digest, a strategy. Add audience and tone constraints if they matter...",
+    scaffoldPlaceholders: {
+      goal: "What content outcome should this flow create?",
+      input:
+        "Topic, trend brief, audience context, tone rules, or existing material to repurpose.",
+      constraints:
+        "Tone of voice, no-slop rules, channel format, publishing cadence, or brand constraints.",
+      successCriteria:
+        "What would make the content feel specific, on-voice, and ready to publish?",
+    },
+  },
+  {
+    id: "marketing",
     label: "Marketing",
     emoji: "📣",
     summary:
       "Research a market, choose angles, and turn them into campaigns, pages, or growth loops.",
     useFor:
-      "Research, positioning, trends, SEO, messaging, outreach, and marketing audits.",
+      "Research, positioning, SEO, messaging, outreach, landing pages, and marketing audits.",
     youProvide:
       "A product, market, audience, channel, competitor set, or growth question.",
     youGetFirst: "Segment map, growth thesis, or campaign plan.",
     userRole:
       "Approve audience choice, angle, and sample quality before scaling.",
     packIds: ["ai-cmo"],
-    templateIds: Array.from(CONTENT_TEMPLATE_IDS),
-    stagePreferences: ["research", "strategy", "content", "outreach"],
+    templateIds: Array.from(MARKETING_TEMPLATE_IDS),
+    stagePreferences: ["research", "strategy", "outreach"],
     startTemplateId: "segment-research-gate",
     startActionLabel: "Start guided path",
     guidedPath: ["Research the market", "Choose the angle", "Ship the assets"],
@@ -503,45 +539,45 @@ export const RESULT_MODES: WorkflowResultMode[] = [
       input:
         "Product context, market notes, competitors, audience signals, links, or campaign context.",
       constraints:
-        "Channels, brand rules, approved angles, no-slop rules, timing, or budget realities.",
+        "Channels, brand rules, approved angles, timing, or budget realities.",
       successCriteria:
         "What would make the strategy or assets clearly useful, grounded, and worth shipping?",
     },
   },
   {
     id: "courses",
-    label: "Content",
-    emoji: "✍️",
+    label: "Courses",
+    emoji: "🎓",
     summary:
-      "Turn ideas or expertise into publishable text systems, lessons, and launch-ready assets.",
+      "Turn expertise into structured courses, lessons, and launch-ready education assets.",
     useFor:
-      "Texts, newsletters, post systems, course material, lesson production, and content operations.",
+      "Course material, curriculum design, lesson production, and education launches.",
     youProvide:
-      "A topic, source material, audience, offer, or expertise you want packaged.",
-    youGetFirst: "Draft plan, publishing system, or curriculum direction.",
+      "A topic, expertise, audience, offer, or existing material to structure.",
+    youGetFirst: "Audience offer, curriculum map, or lesson system.",
     userRole:
-      "Approve voice, structure, and sample quality before output scales.",
-    packIds: ["content-factory-alpha", "courses-factory-alpha"],
+      "Approve structure, lesson quality, and launch assets before shipping.",
+    packIds: ["courses-factory-alpha"],
     templateIds: Array.from(COURSES_TEMPLATE_IDS),
-    stagePreferences: ["strategy", "content", "research"],
-    startTemplateId: "content-trend-watch",
+    stagePreferences: ["strategy", "content"],
+    startTemplateId: "courses-audience-offer",
     startActionLabel: "Start guided path",
     guidedPath: [
       "Clarify audience",
       "Plan the structure",
       "Produce the assets",
     ],
-    runtimeLine: "Approves voice and sample quality before output scales.",
+    runtimeLine: "Approves structure and quality before output scales.",
     composerPlaceholder:
-      "Describe the content result, audience, and what good looks like...",
+      "Describe the course you want to create, your audience, and what good looks like...",
     scaffoldPlaceholders: {
-      goal: "What content or education outcome should this flow create?",
+      goal: "What education outcome should this flow create?",
       input:
-        "Source docs, notes, transcripts, audience context, offer material, or existing drafts.",
+        "Source docs, expertise, audience context, offer material, or existing content.",
       constraints:
-        "Format, tone, no-slop rules, lesson length, publishing cadence, or launch needs.",
+        "Lesson length, format, cohort needs, launch timing, or platform constraints.",
       successCriteria:
-        "What would make the drafts, structure, or lesson assets feel strong and usable?",
+        "What would make the course structure and lessons feel strong and usable?",
     },
   },
 ]
@@ -604,6 +640,21 @@ function templateScoreForMode(
     if (template.pack?.id && CONTENT_PACK_IDS.has(template.pack.id))
       score += 100
     if (CONTENT_TEMPLATE_IDS.has(template.id)) score += 80
+    if (isContentTemplate(template)) score += 35
+    if (template.stage === "content") score += 30
+    if (matchesContent) score += 10
+    return score
+  }
+
+  if (modeId === "marketing") {
+    let score = 0
+    const matchesMarketing = metadataIncludesAny(
+      text,
+      MARKETING_METADATA_TOKENS,
+    )
+    if (template.pack?.id && MARKETING_PACK_IDS.has(template.pack.id))
+      score += 100
+    if (MARKETING_TEMPLATE_IDS.has(template.id)) score += 80
     if (isMarketingTemplate(template)) score += 35
     if (
       template.stage === "research" ||
@@ -611,12 +662,7 @@ function templateScoreForMode(
       template.stage === "outreach"
     )
       score += 30
-    if (
-      (template.stage === "strategy" || template.stage === "research") &&
-      matchesContent
-    )
-      score += 20
-    if (matchesContent) score += 10
+    if (matchesMarketing) score += 10
     return score
   }
 
@@ -626,7 +672,6 @@ function templateScoreForMode(
     if (template.pack?.id && COURSES_PACK_IDS.has(template.pack.id))
       score += 100
     if (COURSES_TEMPLATE_IDS.has(template.id)) score += 90
-    if (isContentTemplate(template)) score += 35
     if (matchesCourses) score += 60
     if (
       (template.stage === "strategy" || template.stage === "content") &&

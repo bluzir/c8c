@@ -91,6 +91,14 @@ function factoryLabelForMode(
   }
   if (mode.id === "content") {
     return firstFilled(
+      values.course_outcome,
+      existingFactory?.label,
+      existingFactory?.outcome?.title,
+      "Content Lab",
+    )
+  }
+  if (mode.id === "marketing") {
+    return firstFilled(
       values.content_goal,
       existingFactory?.label,
       existingFactory?.outcome?.title,
@@ -102,7 +110,7 @@ function factoryLabelForMode(
       values.course_outcome,
       existingFactory?.label,
       existingFactory?.outcome?.title,
-      "Content Lab",
+      "Courses Lab",
     )
   }
   return firstFilled(
@@ -127,6 +135,19 @@ function buildOutcomeStatement(
     if (trim(values.quality_bar))
       sections.push({ label: "Quality bar", value: trim(values.quality_bar) })
   } else if (mode.id === "content") {
+    if (trim(values.audience))
+      sections.push({ label: "Audience", value: trim(values.audience) })
+    if (trim(values.tone_of_voice))
+      sections.push({
+        label: "Tone of voice",
+        value: trim(values.tone_of_voice),
+      })
+    if (trim(values.volume_and_quality))
+      sections.push({
+        label: "Volume and quality bar",
+        value: trim(values.volume_and_quality),
+      })
+  } else if (mode.id === "marketing") {
     if (trim(values.channel_and_audience))
       sections.push({
         label: "Channel and audience",
@@ -171,6 +192,9 @@ function buildConstraints(
   } else if (mode.id === "content") {
     next.push(...splitLines(values.tone_of_voice))
     next.push(...splitLines(values.volume_and_quality))
+  } else if (mode.id === "marketing") {
+    next.push(...splitLines(values.tone_of_voice))
+    next.push(...splitLines(values.volume_and_quality))
   } else if (mode.id === "courses") {
     next.push(...splitLines(values.format_and_depth))
     next.push(...splitLines(values.launch_needs))
@@ -191,10 +215,13 @@ function buildStrategistCheckpoints(
     return existingFactory.recipe.strategistCheckpoints
   }
   if (mode.id === "content") {
+    return ["Approve voice and angle", "Approve draft quality"]
+  }
+  if (mode.id === "marketing") {
     return ["Approve audience and angle", "Approve sample asset quality"]
   }
   if (mode.id === "courses") {
-    return ["Approve voice and structure", "Approve sample asset quality"]
+    return ["Approve structure and curriculum", "Approve lesson quality"]
   }
   return [
     "Approve scope and direction",
@@ -205,6 +232,13 @@ function buildStrategistCheckpoints(
 function defaultQualityPolicy(mode: WorkflowResultMode) {
   if (mode.id === "content") {
     return [
+      "Voice-locked drafting",
+      "Evidence-first trend research",
+      "Human publish approval",
+    ]
+  }
+  if (mode.id === "marketing") {
+    return [
       "Evidence-first market research",
       "Angle before asset production",
       "Human review before scaling",
@@ -212,9 +246,9 @@ function defaultQualityPolicy(mode: WorkflowResultMode) {
   }
   if (mode.id === "courses") {
     return [
-      "Voice-locked drafting",
-      "Structure before scale",
-      "Human publish or launch approval",
+      "Structure before content",
+      "Lesson quality gates",
+      "Human launch approval",
     ]
   }
   return [
@@ -225,16 +259,20 @@ function defaultQualityPolicy(mode: WorkflowResultMode) {
 }
 
 function defaultCaseGenerationRule(mode: WorkflowResultMode) {
-  if (mode.id === "content") return "Research brief -> campaign or asset tracks"
-  if (mode.id === "courses") return "Content plan -> production tracks"
+  if (mode.id === "content") return "Trend research -> editorial plan -> drafts"
+  if (mode.id === "marketing")
+    return "Research brief -> campaign or asset tracks"
+  if (mode.id === "courses") return "Curriculum plan -> lesson production"
   return "Plan -> implementation tracks"
 }
 
 function defaultSuccessSignal(mode: WorkflowResultMode) {
   if (mode.id === "content")
+    return "Publishable content that is on-voice, specific, and ready for review."
+  if (mode.id === "marketing")
     return "A grounded market angle, campaign plan, or asset pack that is ready for review."
   if (mode.id === "courses")
-    return "A publishable content system or lesson asset set that is ready for human review."
+    return "A structured course with lessons ready for human review."
   return "A plan or implementation path that meets the requested quality bar."
 }
 
@@ -244,6 +282,9 @@ function buildAudience(
   existingFactory?: ProjectFactoryDefinition | null,
 ) {
   if (mode.id === "content") {
+    return firstFilled(values.audience, existingFactory?.outcome?.audience)
+  }
+  if (mode.id === "marketing") {
     return firstFilled(
       values.channel_and_audience,
       existingFactory?.outcome?.audience,
@@ -312,7 +353,8 @@ export function buildFactoryFromResultMode({
   const outcomeTitle =
     firstFilled(
       mode.id === "development" ? normalizedValues.project_goal : undefined,
-      mode.id === "content" ? normalizedValues.content_goal : undefined,
+      mode.id === "content" ? normalizedValues.course_outcome : undefined,
+      mode.id === "marketing" ? normalizedValues.content_goal : undefined,
       mode.id === "courses" ? normalizedValues.course_outcome : undefined,
       existingFactory?.outcome?.title,
       label,
@@ -335,6 +377,9 @@ export function buildFactoryFromResultMode({
       successSignal: firstFilled(
         mode.id === "development" ? normalizedValues.quality_bar : undefined,
         mode.id === "content" ? normalizedValues.volume_and_quality : undefined,
+        mode.id === "marketing"
+          ? normalizedValues.volume_and_quality
+          : undefined,
         mode.id === "courses" ? normalizedValues.launch_needs : undefined,
         existingFactory?.outcome?.successSignal,
         defaultSuccessSignal(mode),

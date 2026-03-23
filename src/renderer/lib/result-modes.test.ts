@@ -42,6 +42,7 @@ describe("result-modes", () => {
     expect(RESULT_MODES.map((mode) => mode.id)).toEqual([
       "development",
       "content",
+      "marketing",
       "courses",
     ])
   })
@@ -72,39 +73,31 @@ describe("result-modes", () => {
       },
     })
 
-    expect(templateMatchesResultMode(template, "content")).toBe(true)
+    expect(templateMatchesResultMode(template, "marketing")).toBe(true)
     expect(templateMatchesResultMode(template, "development")).toBe(false)
   })
 
-  it("keeps course-oriented templates available through the courses mode", () => {
-    const templates = [
-      createTemplate({
-        id: "landing-page-generator",
-        stage: "content",
-        name: "Landing Page Generator",
-        description: "Build a launch page for an offer.",
-      }),
-      createTemplate({
-        id: "full-stack-code-audit",
-        stage: "code",
-        name: "Full Stack Code Audit",
-        description: "Inspect code paths.",
-      }),
-    ]
+  it("matches Content Lab templates to the content mode", () => {
+    const template = createTemplate({
+      id: "content-ready-posts",
+      stage: "content",
+      pack: {
+        id: "content-factory-alpha",
+        label: "Content Factory",
+        journeyStage: "execute",
+      },
+    })
 
-    expect(
-      filterTemplatesForResultMode(templates, "courses").map(
-        (template) => template.id,
-      ),
-    ).toEqual(["landing-page-generator"])
+    expect(templateMatchesResultMode(template, "content")).toBe(true)
+    expect(templateMatchesResultMode(template, "development")).toBe(false)
   })
 
   it("prioritizes high-confidence content matches first", () => {
     const templates = [
       createTemplate({
-        id: "landing-page-generator",
+        id: "content-draft-post",
         stage: "content",
-        name: "Landing Page Generator",
+        name: "Draft Post",
       }),
       createTemplate({
         id: "content-ready-posts",
@@ -118,10 +111,10 @@ describe("result-modes", () => {
     ]
 
     expect(
-      prioritizeTemplatesForResultMode(templates, "courses").map(
+      prioritizeTemplatesForResultMode(templates, "content").map(
         (template) => template.id,
       ),
-    ).toEqual(["content-ready-posts", "landing-page-generator"])
+    ).toEqual(["content-ready-posts", "content-draft-post"])
   })
 
   it("falls back to development for unknown mode ids", () => {

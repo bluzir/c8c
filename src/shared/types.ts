@@ -668,7 +668,12 @@ export interface SpawnFactoryCasesFromArtifactResult {
   plannedCases: FactoryPlannedCase[]
 }
 
-export type ResultModeId = "development" | "content" | "courses" | (string & {})
+export type ResultModeId =
+  | "development"
+  | "content"
+  | "marketing"
+  | "courses"
+  | (string & {})
 
 export interface CreateEntryPromptScaffold {
   goal: string
@@ -726,6 +731,12 @@ export interface CreateEntryRouteSeed {
   attachments: InputAttachment[]
 }
 
+export interface ContentDomainContext {
+  previousResults: Array<{ kind: string; title: string; ageMs: number }>
+  templatesRun: string[]
+  availableTools: string[]
+}
+
 export interface CreateEntryRouteInput {
   modeId: ResultModeId
   projectPath: string
@@ -737,6 +748,7 @@ export interface CreateEntryRouteInput {
   modeConfig?: Record<string, string> | null
   promptScaffold?: CreateEntryPromptScaffold | null
   allowedOptions?: CreateEntryRouteOption[]
+  contentContext?: ContentDomainContext
 }
 
 export interface CreateEntryHelpModeClarificationOption {
