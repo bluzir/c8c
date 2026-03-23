@@ -33,3 +33,4 @@ tasks/
 
 # OS
 Thumbs.db
+data/config/mcp-keyring.json

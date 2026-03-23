@@ -17,6 +17,7 @@ steps:
   - Evaluate lead quality, deduplication, and outreach specificity
 suggested_tools:
   - web_search
+  - exa
 contract_out:
   - kind: research_pack
     title: Lead Research Pack

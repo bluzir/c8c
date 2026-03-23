@@ -16,6 +16,7 @@ steps:
   - Evaluate evidence quality, disconfirming coverage, and source specificity
 suggested_tools:
   - web_search
+  - exa
 contract_out:
   - kind: research_pack
     title: Research Pack

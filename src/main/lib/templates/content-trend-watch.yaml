@@ -23,6 +23,7 @@ pack:
     - content-post-calendar
 suggested_tools:
   - web_search
+  - exa
 contract_out:
   - kind: trend_digest
     title: Trend Digest

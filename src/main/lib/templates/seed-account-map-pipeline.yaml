@@ -17,6 +17,7 @@ steps:
   - Tier every account and explain why it belongs in this campaign or why it should wait.
 suggested_tools:
   - web_search
+  - exa
 contract_out:
   - kind: research_pack
     title: Target Account Pack
