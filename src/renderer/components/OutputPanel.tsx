@@ -1,5 +1,6 @@
 import { useAtomValue } from "jotai"
 import { useState, useCallback, useEffect, useMemo } from "react"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
 import {
   desktopRuntimeAtom,
@@ -7,13 +8,15 @@ import {
   selectedWorkflowPathAtom,
 } from "@/lib/store"
 import { useOutputPanel } from "@/hooks/useOutputPanel"
+import { ActivityTab } from "@/components/output/ActivityTab"
 import { OutputPanelHeader } from "@/components/output/OutputPanelHeader"
 import {
   OutputPanelContextMenu,
   type OutputPanelContextMenuState,
 } from "@/components/output/OutputPanelContextMenu"
-import { RunView } from "@/components/output/RunView"
-import { deriveVerdictData } from "@/components/output/useVerdictData"
+import { OutputPanelHistoryContent } from "@/components/output/OutputPanelHistoryContent"
+import { OutputPanelLogContent } from "@/components/output/OutputPanelLogContent"
+import { ResultTab } from "@/components/output/ResultTab"
 import type {
   ArtifactRecord,
   ErrorKind,
@@ -335,6 +338,36 @@ export function OutputPanel({
     () => allDisplayNodes.map((node) => node.id),
     [allDisplayNodes],
   )
+  const summaryProgressItems = useMemo(
+    () =>
+      [
+        workflowStepCount > 0
+          ? `${completedStageCount}/${workflowStepCount} done`
+          : null,
+        failedStageCount > 0
+          ? `${failedStageCount} need${failedStageCount === 1 ? "s" : ""} attention`
+          : blockedStageCount > 0
+            ? `${blockedStageCount} blocked`
+            : runningStageCount > 0
+              ? `${runningStageCount} running`
+              : pendingStageCount > 0 && completedStageCount === 0
+                ? "Ready to run"
+                : null,
+      ].filter(Boolean) as string[],
+    [
+      blockedStageCount,
+      completedStageCount,
+      failedStageCount,
+      pendingStageCount,
+      runningStageCount,
+      workflowStepCount,
+    ],
+  )
+  const historyScopeLabel = useMemo(
+    () =>
+      `History: ${selectedReviewRun?.workflowName || executionWorkflowName || workflow.name || "Flow"}`,
+    [executionWorkflowName, selectedReviewRun?.workflowName, workflow.name],
+  )
   const primaryFailedStep = useMemo(() => {
     const [nodeId, state] = failedNodeErrors[0] || []
     if (!nodeId || !state) return null
@@ -355,6 +388,8 @@ export function OutputPanel({
       ),
     [primaryFailedStep?.error, primaryFailedStep?.errorKind],
   )
+  const retryStepLabel =
+    selectedStagePresentation?.title || primaryFailedStep?.label || null
 
   const handleRerunFrom = useCallback(
     (nodeId: string) => {
@@ -453,51 +488,6 @@ export function OutputPanel({
     onRerunFrom: handleRerunFrom,
   })
 
-  // ── Derive verdict data for RunView/FinalResultSection ──
-  const verdictData = useMemo(
-    () =>
-      deriveVerdictData({
-        nodeStates: displayNodeStates,
-        evalResults: displayEvalResults,
-        selectedResultNodeId,
-        selectedResultPresentation,
-        selectedResultBranchLabel,
-        selectedStagePresentation,
-        selectedStageIndex,
-        workflowStepCount,
-        completedStageCount,
-        failedStageCount,
-        reviewingRunHistory,
-        selectedReviewRun,
-        executionLoopSummary,
-        runStatus,
-        runOutcome: effectiveRunOutcome,
-        hasPrimaryContinuation: showArtifactContinuation,
-        isDisplayedResultEmpty,
-        failedNodeErrors,
-      }),
-    [
-      displayNodeStates,
-      displayEvalResults,
-      selectedResultNodeId,
-      selectedResultPresentation,
-      selectedResultBranchLabel,
-      selectedStagePresentation,
-      selectedStageIndex,
-      workflowStepCount,
-      completedStageCount,
-      failedStageCount,
-      reviewingRunHistory,
-      selectedReviewRun,
-      executionLoopSummary,
-      runStatus,
-      effectiveRunOutcome,
-      showArtifactContinuation,
-      isDisplayedResultEmpty,
-      failedNodeErrors,
-    ],
-  )
-
   const savedRunLoadingNotice =
     reviewingRunHistory && reviewedRunLoading ? (
       <div className="flex items-center gap-2 px-1 py-2 ui-meta-text text-muted-foreground">
@@ -581,28 +571,65 @@ export function OutputPanel({
         }
       />
     ) : null
+  const errorFigureOwnsSurface =
+    !reviewingRunHistory &&
+    showResultSurface &&
+    (runStatus === "error" ||
+      effectiveRunOutcome === "failed" ||
+      effectiveRunOutcome === "interrupted")
+  const tabOptions = useMemo(() => {
+    const options: Array<{ value: OutputTabValue; label: string }> = []
+    if (canInspectActivity) {
+      options.push({ value: "nodes", label: "Summary" })
+    }
+    if (showResultSurface) {
+      options.push({ value: "result", label: "Result" })
+    }
+    if (canInspectLog) {
+      options.push({ value: "log", label: "Step log" })
+    }
+    if (canInspectHistory) {
+      options.push({ value: "history", label: "History" })
+    }
+    return options
+  }, [canInspectActivity, canInspectHistory, canInspectLog, showResultSurface])
 
-  const scopeLabel = selectedStageScopeLabel || null
+  const activityOwnsSurface =
+    !showIdleState && activeTab === "nodes" && !errorFigureOwnsSurface
+  const scopeLabel =
+    activeTab === "nodes"
+      ? selectedStageScopeLabel || null
+      : activeTab === "result"
+        ? selectedResultScopeLabel
+        : activeTab === "history"
+          ? historyScopeLabel
+          : selectedStageScopeLabel
 
   return (
     <>
-      <div
+      <Tabs
+        value={activeTab}
+        onValueChange={(next) => setActiveTab(next as OutputTabValue)}
         className={cn(
           "ui-fade-slide-in",
           fillHeight ? "flex min-h-0 flex-1 flex-col gap-2.5" : "space-y-2.5",
         )}
       >
         <OutputPanelHeader
+          activeTab={activeTab}
+          hasResult={hasResult}
+          resultReadyPulse={resultReadyPulse}
           scopeLabel={scopeLabel}
           reviewingRunHistory={reviewingRunHistory}
           selectedRunLabel={selectedRunLabel}
           selectedReviewStatus={selectedReviewRun?.status || null}
+          tabOptions={tabOptions}
         />
-
-        {/* Surface notice banner — preserved from tab-based layout */}
         {!reviewingRunHistory &&
+          !errorFigureOwnsSurface &&
           surfaceNotice &&
-          !(showResultSurface && activeTab === "result") && (
+          !(showResultSurface && activeTab === "result") &&
+          !(activeTab === "nodes" && Boolean(runAttentionBanner)) && (
             <ExecutionSurfaceNoticeBanner
               notice={surfaceNotice}
               onAction={
@@ -614,55 +641,220 @@ export function OutputPanel({
             />
           )}
 
-        {/* Saved run loading/error notices */}
-        {savedRunLoadingNotice}
-        {savedRunErrorNotice}
-        {savedRunSnapshotNotice}
-
-        {/* Run attention banner */}
-        {runAttentionBanner}
-
-        {/* RunView replaces the previous Tabs body */}
-        <div
+        <TabsContent
+          value="nodes"
           className={cn(
-            "ui-fade-slide-in",
+            "mt-0 ui-fade-slide-in",
             fillHeight && "min-h-0 flex-1 overflow-y-auto",
           )}
         >
-          <RunView
-            workflow={workflow}
-            nodes={allDisplayNodes}
-            runStatus={runStatus}
-            runOutcome={effectiveRunOutcome}
+          {savedRunLoadingNotice}
+          {savedRunErrorNotice}
+          {savedRunSnapshotNotice}
+          {(!reviewingRunHistory || canInspectSavedRun) && (
+            <div
+              className={cn(activityOwnsSurface && "surface-figure px-4 py-4")}
+            >
+              <ActivityTab
+                showIdleState={showIdleState}
+                isStartingState={runStatus === "starting"}
+                selectedStagePresentation={selectedStagePresentation}
+                selectedStageContextLabelClass={selectedStageContextLabelClass}
+                selectedStageContextLabel={selectedStageContextLabel}
+                selectedStageBranchLabel={selectedStageBranchLabel}
+                selectedStageBranchDetail={selectedStageBranchDetail}
+                runProgressItems={summaryProgressItems}
+                resultReadyLabel={
+                  hasResult
+                    ? selectedResultScopeLabel.replace(
+                        /^Result from:\s*/u,
+                        "",
+                      ) ||
+                      selectedResultPresentation?.artifactLabel ||
+                      "Result"
+                    : null
+                }
+                onViewResult={showResultSurface ? activateResultSurface : null}
+                selectedStageBranchSummary={selectedStageBranchSummary}
+                selectedStageResourceLabel={selectedStageResourceLabel}
+                selectedStageResourceItems={selectedStageResourceItems}
+                onOpenBranchLog={
+                  canInspectLog
+                    ? (nodeId: string) => {
+                        setInspectedNodeId(nodeId)
+                        setActiveTab("log")
+                      }
+                    : null
+                }
+                budgetWarning={budgetWarning}
+                budgetWarningClassName={budgetWarningClassName}
+                onViewStepLog={
+                  canInspectLog ? () => focusStageSurface("log") : null
+                }
+                runAttentionNotice={
+                  errorFigureOwnsSurface ? null : runAttentionBanner
+                }
+              />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent
+          value="log"
+          className={cn(
+            "mt-2 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1 overflow-y-auto",
+          )}
+        >
+          <OutputPanelLogContent
+            showIdleState={showIdleState}
+            canInspectActivity={canInspectActivity}
+            tabOptionsLength={tabOptions.length}
+            onBackToActivity={() => focusStageSurface("nodes")}
+            savedRunLoadingNotice={savedRunLoadingNotice}
+            savedRunErrorNotice={savedRunErrorNotice}
+            savedRunSnapshotNotice={savedRunSnapshotNotice}
+            reviewingRunHistory={reviewingRunHistory}
+            canInspectSavedRun={canInspectSavedRun}
+            selectedStagePresentation={selectedStagePresentation}
+            selectedStageContextLabelClass={selectedStageContextLabelClass}
+            selectedStageContextLabel={selectedStageContextLabel}
+            selectedStageBranchLabel={selectedStageBranchLabel}
+            selectedStageBranchDetail={selectedStageBranchDetail}
+            selectedNodeId={selectedStageId}
             nodeStates={displayNodeStates}
             evalResults={displayEvalResults}
-            activeNodeId={displayActiveNodeId}
-            runtimeMeta={runtimeMeta}
-            verdictData={verdictData}
-            resultContent={displayedResultContent}
-            showArtifactContinuation={showArtifactContinuation}
-            nextStageLabel={nextStageLabel}
-            nextStagePending={nextStagePending}
-            onRunNextStage={onRunNextStage ? () => void onRunNextStage() : null}
-            onUseInNewFlow={onUseInNewFlow ? () => void onUseInNewFlow() : null}
-            onStartNewRun={onStartNewRun}
-            artifactPersistenceStatus={artifactPersistenceStatus}
-            artifactPersistenceError={artifactPersistenceError}
-            executionLoopSummary={executionLoopSummary}
-            onRerunFrom={onRerunFrom ? handleRerunFrom : undefined}
-            onCopyResult={handleCopyResult}
-            onContextMenu={(event) => {
-              event.preventDefault()
-              setOutputContextMenu({
-                x: event.clientX,
-                y: event.clientY,
-                scope: "result",
-              })
-            }}
-            reviewingRunHistory={reviewingRunHistory}
+            workflowNode={selectedWorkflowNode}
+            runId={runId}
+            evalOverrideNodeIds={evalOverrideNodeIds}
           />
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent
+          value="result"
+          className={cn(
+            "mt-2 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1 overflow-y-auto",
+          )}
+        >
+          {showResultSurface ? (
+            <ResultTab
+              nodeStates={displayNodeStates}
+              evalResults={displayEvalResults}
+              runStatus={runStatus}
+              runOutcome={effectiveRunOutcome}
+              reviewingRunHistory={reviewingRunHistory}
+              selectedReviewRun={selectedReviewRun}
+              selectedResultPresentation={selectedResultPresentation}
+              selectedResultBranchLabel={selectedResultBranchLabel}
+              selectedStagePresentation={selectedStagePresentation}
+              selectedStageIndex={selectedStageIndex}
+              workflowStepCount={workflowStepCount}
+              completedStageCount={completedStageCount}
+              failedStageCount={failedStageCount}
+              isDisplayedResultEmpty={isDisplayedResultEmpty}
+              executionLoopSummary={executionLoopSummary}
+              savedRunLoadingNotice={savedRunLoadingNotice}
+              savedRunErrorNotice={savedRunErrorNotice}
+              hasMultipleResultOptions={hasMultipleResultOptions}
+              resultNodeOptions={resultNodeOptions}
+              selectedResultNodeId={selectedResultNodeId}
+              onSelectResultNode={setInspectedNodeId}
+              showArtifactContinuation={showArtifactContinuation}
+              artifactContinuationToneClass={artifactContinuationToneClass}
+              artifactPersistenceStatus={artifactPersistenceStatus}
+              artifactPersistenceError={artifactPersistenceError}
+              artifactRecords={artifactRecords}
+              nextStageRequiresApproval={nextStageRequiresApproval}
+              nextStageAutoRuns={nextStageAutoRuns}
+              nextStageLabel={nextStageLabel}
+              nextStageDescription={nextStageDescription}
+              nextStageOutput={nextStageTemplate?.output}
+              nextStagePending={nextStagePending}
+              onRunNextStage={onRunNextStage}
+              visibleArtifactContinuation={visibleArtifactContinuation}
+              hiddenArtifactContinuationCount={hiddenArtifactContinuationCount}
+              visibleNextStageArtifacts={visibleNextStageArtifacts}
+              hiddenNextStageArtifactCount={hiddenNextStageArtifactCount}
+              primaryModifierLabel={desktopRuntime.primaryModifierLabel}
+              displayedResultContent={displayedResultContent}
+              canStartFreshRun={canStartFreshRun}
+              onStartNewRun={onStartNewRun}
+              canRerunSelectedStage={canRerunSelectedStage}
+              onRerunSelectedStage={
+                selectedStageRerunNodeId && canRerunSelectedStage
+                  ? () => handleRerunFrom(selectedStageRerunNodeId)
+                  : null
+              }
+              onViewActivity={
+                canInspectActivity ? () => focusStageSurface("nodes") : null
+              }
+              onInspectFailure={
+                failedNodeErrors.length > 0 && canInspectFailureLog
+                  ? inspectFailure
+                  : null
+              }
+              onEditFlow={onEditFlow}
+              failedNodeErrors={failedNodeErrors}
+              failureCategoryLabel={
+                failedNodeErrors.length > 0
+                  ? failureRecovery.categoryLabel
+                  : null
+              }
+              failureHint={
+                failedNodeErrors.length > 0 ? failureRecovery.hint : null
+              }
+              retryStepLabel={retryStepLabel}
+              canUseInNewFlow={Boolean(onUseInNewFlow) && !reviewingRunHistory}
+              onUseInNewFlow={onUseInNewFlow}
+              onOpenArtifact={handleOpenArtifact}
+              onArtifactContextMenu={(event, artifact) => {
+                setOutputContextMenu({
+                  x: event.clientX,
+                  y: event.clientY,
+                  scope: "artifact",
+                  artifact,
+                })
+              }}
+              onContextMenu={(event) => {
+                event.preventDefault()
+                setOutputContextMenu({
+                  x: event.clientX,
+                  y: event.clientY,
+                  scope: "result",
+                })
+              }}
+            />
+          ) : null}
+        </TabsContent>
+
+        <TabsContent
+          value="history"
+          className={cn(
+            "mt-2 ui-fade-slide-in",
+            fillHeight && "min-h-0 flex-1",
+          )}
+        >
+          <OutputPanelHistoryContent
+            fillHeight={fillHeight}
+            showResultSurface={showResultSurface}
+            canInspectActivity={canInspectActivity}
+            tabOptionsLength={tabOptions.length}
+            onBackToResult={activateResultSurface}
+            onBackToActivity={() => focusStageSurface("nodes")}
+            pastRuns={pastRuns}
+            runStatus={runStatus}
+            onOpenReport={handleOpenReport}
+            onContinueRun={onContinueRun}
+            selectedRunId={selectedReviewRun?.runId || null}
+            improvementRecommendations={improvementRecommendations}
+            onSelectRun={(run) => {
+              setSelectedPastRun(run)
+              setActiveTab("result")
+            }}
+          />
+        </TabsContent>
+      </Tabs>
 
       <OutputPanelContextMenu
         contextMenu={outputContextMenu}

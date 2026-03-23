@@ -3,9 +3,9 @@ import { Loader2 } from "lucide-react"
 import { StepsList } from "./StepsList"
 import { FinalResultSection } from "./FinalResultSection"
 import type { FinalResultSectionProps } from "./FinalResultSection"
-import type { DisplayNode } from "./StepsList"
 import type {
   Workflow,
+  WorkflowNode,
   NodeState,
   EvaluationResult,
   WorkflowRuntimeMeta,
@@ -16,11 +16,11 @@ import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 export interface RunViewProps {
   // Workflow data
   workflow: Workflow
-  nodes: DisplayNode[]
+  nodes: WorkflowNode[]
 
   // Execution state
   runStatus: string
-  runOutcome?: string | null
+  runOutcome?: string
   nodeStates: Record<string, NodeState>
   evalResults?: Record<string, EvaluationResult[]>
   activeNodeId?: string | null
@@ -121,7 +121,7 @@ export function RunView({
       {showFinalResult && (
         <FinalResultSection
           runStatus={runStatus}
-          runOutcome={runOutcome ?? undefined}
+          runOutcome={runOutcome}
           verdictData={verdictData}
           resultContent={resultContent}
           showContinuation={showArtifactContinuation}
