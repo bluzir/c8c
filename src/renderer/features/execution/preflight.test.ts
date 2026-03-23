@@ -318,6 +318,71 @@ describe("execution preflight", () => {
     expect(formatExecutionPreflightTitle("codex", "auth_required")).toBe(
       "OpenAI Codex login required",
     )
+    expect(
+      formatExecutionPreflightTitle("claude", "provider_unreachable"),
+    ).toBe("Claude Code not reachable")
+  })
+
+  it("returns provider_unreachable when health error looks like a network issue", () => {
+    const result = evaluateExecutionStartPreflight(
+      createProviderWorkflow("claude"),
+      {
+        diagnostics: createDiagnostics({
+          health: {
+            claude: {
+              provider: "claude",
+              available: false,
+              error: "ECONNREFUSED 127.0.0.1:443",
+            },
+            codex: {
+              provider: "codex",
+              available: true,
+              error: null,
+            },
+          },
+        }),
+        cliStatus: createCliStatus(),
+      },
+    )
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe("provider_unreachable")
+      expect(result.message).toContain("not reachable")
+      expect(result.message).toContain("Check connection")
+    }
+  })
+
+  it("returns cli_unavailable for non-network provider failures", () => {
+    const result = evaluateExecutionStartPreflight(
+      createProviderWorkflow("claude"),
+      {
+        diagnostics: createDiagnostics({
+          health: {
+            claude: {
+              provider: "claude",
+              available: false,
+              error: "Claude CLI is not installed.",
+            },
+            codex: {
+              provider: "codex",
+              available: true,
+              error: null,
+            },
+          },
+        }),
+        cliStatus: createCliStatus({
+          cliInstalled: false,
+          loggedIn: false,
+          error: "Claude CLI is not installed.",
+        }),
+      },
+    )
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe("cli_unavailable")
+    }
   })
 
   it("returns a settings-directed block reason for unavailable providers", () => {

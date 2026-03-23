@@ -178,7 +178,12 @@ export function WorkflowCreateContinuationCard({
             </div>
             <Button
               size="sm"
-              onClick={() => onContinue(continuation)}
+              onClick={() => {
+                void window.api
+                  .trackUiEvent("continuation_followed")
+                  .catch(() => undefined)
+                onContinue(continuation)
+              }}
               disabled={pending}
               className="shrink-0"
             >
@@ -237,7 +242,12 @@ export function WorkflowCreateContinuationCard({
                       variant="ghost"
                       size="sm"
                       disabled={pending}
-                      onClick={() => onContinue(item)}
+                      onClick={() => {
+                        void window.api
+                          .trackUiEvent("continuation_followed")
+                          .catch(() => undefined)
+                        onContinue(item)
+                      }}
                       className="shrink-0"
                     >
                       <ArrowUpRight size={14} />

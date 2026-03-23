@@ -39,7 +39,11 @@ export interface ExecutionPreflightSuccess {
 
 export interface ExecutionPreflightFailure {
   ok: false
-  reason: "cli_unavailable" | "cli_version_unsupported" | "auth_required"
+  reason:
+    | "cli_unavailable"
+    | "cli_version_unsupported"
+    | "auth_required"
+    | "provider_unreachable"
   effectiveProvider: ProviderId
   message: string
   snapshot: ExecutionPreflightSnapshot
@@ -103,6 +107,32 @@ export function resolveEffectiveExecutionProvider(
     requestedProvider,
     settings.features,
   )
+}
+
+const NETWORK_ERROR_PATTERNS = [
+  "econnreset",
+  "econnrefused",
+  "enotfound",
+  "enetdown",
+  "enetunreach",
+  "eai_again",
+  "socket hang up",
+  "fetch failed",
+  "network",
+  "etimedout",
+  "ehostunreach",
+]
+
+/**
+ * Returns true when the provider error looks like a connectivity issue
+ * rather than "CLI not installed".
+ */
+export function isProviderNetworkError(
+  providerError: string | null | undefined,
+): boolean {
+  if (!providerError) return false
+  const lower = providerError.toLowerCase()
+  return NETWORK_ERROR_PATTERNS.some((pattern) => lower.includes(pattern))
 }
 
 function unavailableMessage(
@@ -181,15 +211,18 @@ export function evaluateExecutionStartPreflight(
   const providerAuth = snapshot.diagnostics.auth[effectiveProvider]
 
   if (!providerHealth?.available) {
+    const networkError = isProviderNetworkError(providerHealth?.error)
     return {
       ok: false,
-      reason: "cli_unavailable",
+      reason: networkError ? "provider_unreachable" : "cli_unavailable",
       effectiveProvider,
-      message: unavailableMessage(
-        effectiveProvider,
-        snapshot.cliStatus,
-        providerHealth?.error,
-      ),
+      message: networkError
+        ? `${PROVIDER_LABELS[effectiveProvider]} not reachable. Check connection.`
+        : unavailableMessage(
+            effectiveProvider,
+            snapshot.cliStatus,
+            providerHealth?.error,
+          ),
       snapshot,
     }
   }
@@ -303,6 +336,7 @@ export function formatExecutionPreflightTitle(
   reason: ExecutionPreflightFailure["reason"],
 ): string {
   const providerLabel = PROVIDER_LABELS[provider]
+  if (reason === "provider_unreachable") return `${providerLabel} not reachable`
   if (reason === "cli_unavailable") return `${providerLabel} unavailable`
   if (reason === "cli_version_unsupported")
     return `${providerLabel} update required`
@@ -340,6 +374,9 @@ export function resolveExecutionStartBlockReason(
     return null
   }
   if (!providerHealth.available) {
+    if (isProviderNetworkError(providerHealth.error)) {
+      return `${PROVIDER_LABELS[effectiveProvider]} not reachable. Check connection.`
+    }
     return appendSettingsHint(
       unavailableMessage(effectiveProvider, null, providerHealth.error),
     )

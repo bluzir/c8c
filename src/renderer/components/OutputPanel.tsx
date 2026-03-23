@@ -89,8 +89,8 @@ function deriveFailureRecovery(
     normalized.includes("econn")
   ) {
     return {
-      categoryLabel: "Network issue",
-      hint: "Check connectivity or retry once the upstream service is reachable.",
+      categoryLabel: "Connection lost",
+      hint: "Check your connection. This step will retry automatically when the connection restores, or you can retry manually.",
     }
   }
 

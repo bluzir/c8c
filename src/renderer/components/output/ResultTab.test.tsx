@@ -141,7 +141,7 @@ describe("ResultTab", () => {
     render(<ResultTab {...props} />)
 
     expect(screen.getByRole("heading", { name: "Needs fixes" })).toBeTruthy()
-    const retryButton = screen.getByRole("button", { name: "Retry from Draft" })
+    const retryButton = screen.getByRole("button", { name: "Retry step" })
     expect(retryButton).toBeTruthy()
 
     await user.click(retryButton)

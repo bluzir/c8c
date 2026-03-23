@@ -73,6 +73,8 @@ const RATE_LIMIT_RE =
   /\b(?:rate limit(?:ed)?|too many requests|http\s*429|status\s*429|429\b|retry-after)\b/i
 const AUTOMATIC_RATE_LIMIT_RETRY_MAX_TRIES = 4
 const AUTOMATIC_RATE_LIMIT_RETRY_WAIT_MS = 1_000
+const AUTOMATIC_NETWORK_RETRY_MAX_TRIES = 3
+const AUTOMATIC_NETWORK_RETRY_WAIT_MS = 2_000
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -133,16 +135,38 @@ function resolveEffectiveRetryPolicy(
   policy: ResolvedRetryPolicy,
   errorKind: ErrorKind,
   errorText: string,
-): (ResolvedRetryPolicy & { automaticRateLimitBackoff?: boolean }) | null {
+):
+  | (ResolvedRetryPolicy & {
+      automaticRateLimitBackoff?: boolean
+      automaticNetworkRetry?: boolean
+    })
+  | null {
   const configuredRetryAllowed = policy.enabled && policy.retryOn.has(errorKind)
   const automaticRateLimitBackoff =
     errorKind === "policy" && isRateLimitError(errorText)
-  if (!configuredRetryAllowed && !automaticRateLimitBackoff) {
+  const automaticNetworkRetry = errorKind === "network"
+  if (
+    !configuredRetryAllowed &&
+    !automaticRateLimitBackoff &&
+    !automaticNetworkRetry
+  ) {
     return null
   }
 
-  if (!automaticRateLimitBackoff) {
+  if (!automaticRateLimitBackoff && !automaticNetworkRetry) {
     return policy
+  }
+
+  if (automaticNetworkRetry) {
+    return {
+      ...policy,
+      enabled: true,
+      maxTries: Math.max(policy.maxTries, AUTOMATIC_NETWORK_RETRY_MAX_TRIES),
+      waitMs: Math.max(policy.waitMs, AUTOMATIC_NETWORK_RETRY_WAIT_MS),
+      backoff: "exponential",
+      retryOn: new Set([...policy.retryOn, "network"]),
+      automaticNetworkRetry: true,
+    }
   }
 
   return {
@@ -258,7 +282,7 @@ export async function handleNodeExecutionFailure(
     state.completedAt = undefined
     const retryLog: LogEntry = {
       type: "text",
-      content: `[runtime-retry] attempt ${state.retriesUsed + 1}/${effectiveRetryPolicy.maxTries} in ${retryDelayMs}ms after ${retryErrorKind} error${effectiveRetryPolicy.automaticRateLimitBackoff ? " (automatic rate-limit backoff)" : ""}\n`,
+      content: `[runtime-retry] attempt ${state.retriesUsed + 1}/${effectiveRetryPolicy.maxTries} in ${retryDelayMs}ms after ${retryErrorKind} error${effectiveRetryPolicy.automaticRateLimitBackoff ? " (automatic rate-limit backoff)" : effectiveRetryPolicy.automaticNetworkRetry ? " (automatic network retry)" : ""}\n`,
       timestamp: Date.now(),
     }
     state.log.push(retryLog)

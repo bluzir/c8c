@@ -642,6 +642,7 @@ export function WorkflowCreatePage() {
     }
 
     setContinuationPending(true)
+    void window.api.trackUiEvent("flow_resumed").catch(() => undefined)
     try {
       if (continuation.action.kind === "open_blocked_work") {
         const task = continuation.action.task
@@ -916,6 +917,7 @@ export function WorkflowCreatePage() {
     setSubmitError(null)
     setRouteClarification(null)
     setRoutingPreview(null)
+    void window.api.trackUiEvent("point_b_entered").catch(() => undefined)
     const isDevelopmentRouting = selectedResultMode.id === "development"
     if (isDevelopmentRouting) {
       setRoutingPhase("inspecting")
@@ -996,6 +998,13 @@ export function WorkflowCreatePage() {
           (template) => template.id === selectedResultMode.startTemplateId,
         ) ||
         null
+
+      if (!startTemplate && routeResult?.recommendedTemplateId) {
+        toast.warning("This starting point is no longer available.", {
+          description:
+            "The composer is ready for you to describe what you want to build.",
+        })
+      }
 
       if (startTemplate) {
         setRoutingPreview(

@@ -314,9 +314,7 @@ export function ResultTab({
           onClick={onRerunSelectedStage}
         >
           <ArrowRight size={12} />
-          {retryStepLabel
-            ? `Retry from ${retryStepLabel}`
-            : "Retry from this step"}
+          Retry step
         </Button>,
       )
     } else if (canStartFreshRun && onStartNewRun) {

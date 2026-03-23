@@ -2,8 +2,17 @@
 
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeAll, describe, expect, it, vi } from "vitest"
 import { WorkflowRouteAlternativesDialog } from "./WorkflowRouteAlternativesDialog"
+
+beforeAll(() => {
+  if (!window.api) {
+    // @ts-expect-error — stub window.api for tests
+    window.api = {}
+  }
+  // @ts-expect-error — stub trackUiEvent
+  window.api.trackUiEvent = vi.fn(() => Promise.resolve(true))
+})
 
 describe("WorkflowRouteAlternativesDialog", () => {
   it("shows alternate routed starts and forwards selection", async () => {

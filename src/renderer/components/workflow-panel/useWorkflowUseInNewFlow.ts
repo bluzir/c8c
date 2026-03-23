@@ -81,6 +81,9 @@ export function useWorkflowUseInNewFlow({
     setUseInNewFlowIntent("")
     setSelectedUseInNewFlowTemplateId(null)
     setUseInNewFlowOpen(true)
+    void window.api
+      .trackUiEvent("template_chained_manually")
+      .catch(() => undefined)
   }, [
     artifactRecords.length,
     canUseInNewFlow,

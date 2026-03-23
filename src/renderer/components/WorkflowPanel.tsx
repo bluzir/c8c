@@ -849,7 +849,7 @@ export function WorkflowPanel() {
           availableTemplates.find((template) => template.id === templateId) ||
           null
         if (!nextTemplate) {
-          throw new Error("That starting point is no longer available.")
+          throw new Error("This starting point is no longer available.")
         }
 
         const nextRouteResult = buildRoutedTemplateResultForTemplate({
@@ -1228,6 +1228,11 @@ export function WorkflowPanel() {
           flowGraphOpen={flowGraphOpen}
           onFlowGraphOpenChange={(open) => {
             setFlowSurfaceMode(open ? "edit" : "outline")
+            if (open) {
+              void window.api
+                .trackUiEvent("graph_editor_opened")
+                .catch(() => undefined)
+            }
             if (!open) {
               setShowEntryEditor(false)
             }

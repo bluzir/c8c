@@ -194,6 +194,44 @@ describe("run-node-failure", () => {
     )
   })
 
+  it("applies automatic retry to network errors even without node retry config", async () => {
+    const workspace = await createWorkspace()
+    const node = createNode("audit")
+    const workflow = createWorkflow(node)
+    const nodeState = state("running")
+    const retryNode = vi.fn(async () => undefined)
+    const emitEvent = vi.fn(async (_event: WorkflowEvent) => undefined)
+
+    await handleNodeExecutionFailure({
+      runId: "run-net",
+      node,
+      state: nodeState,
+      incomingContent: "input",
+      runtimePolicy: runtimePolicy(),
+      runtimeWorkflow: workflow,
+      activatedEdges: new Set(),
+      error: new Error("ECONNRESET: connection reset by peer"),
+      logger: { warn: vi.fn() },
+      emitEvent,
+      retryNode,
+      sleep: async () => undefined,
+      workspace,
+    })
+
+    expect(nodeState.status).toBe("pending")
+    expect(nodeState.retriesUsed).toBe(1)
+    expect(retryNode).toHaveBeenCalledWith("audit")
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "node-log",
+        nodeId: "audit",
+        entry: expect.objectContaining({
+          content: expect.stringContaining("automatic network retry"),
+        }),
+      }),
+    )
+  })
+
   it("continues with a partial output when policy is continue", async () => {
     const workspace = await createWorkspace()
     const node = createNode("audit")

@@ -57,7 +57,12 @@ export function WorkflowRouteAlternativesDialog({
                 variant="outline"
                 size="sm"
                 disabled={pendingTemplateId === option.templateId}
-                onClick={() => onSelect(option.templateId)}
+                onClick={() => {
+                  void window.api
+                    .trackUiEvent("routing_alternative_selected")
+                    .catch(() => undefined)
+                  onSelect(option.templateId)
+                }}
                 className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left"
               >
                 <span className="min-w-0">

@@ -46,6 +46,7 @@ const ERROR_KIND_LABELS: Record<string, string> = {
   model: "Model error",
   timeout: "Timeout",
   policy: "Flow rules",
+  network: "Connection lost",
   unknown: "Error",
 }
 

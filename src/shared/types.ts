@@ -1394,7 +1394,14 @@ export interface TelemetrySettings {
   configDetected: boolean
 }
 
-export type TelemetryUiEvent = "settings_opened"
+export type TelemetryUiEvent =
+  | "settings_opened"
+  | "point_b_entered"
+  | "routing_alternative_selected"
+  | "graph_editor_opened"
+  | "template_chained_manually"
+  | "flow_resumed"
+  | "continuation_followed"
 
 // ── Auto-Updater ─────────────────────────────────────────
 
