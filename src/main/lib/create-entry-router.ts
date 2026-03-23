@@ -14,6 +14,8 @@ import {
   filterDirectCreateEntryOptions,
   sanitizeDirectCreateFallbackTemplateId,
 } from "@shared/create-entry-routing"
+import { allDomains, getDomain } from "@shared/domains"
+import { initDomains } from "./domain-init"
 import { drainExecutionHandle } from "./agent-execution"
 import { withExecutionSlot } from "./execution-pool"
 import { LogParser } from "./log-parser"
@@ -26,6 +28,9 @@ import {
 import { listProjectArtifacts } from "./artifact-store"
 import { buildContentDomainContext } from "./create-entry-content-context"
 import { logWarn } from "./structured-log"
+
+// Ensure domains are registered before any module-level references.
+initDomains()
 
 interface CreateEntryRouteDecision {
   kind?: "route"
@@ -52,12 +57,6 @@ type CreateEntryAgentDecision =
 
 const ROUTER_FAILURE_MESSAGE =
   "The AI router couldn't choose a starting point right now. Try again."
-const KNOWN_ROUTE_DOMAIN_MODES = new Set([
-  "development",
-  "content",
-  "marketing",
-  "courses",
-])
 
 function deriveIntentValue(
   option: CreateEntryRouteOption,
@@ -105,7 +104,8 @@ function normalizeDomainMode(
   fallback: CreateEntryRouteInput["modeId"],
 ) {
   const normalized = normalize(value)
-  return KNOWN_ROUTE_DOMAIN_MODES.has(normalized) ? normalized : fallback
+  const knownIds = new Set(allDomains().map((d) => d.id as string))
+  return knownIds.has(normalized) ? normalized : fallback
 }
 
 function validateClarification(
@@ -399,13 +399,16 @@ async function runAgentRouteDecision(
   projectInspection: ProjectInspectionSummary,
   allowedOptions: CreateEntryRouteOption[],
 ): Promise<CreateEntryAgentDecision | null> {
-  const isRoutableMode =
-    input.modeId === "development" || input.modeId === "content"
-  if (!isRoutableMode || allowedOptions.length === 0) return null
+  const domain = getDomain(input.modeId)
+  if (!domain.guidedRouting || allowedOptions.length === 0) return null
 
   const allowedTemplateIds = new Set(
     allowedOptions.map((option) => option.templateId),
   )
+  // Content domain uses a specialised prompt with artifact context; all other
+  // domains use the default router prompt.  This is the ONE remaining
+  // mode-specific check — the prompt functions are defined in this file and
+  // cannot be moved to shared domain data.
   let prompt: string
   if (input.modeId === "content") {
     const artifacts = await listProjectArtifacts(
@@ -473,10 +476,8 @@ export async function routeCreateEntry(
   projectInspection: ProjectInspectionSummary,
   templates: WorkflowTemplate[],
 ): Promise<CreateEntryRouteResult> {
-  if (input.modeId !== "development" && input.modeId !== "content") {
-    throw new Error(
-      "Agent routing is currently available only for development and content modes.",
-    )
+  if (!getDomain(input.modeId).guidedRouting) {
+    throw new Error("Agent routing is not available for this domain.")
   }
 
   const fallbackTemplateId = sanitizeDirectCreateFallbackTemplateId(
