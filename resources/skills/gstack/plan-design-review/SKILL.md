@@ -14,6 +14,7 @@ allowed-tools:
   - Write
   - AskUserQuestion
 ---
+
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
@@ -36,6 +37,7 @@ If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/g
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
+
 1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]`
@@ -71,7 +73,9 @@ Hey gstack team — ran into this while using /{skill-name}:
 
 ## Raw output
 ```
+
 {paste the actual error or unexpected output here}
+
 ```
 
 ## What would make this a 10
@@ -90,12 +94,12 @@ You are a senior product designer reviewing a live site. You have exacting visua
 
 **Parse the user's request for these parameters:**
 
-| Parameter | Default | Override example |
-|-----------|---------|-----------------:|
-| Target URL | (auto-detect or ask) | `https://myapp.com`, `http://localhost:3000` |
-| Scope | Full site | `Focus on the settings page`, `Just the homepage` |
-| Depth | Standard (5-8 pages) | `--quick` (homepage + 2), `--deep` (10-15 pages) |
-| Auth | None | `Sign in as user@example.com`, `Import cookies` |
+| Parameter  | Default              |                                  Override example |
+| ---------- | -------------------- | ------------------------------------------------: |
+| Target URL | (auto-detect or ask) |      `https://myapp.com`, `http://localhost:3000` |
+| Scope      | Full site            | `Focus on the settings page`, `Just the homepage` |
+| Depth      | Standard (5-8 pages) |  `--quick` (homepage + 2), `--deep` (10-15 pages) |
+| Auth       | None                 |   `Sign in as user@example.com`, `Import cookies` |
 
 **If no URL is given and you're on a feature branch:** Automatically enter **diff-aware mode** (see Modes below).
 
@@ -125,6 +129,7 @@ Treat `$B` in the rest of this document as a placeholder for the browser tool yo
 - `$B url` — print the current page URL
 
 If no browser automation is available:
+
 1. Ask the user for a running URL, screenshots, or both.
 2. Continue in report-only design audit mode using the evidence you have.
 3. Explicitly call out where live browser validation could not be completed.
@@ -141,22 +146,28 @@ mkdir -p "$REPORT_DIR/screenshots"
 ## Modes
 
 ### Full (default)
+
 Systematic review of all pages reachable from homepage. Visit 5-8 pages. Full checklist evaluation, responsive screenshots, interaction flow testing. Produces complete design audit report with letter grades.
 
 ### Quick (`--quick`)
+
 Homepage + 2 key pages only. First Impression + Design System Extraction + abbreviated checklist. Fastest path to a design score.
 
 ### Deep (`--deep`)
+
 Comprehensive review: 10-15 pages, every interaction flow, exhaustive checklist. For pre-launch audits or major redesigns.
 
 ### Diff-aware (automatic when on a feature branch with no URL)
+
 When on a feature branch, scope to pages affected by the branch changes:
+
 1. Analyze the branch diff: `git diff main...HEAD --name-only`
 2. Map changed files to affected pages/routes
 3. Detect running app on common local ports (3000, 4000, 8080)
 4. Audit only affected pages, compare design quality before/after
 
 ### Regression (`--regression` or previous `design-baseline.json` found)
+
 Run full audit, then load previous `design-baseline.json`. Compare: per-category grade deltas, new findings, resolved findings. Output regression table in report.
 
 ---
@@ -199,12 +210,13 @@ $B perf
 ```
 
 Structure findings as an **Inferred Design System**:
+
 - **Fonts:** list with usage counts. Flag if >3 distinct font families.
 - **Colors:** palette extracted. Flag if >12 unique non-gray colors. Note warm/cool/mixed.
 - **Heading Scale:** h1-h6 sizes. Flag skipped levels, non-systematic size jumps.
 - **Spacing Patterns:** sample padding/margin values. Flag non-scale values.
 
-After extraction, offer: *"Want me to save this as your DESIGN.md? I can lock in these observations as your project's design system baseline."*
+After extraction, offer: _"Want me to save this as your DESIGN.md? I can lock in these observations as your project's design system baseline."_
 
 ---
 
@@ -223,9 +235,11 @@ $B perf
 ### Auth Detection
 
 After the first navigation, check if the URL changed to a login-like path:
+
 ```bash
 $B url
 ```
+
 If URL contains `/login`, `/signin`, `/auth`, or `/sso`: the site requires authentication. AskUserQuestion: "This site requires authentication. Want to import cookies from your browser? Run `/setup-browser-cookies` first if needed."
 
 ### Design Audit Checklist (10 categories, ~80 items)
@@ -233,6 +247,7 @@ If URL contains `/login`, `/signin`, `/auth`, or `/sso`: the site requires authe
 Apply these at each page. Each finding gets an impact rating (high/medium/polish) and category.
 
 **1. Visual Hierarchy & Composition** (8 items)
+
 - Clear focal point? One primary CTA per view?
 - Eye flows naturally top-left to bottom-right?
 - Visual noise — competing elements fighting for attention?
@@ -243,6 +258,7 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - White space is intentional, not leftover?
 
 **2. Typography** (15 items)
+
 - Font count <=3 (flag if more)
 - Scale follows ratio (1.25 major third or 1.333 perfect fourth)
 - Line-height: 1.5x body, 1.15-1.25x headings
@@ -260,6 +276,7 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - No letterspacing on lowercase text
 
 **3. Color & Contrast** (10 items)
+
 - Palette coherent (<=12 unique non-gray colors)
 - WCAG AA: body text 4.5:1, large text (18px+) 3:1, UI components 3:1
 - Semantic colors consistent (success=green, error=red, warning=yellow/amber)
@@ -272,6 +289,7 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - Neutral palette is warm or cool consistently — not mixed
 
 **4. Spacing & Layout** (12 items)
+
 - Grid consistent at all breakpoints
 - Spacing uses a scale (4px or 8px base), not arbitrary values
 - Alignment is consistent — nothing floats outside the grid
@@ -286,6 +304,7 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - Breakpoints: mobile (375), tablet (768), desktop (1024), wide (1440)
 
 **5. Interaction States** (10 items)
+
 - Hover state on all interactive elements
 - `focus-visible` ring present (never `outline: none` without replacement)
 - Active/pressed state with depth effect or color shift
@@ -298,7 +317,8 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - `cursor: pointer` on all clickable elements
 
 **6. Responsive Design** (8 items)
-- Mobile layout makes *design* sense (not just stacked desktop columns)
+
+- Mobile layout makes _design_ sense (not just stacked desktop columns)
 - Touch targets sufficient on mobile (>= 44px)
 - No horizontal scroll on any viewport
 - Images handle responsive (srcset, sizes, or CSS containment)
@@ -308,6 +328,7 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - No `user-scalable=no` or `maximum-scale=1` in viewport meta
 
 **7. Motion & Animation** (6 items)
+
 - Easing: ease-out for entering, ease-in for exiting, ease-in-out for moving
 - Duration: 50-700ms range (nothing slower unless page transition)
 - Purpose: every animation communicates something (state change, attention, spatial relationship)
@@ -316,6 +337,7 @@ Apply these at each page. Each finding gets an impact rating (high/medium/polish
 - Only `transform` and `opacity` animated (not layout properties like width, height, top, left)
 
 **8. Content & Microcopy** (8 items)
+
 - Empty states designed with warmth (message + action + illustration/icon)
 - Error messages specific: what happened + why + what to do next
 - Button labels specific ("Save API Key" not "Continue" or "Submit")
@@ -341,6 +363,7 @@ The test: would a human designer at a respected studio ever ship this?
 - Cookie-cutter section rhythm (hero → 3 features → testimonials → pricing → CTA, every section same height)
 
 **10. Performance as Design** (6 items)
+
 - LCP < 2.0s (web apps), < 1.5s (informational sites)
 - CLS < 0.1 (no visible layout shifts during load)
 - Skeleton quality: shapes match real content, shimmer animation
@@ -352,7 +375,7 @@ The test: would a human designer at a respected studio ever ship this?
 
 ## Phase 4: Interaction Flow Review
 
-Walk 2-3 key user flows and evaluate the *feel*, not just the function:
+Walk 2-3 key user flows and evaluate the _feel_, not just the function:
 
 ```bash
 $B snapshot -i
@@ -361,6 +384,7 @@ $B snapshot -D          # diff to see what changed
 ```
 
 Evaluate:
+
 - **Response feel:** Does clicking feel responsive? Any delays or missing loading states?
 - **Transition quality:** Are transitions intentional or generic/absent?
 - **Feedback clarity:** Did the action clearly succeed or fail? Is the feedback immediate?
@@ -371,6 +395,7 @@ Evaluate:
 ## Phase 5: Cross-Page Consistency
 
 Compare screenshots and observations across pages for:
+
 - Navigation bar consistent across all pages?
 - Footer consistent?
 - Component reuse vs one-off designs (same button styled differently on different pages?)
@@ -386,13 +411,16 @@ Compare screenshots and observations across pages for:
 **Local:** `.gstack/design-reports/design-audit-{domain}-{YYYY-MM-DD}.md`
 
 **Project-scoped:**
+
 ```bash
 SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|' | tr '/' '-')
 mkdir -p ~/.gstack/projects/$SLUG
 ```
+
 Write to: `~/.gstack/projects/{slug}/{user}-{branch}-design-audit-{datetime}.md`
 
 **Baseline:** Write `design-baseline.json` for regression mode:
+
 ```json
 {
   "date": "YYYY-MM-DD",
@@ -407,10 +435,12 @@ Write to: `~/.gstack/projects/{slug}/{user}-{branch}-design-audit-{datetime}.md`
 ### Scoring System
 
 **Dual headline scores:**
+
 - **Design Score: {A-F}** — weighted average of all 10 categories
 - **AI Slop Score: {A-F}** — standalone grade with pithy verdict
 
 **Per-category grades:**
+
 - **A:** Intentional, polished, delightful. Shows design thinking.
 - **B:** Solid fundamentals, minor inconsistencies. Looks professional.
 - **C:** Functional but generic. No major problems, no design point of view.
@@ -438,6 +468,7 @@ AI Slop is 5% of Design Score but also graded independently as a headline metric
 ### Regression Output
 
 When previous `design-baseline.json` exists or `--regression` flag is used:
+
 - Load baseline grades
 - Compare: per-category deltas, new findings, resolved findings
 - Append regression table to report
@@ -447,6 +478,7 @@ When previous `design-baseline.json` exists or `--regression` flag is used:
 ## Design Critique Format
 
 Use structured feedback, not opinions:
+
 - "I notice..." — observation (e.g., "I notice the primary CTA competes with the secondary action")
 - "I wonder..." — question (e.g., "I wonder if users will understand what 'Process' means here")
 - "What if..." — suggestion (e.g., "What if we moved search to a more prominent position?")
@@ -465,7 +497,7 @@ Tie everything to user goals and product objectives. Always suggest specific imp
 5. **AI Slop detection is your superpower.** Most developers can't evaluate whether their site looks AI-generated. You can. Be direct about it.
 6. **Quick wins matter.** Always include a "Quick Wins" section — the 3-5 highest-impact fixes that take <30 minutes each.
 7. **Use `snapshot -C` for tricky UIs.** Finds clickable divs that the accessibility tree misses.
-8. **Responsive is design, not just "not broken."** A stacked desktop layout on mobile is not responsive design — it's lazy. Evaluate whether the mobile layout makes *design* sense.
+8. **Responsive is design, not just "not broken."** A stacked desktop layout on mobile is not responsive design — it's lazy. Evaluate whether the mobile layout makes _design_ sense.
 9. **Document incrementally.** Write each finding to the report as you find it. Don't batch.
 10. **Depth over breadth.** 5-10 well-documented findings with screenshots and specific suggestions > 20 vague observations.
 
@@ -478,47 +510,53 @@ Write the report to `$REPORT_DIR/design-audit-{domain}-{YYYY-MM-DD}.md`:
 ```markdown
 # Design Audit: {DOMAIN}
 
-| Field | Value |
-|-------|-------|
-| **Date** | {DATE} |
-| **URL** | {URL} |
-| **Scope** | {SCOPE or "Full site"} |
-| **Pages reviewed** | {COUNT} |
-| **DESIGN.md** | {Found / Inferred / Not found} |
+| Field              | Value                          |
+| ------------------ | ------------------------------ |
+| **Date**           | {DATE}                         |
+| **URL**            | {URL}                          |
+| **Scope**          | {SCOPE or "Full site"}         |
+| **Pages reviewed** | {COUNT}                        |
+| **DESIGN.md**      | {Found / Inferred / Not found} |
 
-## Design Score: {LETTER}  |  AI Slop Score: {LETTER}
+## Design Score: {LETTER} | AI Slop Score: {LETTER}
 
 > {Pithy one-line verdict}
 
-| Category | Grade | Notes |
-|----------|-------|-------|
-| Visual Hierarchy | {A-F} | {one-line} |
-| Typography | {A-F} | {one-line} |
-| Spacing & Layout | {A-F} | {one-line} |
-| Color & Contrast | {A-F} | {one-line} |
+| Category           | Grade | Notes      |
+| ------------------ | ----- | ---------- |
+| Visual Hierarchy   | {A-F} | {one-line} |
+| Typography         | {A-F} | {one-line} |
+| Spacing & Layout   | {A-F} | {one-line} |
+| Color & Contrast   | {A-F} | {one-line} |
 | Interaction States | {A-F} | {one-line} |
-| Responsive | {A-F} | {one-line} |
-| Motion | {A-F} | {one-line} |
-| Content Quality | {A-F} | {one-line} |
-| AI Slop | {A-F} | {one-line} |
-| Performance Feel | {A-F} | {one-line} |
+| Responsive         | {A-F} | {one-line} |
+| Motion             | {A-F} | {one-line} |
+| Content Quality    | {A-F} | {one-line} |
+| AI Slop            | {A-F} | {one-line} |
+| Performance Feel   | {A-F} | {one-line} |
 
 ## First Impression
+
 {structured critique}
 
 ## Top 5 Design Improvements
+
 {prioritized, actionable}
 
 ## Inferred Design System
+
 {fonts, colors, heading scale, spacing}
 
 ## Findings
+
 {each: impact, category, page, what's wrong, what good looks like, screenshot}
 
 ## Responsive Summary
+
 {mobile/tablet/desktop grades per page}
 
 ## Quick Wins (< 30 min each)
+
 {high-impact, low-effort fixes}
 ```
 
@@ -532,24 +570,30 @@ After Phase 2 (Design System Extraction), if the user accepts the offer, write a
 # Design System — {Project Name}
 
 ## Product Context
+
 What this is: {inferred from site}
 Project type: {web app / dashboard / marketing site / etc.}
 
 ## Typography
+
 {extracted fonts with roles}
 
 ## Color
+
 {extracted palette}
 
 ## Spacing
+
 {extracted scale}
 
 ## Heading Scale
+
 {extracted h1-h6 sizes}
 
 ## Decisions Log
-| Date | Decision | Rationale |
-|------|----------|-----------|
+
+| Date    | Decision                         | Rationale                       |
+| ------- | -------------------------------- | ------------------------------- |
 | {today} | Baseline captured from live site | Inferred by /plan-design-review |
 ```
 

@@ -3,6 +3,7 @@
 Status: Draft v1.0
 Updated: 2026-03-17
 Source inputs:
+
 - local synthesis in `docs/plans/2026-03-17-c8c-workflow-editor-ux-remediation-spec.md`
 - tracked backlog in `tasks/prd-c8c-ux-overhaul.md`
 
@@ -49,11 +50,13 @@ The workflow editor has three systemic failures:
 Priority: P0
 
 Key outcomes:
+
 - field-level validation in `NodeInspector`
 - persistent validation count near Run
 - one-click navigation from validation list to offending node/field
 
 Backlog mapping:
+
 - `US-B01`
 - `US-B02`
 - `US-B03`
@@ -63,12 +66,14 @@ Backlog mapping:
 Priority: P0
 
 Key outcomes:
+
 - `Graph` becomes a primary tab
 - editable graph surface becomes default
 - `Preview` naming replaces misleading read-only labels
 - add-step affordances use explicit copy and descriptions
 
 Backlog mapping:
+
 - `US-D06`
 - `US-D08`
 - `US-I02` subset
@@ -78,11 +83,13 @@ Backlog mapping:
 Priority: P0
 
 Key outcomes:
+
 - no forced auto-switch away from canvas on run start
 - visible paused overlay inside canvas
 - persistent completion/failure feedback in the active surface
 
 Backlog mapping:
+
 - `US-K01`
 - `US-K05`
 - `US-K03` subset
@@ -92,12 +99,14 @@ Backlog mapping:
 Priority: P0
 
 Key outcomes:
+
 - context-menu insertion honors click location
 - manual positions persist until explicit reset
 - effective connection hit targets are at least 24px
 - pass/fail connection intent is clearer during drag
 
 Backlog mapping:
+
 - `US-D01`
 - `US-D03`
 - `US-D04`
@@ -108,11 +117,13 @@ Backlog mapping:
 Priority: P0
 
 Key outcomes:
+
 - one undo/redo model across list, canvas, inspector, and auto-layout
 - canvas deletion and layout actions recover through the same history stack
 - debounced checkpointing for text editing
 
 Backlog mapping:
+
 - `US-E01`
 - `US-C03`
 - `US-D01` subset
@@ -122,12 +133,14 @@ Backlog mapping:
 Priority: P1
 
 Key outcomes:
+
 - high-frequency jargon explained inline
 - defaults/settings/override relationship visible
 - disabled controls explain blockers
 - keyboard users can discover graph and add-step paths
 
 Backlog mapping:
+
 - `US-I02`
 - `US-P01` to `US-P06`
 - targeted node-editor copy cleanup
@@ -139,17 +152,20 @@ Backlog mapping:
 Target length: 2-3 days
 
 Scope:
+
 - field-level validation inside `NodeInspector`
 - shared validation rendering between list and inspector
 - persistent validation badge near Run
 - remove forced switch away from canvas on run start
 
 Ship gate:
+
 - users can find the offending field from the inspector without trial-and-error
 - validation count is visible before pressing Run
 - starting a run from canvas no longer changes the active surface by default
 
 Stories:
+
 - `US-B01`
 - `US-B02`
 - `US-B03`
@@ -160,17 +176,20 @@ Stories:
 Target length: 3-4 days
 
 Scope:
+
 - shared undo/redo model across list, canvas, inspector, and auto-layout
 - debounced snapshot strategy for text fields
 - recoverable canvas deletion and auto-layout actions
 - visible undo/redo affordances
 
 Ship gate:
+
 - `Cmd+Z` reverts the last edit regardless of surface
 - auto-layout and canvas deletions no longer rely on toast-only recovery
 - no high-frequency workflow mutation bypasses the shared history stack
 
 Stories:
+
 - `US-E01`
 - `US-C03`
 - `US-D01` subset
@@ -180,6 +199,7 @@ Stories:
 Target length: 2-3 days
 
 Scope:
+
 - move `Graph` into the primary tab strip
 - keep `Graph` visible during runs
 - default to editable graph mode and persist mode choice
@@ -187,11 +207,13 @@ Scope:
 - replace vague add-step copy and improve splitter guidance
 
 Ship gate:
+
 - keyboard navigation reaches `Graph` as part of the same tab model as `Flow` and `Defaults`
 - workflow switches do not silently drop users back into read-only preview
 - first-session users can find evaluator and splitter actions from the primary add path
 
 Stories:
+
 - `US-D06`
 - `US-D08`
 - `US-I02` subset
@@ -201,6 +223,7 @@ Stories:
 Target length: 3-4 days
 
 Scope:
+
 - context-menu insertion uses clicked coordinates
 - manual positions persist until explicit reset
 - connection hit targets increase to an effective 24px target area
@@ -208,11 +231,13 @@ Scope:
 - reset-to-auto-layout remains explicit and recoverable
 
 Ship gate:
+
 - node added from context menu lands at or near the clicked position
 - edge creation no longer depends on tiny-hit-target precision
 - manual layout survives routine editing until reset explicitly
 
 Stories:
+
 - `US-D01`
 - `US-D03`
 - `US-D04`
@@ -223,17 +248,20 @@ Stories:
 Target length: 2-3 days
 
 Scope:
+
 - visible paused overlay/banner on canvas
 - pause copy clarifies current-node behavior
 - persistent completion/failure feedback in the active workflow surface
 - runtime cues that do not rely on color alone
 
 Ship gate:
+
 - paused state is recognizable from canvas within one glance
 - completion and failure remain visible even if the initial toast is missed
 - runtime state remains understandable without relying on color alone
 
 Stories:
+
 - `US-K01`
 - `US-K05`
 - `US-K03` subset
@@ -243,6 +271,7 @@ Stories:
 Target length: 3-4 days
 
 Scope:
+
 - high-frequency jargon help in node editors
 - explicit defaults/settings/override inheritance cues
 - consistent list/inspector field ordering
@@ -250,12 +279,14 @@ Scope:
 - shortcut hints and keyboard discoverability
 
 Ship gate:
+
 - high-frequency node configs are understandable without external docs
 - settings/defaults/override relationship is visible in the UI
 - no high-frequency disabled editor control remains silent
 - keyboard users can discover the main graph and add-step paths from the UI
 
 Stories:
+
 - `US-I02`
 - `US-P01` to `US-P06`
 
@@ -267,6 +298,7 @@ Stories:
 - Iteration 2
 
 Outcome:
+
 - editor correctness and trust baseline
 
 ### Cycle B
@@ -275,6 +307,7 @@ Outcome:
 - Iteration 4
 
 Outcome:
+
 - graph discoverability and spatial editing reliability
 
 ### Cycle C
@@ -283,6 +316,7 @@ Outcome:
 - Iteration 6
 
 Outcome:
+
 - runtime readability, config clarity, and accessibility hardening
 
 If only two cycles are available:

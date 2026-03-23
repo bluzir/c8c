@@ -64,4 +64,3 @@ jobs:
             release/*.blockmap
             release/*.yml
             release/SHA256SUMS
-

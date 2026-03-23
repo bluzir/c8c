@@ -12,6 +12,7 @@ allowed-tools:
   - Write
   - AskUserQuestion
 ---
+
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
@@ -34,6 +35,7 @@ If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/g
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
+
 1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]`
@@ -69,7 +71,9 @@ Hey gstack team — ran into this while using /{skill-name}:
 
 ## Raw output
 ```
+
 {paste the actual error or unexpected output here}
+
 ```
 
 ## What would make this a 10
@@ -88,13 +92,13 @@ You are a QA engineer. Test web applications like a real user — click everythi
 
 **Parse the user's request for these parameters:**
 
-| Parameter | Default | Override example |
-|-----------|---------|-----------------:|
-| Target URL | (auto-detect or required) | `https://myapp.com`, `http://localhost:3000` |
-| Mode | full | `--quick`, `--regression .gstack/qa-reports/baseline.json` |
-| Output dir | `.gstack/qa-reports/` | `Output to /tmp/qa` |
-| Scope | Full app (or diff-scoped) | `Focus on the billing page` |
-| Auth | None | `Sign in to user@example.com`, `Import cookies from cookies.json` |
+| Parameter  | Default                   |                                                  Override example |
+| ---------- | ------------------------- | ----------------------------------------------------------------: |
+| Target URL | (auto-detect or required) |                      `https://myapp.com`, `http://localhost:3000` |
+| Mode       | full                      |        `--quick`, `--regression .gstack/qa-reports/baseline.json` |
+| Output dir | `.gstack/qa-reports/`     |                                               `Output to /tmp/qa` |
+| Scope      | Full app (or diff-scoped) |                                       `Focus on the billing page` |
+| Auth       | None                      | `Sign in to user@example.com`, `Import cookies from cookies.json` |
 
 **If no URL is given and you're on a feature branch:** Automatically enter **diff-aware mode** (see Modes below). This is the most common case — the user just shipped code on a branch and wants to verify it works.
 
@@ -118,6 +122,7 @@ Treat `$B` in the rest of this document as a placeholder for the browser tool yo
 - `$B url` — print the current page URL
 
 If no browser automation is available:
+
 1. Ask the user for a running URL, screenshots, or repro steps.
 2. Continue in report-only QA mode using the available evidence.
 3. Explicitly mark any unverified flows in the final report.
@@ -152,6 +157,7 @@ Before falling back to git diff heuristics, check for richer test plan sources:
 This is the **primary mode** for developers verifying their work. When the user says `/qa` without a URL and the repo is on a feature branch, automatically:
 
 1. **Analyze the branch diff** to understand what changed:
+
    ```bash
    git diff main...HEAD --name-only
    git log main..HEAD --oneline
@@ -166,11 +172,13 @@ This is the **primary mode** for developers verifying their work. When the user 
    - Static pages (markdown, HTML) → navigate to them directly
 
 3. **Detect the running app** — check common local dev ports:
+
    ```bash
    $B goto http://localhost:3000 2>/dev/null && echo "Found app on :3000" || \
    $B goto http://localhost:4000 2>/dev/null && echo "Found app on :4000" || \
    $B goto http://localhost:8080 2>/dev/null && echo "Found app on :8080"
    ```
+
    If no local app is found, check for a staging/preview URL in the PR or environment. If nothing works, ask the user for the URL.
 
 4. **Test each affected page/route:**
@@ -180,7 +188,7 @@ This is the **primary mode** for developers verifying their work. When the user 
    - If the change was interactive (forms, buttons, flows), test the interaction end-to-end
    - Use `snapshot -D` before and after actions to verify the change had the expected effect
 
-5. **Cross-reference with commit messages and PR description** to understand *intent* — what should the change do? Verify it actually does that.
+5. **Cross-reference with commit messages and PR description** to understand _intent_ — what should the change do? Verify it actually does that.
 
 6. **Check TODOS.md** (if it exists) for known bugs or issues related to the changed files. If a TODO describes a bug that this branch should fix, add it to your test plan. If you find a new bug during QA that isn't in TODOS.md, note it in the report.
 
@@ -192,12 +200,15 @@ This is the **primary mode** for developers verifying their work. When the user 
 **If the user provides a URL with diff-aware mode:** Use that URL as the base but still scope testing to the changed files.
 
 ### Full (default when URL is provided)
+
 Systematic exploration. Visit every reachable page. Document 5-10 well-evidenced issues. Produce health score. Takes 5-15 minutes depending on app size.
 
 ### Quick (`--quick`)
+
 30-second smoke test. Visit homepage + top 5 navigation targets. Check: page loads? Console errors? Broken links? Produce health score. No detailed issue documentation.
 
 ### Regression (`--regression <baseline>`)
+
 Run full mode, then load `baseline.json` from a previous run. Diff: which issues are fixed? Which are new? What's the score delta? Append regression section to report.
 
 ---
@@ -247,6 +258,7 @@ $B console --errors               # any errors on landing?
 ```
 
 **Detect framework** (note in report metadata):
+
 - `__next` in HTML or `_next/data` requests → Next.js
 - `csrf-token` meta tag → Rails
 - `wp-content` in URLs → WordPress
@@ -290,6 +302,7 @@ Document each issue **immediately when found** — don't batch them.
 **Two evidence tiers:**
 
 **Interactive bugs** (broken flows, dead buttons, form failures):
+
 1. Take a screenshot before the action
 2. Perform the action
 3. Take a screenshot showing the result
@@ -304,6 +317,7 @@ $B snapshot -D
 ```
 
 **Static bugs** (typos, layout issues, missing images):
+
 1. Take a single annotated screenshot showing the problem
 2. Describe what's wrong
 
@@ -332,6 +346,7 @@ $B snapshot -i -a -o "$REPORT_DIR/screenshots/issue-002.png"
    ```
 
 **Regression mode:** After writing the report, load the baseline file. Compare:
+
 - Health score delta
 - Issues fixed (in baseline but not current)
 - New issues (in current but not baseline)
@@ -344,36 +359,42 @@ $B snapshot -i -a -o "$REPORT_DIR/screenshots/issue-002.png"
 Compute each category score (0-100), then take the weighted average.
 
 ### Console (weight: 15%)
+
 - 0 errors → 100
 - 1-3 errors → 70
 - 4-10 errors → 40
 - 10+ errors → 10
 
 ### Links (weight: 10%)
+
 - 0 broken → 100
 - Each broken link → -15 (minimum 0)
 
 ### Per-Category Scoring (Visual, Functional, UX, Content, Performance, Accessibility)
+
 Each category starts at 100. Deduct per finding:
+
 - Critical issue → -25
 - High issue → -15
 - Medium issue → -8
 - Low issue → -3
-Minimum 0 per category.
+  Minimum 0 per category.
 
 ### Weights
-| Category | Weight |
-|----------|--------|
-| Console | 15% |
-| Links | 10% |
-| Visual | 10% |
-| Functional | 20% |
-| UX | 15% |
-| Performance | 10% |
-| Content | 5% |
-| Accessibility | 15% |
+
+| Category      | Weight |
+| ------------- | ------ |
+| Console       | 15%    |
+| Links         | 10%    |
+| Visual        | 10%    |
+| Functional    | 20%    |
+| UX            | 15%    |
+| Performance   | 10%    |
+| Content       | 5%     |
+| Accessibility | 15%    |
 
 ### Final Score
+
 `score = Σ (category_score × weight)`
 
 ---
@@ -381,24 +402,28 @@ Minimum 0 per category.
 ## Framework-Specific Guidance
 
 ### Next.js
+
 - Check console for hydration errors (`Hydration failed`, `Text content did not match`)
 - Monitor `_next/data` requests in network — 404s indicate broken data fetching
 - Test client-side navigation (click links, don't just `goto`) — catches routing issues
 - Check for CLS (Cumulative Layout Shift) on pages with dynamic content
 
 ### Rails
+
 - Check for N+1 query warnings in console (if development mode)
 - Verify CSRF token presence in forms
 - Test Turbo/Stimulus integration — do page transitions work smoothly?
 - Check for flash messages appearing and dismissing correctly
 
 ### WordPress
+
 - Check for plugin conflicts (JS errors from different plugins)
 - Verify admin bar visibility for logged-in users
 - Test REST API endpoints (`/wp-json/`)
 - Check for mixed content warnings (common with WP)
 
 ### General SPA (React, Vue, Angular)
+
 - Use `snapshot -i` for navigation — `links` command misses client-side routes
 - Check for stale state (navigate away and back — does data refresh?)
 - Test browser back/forward — does the app handle history correctly?
@@ -428,10 +453,12 @@ Write the report to both local and project-scoped locations:
 **Local:** `.gstack/qa-reports/qa-report-{domain}-{YYYY-MM-DD}.md`
 
 **Project-scoped:** Write test outcome artifact for cross-session context:
+
 ```bash
 SLUG=$(git remote get-url origin 2>/dev/null | sed 's|.*[:/]\([^/]*/[^/]*\)\.git$|\1|;s|.*[:/]\([^/]*/[^/]*\)$|\1|' | tr '/' '-')
 mkdir -p ~/.gstack/projects/$SLUG
 ```
+
 Write to `~/.gstack/projects/{slug}/{user}-{branch}-test-outcome-{datetime}.md`
 
 ### Output Structure

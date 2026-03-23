@@ -121,7 +121,10 @@ function downloadFile(url, destPath) {
             return reject(new Error(`HTTP ${res.statusCode}`))
           }
 
-          const totalSize = Number.parseInt(res.headers["content-length"] || "0", 10)
+          const totalSize = Number.parseInt(
+            res.headers["content-length"] || "0",
+            10,
+          )
           let downloaded = 0
           let lastPrintedPercent = -1
 
@@ -194,7 +197,9 @@ function extractTarGz(archivePath, targetDir) {
   })
 
   if (result.status !== 0) {
-    throw new Error(`tar extraction failed with code ${result.status ?? "unknown"}`)
+    throw new Error(
+      `tar extraction failed with code ${result.status ?? "unknown"}`,
+    )
   }
 }
 
@@ -213,7 +218,9 @@ function getVersionArg(args) {
 }
 
 async function getLatestVersion() {
-  const release = await fetchJson(`https://api.github.com/repos/${RELEASE_REPO}/releases/latest`)
+  const release = await fetchJson(
+    `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`,
+  )
   const tagName = typeof release?.tag_name === "string" ? release.tag_name : ""
   if (tagName.startsWith(RELEASE_TAG_PREFIX)) {
     return tagName.slice(RELEASE_TAG_PREFIX.length)
@@ -290,7 +297,9 @@ async function downloadPlatform(version, platformKey, release) {
     }
     console.log(`  Verified SHA256: ${actualHash.slice(0, 16)}...`)
   } else {
-    console.warn("  Warning: release digest missing, skipping hash verification")
+    console.warn(
+      "  Warning: release digest missing, skipping hash verification",
+    )
   }
 
   if (platform.assetName.endsWith(".tar.gz")) {

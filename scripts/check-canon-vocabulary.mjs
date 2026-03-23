@@ -56,10 +56,14 @@ const userFacingPropertyNames = new Set([
   "warning",
 ])
 
-const userFacingVariablePattern = /(title|label|description|summary|subtitle|placeholder|warning|hint|message|eyebrow|helperText)$/i
-const copyReturnFilePattern = /src[\\/]renderer[\\/]lib[\\/](workflow-entry|workflow-mutations|result-mode-factory|runtime-card-copy|runtime-flow-labels|process-spine|chat-tool-summary)\.ts$/i
-const copyPushVariablePattern = /(summaryParts|labels|labelParts|descriptions|hints|warnings|messages|titles|subtitles)$/i
-const userFacingSetterPattern = /^set(?:.*(?:Error|Message|Warning|Hint|Title|Subtitle|Label|Summary)|Error)$/i
+const userFacingVariablePattern =
+  /(title|label|description|summary|subtitle|placeholder|warning|hint|message|eyebrow|helperText)$/i
+const copyReturnFilePattern =
+  /src[\\/]renderer[\\/]lib[\\/](workflow-entry|workflow-mutations|result-mode-factory|runtime-card-copy|runtime-flow-labels|process-spine|chat-tool-summary)\.ts$/i
+const copyPushVariablePattern =
+  /(summaryParts|labels|labelParts|descriptions|hints|warnings|messages|titles|subtitles)$/i
+const userFacingSetterPattern =
+  /^set(?:.*(?:Error|Message|Warning|Hint|Title|Subtitle|Label|Summary)|Error)$/i
 
 function walkFiles(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -71,7 +75,12 @@ function walkFiles(dir) {
       files.push(...walkFiles(nextPath))
       continue
     }
-    if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".test.ts") && !entry.name.endsWith(".test.tsx")) {
+    if (
+      entry.isFile() &&
+      /\.(ts|tsx)$/.test(entry.name) &&
+      !entry.name.endsWith(".test.ts") &&
+      !entry.name.endsWith(".test.tsx")
+    ) {
       files.push(nextPath)
     }
   }
@@ -108,7 +117,8 @@ function attributeNameFromParent(node) {
 function propertyName(node) {
   if (!ts.isPropertyAssignment(node.parent)) return null
   const nameNode = node.parent.name
-  if (ts.isIdentifier(nameNode) || ts.isStringLiteral(nameNode)) return nameNode.text
+  if (ts.isIdentifier(nameNode) || ts.isStringLiteral(nameNode))
+    return nameNode.text
   return null
 }
 
@@ -118,7 +128,9 @@ function variableName(node) {
 }
 
 function calleeText(node) {
-  return ts.isCallExpression(node.parent) ? node.parent.expression.getText() : null
+  return ts.isCallExpression(node.parent)
+    ? node.parent.expression.getText()
+    : null
 }
 
 function isToastArgument(node) {
@@ -132,7 +144,10 @@ function isToastArgument(node) {
 function isConfirmDiscardArgument(node) {
   if (!ts.isCallExpression(node.parent)) return false
   const parent = node.parent
-  return parent.arguments[0] === node && parent.expression.getText() === "confirmDiscard"
+  return (
+    parent.arguments[0] === node &&
+    parent.expression.getText() === "confirmDiscard"
+  )
 }
 
 function isStringInUserFacingProperty(node) {
@@ -148,7 +163,11 @@ function isStringInUserFacingVariable(node) {
 function isCopyPush(node) {
   if (!ts.isCallExpression(node.parent)) return false
   const call = node.parent
-  if (call.arguments[0] !== node || !ts.isPropertyAccessExpression(call.expression)) return false
+  if (
+    call.arguments[0] !== node ||
+    !ts.isPropertyAccessExpression(call.expression)
+  )
+    return false
   if (call.expression.name.text !== "push") return false
   return copyPushVariablePattern.test(call.expression.expression.getText())
 }
@@ -157,7 +176,10 @@ function isUserFacingSetterArgument(node) {
   if (!ts.isCallExpression(node.parent)) return false
   const call = node.parent
   if (call.arguments[0] !== node) return false
-  return ts.isIdentifier(call.expression) && userFacingSetterPattern.test(call.expression.text)
+  return (
+    ts.isIdentifier(call.expression) &&
+    userFacingSetterPattern.test(call.expression.text)
+  )
 }
 
 function userFacingContext(node, relativePath) {
@@ -174,7 +196,11 @@ function userFacingContext(node, relativePath) {
   if (isCopyPush(node)) return "copy-push"
 
   for (let current = node.parent; current; current = current.parent) {
-    if (ts.isReturnStatement(current) && copyReturnFilePattern.test(relativePath)) return "copy-return"
+    if (
+      ts.isReturnStatement(current) &&
+      copyReturnFilePattern.test(relativePath)
+    )
+      return "copy-return"
   }
 
   return null
@@ -184,7 +210,12 @@ function looksLikeInternalToken(rawText, value) {
   const trimmedRaw = rawText.trim()
   if (!trimmedRaw) return false
   if (/\$\{/.test(trimmedRaw)) return true
-  if (!/\s/.test(value) && /^[a-z0-9._:/-]+$/i.test(value) && value === value.toLowerCase()) return true
+  if (
+    !/\s/.test(value) &&
+    /^[a-z0-9._:/-]+$/i.test(value) &&
+    value === value.toLowerCase()
+  )
+    return true
   return false
 }
 
@@ -204,22 +235,41 @@ function findTerm(value) {
 function collectViolations(filePath) {
   const sourceText = fs.readFileSync(filePath, "utf8")
   const relativePath = path.relative(repoRoot, filePath)
-  const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  )
   const violations = []
 
   function visit(node) {
-    if (ts.isJsxText(node) || ts.isStringLiteralLike(node) || ts.isTemplateExpression(node)) {
+    if (
+      ts.isJsxText(node) ||
+      ts.isStringLiteralLike(node) ||
+      ts.isTemplateExpression(node)
+    ) {
       const rawText = textForNode(node)
       const value = normalizedText(rawText)
       const context = userFacingContext(node, relativePath)
       if (value && context) {
-        if ((context === "copy-return" || context === "copy-push" || context === "property" || context === "variable") && looksLikeInternalToken(rawText, value)) {
+        if (
+          (context === "copy-return" ||
+            context === "copy-push" ||
+            context === "property" ||
+            context === "variable") &&
+          looksLikeInternalToken(rawText, value)
+        ) {
           ts.forEachChild(node, visit)
           return
         }
         const found = findTerm(value)
         if (found) {
-          const { line, column } = lineAndColumn(sourceFile, node.getStart(sourceFile))
+          const { line, column } = lineAndColumn(
+            sourceFile,
+            node.getStart(sourceFile),
+          )
           violations.push({
             file: relativePath,
             line,

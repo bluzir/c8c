@@ -15,19 +15,24 @@ export default defineConfig(({ mode }) => {
   const posthogHost = env.C8C_POSTHOG_HOST || ""
   const posthogKey = env.C8C_POSTHOG_KEY || ""
   const hasPosthogConfig = Boolean(posthogHost) && Boolean(posthogKey)
-  const telemetryLocalTest = env.C8C_TELEMETRY_LOCAL_TEST === "1"
-    || env.C8C_TELEMETRY_LOCAL_TEST === "true"
+  const telemetryLocalTest =
+    env.C8C_TELEMETRY_LOCAL_TEST === "1" ||
+    env.C8C_TELEMETRY_LOCAL_TEST === "true"
   const testMode = env.C8C_TEST_MODE === "1" || env.C8C_TEST_MODE === "true"
   if (buildFlavor === "release" && testMode) {
     throw new Error("C8C_TEST_MODE must be disabled for release builds")
   }
-  const explicitTelemetryProvider = env.C8C_TELEMETRY_PROVIDER === "posthog"
-    ? "posthog"
-    : env.C8C_TELEMETRY_PROVIDER === "noop"
-      ? "noop"
-      : undefined
-  const telemetryProvider = explicitTelemetryProvider || (hasPosthogConfig ? "posthog" : "noop")
-  const telemetryEnabled = telemetryProvider === "posthog" && (buildFlavor === "release" || telemetryLocalTest)
+  const explicitTelemetryProvider =
+    env.C8C_TELEMETRY_PROVIDER === "posthog"
+      ? "posthog"
+      : env.C8C_TELEMETRY_PROVIDER === "noop"
+        ? "noop"
+        : undefined
+  const telemetryProvider =
+    explicitTelemetryProvider || (hasPosthogConfig ? "posthog" : "noop")
+  const telemetryEnabled =
+    telemetryProvider === "posthog" &&
+    (buildFlavor === "release" || telemetryLocalTest)
 
   const buildDefines = {
     __BUILD_FLAVOR__: JSON.stringify(buildFlavor),
@@ -47,8 +52,20 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: [
-          { find: "@c8c/workflow-runner/node", replacement: resolve(__dirname, "packages/workflow-runner/src/node/index.ts") },
-          { find: "@c8c/workflow-runner", replacement: resolve(__dirname, "packages/workflow-runner/src/index.ts") },
+          {
+            find: "@c8c/workflow-runner/node",
+            replacement: resolve(
+              __dirname,
+              "packages/workflow-runner/src/node/index.ts",
+            ),
+          },
+          {
+            find: "@c8c/workflow-runner",
+            replacement: resolve(
+              __dirname,
+              "packages/workflow-runner/src/index.ts",
+            ),
+          },
           { find: "@shared", replacement: resolve(__dirname, "src/shared") },
         ],
       },
@@ -97,9 +114,27 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       resolve: {
         alias: [
-          { find: "@c8c/workflow-runner/node", replacement: resolve(__dirname, "packages/workflow-runner/src/node/index.ts") },
-          { find: "@c8c/workflow-runner/schema", replacement: resolve(__dirname, "packages/workflow-runner/src/schema.ts") },
-          { find: "@c8c/workflow-runner", replacement: resolve(__dirname, "packages/workflow-runner/src/index.ts") },
+          {
+            find: "@c8c/workflow-runner/node",
+            replacement: resolve(
+              __dirname,
+              "packages/workflow-runner/src/node/index.ts",
+            ),
+          },
+          {
+            find: "@c8c/workflow-runner/schema",
+            replacement: resolve(
+              __dirname,
+              "packages/workflow-runner/src/schema.ts",
+            ),
+          },
+          {
+            find: "@c8c/workflow-runner",
+            replacement: resolve(
+              __dirname,
+              "packages/workflow-runner/src/index.ts",
+            ),
+          },
           { find: "@shared", replacement: resolve(__dirname, "src/shared") },
           { find: "@", replacement: resolve(__dirname, "src/renderer") },
         ],

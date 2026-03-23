@@ -14,6 +14,7 @@ allowed-tools:
   - Glob
   - AskUserQuestion
 ---
+
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
 
@@ -36,6 +37,7 @@ If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/g
 ## AskUserQuestion Format
 
 **ALWAYS follow this structure for every AskUserQuestion call:**
+
 1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
 2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
 3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]`
@@ -71,7 +73,9 @@ Hey gstack team — ran into this while using /{skill-name}:
 
 ## Raw output
 ```
+
 {paste the actual error or unexpected output here}
+
 ```
 
 ## What would make this a 10
@@ -111,12 +115,14 @@ You are mostly automated. Make obvious factual updates directly. Stop and ask on
 subjective decisions.
 
 **Only stop for:**
+
 - Risky/questionable doc changes (narrative, philosophy, security, removals, large rewrites)
 - VERSION bump decision (if not already bumped)
 - New TODOS items to add
 - Cross-doc contradictions that are narrative (not factual)
 
 **Never stop for:**
+
 - Factual corrections clearly from the diff
 - Adding items to tables/lists
 - Updating paths, counts, version numbers
@@ -126,6 +132,7 @@ subjective decisions.
 - Cross-doc factual inconsistencies (e.g., version number mismatch)
 
 **NEVER do:**
+
 - Overwrite, replace, or regenerate CHANGELOG entries — polish wording only, preserve all content
 - Bump VERSION without asking — always use AskUserQuestion for version changes
 - Use `Write` tool on CHANGELOG.md — always use `Edit` with exact `old_string` matches
@@ -172,18 +179,21 @@ Read each documentation file and cross-reference it against the diff. Use these 
 (adapt to whatever project you're in — these are not gstack-specific):
 
 **README.md:**
+
 - Does it describe all features and capabilities visible in the diff?
 - Are install/setup instructions consistent with the changes?
 - Are examples, demos, and usage descriptions still valid?
 - Are troubleshooting steps still accurate?
 
 **ARCHITECTURE.md:**
+
 - Do ASCII diagrams and component descriptions match the current code?
 - Are design decisions and "why" explanations still accurate?
 - Be conservative — only update things clearly contradicted by the diff. Architecture docs
   describe things unlikely to change frequently.
 
 **CONTRIBUTING.md — New contributor smoke test:**
+
 - Walk through the setup instructions as if you are a brand new contributor.
 - Are the listed commands accurate? Would each step succeed?
 - Do test tier descriptions match the current test infrastructure?
@@ -191,11 +201,13 @@ Read each documentation file and cross-reference it against the diff. Use these 
 - Flag anything that would fail or confuse a first-time contributor.
 
 **CLAUDE.md / project instructions:**
+
 - Does the project structure section match the actual file tree?
 - Are listed commands and scripts accurate?
 - Do build/test instructions match what's in package.json (or equivalent)?
 
 **Any other .md files:**
+
 - Read the file, determine its purpose and audience.
 - Cross-reference against the diff to check if it contradicts anything the file says.
 
@@ -217,6 +229,7 @@ just "Updated README.md" but "README.md: added /new-skill to skills table, updat
 from 9 to 10."
 
 **Never auto-update:**
+
 - README introduction or project positioning
 - ARCHITECTURE philosophy or design rationale
 - Security model descriptions
@@ -227,6 +240,7 @@ from 9 to 10."
 ## Step 4: Ask About Risky/Questionable Changes
 
 For each risky or questionable update identified in Step 2, use AskUserQuestion with:
+
 - Context: project name, branch, which doc file, what we're reviewing
 - The specific documentation decision
 - `RECOMMENDATION: Choose [X] because [one-line reason]`
@@ -246,6 +260,7 @@ A real incident occurred where an agent replaced existing CHANGELOG entries when
 preserved them. This skill must NEVER do that.
 
 **Rules:**
+
 1. Read the entire CHANGELOG.md first. Understand what is already there.
 2. Only modify wording within existing entries. Never delete, reorder, or replace entries.
 3. Never regenerate a CHANGELOG entry from scratch. The entry was written by `/ship` from the
@@ -328,16 +343,16 @@ git diff <base>...HEAD -- VERSION
 
    a. Read the CHANGELOG entry for the current VERSION. What features does it describe?
    b. Read the full diff (`git diff <base>...HEAD --stat` and `git diff <base>...HEAD --name-only`).
-      Are there significant changes (new features, new skills, new commands, major refactors)
-      that are NOT mentioned in the CHANGELOG entry for the current version?
+   Are there significant changes (new features, new skills, new commands, major refactors)
+   that are NOT mentioned in the CHANGELOG entry for the current version?
    c. **If the CHANGELOG entry covers everything:** Skip — output "VERSION: Already bumped to
-      vX.Y.Z, covers all changes."
+   vX.Y.Z, covers all changes."
    d. **If there are significant uncovered changes:** Use AskUserQuestion explaining what the
-      current version covers vs what's new, and ask:
-      - RECOMMENDATION: Choose A because the new changes warrant their own version
-      - A) Bump to next patch (X.Y.Z+1) — give the new changes their own version
-      - B) Keep current version — add new changes to the existing CHANGELOG entry
-      - C) Skip — leave version as-is, handle later
+   current version covers vs what's new, and ask:
+   - RECOMMENDATION: Choose A because the new changes warrant their own version
+   - A) Bump to next patch (X.Y.Z+1) — give the new changes their own version
+   - B) Keep current version — add new changes to the existing CHANGELOG entry
+   - C) Skip — leave version as-is, handle later
 
    The key insight: a VERSION bump set for "feature A" should not silently absorb "feature B"
    if feature B is substantial enough to deserve its own version entry.
@@ -416,6 +431,7 @@ Documentation health:
 ```
 
 Where status is one of:
+
 - Updated — with description of what changed
 - Current — no changes needed
 - Voice polished — wording adjusted

@@ -5,7 +5,14 @@ const fs = require("fs")
 const path = require("path")
 
 const APP_NAME = "c8c"
-const electronApp = path.join(__dirname, "..", "node_modules", "electron", "dist", "Electron.app")
+const electronApp = path.join(
+  __dirname,
+  "..",
+  "node_modules",
+  "electron",
+  "dist",
+  "Electron.app",
+)
 const contentsDir = path.join(electronApp, "Contents")
 const plistPath = path.join(contentsDir, "Info.plist")
 const oldBinary = path.join(contentsDir, "MacOS", "Electron")
@@ -14,7 +21,10 @@ const newBinary = path.join(contentsDir, "MacOS", APP_NAME)
 try {
   // 1. Patch Info.plist — replace all "Electron" strings with app name
   let plist = fs.readFileSync(plistPath, "utf8")
-  plist = plist.replace(/<string>Electron<\/string>/g, `<string>${APP_NAME}</string>`)
+  plist = plist.replace(
+    /<string>Electron<\/string>/g,
+    `<string>${APP_NAME}</string>`,
+  )
   fs.writeFileSync(plistPath, plist)
 
   // 2. Rename binary + symlink old name so electron-vite still finds it

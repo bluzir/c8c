@@ -1,6 +1,13 @@
 import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises"
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  utimes,
+  writeFile,
+} from "node:fs/promises"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
@@ -29,7 +36,8 @@ const artifactRoot = resolve(repoRoot, "output", "ui-smoke")
 let ensuredTestBuild = null
 
 function printHelp() {
-  process.stdout.write(`Usage: node scripts/run-electron-smoke.mjs [all|<scenario>] [options]
+  process.stdout
+    .write(`Usage: node scripts/run-electron-smoke.mjs [all|<scenario>] [options]
 
 Options:
   --scenario <name>                 Run a single smoke scenario
@@ -54,7 +62,8 @@ function parseCliOptions(argv, env = process.env) {
   let requestedScenario = null
   let showWindow = env.C8C_SMOKE_SHOW_WINDOW === "1"
   let json = false
-  let keepArtifactsOnSuccess = env.C8C_SMOKE_KEEP_ARTIFACTS_ON_SUCCESS === "1" || !env.CI
+  let keepArtifactsOnSuccess =
+    env.C8C_SMOKE_KEEP_ARTIFACTS_ON_SUCCESS === "1" || !env.CI
 
   for (let index = 2; index < argv.length; index += 1) {
     const arg = argv[index]
@@ -137,8 +146,18 @@ function buildLinearWorkflow(name, skillRef) {
       }),
     ],
     edges: [
-      { id: "e-input-skill-main", source: "input", target: "skill-main", type: "default" },
-      { id: "e-skill-main-output", source: "skill-main", target: "output", type: "default" },
+      {
+        id: "e-input-skill-main",
+        source: "input",
+        target: "skill-main",
+        type: "default",
+      },
+      {
+        id: "e-skill-main-output",
+        source: "skill-main",
+        target: "output",
+        type: "default",
+      },
     ],
   }
 }
@@ -168,9 +187,24 @@ function buildApprovalWorkflow(name) {
       }),
     ],
     edges: [
-      { id: "e-input-skill-plan", source: "input", target: "skill-plan", type: "default" },
-      { id: "e-skill-plan-approval", source: "skill-plan", target: "approval", type: "default" },
-      { id: "e-approval-output", source: "approval", target: "output", type: "default" },
+      {
+        id: "e-input-skill-plan",
+        source: "input",
+        target: "skill-plan",
+        type: "default",
+      },
+      {
+        id: "e-skill-plan-approval",
+        source: "skill-plan",
+        target: "approval",
+        type: "default",
+      },
+      {
+        id: "e-approval-output",
+        source: "approval",
+        target: "output",
+        type: "default",
+      },
     ],
   }
 }
@@ -196,8 +230,18 @@ function buildSuspendedApprovalWorkflow(name, message) {
       }),
     ],
     edges: [
-      { id: "e-input-approval", source: "input", target: "approval", type: "default" },
-      { id: "e-approval-output", source: "approval", target: "output", type: "default" },
+      {
+        id: "e-input-approval",
+        source: "input",
+        target: "approval",
+        type: "default",
+      },
+      {
+        id: "e-approval-output",
+        source: "approval",
+        target: "output",
+        type: "default",
+      },
     ],
   }
 }
@@ -218,7 +262,9 @@ async function collectRun(handle) {
 function createSuspendedApprovalRunner(workspace) {
   return createWorkflowRunner({
     startProviderTask() {
-      throw new Error("Provider execution should not be called for approval-only smoke fixtures")
+      throw new Error(
+        "Provider execution should not be called for approval-only smoke fixtures",
+      )
     },
     workspaceStore: {
       async createRunWorkspace() {
@@ -228,7 +274,12 @@ function createSuspendedApprovalRunner(workspace) {
   })
 }
 
-async function writeWorkflowFixture(projectPath, fileName, workflow, updatedAtMs) {
+async function writeWorkflowFixture(
+  projectPath,
+  fileName,
+  workflow,
+  updatedAtMs,
+) {
   const workflowPath = join(projectPath, ".c8c", `${fileName}.chain`)
   const updatedAt = new Date(updatedAtMs)
   await mkdir(join(projectPath, ".c8c"), { recursive: true })
@@ -259,50 +310,53 @@ async function writeTextFixture(filePath, content, updatedAtMs) {
   }
 }
 
-async function writeRunWorkspaceFixture(projectPath, {
-  runId,
-  workflowName,
-  workflowPath,
-  status,
-  updatedAtMs,
-  reportBody,
-}) {
+async function writeRunWorkspaceFixture(
+  projectPath,
+  { runId, workflowName, workflowPath, status, updatedAtMs, reportBody },
+) {
   const workspace = join(projectPath, ".c8c", "runs", runId)
   const reportPath = join(workspace, "report.md")
   await mkdir(workspace, { recursive: true })
   await writeTextFixture(reportPath, reportBody, updatedAtMs)
-  await writeJsonFixture(join(workspace, "run-result.json"), {
-    runId,
-    status,
-    workflowName,
-    workflowPath,
-    startedAt: updatedAtMs - 5_000,
-    completedAt: updatedAtMs,
-    reportPath,
-    workspace,
-  }, updatedAtMs)
+  await writeJsonFixture(
+    join(workspace, "run-result.json"),
+    {
+      runId,
+      status,
+      workflowName,
+      workflowPath,
+      startedAt: updatedAtMs - 5_000,
+      completedAt: updatedAtMs,
+      reportPath,
+      workspace,
+    },
+    updatedAtMs,
+  )
   return { workspace, reportPath }
 }
 
-async function writeArtifactFixture(projectPath, {
-  baseName,
-  id,
-  kind,
-  title,
-  description,
-  workspace,
-  runId,
-  templateId,
-  templateName,
-  workflowPath,
-  workflowName,
-  caseId,
-  caseLabel,
-  factoryId,
-  factoryLabel,
-  updatedAtMs,
-  content,
-}) {
+async function writeArtifactFixture(
+  projectPath,
+  {
+    baseName,
+    id,
+    kind,
+    title,
+    description,
+    workspace,
+    runId,
+    templateId,
+    templateName,
+    workflowPath,
+    workflowName,
+    caseId,
+    caseLabel,
+    factoryId,
+    factoryLabel,
+    updatedAtMs,
+    content,
+  },
+) {
   const artifactsDir = join(projectPath, ".c8c", "artifacts")
   const contentPath = join(artifactsDir, `${baseName}.md`)
   const metadataPath = join(artifactsDir, `${baseName}.json`)
@@ -343,16 +397,24 @@ async function writeArtifactFixture(projectPath, {
   return metadata
 }
 
-async function writeCaseStateFixture(projectPath, fileName, record, updatedAtMs) {
-  const caseFileName = typeof record.caseId === "string" && record.caseId.trim()
-    ? `${record.caseId
-      .replace(/^case:/i, "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 48) || "case"}-${createHash("sha1").update(record.caseId).digest("hex").slice(0, 12)}`
-    : fileName
+async function writeCaseStateFixture(
+  projectPath,
+  fileName,
+  record,
+  updatedAtMs,
+) {
+  const caseFileName =
+    typeof record.caseId === "string" && record.caseId.trim()
+      ? `${
+          record.caseId
+            .replace(/^case:/i, "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9._-]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 48) || "case"
+        }-${createHash("sha1").update(record.caseId).digest("hex").slice(0, 12)}`
+      : fileName
   await writeJsonFixture(
     join(projectPath, ".c8c", "case-state", `${caseFileName}.json`),
     {
@@ -436,7 +498,8 @@ async function seedCreateReadyContinuationProject(projectPath, updatedAtMs) {
     workflowPath: join(projectPath, ".c8c", "delivery-shape-project.chain"),
     status: "completed",
     updatedAtMs,
-    reportBody: "# Project Brief\n\nCheckout polish scope, constraints, and goals.\n",
+    reportBody:
+      "# Project Brief\n\nCheckout polish scope, constraints, and goals.\n",
   })
 
   const artifact = await writeArtifactFixture(projectPath, {
@@ -456,32 +519,38 @@ async function seedCreateReadyContinuationProject(projectPath, updatedAtMs) {
     factoryId: "factory:delivery-foundation",
     factoryLabel: "Delivery Lab",
     updatedAtMs,
-    content: "# Project Brief\n\nCheckout polish scope, goals, and constraints.\n",
+    content:
+      "# Project Brief\n\nCheckout polish scope, goals, and constraints.\n",
   })
 
-  await writeCaseStateFixture(projectPath, "checkout-polish-ready", {
-    caseId,
+  await writeCaseStateFixture(
     projectPath,
-    workLabel: "Checkout polish",
-    caseLabel: "Checkout polish",
-    factoryId: "factory:delivery-foundation",
-    factoryLabel: "Delivery Lab",
-    workflowPath: artifact.workflowPath,
-    workflowName,
-    continuationStatus: "ready",
-    nextStepLabel: "Research the Change",
-    artifactIds: [artifact.id],
-    lastGate: {
-      family: "approval",
-      outcome: "passed",
-      summaryText: "Project brief saved. Research can continue.",
-      reasonText: "The latest project shaping pass completed successfully.",
-      stepLabel: "Research the Change",
-      happenedAt: updatedAtMs,
+    "checkout-polish-ready",
+    {
+      caseId,
+      projectPath,
+      workLabel: "Checkout polish",
+      caseLabel: "Checkout polish",
+      factoryId: "factory:delivery-foundation",
+      factoryLabel: "Delivery Lab",
+      workflowPath: artifact.workflowPath,
+      workflowName,
+      continuationStatus: "ready",
+      nextStepLabel: "Research the Change",
+      artifactIds: [artifact.id],
+      lastGate: {
+        family: "approval",
+        outcome: "passed",
+        summaryText: "Project brief saved. Research can continue.",
+        reasonText: "The latest project shaping pass completed successfully.",
+        stepLabel: "Research the Change",
+        happenedAt: updatedAtMs,
+      },
+      createdAt: updatedAtMs - 2_000,
+      updatedAt: updatedAtMs,
     },
-    createdAt: updatedAtMs - 2_000,
-    updatedAt: updatedAtMs,
-  }, updatedAtMs)
+    updatedAtMs,
+  )
 }
 
 async function seedBlockedRelaunchProject(projectPath, updatedAtMs) {
@@ -499,7 +568,8 @@ async function seedBlockedRelaunchProject(projectPath, updatedAtMs) {
     workflowPath,
     status: "blocked",
     updatedAtMs,
-    reportBody: "# Verification Report\n\nVerification is waiting on approval.\n",
+    reportBody:
+      "# Verification Report\n\nVerification is waiting on approval.\n",
   })
 
   const artifact = await writeArtifactFixture(projectPath, {
@@ -519,31 +589,39 @@ async function seedBlockedRelaunchProject(projectPath, updatedAtMs) {
     factoryId: "factory:delivery-foundation",
     factoryLabel: "Delivery Lab",
     updatedAtMs,
-    content: "# Verification Report\n\nCheckout polish is ready for approval.\n",
+    content:
+      "# Verification Report\n\nCheckout polish is ready for approval.\n",
   })
 
-  await writeCaseStateFixture(projectPath, "checkout-polish-blocked", {
-    caseId,
+  await writeCaseStateFixture(
     projectPath,
-    workLabel: "Checkout polish",
-    caseLabel: "Checkout polish",
-    factoryId: "factory:delivery-foundation",
-    factoryLabel: "Delivery Lab",
-    workflowPath,
-    workflowName,
-    continuationStatus: "awaiting_approval",
-    artifactIds: [artifact.id],
-    lastGate: {
-      family: "approval",
-      outcome: "awaiting_human",
-      summaryText: "Approval pending. Review block before verification continues.",
-      reasonText: "Waiting for an approval decision before the flow can continue.",
-      stepLabel: "Verify the Change",
-      happenedAt: updatedAtMs,
+    "checkout-polish-blocked",
+    {
+      caseId,
+      projectPath,
+      workLabel: "Checkout polish",
+      caseLabel: "Checkout polish",
+      factoryId: "factory:delivery-foundation",
+      factoryLabel: "Delivery Lab",
+      workflowPath,
+      workflowName,
+      continuationStatus: "awaiting_approval",
+      artifactIds: [artifact.id],
+      lastGate: {
+        family: "approval",
+        outcome: "awaiting_human",
+        summaryText:
+          "Approval pending. Review block before verification continues.",
+        reasonText:
+          "Waiting for an approval decision before the flow can continue.",
+        stepLabel: "Verify the Change",
+        happenedAt: updatedAtMs,
+      },
+      createdAt: updatedAtMs - 2_000,
+      updatedAt: updatedAtMs,
     },
-    createdAt: updatedAtMs - 2_000,
-    updatedAt: updatedAtMs,
-  }, updatedAtMs)
+    updatedAtMs,
+  )
 
   await writeApprovalTaskFixture({
     workspace,
@@ -554,7 +632,8 @@ async function seedBlockedRelaunchProject(projectPath, updatedAtMs) {
     nodeId: "approval",
     title: "Review block",
     summary: "Confirm whether the checkout polish is ready for verification.",
-    instructions: "Approve the verification report before this flow can continue.",
+    instructions:
+      "Approve the verification report before this flow can continue.",
     allowEdit: false,
     updatedAtMs: updatedAtMs + 250,
   })
@@ -580,7 +659,8 @@ async function seedBlockedDecisionProject(projectPath, updatedAtMs) {
     workflow,
     input: {
       type: "text",
-      value: "Verification Report\n\nConfirm whether the checkout polish is ready for verification.",
+      value:
+        "Verification Report\n\nConfirm whether the checkout polish is ready for verification.",
     },
     projectPath,
     workflowPath,
@@ -588,7 +668,9 @@ async function seedBlockedDecisionProject(projectPath, updatedAtMs) {
   })
   const firstRun = await collectRun(firstHandle)
   if (firstRun.summary.status !== "paused") {
-    throw new Error(`Expected suspended approval smoke fixture to pause, received ${firstRun.summary.status}`)
+    throw new Error(
+      `Expected suspended approval smoke fixture to pause, received ${firstRun.summary.status}`,
+    )
   }
 
   const caseId = "case:delivery-foundation:checkout-polish"
@@ -609,35 +691,47 @@ async function seedBlockedDecisionProject(projectPath, updatedAtMs) {
     factoryId: "factory:delivery-foundation",
     factoryLabel: "Delivery Lab",
     updatedAtMs,
-    content: "# Verification Report\n\nCheckout polish is ready for approval.\n",
+    content:
+      "# Verification Report\n\nCheckout polish is ready for approval.\n",
   })
 
-  await writeCaseStateFixture(projectPath, "checkout-polish-blocked", {
-    caseId,
+  await writeCaseStateFixture(
     projectPath,
-    workLabel: "Checkout polish",
-    caseLabel: "Checkout polish",
-    factoryId: "factory:delivery-foundation",
-    factoryLabel: "Delivery Lab",
-    workflowPath,
-    workflowName,
-    continuationStatus: "awaiting_approval",
-    artifactIds: [artifact.id],
-    lastGate: {
-      family: "approval",
-      outcome: "awaiting_human",
-      summaryText: "Approval pending. Review block before verification continues.",
-      reasonText: "Waiting for an approval decision before the flow can continue.",
-      stepLabel: "Verify the Change",
-      happenedAt: updatedAtMs,
+    "checkout-polish-blocked",
+    {
+      caseId,
+      projectPath,
+      workLabel: "Checkout polish",
+      caseLabel: "Checkout polish",
+      factoryId: "factory:delivery-foundation",
+      factoryLabel: "Delivery Lab",
+      workflowPath,
+      workflowName,
+      continuationStatus: "awaiting_approval",
+      artifactIds: [artifact.id],
+      lastGate: {
+        family: "approval",
+        outcome: "awaiting_human",
+        summaryText:
+          "Approval pending. Review block before verification continues.",
+        reasonText:
+          "Waiting for an approval decision before the flow can continue.",
+        stepLabel: "Verify the Change",
+        happenedAt: updatedAtMs,
+      },
+      createdAt: updatedAtMs - 2_000,
+      updatedAt: updatedAtMs,
     },
-    createdAt: updatedAtMs - 2_000,
-    updatedAt: updatedAtMs,
-  }, updatedAtMs)
+    updatedAtMs,
+  )
 }
 
 async function seedScenarioProjects(workspaceDir, scenario) {
-  if (scenario === "launch-empty" || scenario === "command-palette-toggle" || scenario === "settings-navigation") {
+  if (
+    scenario === "launch-empty" ||
+    scenario === "command-palette-toggle" ||
+    scenario === "settings-navigation"
+  ) {
     return []
   }
 
@@ -650,8 +744,18 @@ async function seedScenarioProjects(workspaceDir, scenario) {
 
   const baseTime = Date.now() - 60_000
   if (scenario === "quick-switch-shortcuts") {
-    await writeWorkflowFixture(projectAlpha, "beta-flow", buildLinearWorkflow("Beta flow", "research/beta"), baseTime + 1_000)
-    await writeWorkflowFixture(projectAlpha, "alpha-flow", buildLinearWorkflow("Alpha flow", "research/alpha"), baseTime + 2_000)
+    await writeWorkflowFixture(
+      projectAlpha,
+      "beta-flow",
+      buildLinearWorkflow("Beta flow", "research/beta"),
+      baseTime + 1_000,
+    )
+    await writeWorkflowFixture(
+      projectAlpha,
+      "alpha-flow",
+      buildLinearWorkflow("Alpha flow", "research/alpha"),
+      baseTime + 2_000,
+    )
     return [projectAlpha]
   }
 
@@ -670,12 +774,20 @@ async function seedScenarioProjects(workspaceDir, scenario) {
     return [projectAlpha]
   }
 
-  if (scenario === "blocked-approve-resolution" || scenario === "blocked-reject-resolution") {
+  if (
+    scenario === "blocked-approve-resolution" ||
+    scenario === "blocked-reject-resolution"
+  ) {
     await seedBlockedDecisionProject(projectAlpha, baseTime + 4_500)
     return [projectAlpha]
   }
 
-  await writeWorkflowFixture(projectAlpha, "approval-flow", buildApprovalWorkflow("Approval flow"), baseTime + 1_000)
+  await writeWorkflowFixture(
+    projectAlpha,
+    "approval-flow",
+    buildApprovalWorkflow("Approval flow"),
+    baseTime + 1_000,
+  )
   return [projectAlpha]
 }
 
@@ -765,7 +877,11 @@ function runCommand(command, args, env) {
         resolvePromise()
         return
       }
-      rejectPromise(new Error(`${command} ${args.join(" ")} exited with code ${code}\n${combinedOutput}`))
+      rejectPromise(
+        new Error(
+          `${command} ${args.join(" ")} exited with code ${code}\n${combinedOutput}`,
+        ),
+      )
     })
   })
 }
@@ -850,7 +966,8 @@ async function main() {
         artifactsRetained: true,
         assertionsCount: report?.assertions?.length ?? 0,
         unexpectedRendererConsoleCount: report?.rendererConsole?.length ?? 0,
-        ignoredRendererConsoleCount: report?.ignoredRendererConsole?.length ?? 0,
+        ignoredRendererConsoleCount:
+          report?.ignoredRendererConsole?.length ?? 0,
         error: report?.error ?? null,
       })
       logLine(`  failed -> ${outputDir}`)
@@ -872,7 +989,8 @@ async function main() {
         artifactsRetained: true,
         assertionsCount,
         unexpectedRendererConsoleCount: report?.rendererConsole?.length ?? 0,
-        ignoredRendererConsoleCount: report?.ignoredRendererConsole?.length ?? 0,
+        ignoredRendererConsoleCount:
+          report?.ignoredRendererConsole?.length ?? 0,
         error: report?.error ?? "Smoke scenario produced zero assertions",
       })
       logLine(`  failed -> ${outputDir} (zero assertions)`)
@@ -892,7 +1010,9 @@ async function main() {
     if (!options.keepArtifactsOnSuccess) {
       await rm(outputDir, { recursive: true, force: true })
     }
-    logLine(`  passed -> ${options.keepArtifactsOnSuccess ? outputDir : "(artifacts cleaned)"}`)
+    logLine(
+      `  passed -> ${options.keepArtifactsOnSuccess ? outputDir : "(artifacts cleaned)"}`,
+    )
   }
 
   if (failures.length > 0) {
@@ -904,12 +1024,18 @@ async function main() {
   }
 
   if (options.json) {
-    process.stdout.write(`${JSON.stringify({
-      ok: failures.length === 0,
-      artifactRoot,
-      keepArtifactsOnSuccess: options.keepArtifactsOnSuccess,
-      scenarios: scenarioSummaries,
-    }, null, 2)}\n`)
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          ok: failures.length === 0,
+          artifactRoot,
+          keepArtifactsOnSuccess: options.keepArtifactsOnSuccess,
+          scenarios: scenarioSummaries,
+        },
+        null,
+        2,
+      )}\n`,
+    )
   }
 
   if (failures.length > 0) {
@@ -918,6 +1044,8 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack || error.message : String(error)}\n`)
+  process.stderr.write(
+    `${error instanceof Error ? error.stack || error.message : String(error)}\n`,
+  )
   process.exitCode = 1
 })

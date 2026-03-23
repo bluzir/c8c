@@ -24,6 +24,10 @@
       "@c8c-ai/cli/*": ["./packages/workflow-cli/src/*"]
     }
   },
-  "include": ["src/**/*", "packages/workflow-runner/src/**/*", "packages/workflow-cli/src/**/*"],
+  "include": [
+    "src/**/*",
+    "packages/workflow-runner/src/**/*",
+    "packages/workflow-cli/src/**/*"
+  ],
   "exclude": ["node_modules", "dist", "release", "out"]
 }

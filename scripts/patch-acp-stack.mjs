@@ -21,7 +21,12 @@ function patchFile(relativePath, patchers) {
   let changed = false
 
   for (const patcher of patchers) {
-    const next = replaceOrThrow(source, patcher.pattern, patcher.replacement, `${relativePath} (${patcher.description})`)
+    const next = replaceOrThrow(
+      source,
+      patcher.pattern,
+      patcher.replacement,
+      `${relativePath} (${patcher.description})`,
+    )
     if (next !== source) {
       changed = true
       source = next
@@ -89,12 +94,14 @@ const tolerantSessionUpdateHandler = String.raw`case schema.CLIENT_METHODS.sessi
 patchFile("node_modules/@mcpc-tech/acp-ai-provider/index.mjs", [
   {
     description: "tolerant formatToolError",
-    pattern: /function formatToolError\(toolResult\) \{[\s\S]*?return parts\.join\("\\n"\);\n\}/,
+    pattern:
+      /function formatToolError\(toolResult\) \{[\s\S]*?return parts\.join\("\\n"\);\n\}/,
     replacement: tolerantFormatToolError,
   },
   {
     description: "suppressible missing auth warning",
-    pattern: /      if \(!this\.config\.authMethodId \|\| !validAuthMethods\) \{\n        console\.log\("\[acp-ai-provider\] Warning: No authMethodId specified in config, skipping authentication step\. If this is not desired, please set one of the authMethodId in the ACPProviderSettings\.", JSON\.stringify\(initResult\.authMethods, null, 2\)\);\n      \}/,
+    pattern:
+      /      if \(!this\.config\.authMethodId \|\| !validAuthMethods\) \{\n        console\.log\("\[acp-ai-provider\] Warning: No authMethodId specified in config, skipping authentication step\. If this is not desired, please set one of the authMethodId in the ACPProviderSettings\.", JSON\.stringify\(initResult\.authMethods, null, 2\)\);\n      \}/,
     replacement: gatedMissingAuthWarning,
   },
 ])
@@ -102,12 +109,14 @@ patchFile("node_modules/@mcpc-tech/acp-ai-provider/index.mjs", [
 patchFile("node_modules/@mcpc-tech/acp-ai-provider/index.cjs", [
   {
     description: "tolerant formatToolError",
-    pattern: /function formatToolError\(toolResult\) \{[\s\S]*?return parts\.join\("\\n"\);\n\}/,
+    pattern:
+      /function formatToolError\(toolResult\) \{[\s\S]*?return parts\.join\("\\n"\);\n\}/,
     replacement: tolerantFormatToolError,
   },
   {
     description: "suppressible missing auth warning",
-    pattern: /      if \(!this\.config\.authMethodId \|\| !validAuthMethods\) \{\n        console\.log\("\[acp-ai-provider\] Warning: No authMethodId specified in config, skipping authentication step\. If this is not desired, please set one of the authMethodId in the ACPProviderSettings\.", JSON\.stringify\(initResult\.authMethods, null, 2\)\);\n      \}/,
+    pattern:
+      /      if \(!this\.config\.authMethodId \|\| !validAuthMethods\) \{\n        console\.log\("\[acp-ai-provider\] Warning: No authMethodId specified in config, skipping authentication step\. If this is not desired, please set one of the authMethodId in the ACPProviderSettings\.", JSON\.stringify\(initResult\.authMethods, null, 2\)\);\n      \}/,
     replacement: gatedMissingAuthWarning,
   },
 ])
@@ -115,7 +124,8 @@ patchFile("node_modules/@mcpc-tech/acp-ai-provider/index.cjs", [
 patchFile("node_modules/@agentclientprotocol/sdk/dist/acp.js", [
   {
     description: "tolerant session_update notification handler",
-    pattern: /case schema\.CLIENT_METHODS\.session_update: \{\n\s+const validatedParams = validate\.zSessionNotification\.parse\(params\);\n\s+return client\.sessionUpdate\(validatedParams\);\n\s+\}/,
+    pattern:
+      /case schema\.CLIENT_METHODS\.session_update: \{\n\s+const validatedParams = validate\.zSessionNotification\.parse\(params\);\n\s+return client\.sessionUpdate\(validatedParams\);\n\s+\}/,
     replacement: tolerantSessionUpdateHandler,
   },
 ])

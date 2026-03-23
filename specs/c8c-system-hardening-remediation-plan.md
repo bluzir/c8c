@@ -3,6 +3,7 @@
 Status: Active v2.0 — core remediation implemented, medium backlog integrated
 Updated: 2026-03-22
 Source inputs:
+
 - `.c8c/runs/run-1-1774146922471-OGVEIF/outputs/mapper-1.md`
 - `.c8c/runs/run-1-1774146922471-OGVEIF/outputs/auditor-1__graph-engine.md`
 - `.c8c/runs/run-1-1774146922471-OGVEIF/outputs/auditor-1__workflow-runner.md`
@@ -124,6 +125,7 @@ The repo has standards, but the enforcement layer is not yet trustworthy enough 
 This plan does not attempt to solve everything surfaced by the audit.
 
 Out of scope for this wave:
+
 - broad UX redesigns outside hardening needs
 - full design-system modernization or Storybook rollout
 - large content/template catalog work
@@ -147,6 +149,7 @@ Out of scope for this wave:
 Priority: P0
 
 Key outcomes:
+
 - one canonical DAG execution path for new runs
 - no pool slot can hang forever without timeout or reject handling
 - preflight validation and runtime scheduling share the same readiness rules
@@ -154,6 +157,7 @@ Key outcomes:
 - run-state and event-log persistence are serialized where parallel branches can otherwise clobber each other
 
 Audit inputs:
+
 - `graph-engine`
 - `workflow-runner`
 - `workflow-orchestration`
@@ -166,6 +170,7 @@ Audit inputs:
 Priority: P0
 
 Key outcomes:
+
 - Electron renderer security posture is explicit (`sandbox`, sender-frame guard, production CSP, release test-harness guard)
 - one shared project-path assertion entry point
 - one canonical symlink-safe root-containment utility is used wherever privileged paths are checked
@@ -174,6 +179,7 @@ Key outcomes:
 - workflow, chat, project, and system mutation payloads validated before execution
 
 Audit inputs:
+
 - `c8c-api-ts`
 - `executor-ts`
 - `chat`
@@ -188,6 +194,7 @@ Audit inputs:
 Priority: P0
 
 Key outcomes:
+
 - bounded retention for run workspaces and case state
 - artifact and case readers enforce the same schema/version guarantees
 - cross-store writes become explicit at the orchestration layer
@@ -197,6 +204,7 @@ Key outcomes:
 - event logs are capped and recovery/snapshot hydration stays correct under long-running or parallel runs
 
 Audit inputs:
+
 - `run-artifacts`
 - `cases`
 - `executor-ts`
@@ -212,6 +220,7 @@ Audit inputs:
 Priority: P1
 
 Key outcomes:
+
 - chat turns stop repeating skill scans and MCP setup unnecessarily
 - session lifecycle has one owner
 - chat surfaces sanitized structured failures instead of raw errors
@@ -223,6 +232,7 @@ Key outcomes:
 - renderer execution-state and preflight-warning surfaces are bounded, provider-aware, and do not bypass their own source of truth
 
 Audit inputs:
+
 - `chat`
 - `chat-ts`
 - `mcp-ts`
@@ -237,6 +247,7 @@ Audit inputs:
 Priority: P1
 
 Key outcomes:
+
 - release builds cannot ship without passing tests
 - packaging and updater behavior match the expected trust model
 - canon checking catches known violations without obvious false positives
@@ -246,6 +257,7 @@ Key outcomes:
 - smoke verification cannot pass with zero assertions or duplicate build ambiguity
 
 Audit inputs:
+
 - `check-canon-vocabulary-mjs`
 - `electron-builder`
 - `claude-runner`
@@ -259,6 +271,7 @@ Audit inputs:
 As of 2026-03-22, the stop-the-line hardening wave from this plan is implemented in code and verified with targeted tests plus a full production build.
 
 Implemented now:
+
 - WS-01: canonical execution-pool timeout/reject handling, serialized run-state/manifest/result/event-log persistence, bounded run workspace retention, bounded event-log writes, and runtime validation for evaluator `retryFrom`.
 - WS-02: explicit Electron `sandbox`, sender-frame IPC guard, production CSP for packaged `file://` renderer, release test-harness build guard, fail-fast IPC registration, canonical registered-project assertions, executor/chat workflow payload parsing, canonical `system:get-project-status` root checks, stricter provider-settings / API-key validation, full generic typed invoke coverage across the preload bridge, and removal of the legacy step-based chain compatibility path from desktop workflow loading/saving.
 - WS-03: run workspace retention sweep, event-log tail capping, ENOENT-safe persisted event reads, UTF-8-safe tail truncation, and continued recovery compatibility across persisted snapshots.
@@ -266,6 +279,7 @@ Implemented now:
 - WS-05: release packaging now requires canon + tests + build, smoke no longer passes with zero assertions, and key hardening modules now have regression coverage (`workflows`, `system`, `mcp`, `executor`, `security-paths`, `run-snapshot`, `useCostWarning`, `mcp-config`, `mcp-manager`).
 
 Residual follow-up that remains intentionally outside this implementation wave:
+
 - full convergence of duplicated runtime/graph modules into a single shared package
 - shared fs / MCP normalization utility extraction across all remaining duplicate copies
 - signing/notarization/x64 distribution posture and related CI release decisions
@@ -274,6 +288,7 @@ Residual follow-up that remains intentionally outside this implementation wave:
 ## Medium Addendum From `run-1-1774146922471-OGVEIF`
 
 Medium findings now implemented from the audit corpus:
+
 - `content-auditor-1__process-model.md`: production CSP for packaged `file://` renderer, non-silent handler registration, executor workflow payload validation, chat workflow payload validation, and `MAX_CONCURRENT_EXECUTIONS_PER_WINDOW`.
 - `auditor-1__mcp-ts.md` and `auditor-1__mcp-config.md`: production wiring for MCP tool cache, project-aware cache keys, mutation-driven cache invalidation, `mcp:list-all-servers` fail-closed behavior, removal of the redundant pre-serial toggle read, and Codex stdio command validation.
 - `auditor-1__run-snapshot-ts.md` and `auditor-1__run-artifacts.md`: ENOENT-safe persisted event-tail reads, UTF-8-safe tail truncation, bounded event-log retention, and serialized snapshot/event-log writes.
@@ -283,6 +298,7 @@ Medium findings now implemented from the audit corpus:
 - legacy chain/runtime follow-up: `ChainDefinition`, `yamlToChain`, and `legacy-chain-runner` are removed from the desktop app path; YAML remains supported only as a graph-workflow format, not as the old `steps[]` chain format.
 
 Medium findings intentionally left as follow-up backlog after this wave:
+
 - replace `claude mcp get` stdout scraping with structured JSON output if the CLI supports it
 - extract duplicated `exists` / `errorCode` / MCP normalization helpers that still remain outside the hardened hot paths
 - converge duplicated workflow/runtime support modules into a shared package boundary rather than keeping synchronized copies
@@ -295,6 +311,7 @@ Medium findings intentionally left as follow-up backlog after this wave:
 Target length: 3-4 days
 
 Scope:
+
 - add timeout or reject-path guarantees to the canonical execution pool
 - align runtime readiness with validation rules used before execution
 - fix high-risk resume/log/approval persistence bugs in the canonical runner
@@ -304,6 +321,7 @@ Scope:
 - add first critical-path tests for runner execution and chat-agent orchestration
 
 Ship gate:
+
 - no workflow run can occupy an execution slot indefinitely
 - a workflow that passes preflight does not fail immediately because runtime rules disagree
 - malformed workflow or chat payloads are rejected structurally before side effects
@@ -316,6 +334,7 @@ Ship gate:
 Target length: 4-5 days
 
 Scope:
+
 - define the canonical run path and deprecate or wrap `chain-runner.ts`
 - remove duplicated readiness/parsing/store helper logic on the main path
 - move hidden cross-store side effects out of store modules and into orchestration
@@ -325,6 +344,7 @@ Scope:
 - cap run workspace and event-log growth with an explicit retention/write policy
 
 Ship gate:
+
 - all new workflow runs enter through one canonical orchestration path
 - recovery sees the same run model the executor writes
 - store reads use one validation contract per record type
@@ -337,6 +357,7 @@ Ship gate:
 Target length: 3-4 days
 
 Scope:
+
 - cache skill scans per project with explicit invalidation rules
 - prepare MCP config once per turn, not per tool-call iteration
 - consolidate chat session ownership into one module
@@ -349,6 +370,7 @@ Scope:
 - make cost/preflight warning logic share one pricing source and respect provider differences
 
 Ship gate:
+
 - repeated turns in the same project do not re-scan the same skill tree unnecessarily
 - MCP server mutations are reflected in the next discovery call
 - chat cancellation does not leave stale active-session bookkeeping behind
@@ -361,6 +383,7 @@ Ship gate:
 Target length: 3-4 days
 
 Scope:
+
 - require passing test gates before release packaging
 - harden packaging flow around signing, notarization, or explicit documented release posture
 - fix canon checker path coverage, banned-term coverage, false-positive hotspots, and test coverage
@@ -370,6 +393,7 @@ Scope:
 - make smoke verification assertive enough that a green run implies at least one real assertion per scenario
 
 Ship gate:
+
 - release job cannot package an untested commit
 - copy governance checks catch the known live violations from the audit
 - core subprocess safety behavior is documented and covered by tests

@@ -109,9 +109,11 @@ npm run dev
 **Requirements:** Node.js 20+, and at least one of: Claude Code CLI, Codex CLI, or OpenClaw.
 
 > **macOS note:** The app is not code-signed yet. On first launch:
+>
 > ```bash
 > xattr -cr /Applications/c8c.app
 > ```
+>
 > Or right-click → Open → Open.
 
 No custom skills needed to start. Built-in library flows work out of the box. Bring your own skills later.
@@ -128,22 +130,22 @@ Input → [Skill] → [Skill] → [Evaluator] →  pass → [Approval] → [Outp
 
 8 node types cover every pattern:
 
-| Node | What it does |
-|------|-------------|
-| **Input** | Entry point — text, URL, directory, or batch data |
-| **Skill** | Runs a provider-backed skill with a specific model and prompt |
-| **Evaluator** | Scores output against criteria, auto-retries from any upstream step on failure |
-| **Splitter** | Fans out into parallel branches |
-| **Merger** | Combines parallel results back into one |
-| **Approval** | Human approval — review, edit, approve or return before continuing |
-| **Human** | General human-task form — collect input, decisions, or structured data mid-flow |
-| **Output** | Final result with named results |
+| Node          | What it does                                                                    |
+| ------------- | ------------------------------------------------------------------------------- |
+| **Input**     | Entry point — text, URL, directory, or batch data                               |
+| **Skill**     | Runs a provider-backed skill with a specific model and prompt                   |
+| **Evaluator** | Scores output against criteria, auto-retries from any upstream step on failure  |
+| **Splitter**  | Fans out into parallel branches                                                 |
+| **Merger**    | Combines parallel results back into one                                         |
+| **Approval**  | Human approval — review, edit, approve or return before continuing              |
+| **Human**     | General human-task form — collect input, decisions, or structured data mid-flow |
+| **Output**    | Final result with named results                                                 |
 
 ## FAQ
 
 **How is c8c different from Claude Code or Codex?**
 
-c8c *uses* those tools. It chains their skills into flows with quality checks, approvals, and per-step observability. Claude Code does the work; c8c runs the flow.
+c8c _uses_ those tools. It chains their skills into flows with quality checks, approvals, and per-step observability. Claude Code does the work; c8c runs the flow.
 
 **How is c8c different from n8n?**
 
