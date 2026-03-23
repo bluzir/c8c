@@ -114,12 +114,7 @@ export function ProjectSidebarChrome({
           active={mainView === "skills"}
           onClick={onOpenSkills}
         />
-        <SidebarNavItem
-          icon={FileStack}
-          label="Results"
-          active={mainView === "artifacts"}
-          onClick={onOpenArtifacts}
-        />
+        {/* Results page hidden — premature without recurring execution (R4). Behind factory beta flag. */}
       </div>
 
       <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">

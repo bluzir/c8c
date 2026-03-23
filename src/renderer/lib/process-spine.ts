@@ -57,6 +57,7 @@ const STAGE_RANK: Record<ProcessSpineStageId, number> = {
 }
 
 const TEMPLATE_STAGE_OVERRIDES: Record<string, ProcessSpineStageId> = {
+  // Development
   "delivery-map-codebase": "shape_map",
   "delivery-shape-project": "shape_map",
   "delivery-plan-phase": "plan",
@@ -72,9 +73,27 @@ const TEMPLATE_STAGE_OVERRIDES: Record<string, ProcessSpineStageId> = {
   "gstack-web-quality-board": "review",
   "gstack-preflight-gate": "verify",
   "gstack-release-room": "ship",
+  // Content Lab
+  "content-trend-watch": "shape_map",
+  "content-post-calendar": "plan",
+  "content-draft-post": "implement",
+  "content-qa-review": "verify",
+  "content-ready-posts": "ship",
+  "content-repurposing-factory": "implement",
+  "content-pipeline": "ship",
+  "content-editorial-calendar": "plan",
+  "content-idea-backlog": "shape_map",
+  "content-distribution-bundle": "ship",
+  "predictable-text-factory": "implement",
+  "copy-quality-pipeline": "verify",
 }
 
 const DEV_PROCESS_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
+const CONTENT_PROCESS_PACK_IDS = new Set(["content-factory-alpha"])
+const PROCESS_PACK_IDS = new Set([
+  ...DEV_PROCESS_PACK_IDS,
+  ...CONTENT_PROCESS_PACK_IDS,
+])
 const DEV_PROCESS_TEMPLATE_IDS = new Set(Object.keys(TEMPLATE_STAGE_OVERRIDES))
 
 const JOURNEY_STAGE_TO_PROCESS_STAGE: Record<string, ProcessSpineStageId> = {
@@ -82,11 +101,15 @@ const JOURNEY_STAGE_TO_PROCESS_STAGE: Record<string, ProcessSpineStageId> = {
   intake: "shape_map",
   shape: "shape_map",
   research: "shape_map",
+  understand: "shape_map",
   plan: "plan",
+  design: "plan",
   execute: "implement",
   review: "review",
+  evaluate: "verify",
   verify: "verify",
   operate: "ship",
+  deliver: "ship",
 }
 
 function normalizeToken(value: string) {
@@ -224,7 +247,7 @@ function isDevProcessContext(
       : templateOrContext.id
   if (DEV_PROCESS_TEMPLATE_IDS.has(templateId)) return true
   const packId = templateOrContext.pack?.id
-  return Boolean(packId && DEV_PROCESS_PACK_IDS.has(packId))
+  return Boolean(packId && PROCESS_PACK_IDS.has(packId))
 }
 
 function buildDefaultOrder(

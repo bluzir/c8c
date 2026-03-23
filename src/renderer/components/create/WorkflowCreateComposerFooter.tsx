@@ -95,7 +95,8 @@ export function WorkflowCreateComposerFooter({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            {selectedResultMode.id === "development" ? (
+            {selectedResultMode.id === "development" ||
+            selectedResultMode.id === "content" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

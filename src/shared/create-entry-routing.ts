@@ -11,12 +11,22 @@ export const DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS = new Set([
   "gstack-preflight-gate",
 ])
 
+export const CONTENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS = new Set([
+  "content-ready-posts",
+  "content-distribution-bundle",
+  "content-editorial-calendar",
+  "content-idea-backlog",
+])
+
 export function isBannedDirectCreateEntryTemplateId(
   modeId: ResultModeId,
   templateId: string,
 ): boolean {
-  if (modeId !== "development") return false
-  return DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS.has(templateId)
+  if (modeId === "development")
+    return DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS.has(templateId)
+  if (modeId === "content")
+    return CONTENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS.has(templateId)
+  return false
 }
 
 export function filterDirectCreateEntryOptions<

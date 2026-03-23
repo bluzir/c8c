@@ -1,5 +1,6 @@
 import { getDefaultModelForProvider } from "@shared/provider-metadata"
 import type {
+  ContentDomainContext,
   CreateEntryHelpModeHint,
   CreateEntryRouteClarification,
   CreateEntryRouteInput,
@@ -22,6 +23,8 @@ import {
   applyProviderFeatureFlags,
   startProviderTask,
 } from "./provider-runtime"
+import { listProjectArtifacts } from "./artifact-store"
+import { buildContentDomainContext } from "./create-entry-content-context"
 import { logWarn } from "./structured-log"
 
 interface CreateEntryRouteDecision {
@@ -49,7 +52,12 @@ type CreateEntryAgentDecision =
 
 const ROUTER_FAILURE_MESSAGE =
   "The AI router couldn't choose a starting point right now. Try again."
-const KNOWN_ROUTE_DOMAIN_MODES = new Set(["development", "content", "courses"])
+const KNOWN_ROUTE_DOMAIN_MODES = new Set([
+  "development",
+  "content",
+  "marketing",
+  "courses",
+])
 
 function deriveIntentValue(
   option: CreateEntryRouteOption,
@@ -297,6 +305,62 @@ function buildRouterPrompt(
   ].join("\n")
 }
 
+function buildContentRouterPrompt(
+  input: CreateEntryRouteInput,
+  contentContext: ContentDomainContext,
+  allowedOptions: CreateEntryRouteOption[],
+): string {
+  const requestSections = {
+    draftPrompt: normalize(input.draftPrompt),
+    requestedResult: normalize(input.requestedResult),
+    helpModeHint: input.helpModeHint || null,
+  }
+
+  const allowedOptionSummary = allowedOptions
+    .map(
+      (option) =>
+        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+    )
+    .join("\n")
+
+  return [
+    "You are c8c's bounded entry router for the Content domain.",
+    "Choose the best FIRST starting point for the user's content request. Return JSON only.",
+    "",
+    "Content domain contract:",
+    "- The user wants to create, plan, or review content — posts, calendars, strategies, quality checks.",
+    "- Trend research is the right first step when the user needs an evidence base before planning.",
+    "- Calendar planning is right when the user has context and needs to decide what to publish.",
+    "- Drafting is right when the user has a specific topic or slot and wants a post written.",
+    "- Quality review is right when the user has a draft and needs slop/tone/quality check.",
+    "- Strategy is right when the user needs a full content strategy from a product brief.",
+    "- Repurposing is right when the user has existing material and wants it in different formats.",
+    "- Recurring/cadence requests should route to calendar planning (full recurring execution is not yet available).",
+    "- Help mode is a hard constraint when present.",
+    "- Handle English, Russian, and mixed-language requests.",
+    "",
+    "Allowed starting points:",
+    allowedOptionSummary,
+    "",
+    "Content context:",
+    JSON.stringify(contentContext, null, 2),
+    "",
+    "User request:",
+    JSON.stringify(requestSections, null, 2),
+    "",
+    "Clarification policy:",
+    "- Use `help_mode` clarification when the ambiguity is mainly about kind of help: Do it vs Plan it vs Review it.",
+    "- Use `job_route` clarification when the ambiguity is between different content jobs (e.g., draft vs strategy vs quality check).",
+    "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous.",
+    "",
+    "Route output schema:",
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"content","reason":"one sentence","confidence":0.0}',
+    "",
+    "Clarification output schema:",
+    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"content","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
+  ].join("\n")
+}
+
 function extractRouterJsonCandidate(rawText: string) {
   const trimmed = rawText.trim()
   if (!trimmed) return ""
@@ -335,12 +399,23 @@ async function runAgentRouteDecision(
   projectInspection: ProjectInspectionSummary,
   allowedOptions: CreateEntryRouteOption[],
 ): Promise<CreateEntryAgentDecision | null> {
-  if (input.modeId !== "development" || allowedOptions.length === 0) return null
+  const isRoutableMode =
+    input.modeId === "development" || input.modeId === "content"
+  if (!isRoutableMode || allowedOptions.length === 0) return null
 
   const allowedTemplateIds = new Set(
     allowedOptions.map((option) => option.templateId),
   )
-  const prompt = buildRouterPrompt(input, projectInspection, allowedOptions)
+  let prompt: string
+  if (input.modeId === "content") {
+    const artifacts = await listProjectArtifacts(
+      projectInspection.projectPath,
+    ).catch(() => [])
+    const contentContext = buildContentDomainContext(artifacts)
+    prompt = buildContentRouterPrompt(input, contentContext, allowedOptions)
+  } else {
+    prompt = buildRouterPrompt(input, projectInspection, allowedOptions)
+  }
   const settings = await getProviderSettings()
   const providerId = applyProviderFeatureFlags(
     settings.defaultProvider,
@@ -398,9 +473,9 @@ export async function routeCreateEntry(
   projectInspection: ProjectInspectionSummary,
   templates: WorkflowTemplate[],
 ): Promise<CreateEntryRouteResult> {
-  if (input.modeId !== "development") {
+  if (input.modeId !== "development" && input.modeId !== "content") {
     throw new Error(
-      "Agent routing is currently available only for development mode.",
+      "Agent routing is currently available only for development and content modes.",
     )
   }
 

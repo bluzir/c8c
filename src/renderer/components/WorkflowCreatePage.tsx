@@ -424,7 +424,9 @@ export function WorkflowCreatePage() {
     hasWorkflowCreatePromptContent(draftPrompt, promptScaffold) ||
     preSelectedModeConfigFieldCount > 0
   const preRoutingActive =
-    submitting && preSelectedResultMode.id === "development"
+    submitting &&
+    (preSelectedResultMode.id === "development" ||
+      preSelectedResultMode.id === "content")
   const {
     loading: continuationLoading,
     primaryContinuation,
@@ -918,14 +920,16 @@ export function WorkflowCreatePage() {
     setRouteClarification(null)
     setRoutingPreview(null)
     void window.api.trackUiEvent("point_b_entered").catch(() => undefined)
-    const isDevelopmentRouting = selectedResultMode.id === "development"
-    if (isDevelopmentRouting) {
+    const isGuidedRouting =
+      selectedResultMode.id === "development" ||
+      selectedResultMode.id === "content"
+    if (isGuidedRouting) {
       setRoutingPhase("inspecting")
     }
     const submitStartedAt = Date.now()
     let minimumRoutingVisibilityPromise: Promise<void> | null = null
     const ensureMinimumRoutingVisibility = () => {
-      if (!isDevelopmentRouting) return Promise.resolve()
+      if (!isGuidedRouting) return Promise.resolve()
       if (!minimumRoutingVisibilityPromise) {
         const elapsed = Date.now() - submitStartedAt
         minimumRoutingVisibilityPromise =
@@ -937,20 +941,19 @@ export function WorkflowCreatePage() {
     }
 
     try {
-      const effectiveHelpModeHint =
-        selectedResultMode.id === "development"
-          ? (helpModeOverride ??
-            (useCurrentHelpMode ? developmentHelpModeHint : null) ??
-            undefined)
-          : undefined
-      const routeCreateEntry = isDevelopmentRouting
+      const effectiveHelpModeHint = isGuidedRouting
+        ? (helpModeOverride ??
+          (useCurrentHelpMode ? developmentHelpModeHint : null) ??
+          undefined)
+        : undefined
+      const routeCreateEntry = isGuidedRouting
         ? (
             window.api as typeof window.api & {
               routeCreateEntry?: typeof window.api.routeCreateEntry
             }
           ).routeCreateEntry
         : null
-      if (isDevelopmentRouting && !routeCreateEntry) {
+      if (isGuidedRouting && !routeCreateEntry) {
         throw new Error("The AI router is not available in this build.")
       }
       const routeResult = routeCreateEntry
@@ -981,7 +984,7 @@ export function WorkflowCreatePage() {
       ) {
         setSelectedResultModeId(routeResult.domainMode)
       }
-      if (isDevelopmentRouting) {
+      if (isGuidedRouting) {
         setRoutingPhase("opening")
       }
       const catalog =
@@ -1089,7 +1092,7 @@ export function WorkflowCreatePage() {
         createEmptyWorkflow(),
         detailBudget,
       )
-      if (isDevelopmentRouting) {
+      if (isGuidedRouting) {
         setRoutingPhase("opening")
       }
       const filePath = await window.api.createWorkflow(

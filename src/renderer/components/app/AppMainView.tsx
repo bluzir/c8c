@@ -57,7 +57,7 @@ export const AppMainView = memo(function AppMainView() {
       view = <WorkflowsTemplatesPage />
       break
     case "artifacts":
-      view = <ArtifactsPage />
+      view = factoryBetaEnabled ? <ArtifactsPage /> : <WorkflowPanel />
       break
     case "settings":
       view = <SettingsPage />
