@@ -1,5 +1,6 @@
 id: content-qa-review
 stage: content
+stage_family: evaluate
 emoji: "\U0001F50D"
 headline: Review a draft before it goes live
 how: Critique the draft, then require explicit human approval before the item is considered ready to publish or bundle.

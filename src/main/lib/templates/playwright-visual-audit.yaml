@@ -1,5 +1,6 @@
 id: playwright-visual-audit
 stage: code
+stage_family: validate
 emoji: "\U0001F3AD"
 headline: Audit app flows for visual regressions
 how: Maps the product surface, turns it into Playwright-ready scenarios, runs each flow end-to-end, and merges findings into one evidence-backed audit

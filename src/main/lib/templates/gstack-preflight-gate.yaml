@@ -1,5 +1,6 @@
 id: gstack-preflight-gate
 stage: code
+stage_family: validate
 emoji: "\U0001F6A7"
 headline: Review a branch, QA it, and hold a release approval
 how: Runs gstack review on the current branch, verifies the resulting branch with report-only QA, merges both signals, and pauses for explicit approval

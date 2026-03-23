@@ -1,5 +1,6 @@
 id: ai-cmo-hacker-news-engine
 stage: outreach
+stage_family: execute
 emoji: "\U0001F4E3"
 headline: Pressure-test a Hacker News launch before you post it
 how: Judges whether the product is HN-worthy, chooses the strongest thread format, drafts the launch package and replies, then adds evaluation and review approvals

@@ -1,5 +1,6 @@
 id: ux-ui-polish-audit
 stage: code
+stage_family: evaluate
 emoji: "\U0001F3A8"
 headline: Audit UX/UI polish across the whole project
 how: Maps the product surface, audits through UX/UI lenses, and merges findings into one prioritized polish report

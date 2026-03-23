@@ -1,5 +1,6 @@
 id: full-stack-code-audit
 stage: code
+stage_family: evaluate
 emoji: "\U0001F6E1"
 headline: Audit a codebase across security, quality, and architecture
 how: Maps the project, fans out repo-wide audit tracks across core engineering lenses, and merges findings into one prioritized report

@@ -1,5 +1,6 @@
 id: ai-cmo-x-engine
 stage: content
+stage_family: execute
 emoji: "\U0001F426"
 headline: Create an approval-gated X posting queue from product context
 how: Extracts voice and proof, generates multiple X angles, drafts a queue of posts, evaluates the whole batch, and holds it for review

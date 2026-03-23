@@ -1,5 +1,6 @@
 id: application-tailoring-pipeline
 stage: outreach
+stage_family: execute
 emoji: "\U0001F3AF"
 headline: Tailor any application for accelerators, grants, or partnerships
 how: Extract requirements and evaluation criteria from the opportunity, tailor the application to address each with concrete evidence, evaluate for completeness and differentiation.

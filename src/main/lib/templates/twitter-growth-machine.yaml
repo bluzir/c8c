@@ -1,5 +1,6 @@
 id: twitter-growth-machine
 stage: outreach
+stage_family: execute
 emoji: "\U0001F426"
 headline: Turn trends into ready-to-post tweets
 how: Researches trending topics, generates multiple tweet angles, optimizes each for algorithm, selects the best, and evaluates quality

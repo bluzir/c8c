@@ -1,5 +1,6 @@
 id: remotion-video-director-pipeline
 stage: code
+stage_family: evaluate
 emoji: "\U0001F3AC"
 headline: Turn a video brief into Remotion delivery
 how: Frames the video, checks the scenario, builds each scene, assembles the project, adds audio, and loops through expert review before handoff

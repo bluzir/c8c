@@ -1,5 +1,6 @@
 id: segmented-outreach-launchpad
 stage: outreach
+stage_family: deliver
 emoji: "\U0001F4E9"
 headline: Turn segmented contacts into send-ready outreach without sounding batch-blasted
 how: Refreshes the GTM context, writes a self-contained prompt, generates messages per segment, pressure-tests the copy, and prepares sequencer handoff without auto-sending

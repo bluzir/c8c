@@ -1,5 +1,6 @@
 id: design-code-test
 stage: code
+stage_family: execute
 emoji: "\U0001F9EA"
 headline: Design a component, build it, and test it
 how: Generates a frontend component, reviews code quality, checks standards, writes tests, and checks coverage

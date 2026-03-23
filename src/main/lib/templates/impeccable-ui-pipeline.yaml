@@ -1,5 +1,6 @@
 id: impeccable-ui-pipeline
 stage: code
+stage_family: evaluate
 emoji: "\U00002728"
 headline: Polish a UI feature from audit to ship-ready
 how: Audits a frontend feature, then systematically normalizes, hardens, clarifies, optimizes, and polishes it

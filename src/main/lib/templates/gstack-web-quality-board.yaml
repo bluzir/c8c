@@ -1,5 +1,6 @@
 id: gstack-web-quality-board
 stage: code
+stage_family: validate
 emoji: "\U0001F440"
 headline: Audit one web surface with QA and design
 how: Sends one testing brief into gstack's QA and design-audit roles, then merges both perspectives into a single prioritized quality brief

@@ -1,5 +1,6 @@
 id: content-pipeline
 stage: content
+stage_family: deliver
 emoji: "\U0001F4F0"
 headline: Turn strategy into marketing outputs
 how: Builds the strategy, turns it into a report, then drafts the first marketing outputs from it.

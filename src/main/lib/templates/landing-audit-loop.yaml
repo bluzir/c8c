@@ -1,5 +1,6 @@
 id: landing-audit-loop
 stage: content
+stage_family: evaluate
 emoji: "\U0001F50D"
 headline: Audit and rewrite a landing page
 how: Analyze the landing page against the stated job-to-be-done, split into logical blocks for parallel rewriting, merge with consistency checks, and route through an approval step.

@@ -1,5 +1,6 @@
 id: predictable-text-factory
 stage: content
+stage_family: execute
 emoji: "\U0001F3ED"
 headline: Write long-form content with quality checks
 how: Plans sections, processes each independently, runs section-level and final quality checks, iterates until pass

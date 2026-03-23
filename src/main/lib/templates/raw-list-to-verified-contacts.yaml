@@ -1,5 +1,6 @@
 id: raw-list-to-verified-contacts
 stage: outreach
+stage_family: execute
 emoji: "\U0001F4C7"
 headline: Turn raw accounts into verified contacts
 how: Cleans the raw list, frames fit hypotheses, enriches only the signals that matter, tiers the companies, then finds and verifies the right people

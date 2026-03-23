@@ -1,5 +1,6 @@
 id: delivery-implement-phase
 stage: code
+stage_family: execute
 emoji: "\U0001F6E0"
 headline: Implement the approved plan in the repo before verification starts
 how: Use the approved plan and validation contract to make the repo changes, then hand a concrete implementation report to the verification step.

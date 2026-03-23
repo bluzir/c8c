@@ -1,5 +1,6 @@
 id: copy-quality-pipeline
 stage: content
+stage_family: evaluate
 emoji: "\U0001F9F9"
 headline: Polish copy until it reads clean
 how: Audits the draft for slop and infostyle issues, rewrites it through cleanup passes, then checks that the final copy reads clean and specific.

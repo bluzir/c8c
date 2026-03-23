@@ -1,5 +1,6 @@
 id: invoice-chaos-fixer
 stage: operations
+stage_family: execute
 emoji: "\U0001F9FE"
 headline: Organize messy invoices into clean expense data
 how: Organizes invoices, extracts data from PDFs, creates expense spreadsheet, detects anomalies, and evaluates completeness

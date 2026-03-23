@@ -1,5 +1,6 @@
 id: cto-optimise-audit
 stage: code
+stage_family: evaluate
 emoji: "\U0001F6E0"
 headline: Audit a project through a CTO lens
 how: Maps the system, audits through CTO optimization lenses, and merges findings into one prioritized report

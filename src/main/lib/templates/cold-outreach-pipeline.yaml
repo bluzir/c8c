@@ -1,5 +1,6 @@
 id: cold-outreach-pipeline
 stage: outreach
+stage_family: deliver
 emoji: "\U0001F4E7"
 headline: Generate personalized cold emails that get replies
 how: Builds company context, generates pain hypotheses, crafts reusable prompts, generates personalized emails, and simulates buyer response

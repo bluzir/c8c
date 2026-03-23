@@ -1,5 +1,6 @@
 id: content-draft-post
 stage: content
+stage_family: execute
 emoji: "\U0000270D"
 headline: Draft a channel-ready post from the editorial calendar
 how: Turn one calendar slot into a strong post draft using the intended tone of voice, anti-slop rules, and channel constraints.
