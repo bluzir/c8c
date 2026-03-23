@@ -754,6 +754,12 @@ export function Toolbar({
               canDuplicateCurrentFlow={Boolean(workflowPath)}
               onSave={() => void handlePrimarySave()}
               onToggleChat={toggleChatPanel}
+              onOpenRuns={
+                workflowPastRuns.length > 0
+                  ? () => dispatchDesktopCommand("flow.history")
+                  : null
+              }
+              pastRunsCount={workflowPastRuns.length}
               onActionMenu={(action) => {
                 void handleActionMenu(action)
               }}

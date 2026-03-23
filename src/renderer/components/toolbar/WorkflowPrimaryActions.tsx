@@ -1,5 +1,5 @@
 import type { Ref } from "react"
-import { Check, MessageSquare, Save } from "lucide-react"
+import { Check, GitBranch, MessageSquare, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -29,6 +29,8 @@ interface WorkflowPrimaryActionsProps {
   canDuplicateCurrentFlow?: boolean
   onSave: () => void
   onToggleChat: () => void
+  onOpenRuns?: (() => void) | null
+  pastRunsCount?: number
   onActionMenu: (action: WorkflowActionMenuAction) => void
 }
 
@@ -50,6 +52,8 @@ export function WorkflowPrimaryActions({
   canDuplicateCurrentFlow = false,
   onSave,
   onToggleChat,
+  onOpenRuns,
+  pastRunsCount = 0,
   onActionMenu,
 }: WorkflowPrimaryActionsProps) {
   const saveLabel = isSaving
@@ -81,6 +85,24 @@ export function WorkflowPrimaryActions({
             </Button>
           </TooltipTrigger>
           <TooltipContent>Save flow ({primaryShortcutLabel}S)</TooltipContent>
+        </Tooltip>
+      ) : null}
+
+      {onOpenRuns && pastRunsCount > 0 ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:border-transparent hover:bg-surface-2/55"
+              onClick={onOpenRuns}
+              aria-label="View run history"
+            >
+              <GitBranch size={14} />
+              Runs {pastRunsCount}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>View past runs</TooltipContent>
         </Tooltip>
       ) : null}
 

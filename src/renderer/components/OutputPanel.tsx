@@ -587,9 +587,7 @@ export function OutputPanel({
       options.push({ value: "result", label: "Result" })
     }
     // Step log is now inline in StepsList accordion — no separate tab
-    if (canInspectHistory) {
-      options.push({ value: "history", label: "History" })
-    }
+    // History moved to separate Runs button in toolbar
     return options
   }, [canInspectActivity, canInspectHistory, canInspectLog, showResultSurface])
 
@@ -663,37 +661,6 @@ export function OutputPanel({
               onRerunFrom={onRerunFrom ? handleRerunFrom : undefined}
             />
           )}
-        </TabsContent>
-
-        <TabsContent
-          value="log"
-          className={cn(
-            "mt-2 ui-fade-slide-in",
-            fillHeight && "min-h-0 flex-1 overflow-y-auto",
-          )}
-        >
-          <OutputPanelLogContent
-            showIdleState={showIdleState}
-            canInspectActivity={canInspectActivity}
-            tabOptionsLength={tabOptions.length}
-            onBackToActivity={() => focusStageSurface("nodes")}
-            savedRunLoadingNotice={savedRunLoadingNotice}
-            savedRunErrorNotice={savedRunErrorNotice}
-            savedRunSnapshotNotice={savedRunSnapshotNotice}
-            reviewingRunHistory={reviewingRunHistory}
-            canInspectSavedRun={canInspectSavedRun}
-            selectedStagePresentation={selectedStagePresentation}
-            selectedStageContextLabelClass={selectedStageContextLabelClass}
-            selectedStageContextLabel={selectedStageContextLabel}
-            selectedStageBranchLabel={selectedStageBranchLabel}
-            selectedStageBranchDetail={selectedStageBranchDetail}
-            selectedNodeId={selectedStageId}
-            nodeStates={displayNodeStates}
-            evalResults={displayEvalResults}
-            workflowNode={selectedWorkflowNode}
-            runId={runId}
-            evalOverrideNodeIds={evalOverrideNodeIds}
-          />
         </TabsContent>
 
         <TabsContent
@@ -794,32 +761,7 @@ export function OutputPanel({
           ) : null}
         </TabsContent>
 
-        <TabsContent
-          value="history"
-          className={cn(
-            "mt-2 ui-fade-slide-in",
-            fillHeight && "min-h-0 flex-1",
-          )}
-        >
-          <OutputPanelHistoryContent
-            fillHeight={fillHeight}
-            showResultSurface={showResultSurface}
-            canInspectActivity={canInspectActivity}
-            tabOptionsLength={tabOptions.length}
-            onBackToResult={activateResultSurface}
-            onBackToActivity={() => focusStageSurface("nodes")}
-            pastRuns={pastRuns}
-            runStatus={runStatus}
-            onOpenReport={handleOpenReport}
-            onContinueRun={onContinueRun}
-            selectedRunId={selectedReviewRun?.runId || null}
-            improvementRecommendations={improvementRecommendations}
-            onSelectRun={(run) => {
-              setSelectedPastRun(run)
-              setActiveTab("result")
-            }}
-          />
-        </TabsContent>
+        {/* History moved to Runs button in toolbar — see WorkflowPanel */}
       </Tabs>
 
       <OutputPanelContextMenu
