@@ -121,7 +121,10 @@ export function applyWebSearchBackendPreset(
 }
 
 export function resolveTemplateWorkflow(
-  template: Pick<WorkflowTemplate, "workflow" | "stage" | "name">,
+  template: Pick<
+    WorkflowTemplate,
+    "workflow" | "stage" | "name" | "suggestedTools"
+  >,
   backend: WebSearchBackend,
   options?: { detailBudget?: number | null; templateId?: string | null },
 ): Workflow {

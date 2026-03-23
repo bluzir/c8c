@@ -44,4 +44,9 @@ export {
   type WorkflowHilTaskTokenPayload,
   type UpsertHumanHilTaskRequest,
 } from "./hil-store.js"
+export {
+  deriveProjectImprovementRecommendations,
+  listProjectImprovementRecommendations,
+  persistProjectImprovementEvidence,
+} from "./lib/improvement-store.js"
 export * from "./schema.js"

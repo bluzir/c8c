@@ -1,8 +1,12 @@
 import { useAtomValue } from "jotai"
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
-import { desktopRuntimeAtom } from "@/lib/store"
+import {
+  desktopRuntimeAtom,
+  selectedProjectAtom,
+  selectedWorkflowPathAtom,
+} from "@/lib/store"
 import { useOutputPanel } from "@/hooks/useOutputPanel"
 import { ActivityTab } from "@/components/output/ActivityTab"
 import { OutputPanelHeader } from "@/components/output/OutputPanelHeader"
@@ -16,6 +20,7 @@ import { ResultTab } from "@/components/output/ResultTab"
 import type {
   ArtifactRecord,
   ErrorKind,
+  FlowImprovementRecommendation,
   LoadedRunResult,
   RunResult,
   WorkflowTemplate,
@@ -169,6 +174,8 @@ export function OutputPanel({
   onUseInNewFlow?: (() => Promise<void> | void) | null
 }) {
   const desktopRuntime = useAtomValue(desktopRuntimeAtom)
+  const selectedProject = useAtomValue(selectedProjectAtom)
+  const selectedWorkflowPath = useAtomValue(selectedWorkflowPathAtom)
   const {
     runStatus,
     runOutcome,
@@ -196,6 +203,9 @@ export function OutputPanel({
     runId,
     evalOverrideNodeIds,
   } = useOutputPanel()
+  const [improvementRecommendations, setImprovementRecommendations] = useState<
+    FlowImprovementRecommendation[]
+  >([])
   const [outputContextMenu, setOutputContextMenu] =
     useState<OutputPanelContextMenuState>(null)
   const {
@@ -283,6 +293,40 @@ export function OutputPanel({
     nextStageArtifacts,
     nextStagePending,
   })
+
+  useEffect(() => {
+    if (!selectedProject || !workflow.name.trim()) {
+      setImprovementRecommendations([])
+      return
+    }
+    if (!window.api?.listFlowImprovementRecommendations) {
+      setImprovementRecommendations([])
+      return
+    }
+
+    let cancelled = false
+    window.api
+      .listFlowImprovementRecommendations(
+        selectedProject,
+        selectedWorkflowPath,
+        workflow.name,
+      )
+      .then((recommendations) => {
+        if (cancelled) return
+        setImprovementRecommendations(recommendations.slice(0, 3))
+      })
+      .catch((error) => {
+        console.error(
+          "[OutputPanel] load improvement recommendations failed:",
+          error,
+        )
+        if (!cancelled) setImprovementRecommendations([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedProject, selectedWorkflowPath, workflow.name])
 
   const selectedWorkflowNode = useMemo(() => {
     if (!selectedStageId) return null
@@ -799,6 +843,7 @@ export function OutputPanel({
             onOpenReport={handleOpenReport}
             onContinueRun={onContinueRun}
             selectedRunId={selectedReviewRun?.runId || null}
+            improvementRecommendations={improvementRecommendations}
             onSelectRun={(run) => {
               setSelectedPastRun(run)
               setActiveTab("result")

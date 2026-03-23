@@ -21,6 +21,7 @@ const {
   scanAllSkillsMock,
   trackTelemetryEventMock,
   listProjectArtifactsMock,
+  listProjectImprovementRecommendationsMock,
   persistArtifactsFromRunMock,
   listProjectCaseStatesMock,
   upsertCaseStateMock,
@@ -61,6 +62,7 @@ const {
   scanAllSkillsMock: vi.fn(),
   trackTelemetryEventMock: vi.fn(),
   listProjectArtifactsMock: vi.fn(),
+  listProjectImprovementRecommendationsMock: vi.fn(),
   persistArtifactsFromRunMock: vi.fn(),
   listProjectCaseStatesMock: vi.fn(),
   upsertCaseStateMock: vi.fn(),
@@ -117,6 +119,8 @@ vi.mock("../lib/workflow-runner", () => ({
 vi.mock("@c8c/workflow-runner", () => ({
   approvalTaskId: (nodeId: string) => `approval-${nodeId}`,
   getWorkflowHilTask: (...args: unknown[]) => getWorkflowHilTaskMock(...args),
+  listProjectImprovementRecommendations: (...args: unknown[]) =>
+    listProjectImprovementRecommendationsMock(...args),
   listWorkflowHilTasks: (...args: unknown[]) =>
     listWorkflowHilTasksMock(...args),
   writeWorkflowHilTaskResponse: (...args: unknown[]) =>
@@ -298,6 +302,7 @@ describe("executor IPC", () => {
     scanAllSkillsMock.mockResolvedValue([])
     trackTelemetryEventMock.mockResolvedValue(undefined)
     listProjectArtifactsMock.mockResolvedValue([])
+    listProjectImprovementRecommendationsMock.mockResolvedValue([])
     persistArtifactsFromRunMock.mockResolvedValue({ artifacts: [], cases: [] })
     listProjectCaseStatesMock.mockResolvedValue([])
     upsertCaseStateMock.mockResolvedValue(undefined)

@@ -18,6 +18,7 @@ import {
 import {
   approvalTaskId,
   getWorkflowHilTask,
+  listProjectImprovementRecommendations,
   listWorkflowHilTasks,
   writeWorkflowHilTaskResponse,
 } from "@c8c/workflow-runner"
@@ -46,6 +47,7 @@ import type {
   ContinuationStatus,
   DurableGateRecord,
   EvaluationResult,
+  FlowImprovementRecommendation,
   HumanTaskPointer,
   HumanTaskSnapshot,
   HumanTaskSubmitInput,
@@ -1198,6 +1200,36 @@ export function registerExecutorHandlers() {
             error: errorMessage(error),
           })
         }
+        return []
+      }
+    },
+  )
+
+  ipcMain.handle(
+    "executor:list-flow-improvement-recommendations",
+    async (
+      _e,
+      projectPath: string,
+      workflowPath?: string | null,
+      workflowName?: string | null,
+    ): Promise<FlowImprovementRecommendation[]> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      try {
+        return await listProjectImprovementRecommendations(safeProjectPath, {
+          workflowPath,
+          workflowName,
+        })
+      } catch (error) {
+        logWarn(
+          "executor-ipc",
+          "list_flow_improvement_recommendations_failed",
+          {
+            projectPath: safeProjectPath,
+            workflowPath,
+            workflowName,
+            error: errorMessage(error),
+          },
+        )
         return []
       }
     },

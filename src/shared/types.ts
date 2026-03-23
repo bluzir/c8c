@@ -1200,6 +1200,45 @@ export interface GenerationProgress {
   count: number
 }
 
+export type FlowImprovementRecommendationKind =
+  | "prefer_variant"
+  | "stabilize_step"
+  | "reduce_manual_edits"
+
+export interface FlowImprovementRecommendationVariant {
+  modelId: string
+  promptHash: string
+  skillRef?: string
+}
+
+export interface FlowImprovementRecommendationMetrics {
+  candidateSuccessRate?: number
+  comparisonSuccessRate?: number
+  candidateAverageRetries?: number
+  comparisonAverageRetries?: number
+  candidateEvaluatorPassRate?: number
+  comparisonEvaluatorPassRate?: number
+  editRate?: number
+}
+
+export interface FlowImprovementRecommendation {
+  id: string
+  workflowName: string
+  workflowPath?: string
+  nodeId?: string
+  nodeLabel?: string
+  kind: FlowImprovementRecommendationKind
+  summary: string
+  evidence: string
+  confidence: "medium" | "high"
+  supportingRunCount: number
+  comparisonRunCount?: number
+  updatedAt: number
+  candidate?: FlowImprovementRecommendationVariant
+  baseline?: FlowImprovementRecommendationVariant
+  metrics?: FlowImprovementRecommendationMetrics
+}
+
 export interface RunResult {
   runId: string
   status: RunStatus

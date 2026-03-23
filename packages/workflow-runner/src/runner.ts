@@ -20,6 +20,7 @@ import {
   finalizeRunPidManifest,
   initRunPidManifest,
 } from "./lib/run-pid-manifest.js"
+import { persistProjectImprovementEvidence } from "./lib/improvement-store.js"
 import {
   persistRunState,
   readWorkflowRunSnapshot,
@@ -1047,6 +1048,35 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         blockedByTaskId,
         lastBlockingNodeId: blockedByNodeId,
       })
+
+      if (projectPath) {
+        try {
+          await persistProjectImprovementEvidence({
+            projectPath,
+            runId,
+            chainId,
+            workflowName: workflow.name,
+            workflowPath,
+            workspace,
+            status: finalStatus,
+            startedAt,
+            completedAt,
+            durationMs,
+            runtimeNodes: runtimeWorkflow.nodes,
+            nodeStates,
+          })
+        } catch (error) {
+          logger.warn(
+            "workflow-runner",
+            "persist_improvement_evidence_failed",
+            {
+              runId,
+              projectPath,
+              error: errorMessage(error),
+            },
+          )
+        }
+      }
 
       await runtime.emitEvent({
         type: "run-done",

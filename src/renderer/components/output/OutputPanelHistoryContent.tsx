@@ -1,7 +1,7 @@
 import { HistoryTab } from "@/components/output/HistoryTab"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
-import type { RunResult } from "@shared/types"
+import type { FlowImprovementRecommendation, RunResult } from "@shared/types"
 
 export function OutputPanelHistoryContent({
   fillHeight,
@@ -15,6 +15,7 @@ export function OutputPanelHistoryContent({
   onOpenReport,
   onContinueRun,
   selectedRunId,
+  improvementRecommendations,
   onSelectRun,
 }: {
   fillHeight: boolean
@@ -28,6 +29,7 @@ export function OutputPanelHistoryContent({
   onOpenReport: (path: string) => Promise<void> | void
   onContinueRun?: (run: RunResult) => Promise<void> | void
   selectedRunId?: string | null
+  improvementRecommendations: FlowImprovementRecommendation[]
   onSelectRun: (run: RunResult) => void
 }) {
   return (
@@ -68,6 +70,7 @@ export function OutputPanelHistoryContent({
         onOpenReport={onOpenReport}
         onContinueRun={onContinueRun}
         selectedRunId={selectedRunId}
+        improvementRecommendations={improvementRecommendations}
         onSelectRun={onSelectRun}
       />
     </div>

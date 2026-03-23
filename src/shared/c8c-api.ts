@@ -13,6 +13,7 @@ import type {
   DiscoveredSkill,
   ProjectFactoryBlueprint,
   ProjectFactoryState,
+  FlowImprovementRecommendation,
   GenerationProgress,
   HumanTaskSnapshot,
   HumanTaskSubmitInput,
@@ -210,6 +211,11 @@ export interface C8cApi {
     webSearchBackend?: "builtin" | "exa",
   ) => Promise<ExecutionStartResult>
   listRuns: (projectPath: string) => Promise<RunResult[]>
+  listFlowImprovementRecommendations: (
+    projectPath: string,
+    workflowPath?: string | null,
+    workflowName?: string | null,
+  ) => Promise<FlowImprovementRecommendation[]>
   loadRunResult: (workspace: string) => Promise<LoadedRunResult | null>
   openReport: (reportPath: string) => Promise<string>
   getActiveExecutions: () => Promise<ActiveExecutionSnapshot[]>

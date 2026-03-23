@@ -219,6 +219,17 @@ const api: C8cApi = {
     ),
   listRuns: (projectPath: string) =>
     invokeIpc<C8cApi["listRuns"]>("executor:list-runs", projectPath),
+  listFlowImprovementRecommendations: (
+    projectPath: string,
+    workflowPath?: string | null,
+    workflowName?: string | null,
+  ) =>
+    invokeIpc<C8cApi["listFlowImprovementRecommendations"]>(
+      "executor:list-flow-improvement-recommendations",
+      projectPath,
+      workflowPath,
+      workflowName,
+    ),
   loadRunResult: (workspace: string) =>
     invokeIpc<C8cApi["loadRunResult"]>("executor:load-run-result", workspace),
   openReport: (reportPath: string) =>

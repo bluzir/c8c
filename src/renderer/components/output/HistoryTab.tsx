@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { CursorMenu } from "@/components/ui/cursor-menu"
-import type { RunResult } from "@shared/types"
+import type { FlowImprovementRecommendation, RunResult } from "@shared/types"
 import { toastErrorFromCatch } from "@/lib/toast-error"
 
 function formatDurationMs(durationMs: number): string {
@@ -98,6 +98,7 @@ function formatRunIdShort(runId: string): string {
 
 export interface HistoryTabProps {
   pastRuns: RunResult[]
+  improvementRecommendations: FlowImprovementRecommendation[]
   runStatus: string
   fillHeight?: boolean
   onOpenReport: (path: string) => Promise<void> | void
@@ -108,6 +109,7 @@ export interface HistoryTabProps {
 
 export function HistoryTab({
   pastRuns,
+  improvementRecommendations,
   runStatus,
   fillHeight = false,
   onOpenReport,
@@ -290,6 +292,29 @@ export function HistoryTab({
               >
                 Open file
               </Button>
+            </div>
+          </div>
+        )}
+
+        {improvementRecommendations.length > 0 && (
+          <div className="px-1">
+            <div className="border-b border-hairline pb-2">
+              <div className="ui-meta-label text-muted-foreground">
+                Learned from recent runs
+              </div>
+              <div className="mt-2 space-y-2">
+                {improvementRecommendations.map((recommendation) => (
+                  <div
+                    key={recommendation.id}
+                    className="py-1 text-left text-body-sm text-foreground"
+                  >
+                    <div className="font-medium">{recommendation.summary}</div>
+                    <div className="mt-0.5 ui-meta-text text-muted-foreground">
+                      {recommendation.evidence}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
