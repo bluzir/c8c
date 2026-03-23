@@ -1,155 +1,19 @@
 import type { ResultModeId } from "@shared/types"
+import { getDomain } from "@shared/domains"
+import type { ResultModeConfigField } from "@shared/domains"
 import {
   buildWorkflowCreatePrompt,
   type WorkflowCreatePromptScaffold,
 } from "@/lib/workflow-create-prompt"
 import type { WorkflowResultMode } from "@/lib/result-modes"
+import { initDomains } from "@/lib/domain-init"
 
-export type ResultModeConfigFieldType = "text" | "textarea"
+// Ensure domains are registered before any module-level constants are built.
+initDomains()
 
-export interface ResultModeConfigField {
-  id: string
-  label: string
-  placeholder: string
-  type?: ResultModeConfigFieldType
-  helpText?: string
-}
+export type { ResultModeConfigField }
 
 export type ResultModeConfigValues = Record<string, string>
-
-const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
-  development: [
-    {
-      id: "project_goal",
-      label: "Product goal",
-      placeholder:
-        "Ship a new onboarding loop, pressure-test a feature concept, or clean up a weak area of the product.",
-    },
-    {
-      id: "source_context",
-      label: "Product context",
-      placeholder:
-        "Repository path, issue link, PRD, notes, screenshots, or current product state.",
-      type: "textarea",
-    },
-    {
-      id: "quality_bar",
-      label: "Quality bar",
-      placeholder:
-        "Testing expectations, design bar, rollout constraints, or risks that matter here.",
-      type: "textarea",
-    },
-    {
-      id: "strategist_checkpoints",
-      label: "Decision checkpoints",
-      placeholder:
-        "Scope approval, architecture review, design sign-off, or other moments where you want control.",
-      type: "textarea",
-    },
-  ],
-  content: [
-    {
-      id: "content_goal",
-      label: "Content goal",
-      placeholder:
-        "Write posts, build a content calendar, research trends, or review existing drafts.",
-    },
-    {
-      id: "audience",
-      label: "Audience",
-      placeholder:
-        "Who reads this — founders, developers, marketers — and where they see it.",
-      type: "textarea",
-    },
-    {
-      id: "tone_of_voice",
-      label: "Tone and constraints",
-      placeholder:
-        "Tone of voice rules, no-slop requirements, brand constraints, or channel format.",
-      type: "textarea",
-    },
-    {
-      id: "volume_and_quality",
-      label: "Success signal",
-      placeholder:
-        "What good content looks like for this — specific, on-voice, publishable without rewrites.",
-      type: "textarea",
-    },
-  ],
-  marketing: [
-    {
-      id: "content_goal",
-      label: "Marketing goal",
-      placeholder:
-        "Validate a segment, shape a GTM angle, plan SEO content, or build a launch campaign.",
-    },
-    {
-      id: "channel_and_audience",
-      label: "Market and audience",
-      placeholder:
-        "Who this is for, where they live, and which channels or surfaces matter most.",
-      type: "textarea",
-    },
-    {
-      id: "tone_of_voice",
-      label: "Angles and constraints",
-      placeholder:
-        "Approved angles, banned claims, tone constraints, brand rules, or no-slop requirements.",
-      type: "textarea",
-    },
-    {
-      id: "volume_and_quality",
-      label: "Success signal",
-      placeholder:
-        "What output you need first and what would make it strategically useful.",
-      type: "textarea",
-    },
-  ],
-  courses: [
-    {
-      id: "course_outcome",
-      label: "Course goal",
-      placeholder:
-        "Build a course, workshop, or structured lesson set from your expertise.",
-    },
-    {
-      id: "audience",
-      label: "Audience",
-      placeholder:
-        "Who this is for, what they already know, and what they should walk away with.",
-      type: "textarea",
-    },
-    {
-      id: "format_and_depth",
-      label: "Format and source material",
-      placeholder:
-        "Course, workshop, lesson set, plus the raw material available.",
-      type: "textarea",
-    },
-    {
-      id: "launch_needs",
-      label: "Launch needs",
-      placeholder:
-        "Approvals, launch assets, delivery format, or platform constraints.",
-      type: "textarea",
-    },
-  ],
-}
-
-const RESULT_MODE_CONFIG_LABELS: Record<string, string> = {
-  project_goal: "Product goal",
-  source_context: "Product context",
-  quality_bar: "Quality bar",
-  strategist_checkpoints: "Decision checkpoints",
-  content_goal: "Content goal",
-  channel_and_audience: "Market and audience",
-  tone_of_voice: "Tone and constraints",
-  volume_and_quality: "Success signal",
-  course_outcome: "Course goal",
-  audience: "Audience",
-  format_and_depth: "Format and source material",
-  launch_needs: "Publishing or launch needs",
-}
 
 function normalize(value: string | undefined | null) {
   return (value || "").trim()
@@ -158,7 +22,7 @@ function normalize(value: string | undefined | null) {
 export function getResultModeConfigFields(
   modeId: ResultModeId,
 ): ResultModeConfigField[] {
-  return RESULT_MODE_CONFIG_FIELDS[modeId] || []
+  return getDomain(modeId).configFields
 }
 
 export function normalizeResultModeConfig(
@@ -185,10 +49,11 @@ export function buildResultModeConfigSections(
   values?: ResultModeConfigValues | null,
 ): Array<{ label: string; value: string }> {
   const normalized = normalizeResultModeConfig(modeId, values)
+  const configLabels = getDomain(modeId).configLabels
   return Object.entries(normalized)
     .filter(([, value]) => value.length > 0)
     .map(([id, value]) => ({
-      label: RESULT_MODE_CONFIG_LABELS[id] || id,
+      label: configLabels[id] || id,
       value,
     }))
 }

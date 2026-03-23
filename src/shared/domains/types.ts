@@ -11,6 +11,7 @@ export interface ResultModeConfigField {
   label: string
   placeholder: string
   type?: "textarea"
+  helpText?: string
 }
 
 export interface DomainQuickStart {

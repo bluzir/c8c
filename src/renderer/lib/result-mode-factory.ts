@@ -2,8 +2,13 @@ import type {
   ProjectFactoryBlueprint,
   ProjectFactoryDefinition,
 } from "@shared/types"
+import { getDomain } from "@shared/domains"
 import type { ResultModeConfigValues } from "@/lib/result-mode-config"
 import type { WorkflowResultMode } from "@/lib/result-modes"
+import { initDomains } from "@/lib/domain-init"
+
+// Ensure domains are registered before any module-level constants are built.
+initDomains()
 
 function trim(value: string | undefined | null) {
   return (value || "").trim()
@@ -81,42 +86,12 @@ function factoryLabelForMode(
   values: ResultModeConfigValues,
   existingFactory?: ProjectFactoryDefinition | null,
 ) {
-  if (mode.id === "development") {
-    return firstFilled(
-      values.project_goal,
-      existingFactory?.label,
-      existingFactory?.outcome?.title,
-      "Product Lab",
-    )
-  }
-  if (mode.id === "content") {
-    return firstFilled(
-      values.course_outcome,
-      existingFactory?.label,
-      existingFactory?.outcome?.title,
-      "Content Lab",
-    )
-  }
-  if (mode.id === "marketing") {
-    return firstFilled(
-      values.content_goal,
-      existingFactory?.label,
-      existingFactory?.outcome?.title,
-      "Marketing Lab",
-    )
-  }
-  if (mode.id === "courses") {
-    return firstFilled(
-      values.course_outcome,
-      existingFactory?.label,
-      existingFactory?.outcome?.title,
-      "Courses Lab",
-    )
-  }
+  const domain = getDomain(mode.id)
   return firstFilled(
+    values[domain.factoryTitleFieldId],
     existingFactory?.label,
     existingFactory?.outcome?.title,
-    `${mode.label} Lab`,
+    domain.factoryFallbackLabel,
   )
 }
 
@@ -124,58 +99,9 @@ function buildOutcomeStatement(
   mode: WorkflowResultMode,
   values: ResultModeConfigValues,
 ) {
-  const sections: Array<{ label: string; value: string }> = []
-
-  if (mode.id === "development") {
-    if (trim(values.source_context))
-      sections.push({
-        label: "Source context",
-        value: trim(values.source_context),
-      })
-    if (trim(values.quality_bar))
-      sections.push({ label: "Quality bar", value: trim(values.quality_bar) })
-  } else if (mode.id === "content") {
-    if (trim(values.audience))
-      sections.push({ label: "Audience", value: trim(values.audience) })
-    if (trim(values.tone_of_voice))
-      sections.push({
-        label: "Tone of voice",
-        value: trim(values.tone_of_voice),
-      })
-    if (trim(values.volume_and_quality))
-      sections.push({
-        label: "Volume and quality bar",
-        value: trim(values.volume_and_quality),
-      })
-  } else if (mode.id === "marketing") {
-    if (trim(values.channel_and_audience))
-      sections.push({
-        label: "Channel and audience",
-        value: trim(values.channel_and_audience),
-      })
-    if (trim(values.tone_of_voice))
-      sections.push({
-        label: "Tone of voice",
-        value: trim(values.tone_of_voice),
-      })
-    if (trim(values.volume_and_quality))
-      sections.push({
-        label: "Volume and quality bar",
-        value: trim(values.volume_and_quality),
-      })
-  } else if (mode.id === "courses") {
-    if (trim(values.audience))
-      sections.push({ label: "Audience", value: trim(values.audience) })
-    if (trim(values.format_and_depth))
-      sections.push({
-        label: "Format and depth",
-        value: trim(values.format_and_depth),
-      })
-    if (trim(values.launch_needs))
-      sections.push({ label: "Launch needs", value: trim(values.launch_needs) })
-  }
-
-  if (sections.length === 0) return undefined
+  const domain = getDomain(mode.id)
+  const sections = domain.buildOutcomeSections?.(values)
+  if (!sections || sections.length === 0) return undefined
   return sections
     .map((section) => `${section.label}: ${section.value}`)
     .join("\n")
@@ -187,18 +113,9 @@ function buildConstraints(
   existingFactory?: ProjectFactoryDefinition | null,
 ) {
   const next = [...(existingFactory?.outcome?.constraints || [])]
-  if (mode.id === "development") {
-    next.push(...splitLines(values.quality_bar))
-  } else if (mode.id === "content") {
-    next.push(...splitLines(values.tone_of_voice))
-    next.push(...splitLines(values.volume_and_quality))
-  } else if (mode.id === "marketing") {
-    next.push(...splitLines(values.tone_of_voice))
-    next.push(...splitLines(values.volume_and_quality))
-  } else if (mode.id === "courses") {
-    next.push(...splitLines(values.format_and_depth))
-    next.push(...splitLines(values.launch_needs))
-  }
+  const domain = getDomain(mode.id)
+  const domainConstraints = domain.buildConstraints?.(values) || []
+  next.push(...domainConstraints)
   return dedupe(next)
 }
 
@@ -207,6 +124,7 @@ function buildStrategistCheckpoints(
   values: ResultModeConfigValues,
   existingFactory?: ProjectFactoryDefinition | null,
 ) {
+  // Dev special case: user-configured checkpoints take priority
   if (mode.id === "development") {
     const configured = splitLines(values.strategist_checkpoints)
     if (configured.length > 0) return configured
@@ -214,66 +132,19 @@ function buildStrategistCheckpoints(
   if (existingFactory?.recipe?.strategistCheckpoints?.length) {
     return existingFactory.recipe.strategistCheckpoints
   }
-  if (mode.id === "content") {
-    return ["Approve voice and angle", "Approve draft quality"]
-  }
-  if (mode.id === "marketing") {
-    return ["Approve audience and angle", "Approve sample asset quality"]
-  }
-  if (mode.id === "courses") {
-    return ["Approve structure and curriculum", "Approve lesson quality"]
-  }
-  return [
-    "Approve scope and direction",
-    "Approve quality before wider execution",
-  ]
+  return getDomain(mode.id).factoryCheckpoints
 }
 
 function defaultQualityPolicy(mode: WorkflowResultMode) {
-  if (mode.id === "content") {
-    return [
-      "Voice-locked drafting",
-      "Evidence-first trend research",
-      "Human publish approval",
-    ]
-  }
-  if (mode.id === "marketing") {
-    return [
-      "Evidence-first market research",
-      "Angle before asset production",
-      "Human review before scaling",
-    ]
-  }
-  if (mode.id === "courses") {
-    return [
-      "Structure before content",
-      "Lesson quality gates",
-      "Human launch approval",
-    ]
-  }
-  return [
-    "Spec-first delivery",
-    "Visible verification before complete",
-    "Sparse human approvals",
-  ]
+  return getDomain(mode.id).qualityPolicy
 }
 
 function defaultCaseGenerationRule(mode: WorkflowResultMode) {
-  if (mode.id === "content") return "Trend research -> editorial plan -> drafts"
-  if (mode.id === "marketing")
-    return "Research brief -> campaign or asset tracks"
-  if (mode.id === "courses") return "Curriculum plan -> lesson production"
-  return "Plan -> implementation tracks"
+  return getDomain(mode.id).caseGenerationRule
 }
 
 function defaultSuccessSignal(mode: WorkflowResultMode) {
-  if (mode.id === "content")
-    return "Publishable content that is on-voice, specific, and ready for review."
-  if (mode.id === "marketing")
-    return "A grounded market angle, campaign plan, or asset pack that is ready for review."
-  if (mode.id === "courses")
-    return "A structured course with lessons ready for human review."
-  return "A plan or implementation path that meets the requested quality bar."
+  return getDomain(mode.id).successSignal
 }
 
 function buildAudience(
@@ -281,17 +152,9 @@ function buildAudience(
   values: ResultModeConfigValues,
   existingFactory?: ProjectFactoryDefinition | null,
 ) {
-  if (mode.id === "content") {
-    return firstFilled(values.audience, existingFactory?.outcome?.audience)
-  }
-  if (mode.id === "marketing") {
-    return firstFilled(
-      values.channel_and_audience,
-      existingFactory?.outcome?.audience,
-    )
-  }
-  if (mode.id === "courses") {
-    return firstFilled(values.audience, existingFactory?.outcome?.audience)
+  const domain = getDomain(mode.id)
+  if (domain.buildAudience) {
+    return domain.buildAudience(values) ?? existingFactory?.outcome?.audience
   }
   return existingFactory?.outcome?.audience
 }
@@ -342,6 +205,7 @@ export function buildFactoryFromResultMode({
   existingFactory?: ProjectFactoryDefinition | null
   now?: number
 }): ProjectFactoryDefinition {
+  const domain = getDomain(mode.id)
   const normalizedValues = Object.fromEntries(
     Object.entries(values).map(([key, value]) => [key, trim(value)]),
   ) as ResultModeConfigValues
@@ -352,10 +216,7 @@ export function buildFactoryFromResultMode({
     `${mode.label} Lab`
   const outcomeTitle =
     firstFilled(
-      mode.id === "development" ? normalizedValues.project_goal : undefined,
-      mode.id === "content" ? normalizedValues.course_outcome : undefined,
-      mode.id === "marketing" ? normalizedValues.content_goal : undefined,
-      mode.id === "courses" ? normalizedValues.course_outcome : undefined,
+      normalizedValues[domain.factoryTitleFieldId],
       existingFactory?.outcome?.title,
       label,
     ) || label
@@ -375,12 +236,9 @@ export function buildFactoryFromResultMode({
       title: outcomeTitle,
       statement: outcomeStatement,
       successSignal: firstFilled(
-        mode.id === "development" ? normalizedValues.quality_bar : undefined,
-        mode.id === "content" ? normalizedValues.volume_and_quality : undefined,
-        mode.id === "marketing"
-          ? normalizedValues.volume_and_quality
+        domain.factorySuccessFieldId
+          ? normalizedValues[domain.factorySuccessFieldId]
           : undefined,
-        mode.id === "courses" ? normalizedValues.launch_needs : undefined,
         existingFactory?.outcome?.successSignal,
         defaultSuccessSignal(mode),
       ),
