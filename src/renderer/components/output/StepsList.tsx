@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import ReactMarkdown from "react-markdown"
 import { cn } from "@/lib/cn"
 import { Loader2 } from "lucide-react"
 import { StepRow } from "./StepRow"
@@ -342,6 +343,7 @@ function StepResultContent({
 }: {
   nodeState: NodeState | undefined
 }) {
+  const [showFull, setShowFull] = useState(false)
   const result = nodeState?.output?.content
   const duration = deriveDuration(nodeState)
   const cost = deriveCost(nodeState)
@@ -349,10 +351,30 @@ function StepResultContent({
   if (duration) metaParts.push(duration)
   if (cost) metaParts.push(cost)
 
+  // Strip to first 3 lines for preview
+  const lines = result?.split("\n").filter(Boolean) || []
+  const isLong = lines.length > 3
+  const preview = isLong ? lines.slice(0, 3).join("\n") + "..." : result
+
   return (
-    <div className="px-3 py-3 space-y-2">
+    <div className="space-y-2">
       {result ? (
-        <div className="prose-c8c text-body-sm">{result}</div>
+        <>
+          <div className="prose-c8c text-body-sm line-clamp-4">
+            <ReactMarkdown>{showFull ? result : preview || ""}</ReactMarkdown>
+          </div>
+          {isLong && (
+            <button
+              type="button"
+              className="ui-meta-text text-muted-foreground hover:text-foreground"
+              onClick={() => setShowFull(!showFull)}
+            >
+              {showFull
+                ? "Collapse"
+                : `Show full result (${lines.length} lines)`}
+            </button>
+          )}
+        </>
       ) : (
         <div className="text-body-sm text-muted-foreground">Step completed</div>
       )}
