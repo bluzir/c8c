@@ -30,7 +30,9 @@ function resolveSkill(
 ): DiscoveredSkill | undefined {
   const ref = rawRef.trim()
   if (!ref) return undefined
-  return availableSkills.find((skill) => toSkillRef(skill) === ref || skill.name === ref)
+  return availableSkills.find(
+    (skill) => toSkillRef(skill) === ref || skill.name === ref,
+  )
 }
 
 /**
@@ -50,9 +52,7 @@ export function validateWorkflowExtended(
 
   // 2. Skill ref existence check
   if (availableSkills) {
-    const skillRefs = new Set(
-      availableSkills.map((s) => toSkillRef(s)),
-    )
+    const skillRefs = new Set(availableSkills.map((s) => toSkillRef(s)))
     const skillNames = new Set(availableSkills.map((s) => s.name))
 
     for (const node of workflow.nodes) {
@@ -146,7 +146,9 @@ export function validateWorkflowExtended(
     if (node.type === "evaluator") {
       const config = node.config
       if (config.retryFrom) {
-        const retryTarget = workflow.nodes.find((n) => n.id === config.retryFrom)
+        const retryTarget = workflow.nodes.find(
+          (n) => n.id === config.retryFrom,
+        )
         if (!retryTarget) {
           errors.push(
             `Evaluator "${node.id}" retryFrom references nonexistent node "${config.retryFrom}"`,
@@ -173,10 +175,14 @@ export function validateWorkflowExtended(
   const splitters = workflow.nodes.filter((n) => n.type === "splitter")
   const mergers = workflow.nodes.filter((n) => n.type === "merger")
   if (splitters.length > 0 && mergers.length === 0) {
-    warnings.push("Workflow has splitter(s) but no merger — parallel branches won't converge")
+    warnings.push(
+      "Workflow has splitter(s) but no merger — parallel branches won't converge",
+    )
   }
   if (mergers.length > splitters.length) {
-    warnings.push("More mergers than splitters — some mergers may never receive all inputs")
+    warnings.push(
+      "More mergers than splitters — some mergers may never receive all inputs",
+    )
   }
 
   return {

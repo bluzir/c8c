@@ -65,11 +65,18 @@ export function classifyError(err: unknown, timedOut: boolean): ErrorKind {
   return "unknown"
 }
 
-export function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
+export function estimateCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
   return estimateTokenCostUsd(model, inputTokens, outputTokens)
 }
 
-export function collectMetrics(logParser: LogParser, startedAt: number): NodeMetrics {
+export function collectMetrics(
+  logParser: LogParser,
+  startedAt: number,
+): NodeMetrics {
   const usage = logParser.usage
   return {
     tokens_in: usage.input_tokens,

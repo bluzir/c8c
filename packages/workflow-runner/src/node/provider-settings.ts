@@ -93,11 +93,11 @@ function normalizeProviderId(value: unknown): ProviderId | undefined {
 }
 
 function normalizeSafetyProfile(value: unknown): SafetyProfile | undefined {
-  return value === "safe_readonly"
-    || value === "workspace_auto"
-    || value === "workspace_untrusted"
-    || value === "ci_readonly"
-    || value === "dangerous"
+  return value === "safe_readonly" ||
+    value === "workspace_auto" ||
+    value === "workspace_untrusted" ||
+    value === "ci_readonly" ||
+    value === "dangerous"
     ? value
     : undefined
 }
@@ -118,7 +118,10 @@ function encodeSecret(secret: string): { encrypted: string } {
 }
 
 function decodeSecret(payload: PersistedProviderSettings): string | undefined {
-  if (typeof payload.codexApiKeyEncrypted === "string" && payload.codexApiKeyEncrypted.trim()) {
+  if (
+    typeof payload.codexApiKeyEncrypted === "string" &&
+    payload.codexApiKeyEncrypted.trim()
+  ) {
     try {
       const storage = getElectronBindings().safeStorage
       if (!storage?.isEncryptionAvailable()) {
@@ -138,15 +141,22 @@ function decodeSecret(payload: PersistedProviderSettings): string | undefined {
   return undefined
 }
 
-function normalizeSettings(payload: PersistedProviderSettings | null | undefined): ProviderSettingsState {
+function normalizeSettings(
+  payload: PersistedProviderSettings | null | undefined,
+): ProviderSettingsState {
   return {
     settings: {
-      defaultProvider: normalizeProviderId(payload?.defaultProvider) || DEFAULT_PROVIDER_SETTINGS.defaultProvider,
-      safetyProfile: normalizeSafetyProfile(payload?.safetyProfile) || DEFAULT_PROVIDER_SETTINGS.safetyProfile,
+      defaultProvider:
+        normalizeProviderId(payload?.defaultProvider) ||
+        DEFAULT_PROVIDER_SETTINGS.defaultProvider,
+      safetyProfile:
+        normalizeSafetyProfile(payload?.safetyProfile) ||
+        DEFAULT_PROVIDER_SETTINGS.safetyProfile,
       features: {
-        codexProvider: typeof payload?.features?.codexProvider === "boolean"
-          ? payload.features.codexProvider
-          : DEFAULT_PROVIDER_SETTINGS.features.codexProvider,
+        codexProvider:
+          typeof payload?.features?.codexProvider === "boolean"
+            ? payload.features.codexProvider
+            : DEFAULT_PROVIDER_SETTINGS.features.codexProvider,
       },
     },
     codexApiKey: decodeSecret(payload || {}),
@@ -174,8 +184,13 @@ async function saveProviderState(state: ProviderSettingsState): Promise<void> {
     },
     ...(encoded.encrypted ? { codexApiKeyEncrypted: encoded.encrypted } : {}),
   }
-  await mkdir(dirname(path), { recursive: true, mode: PROVIDER_SETTINGS_DIR_MODE })
-  await writeFileAtomic(path, JSON.stringify(payload, null, 2), { mode: PROVIDER_SETTINGS_FILE_MODE })
+  await mkdir(dirname(path), {
+    recursive: true,
+    mode: PROVIDER_SETTINGS_DIR_MODE,
+  })
+  await writeFileAtomic(path, JSON.stringify(payload, null, 2), {
+    mode: PROVIDER_SETTINGS_FILE_MODE,
+  })
 }
 
 async function mutateProviderState<T>(
@@ -198,12 +213,17 @@ export async function updateProviderSettings(
 ): Promise<ProviderSettings> {
   return mutateProviderState((state) => {
     state.settings = {
-      defaultProvider: normalizeProviderId(patch.defaultProvider) || state.settings.defaultProvider,
-      safetyProfile: normalizeSafetyProfile(patch.safetyProfile) || state.settings.safetyProfile,
+      defaultProvider:
+        normalizeProviderId(patch.defaultProvider) ||
+        state.settings.defaultProvider,
+      safetyProfile:
+        normalizeSafetyProfile(patch.safetyProfile) ||
+        state.settings.safetyProfile,
       features: {
-        codexProvider: typeof patch.features?.codexProvider === "boolean"
-          ? patch.features.codexProvider
-          : state.settings.features.codexProvider,
+        codexProvider:
+          typeof patch.features?.codexProvider === "boolean"
+            ? patch.features.codexProvider
+            : state.settings.features.codexProvider,
       },
     }
     return state.settings
@@ -234,6 +254,8 @@ export async function clearCodexApiKey(): Promise<boolean> {
   })
 }
 
-export function __setProviderSettingsTestBindings(bindings: ElectronBindingsLike | null): void {
+export function __setProviderSettingsTestBindings(
+  bindings: ElectronBindingsLike | null,
+): void {
   electronBindingsOverride = bindings
 }

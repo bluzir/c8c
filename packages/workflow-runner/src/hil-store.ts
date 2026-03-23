@@ -4,8 +4,17 @@ import { join } from "node:path"
 import { writeFileAtomic } from "./lib/atomic-write.js"
 
 export type WorkflowHilTaskKind = "approval" | "form"
-export type WorkflowHilTaskStatus = "open" | "answered" | "rejected" | "timed_out" | "consumed"
-export type WorkflowHilTaskResolution = "approved" | "rejected" | "submitted" | "timed_out"
+export type WorkflowHilTaskStatus =
+  | "open"
+  | "answered"
+  | "rejected"
+  | "timed_out"
+  | "consumed"
+export type WorkflowHilTaskResolution =
+  | "approved"
+  | "rejected"
+  | "submitted"
+  | "timed_out"
 
 export interface WorkflowHilTaskTokenPayload {
   version: 1
@@ -15,7 +24,14 @@ export interface WorkflowHilTaskTokenPayload {
 
 export interface WorkflowHilTaskField {
   id: string
-  type: "text" | "textarea" | "number" | "boolean" | "select" | "multiselect" | "json"
+  type:
+    | "text"
+    | "textarea"
+    | "number"
+    | "boolean"
+    | "select"
+    | "multiselect"
+    | "json"
   label: string
   description?: string
   required?: boolean
@@ -183,7 +199,11 @@ function responsesDir(workspace: string, taskId: string): string {
 }
 
 function approvalDecisionPath(workspace: string, nodeId: string): string {
-  return join(workspace, "approvals", `${sanitizeTaskSegment(nodeId)}.decision.json`)
+  return join(
+    workspace,
+    "approvals",
+    `${sanitizeTaskSegment(nodeId)}.decision.json`,
+  )
 }
 
 async function readJsonFile<T>(filePath: string): Promise<T | null> {
@@ -225,17 +245,23 @@ function buildApprovalRequest(
         label: "Approve changes",
         required: true,
       },
-      ...(allowEdit ? [{
-        id: "editedContent",
-        type: "textarea" as const,
-        label: "Edited content",
-        description: "Optional edited content to use when approving this checkpoint.",
-        required: false,
-      }] : []),
+      ...(allowEdit
+        ? [
+            {
+              id: "editedContent",
+              type: "textarea" as const,
+              label: "Edited content",
+              description:
+                "Optional edited content to use when approving this checkpoint.",
+              required: false,
+            },
+          ]
+        : []),
     ],
-    defaults: allowEdit && content !== undefined
-      ? { approved: true, editedContent: content }
-      : { approved: true },
+    defaults:
+      allowEdit && content !== undefined
+        ? { approved: true, editedContent: content }
+        : { approved: true },
     metadata: {
       generatedByNodeId: nodeId,
       priority: "normal",
@@ -268,7 +294,9 @@ function buildTaskRecord(
   }
 }
 
-function buildTaskSummary(record: WorkflowHilTaskRecord): WorkflowHilTaskSummary {
+function buildTaskSummary(
+  record: WorkflowHilTaskRecord,
+): WorkflowHilTaskSummary {
   return {
     task: record.task,
     taskId: record.taskId,
@@ -300,20 +328,24 @@ export function humanTaskId(nodeId: string): string {
   return `human-${sanitizeTaskSegment(nodeId)}`
 }
 
-export function encodeWorkflowHilTaskRef(payload: WorkflowHilTaskTokenPayload): string {
+export function encodeWorkflowHilTaskRef(
+  payload: WorkflowHilTaskTokenPayload,
+): string {
   return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64url")
 }
 
-export function decodeWorkflowHilTaskRef(task: string): WorkflowHilTaskTokenPayload {
+export function decodeWorkflowHilTaskRef(
+  task: string,
+): WorkflowHilTaskTokenPayload {
   const raw = Buffer.from(task, "base64url").toString("utf-8")
   const parsed = JSON.parse(raw) as Partial<WorkflowHilTaskTokenPayload>
 
   if (
-    parsed.version !== 1
-    || typeof parsed.workspace !== "string"
-    || !parsed.workspace
-    || typeof parsed.taskId !== "string"
-    || !parsed.taskId
+    parsed.version !== 1 ||
+    typeof parsed.workspace !== "string" ||
+    !parsed.workspace ||
+    typeof parsed.taskId !== "string" ||
+    !parsed.taskId
   ) {
     throw new Error("Invalid HIL task token")
   }
@@ -321,12 +353,18 @@ export function decodeWorkflowHilTaskRef(task: string): WorkflowHilTaskTokenPayl
   return parsed as WorkflowHilTaskTokenPayload
 }
 
-export async function upsertApprovalHilTask(request: UpsertApprovalHilTaskRequest): Promise<WorkflowHilTaskRecord> {
+export async function upsertApprovalHilTask(
+  request: UpsertApprovalHilTaskRequest,
+): Promise<WorkflowHilTaskRecord> {
   const taskId = approvalTaskId(request.nodeId)
   const taskDir = hilTaskDir(request.workspace, taskId)
   const now = Date.now()
-  const existingState = await readJsonFile<WorkflowHilTaskState>(statePath(request.workspace, taskId))
-  const existingLatestResponse = await readJsonFile<WorkflowHilTaskResponse>(latestResponsePath(request.workspace, taskId))
+  const existingState = await readJsonFile<WorkflowHilTaskState>(
+    statePath(request.workspace, taskId),
+  )
+  const existingLatestResponse = await readJsonFile<WorkflowHilTaskResponse>(
+    latestResponsePath(request.workspace, taskId),
+  )
   const taskRequest = buildApprovalRequest(
     request.title,
     request.message,
@@ -360,18 +398,36 @@ export async function upsertApprovalHilTask(request: UpsertApprovalHilTaskReques
 
   await mkdir(responsesDir(request.workspace, taskId), { recursive: true })
   await mkdir(taskDir, { recursive: true })
-  await writeFileAtomic(requestPath(request.workspace, taskId), JSON.stringify(taskRequest, null, 2))
-  await writeFileAtomic(statePath(request.workspace, taskId), JSON.stringify(taskState, null, 2))
+  await writeFileAtomic(
+    requestPath(request.workspace, taskId),
+    JSON.stringify(taskRequest, null, 2),
+  )
+  await writeFileAtomic(
+    statePath(request.workspace, taskId),
+    JSON.stringify(taskState, null, 2),
+  )
 
-  return buildTaskRecord(request.workspace, taskId, taskRequest, taskState, existingLatestResponse)
+  return buildTaskRecord(
+    request.workspace,
+    taskId,
+    taskRequest,
+    taskState,
+    existingLatestResponse,
+  )
 }
 
-export async function upsertHumanHilTask(request: UpsertHumanHilTaskRequest): Promise<WorkflowHilTaskRecord> {
+export async function upsertHumanHilTask(
+  request: UpsertHumanHilTaskRequest,
+): Promise<WorkflowHilTaskRecord> {
   const taskId = request.taskId || humanTaskId(request.nodeId)
   const taskDir = hilTaskDir(request.workspace, taskId)
   const now = Date.now()
-  const existingState = await readJsonFile<WorkflowHilTaskState>(statePath(request.workspace, taskId))
-  const existingLatestResponse = await readJsonFile<WorkflowHilTaskResponse>(latestResponsePath(request.workspace, taskId))
+  const existingState = await readJsonFile<WorkflowHilTaskState>(
+    statePath(request.workspace, taskId),
+  )
+  const existingLatestResponse = await readJsonFile<WorkflowHilTaskResponse>(
+    latestResponsePath(request.workspace, taskId),
+  )
   const taskRequest = request.request
   const taskState: WorkflowHilTaskState = {
     version: 1,
@@ -400,10 +456,22 @@ export async function upsertHumanHilTask(request: UpsertHumanHilTaskRequest): Pr
 
   await mkdir(responsesDir(request.workspace, taskId), { recursive: true })
   await mkdir(taskDir, { recursive: true })
-  await writeFileAtomic(requestPath(request.workspace, taskId), JSON.stringify(taskRequest, null, 2))
-  await writeFileAtomic(statePath(request.workspace, taskId), JSON.stringify(taskState, null, 2))
+  await writeFileAtomic(
+    requestPath(request.workspace, taskId),
+    JSON.stringify(taskRequest, null, 2),
+  )
+  await writeFileAtomic(
+    statePath(request.workspace, taskId),
+    JSON.stringify(taskState, null, 2),
+  )
 
-  return buildTaskRecord(request.workspace, taskId, taskRequest, taskState, existingLatestResponse)
+  return buildTaskRecord(
+    request.workspace,
+    taskId,
+    taskRequest,
+    taskState,
+    existingLatestResponse,
+  )
 }
 
 export async function getWorkflowHilTask(
@@ -413,14 +481,18 @@ export async function getWorkflowHilTask(
   const [request, state, latestResponse] = await Promise.all([
     readJsonFile<WorkflowHilTaskRequest>(requestPath(workspace, taskId)),
     readJsonFile<WorkflowHilTaskState>(statePath(workspace, taskId)),
-    readJsonFile<WorkflowHilTaskResponse>(latestResponsePath(workspace, taskId)),
+    readJsonFile<WorkflowHilTaskResponse>(
+      latestResponsePath(workspace, taskId),
+    ),
   ])
 
   if (!request || !state) return null
   return buildTaskRecord(workspace, taskId, request, state, latestResponse)
 }
 
-export async function getWorkflowHilTaskByRef(task: string): Promise<WorkflowHilTaskRecord | null> {
+export async function getWorkflowHilTaskByRef(
+  task: string,
+): Promise<WorkflowHilTaskRecord | null> {
   const payload = decodeWorkflowHilTaskRef(task)
   return getWorkflowHilTask(payload.workspace, payload.taskId)
 }
@@ -462,7 +534,9 @@ function normalizeTaskResponse(
       resolution: normalized.approved ? "approved" : "rejected",
       answers: {
         approved: normalized.approved,
-        ...(normalized.editedContent !== undefined ? { editedContent: normalized.editedContent } : {}),
+        ...(normalized.editedContent !== undefined
+          ? { editedContent: normalized.editedContent }
+          : {}),
       },
       nextStatus: normalized.approved ? "answered" : "rejected",
     }
@@ -471,7 +545,12 @@ function normalizeTaskResponse(
   if (resolutionOverride === "rejected") {
     return {
       resolution: "rejected",
-      answers: data.answers && typeof data.answers === "object" && !Array.isArray(data.answers) ? data.answers : {},
+      answers:
+        data.answers &&
+        typeof data.answers === "object" &&
+        !Array.isArray(data.answers)
+          ? data.answers
+          : {},
       nextStatus: "rejected",
     }
   }
@@ -479,7 +558,12 @@ function normalizeTaskResponse(
   if (resolutionOverride === "timed_out") {
     return {
       resolution: "timed_out",
-      answers: data.answers && typeof data.answers === "object" && !Array.isArray(data.answers) ? data.answers : {},
+      answers:
+        data.answers &&
+        typeof data.answers === "object" &&
+        !Array.isArray(data.answers)
+          ? data.answers
+          : {},
       nextStatus: "timed_out",
     }
   }
@@ -490,7 +574,9 @@ function normalizeTaskResponse(
       resolution: normalized.approved ? "submitted" : "rejected",
       answers: {
         approved: normalized.approved,
-        ...(normalized.editedContent !== undefined ? { editedContent: normalized.editedContent } : {}),
+        ...(normalized.editedContent !== undefined
+          ? { editedContent: normalized.editedContent }
+          : {}),
       },
       nextStatus: normalized.approved ? "answered" : "rejected",
     }
@@ -516,9 +602,18 @@ export async function writeWorkflowHilTaskResponse(
     throw new Error(`HIL task not found: ${request.taskId}`)
   }
 
-  const normalized = normalizeTaskResponse(existing, request.data, request.resolution)
-  if (existing.latestResponse?.metadata.idempotencyKey && request.idempotencyKey) {
-    if (existing.latestResponse.metadata.idempotencyKey === request.idempotencyKey) {
+  const normalized = normalizeTaskResponse(
+    existing,
+    request.data,
+    request.resolution,
+  )
+  if (
+    existing.latestResponse?.metadata.idempotencyKey &&
+    request.idempotencyKey
+  ) {
+    if (
+      existing.latestResponse.metadata.idempotencyKey === request.idempotencyKey
+    ) {
       return existing
     }
   }
@@ -549,7 +644,9 @@ export async function writeWorkflowHilTaskResponse(
     responseRevision: revision,
   }
 
-  await mkdir(responsesDir(request.workspace, request.taskId), { recursive: true })
+  await mkdir(responsesDir(request.workspace, request.taskId), {
+    recursive: true,
+  })
   const responseFileName = `${String(revision).padStart(4, "0")}.json`
   await writeFileAtomic(
     join(responsesDir(request.workspace, request.taskId), responseFileName),
@@ -566,19 +663,30 @@ export async function writeWorkflowHilTaskResponse(
   if (existing.state.checkpointKind === "approval") {
     await mkdir(join(request.workspace, "approvals"), { recursive: true })
     const approved = Boolean(normalized.answers.approved)
-    const editedContent = typeof normalized.answers.editedContent === "string"
-      ? normalized.answers.editedContent
-      : undefined
+    const editedContent =
+      typeof normalized.answers.editedContent === "string"
+        ? normalized.answers.editedContent
+        : undefined
     await writeFileAtomic(
       approvalDecisionPath(request.workspace, existing.state.nodeId),
-      JSON.stringify({
-        approved,
-        ...(editedContent !== undefined ? { editedContent } : {}),
-      }, null, 2),
+      JSON.stringify(
+        {
+          approved,
+          ...(editedContent !== undefined ? { editedContent } : {}),
+        },
+        null,
+        2,
+      ),
     )
   }
 
-  return buildTaskRecord(request.workspace, request.taskId, existing.request, nextState, response)
+  return buildTaskRecord(
+    request.workspace,
+    request.taskId,
+    existing.request,
+    nextState,
+    response,
+  )
 }
 
 export async function markWorkflowHilTaskConsumed(
@@ -598,7 +706,13 @@ export async function markWorkflowHilTaskConsumed(
     statePath(workspace, taskId),
     JSON.stringify(nextState, null, 2),
   )
-  return buildTaskRecord(workspace, taskId, existing.request, nextState, existing.latestResponse)
+  return buildTaskRecord(
+    workspace,
+    taskId,
+    existing.request,
+    nextState,
+    existing.latestResponse,
+  )
 }
 
 export async function resolveWorkflowHilTaskByRef(
@@ -616,7 +730,9 @@ export async function resolveWorkflowHilTaskByRef(
 async function listRunWorkspaces(root: string): Promise<string[]> {
   try {
     const entries = await readdir(root, { withFileTypes: true })
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => join(root, entry.name))
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(root, entry.name))
   } catch {
     return []
   }
@@ -624,8 +740,12 @@ async function listRunWorkspaces(root: string): Promise<string[]> {
 
 async function listTaskIds(workspace: string): Promise<string[]> {
   try {
-    const entries = await readdir(hilTasksDir(workspace), { withFileTypes: true })
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+    const entries = await readdir(hilTasksDir(workspace), {
+      withFileTypes: true,
+    })
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
   } catch {
     return []
   }

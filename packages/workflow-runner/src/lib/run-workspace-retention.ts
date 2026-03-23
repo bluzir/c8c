@@ -9,7 +9,10 @@ export interface RunWorkspaceRetentionPolicy {
   maxAgeMs: number
 }
 
-function parsePositiveInteger(value: string | undefined, fallback: number): number {
+function parsePositiveInteger(
+  value: string | undefined,
+  fallback: number,
+): number {
   const raw = Number(value)
   if (Number.isFinite(raw) && raw >= 1) {
     return Math.max(1, Math.floor(raw))
@@ -44,21 +47,24 @@ export async function cleanupRunWorkspaces(
     return 0
   }
 
-  const directories = await Promise.all(entries
-    .filter((entry) => entry.isDirectory())
-    .map(async (entry) => {
-      const fullPath = join(runsDir, entry.name)
-      const info = await stat(fullPath)
-      return {
-        path: fullPath,
-        mtimeMs: info.mtimeMs,
-      }
-    }))
+  const directories = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const fullPath = join(runsDir, entry.name)
+        const info = await stat(fullPath)
+        return {
+          path: fullPath,
+          mtimeMs: info.mtimeMs,
+        }
+      }),
+  )
 
   directories.sort((left, right) => right.mtimeMs - left.mtimeMs)
 
-  const removals = directories.filter((entry, index) =>
-    index >= policy.maxWorkspaces || now - entry.mtimeMs > policy.maxAgeMs,
+  const removals = directories.filter(
+    (entry, index) =>
+      index >= policy.maxWorkspaces || now - entry.mtimeMs > policy.maxAgeMs,
   )
 
   for (const entry of removals) {

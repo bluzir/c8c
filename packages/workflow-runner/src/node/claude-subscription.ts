@@ -15,7 +15,12 @@ const SUBSCRIPTION_AUTH_METHODS = new Set([
   "claude-code",
 ])
 
-const NON_SUBSCRIPTION_PLAN_VALUES = new Set(["none", "free", "unknown", "unavailable"])
+const NON_SUBSCRIPTION_PLAN_VALUES = new Set([
+  "none",
+  "free",
+  "unknown",
+  "unavailable",
+])
 
 interface ParsedClaudeAuthStatus {
   loggedIn: boolean
@@ -47,16 +52,16 @@ function inferHasSubscription(parsed: ParsedAuthPayload): boolean {
   const loggedIn = parsed.loggedIn === true
   if (!loggedIn) return false
 
-  const hintedPlan = normalizePlan(parsed.subscriptionType)
-    ?? normalizePlan(parsed.subscription)
-    ?? normalizePlan(parsed.plan)
+  const hintedPlan =
+    normalizePlan(parsed.subscriptionType) ??
+    normalizePlan(parsed.subscription) ??
+    normalizePlan(parsed.plan)
   if (hintedPlan) {
     return !NON_SUBSCRIPTION_PLAN_VALUES.has(hintedPlan.toLowerCase())
   }
 
-  const authMethod = typeof parsed.authMethod === "string"
-    ? parsed.authMethod.toLowerCase()
-    : ""
+  const authMethod =
+    typeof parsed.authMethod === "string" ? parsed.authMethod.toLowerCase() : ""
   if (!authMethod) return false
 
   if (SUBSCRIPTION_AUTH_METHODS.has(authMethod)) return true
@@ -65,7 +70,10 @@ function inferHasSubscription(parsed: ParsedAuthPayload): boolean {
   return false
 }
 
-function statusFromError(errorMessage: string, cliInstalled: boolean): ClaudeCodeSubscriptionStatus {
+function statusFromError(
+  errorMessage: string,
+  cliInstalled: boolean,
+): ClaudeCodeSubscriptionStatus {
   return {
     checkedAt: Date.now(),
     cliInstalled,
@@ -77,7 +85,9 @@ function statusFromError(errorMessage: string, cliInstalled: boolean): ClaudeCod
   }
 }
 
-export function parseClaudeAuthStatus(raw: string): ParsedClaudeAuthStatus | null {
+export function parseClaudeAuthStatus(
+  raw: string,
+): ParsedClaudeAuthStatus | null {
   try {
     const parsedUnknown = JSON.parse(raw) as unknown
     const parsed = asRecord(parsedUnknown)
@@ -85,8 +95,10 @@ export function parseClaudeAuthStatus(raw: string): ParsedClaudeAuthStatus | nul
 
     return {
       loggedIn: parsed.loggedIn === true,
-      authMethod: typeof parsed.authMethod === "string" ? parsed.authMethod : null,
-      apiProvider: typeof parsed.apiProvider === "string" ? parsed.apiProvider : null,
+      authMethod:
+        typeof parsed.authMethod === "string" ? parsed.authMethod : null,
+      apiProvider:
+        typeof parsed.apiProvider === "string" ? parsed.apiProvider : null,
       hasSubscription: inferHasSubscription(parsed),
     }
   } catch {
@@ -139,10 +151,16 @@ export async function getClaudeCodeSubscriptionStatus(): Promise<ClaudeCodeSubsc
     }
 
     if (commandError.code === "ENOENT") {
-      return statusFromError("Claude CLI is not installed or not available in PATH.", false)
+      return statusFromError(
+        "Claude CLI is not installed or not available in PATH.",
+        false,
+      )
     }
 
     const message = commandError.message || "Failed to read Claude auth status."
-    return statusFromError(message, explicitExecutableFound || commandError.code !== "ENOENT")
+    return statusFromError(
+      message,
+      explicitExecutableFound || commandError.code !== "ENOENT",
+    )
   }
 }

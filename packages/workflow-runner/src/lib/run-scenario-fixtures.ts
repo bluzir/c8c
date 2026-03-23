@@ -1,8 +1,17 @@
-import type { NodeState, Workflow, WorkflowInput, WorkflowNode } from "../schema.js"
+import type {
+  NodeState,
+  Workflow,
+  WorkflowInput,
+  WorkflowNode,
+} from "../schema.js"
 import type { RuntimeWorkflow } from "./runtime-graph.js"
 
 export interface RunScenarioFixture {
-  name: "failed-linear" | "failed-fanout" | "blocked-approval" | "partial-continue"
+  name:
+    | "failed-linear"
+    | "failed-fanout"
+    | "blocked-approval"
+    | "partial-continue"
   workflow: Workflow
   runtimeWorkflow: RuntimeWorkflow
   input: WorkflowInput
@@ -11,7 +20,10 @@ export interface RunScenarioFixture {
   expectedResumeNodeId: string
 }
 
-function state(status: NodeState["status"], overrides: Partial<NodeState> = {}): NodeState {
+function state(
+  status: NodeState["status"],
+  overrides: Partial<NodeState> = {},
+): NodeState {
   return {
     status,
     attempts: status === "completed" ? 1 : 0,
@@ -33,7 +45,12 @@ function skillNode(id: string, prompt = id, y = 0): WorkflowNode {
 }
 
 function splitterNode(id: string): WorkflowNode {
-  return { id, type: "splitter", position: { x: 100, y: 0 }, config: { maxBranches: 8 } }
+  return {
+    id,
+    type: "splitter",
+    position: { x: 100, y: 0 },
+    config: { maxBranches: 8 },
+  }
 }
 
 function approvalNode(id: string): WorkflowNode {
@@ -41,7 +58,11 @@ function approvalNode(id: string): WorkflowNode {
     id,
     type: "approval",
     position: { x: 100, y: 0 },
-    config: { message: "Approve changes", show_content: true, allow_edit: true },
+    config: {
+      message: "Approve changes",
+      show_content: true,
+      allow_edit: true,
+    },
   }
 }
 
@@ -112,10 +133,30 @@ export function createFailedFanOutScenario(): RunScenarioFixture {
       ],
       edges: [
         ...workflow.edges,
-        { id: "b1", source: "splitter", target: "audit::security", type: "default" },
-        { id: "b2", source: "splitter", target: "audit::quality", type: "default" },
-        { id: "b3", source: "audit::security", target: "merge", type: "default" },
-        { id: "b4", source: "audit::quality", target: "merge", type: "default" },
+        {
+          id: "b1",
+          source: "splitter",
+          target: "audit::security",
+          type: "default",
+        },
+        {
+          id: "b2",
+          source: "splitter",
+          target: "audit::quality",
+          type: "default",
+        },
+        {
+          id: "b3",
+          source: "audit::security",
+          target: "merge",
+          type: "default",
+        },
+        {
+          id: "b4",
+          source: "audit::quality",
+          target: "merge",
+          type: "default",
+        },
       ],
       runtimeMeta: {
         "audit::security": {

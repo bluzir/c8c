@@ -34,7 +34,11 @@ export interface RunPidManifest {
 
 const manifestQueues = new Map<string, Promise<void>>()
 
-function createManifest(workspace: string, runId: string, mode: RunPidManifestMode): RunPidManifest {
+function createManifest(
+  workspace: string,
+  runId: string,
+  mode: RunPidManifestMode,
+): RunPidManifest {
   return {
     version: RUN_PID_MANIFEST_VERSION,
     runId,
@@ -49,16 +53,20 @@ function createManifest(workspace: string, runId: string, mode: RunPidManifestMo
 function isValidManifest(value: unknown): value is RunPidManifest {
   if (!value || typeof value !== "object") return false
   const candidate = value as Partial<RunPidManifest>
-  return typeof candidate.runId === "string"
-    && typeof candidate.mode === "string"
-    && Array.isArray(candidate.processes)
+  return (
+    typeof candidate.runId === "string" &&
+    typeof candidate.mode === "string" &&
+    Array.isArray(candidate.processes)
+  )
 }
 
 export function runPidManifestPath(workspace: string): string {
   return join(workspace, RUN_PID_MANIFEST_FILE)
 }
 
-export async function loadRunPidManifest(workspace: string): Promise<RunPidManifest | null> {
+export async function loadRunPidManifest(
+  workspace: string,
+): Promise<RunPidManifest | null> {
   try {
     const raw = await readFile(runPidManifestPath(workspace), "utf-8")
     const parsed = JSON.parse(raw) as unknown
@@ -69,10 +77,19 @@ export async function loadRunPidManifest(workspace: string): Promise<RunPidManif
   }
 }
 
-async function withManifestLock<T>(workspace: string, operation: () => Promise<T>): Promise<T> {
+async function withManifestLock<T>(
+  workspace: string,
+  operation: () => Promise<T>,
+): Promise<T> {
   const previous = manifestQueues.get(workspace) || Promise.resolve()
   const next = previous.then(operation)
-  manifestQueues.set(workspace, next.then(() => undefined, () => undefined))
+  manifestQueues.set(
+    workspace,
+    next.then(
+      () => undefined,
+      () => undefined,
+    ),
+  )
   return next
 }
 
@@ -87,9 +104,16 @@ async function mutateManifest(
     const manifest = existing || createManifest(workspace, runId, mode)
     mutate(manifest)
     manifest.updatedAt = Date.now()
-    await writeFileAtomic(runPidManifestPath(workspace), JSON.stringify(manifest, null, 2))
+    await writeFileAtomic(
+      runPidManifestPath(workspace),
+      JSON.stringify(manifest, null, 2),
+    )
   }).catch((error) => {
-    logWarn("run-pid-manifest", "mutate_failed", { workspace, runId, error: String(error) })
+    logWarn("run-pid-manifest", "mutate_failed", {
+      workspace,
+      runId,
+      error: String(error),
+    })
   })
 }
 
@@ -100,9 +124,16 @@ export async function initRunPidManifest(
 ): Promise<void> {
   await withManifestLock(workspace, async () => {
     const manifest = createManifest(workspace, runId, mode)
-    await writeFileAtomic(runPidManifestPath(workspace), JSON.stringify(manifest, null, 2))
+    await writeFileAtomic(
+      runPidManifestPath(workspace),
+      JSON.stringify(manifest, null, 2),
+    )
   }).catch((error) => {
-    logWarn("run-pid-manifest", "init_failed", { workspace, runId, error: String(error) })
+    logWarn("run-pid-manifest", "init_failed", {
+      workspace,
+      runId,
+      error: String(error),
+    })
   })
 }
 
@@ -119,7 +150,9 @@ export async function recordRunPidStart(
     manifest.runId = runId
     manifest.mode = mode
     manifest.status = "running"
-    const existing = manifest.processes.find((entry) => entry.pid === pid && entry.active)
+    const existing = manifest.processes.find(
+      (entry) => entry.pid === pid && entry.active,
+    )
     if (existing) {
       existing.role = role
       existing.nodeId = nodeId
@@ -145,7 +178,9 @@ export async function recordRunPidExit(
 ): Promise<void> {
   if (!Number.isFinite(pid) || pid <= 0) return
   await mutateManifest(workspace, runId, mode, (manifest) => {
-    const activeMatch = manifest.processes.find((entry) => entry.pid === pid && entry.active)
+    const activeMatch = manifest.processes.find(
+      (entry) => entry.pid === pid && entry.active,
+    )
     const fallbackMatch = manifest.processes.find((entry) => entry.pid === pid)
     const target = activeMatch || fallbackMatch
     if (!target) {

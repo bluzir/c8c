@@ -1,4 +1,12 @@
-import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -6,7 +14,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const electronState = {
   homeDir: "",
   encryptionAvailable: true,
-  encryptString: vi.fn((value: string) => Buffer.from(`encrypted:${value}`, "utf8")),
+  encryptString: vi.fn((value: string) =>
+    Buffer.from(`encrypted:${value}`, "utf8"),
+  ),
   decryptString: vi.fn((value: Buffer) => {
     const decoded = value.toString("utf8")
     if (!decoded.startsWith("encrypted:")) {
@@ -89,12 +99,17 @@ describe("workflow-runner provider-settings", () => {
   it("still allows non-secret settings updates when no secret is present", async () => {
     electronState.encryptionAvailable = false
 
-    await expect(updateProviderSettings({ defaultProvider: "codex" })).resolves.toMatchObject({
+    await expect(
+      updateProviderSettings({ defaultProvider: "codex" }),
+    ).resolves.toMatchObject({
       defaultProvider: "codex",
     })
 
     const raw = await readFile(providerSettingsFile(homeDir), "utf8")
-    const parsed = JSON.parse(raw) as { codexApiKey?: string; codexApiKeyEncrypted?: string }
+    const parsed = JSON.parse(raw) as {
+      codexApiKey?: string
+      codexApiKeyEncrypted?: string
+    }
     expect(parsed.codexApiKey).toBeUndefined()
     expect(parsed.codexApiKeyEncrypted).toBeUndefined()
   })
@@ -108,14 +123,18 @@ describe("workflow-runner provider-settings", () => {
 
   it("normalizes malformed persisted payloads and trims legacy plaintext keys on read", async () => {
     await mkdir(providerSettingsDir(homeDir), { recursive: true, mode: 0o700 })
-    await writeFile(providerSettingsFile(homeDir), JSON.stringify({
-      defaultProvider: "not-a-provider",
-      safetyProfile: "not-a-profile",
-      features: {
-        codexProvider: "yes",
-      },
-      codexApiKey: "  legacy-key  ",
-    }), "utf8")
+    await writeFile(
+      providerSettingsFile(homeDir),
+      JSON.stringify({
+        defaultProvider: "not-a-provider",
+        safetyProfile: "not-a-profile",
+        features: {
+          codexProvider: "yes",
+        },
+        codexApiKey: "  legacy-key  ",
+      }),
+      "utf8",
+    )
 
     await expect(getProviderSettings()).resolves.toEqual({
       defaultProvider: "claude",

@@ -30,14 +30,19 @@ describe("run-provider-execution", () => {
   })
 
   it("detects partial skill progress from successful write tools", () => {
-    expect(hasPartialSkillProgress([
-      {
-        type: "tool_result",
-        tool: "Write",
-        status: "success",
-        output: "created file",
-        timestamp: Date.now(),
-      },
-    ], undefined)).toBe(true)
+    expect(
+      hasPartialSkillProgress(
+        [
+          {
+            type: "tool_result",
+            tool: "Write",
+            status: "success",
+            output: "created file",
+            timestamp: Date.now(),
+          },
+        ],
+        undefined,
+      ),
+    ).toBe(true)
   })
 })

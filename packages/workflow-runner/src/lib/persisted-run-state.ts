@@ -17,12 +17,20 @@ export interface PersistedRunState {
   humanTasks?: Record<string, NodeState["humanTask"]>
 }
 
-const RESUMABLE_NODE_STATUSES = new Set(["pending", "queued", "running", "waiting_approval", "waiting_human"])
+const RESUMABLE_NODE_STATUSES = new Set([
+  "pending",
+  "queued",
+  "running",
+  "waiting_approval",
+  "waiting_human",
+])
 
 export function findResumeNodeId(savedState: PersistedRunState): string | null {
   const runtimeOrder = (savedState.runtimeNodes || []).map((node) => node.id)
   const knownIds = new Set(runtimeOrder)
-  const remainingIds = Object.keys(savedState.nodeStates).filter((id) => !knownIds.has(id))
+  const remainingIds = Object.keys(savedState.nodeStates).filter(
+    (id) => !knownIds.has(id),
+  )
   const orderedIds = [...runtimeOrder, ...remainingIds]
 
   for (const nodeId of orderedIds) {
@@ -40,6 +48,7 @@ export function buildRuntimeWorkflowFromSavedState(
     ...workflow,
     nodes: savedState.runtimeNodes || [...workflow.nodes],
     edges: savedState.runtimeEdges || [...workflow.edges],
-    runtimeMeta: (savedState.runtimeMeta || {}) as RuntimeWorkflow["runtimeMeta"],
+    runtimeMeta: (savedState.runtimeMeta ||
+      {}) as RuntimeWorkflow["runtimeMeta"],
   }
 }

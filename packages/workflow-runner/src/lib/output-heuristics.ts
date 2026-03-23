@@ -27,7 +27,10 @@ const REFUSAL_PHRASES = [
  * Run heuristic checks on skill node output.
  * Returns an array of warnings (empty if output looks fine).
  */
-export function checkOutputHeuristics(output: string, nodeLabel: string): OutputHeuristicWarning[] {
+export function checkOutputHeuristics(
+  output: string,
+  nodeLabel: string,
+): OutputHeuristicWarning[] {
   const warnings: OutputHeuristicWarning[] = []
 
   // --- Empty / near-empty ---
@@ -52,7 +55,11 @@ export function checkOutputHeuristics(output: string, nodeLabel: string): Output
   return warnings
 }
 
-function checkRepetition(output: string, nodeLabel: string, warnings: OutputHeuristicWarning[]): void {
+function checkRepetition(
+  output: string,
+  nodeLabel: string,
+  warnings: OutputHeuristicWarning[],
+): void {
   // Normalise whitespace and extract overlapping 5-word windows
   const words = output.toLowerCase().replace(/\s+/g, " ").trim().split(" ")
   if (words.length < 20) return // too short to meaningfully check
@@ -74,7 +81,11 @@ function checkRepetition(output: string, nodeLabel: string, warnings: OutputHeur
   }
 }
 
-function checkRefusal(output: string, nodeLabel: string, warnings: OutputHeuristicWarning[]): void {
+function checkRefusal(
+  output: string,
+  nodeLabel: string,
+  warnings: OutputHeuristicWarning[],
+): void {
   const lower = output.toLowerCase()
   let refusalChars = 0
 

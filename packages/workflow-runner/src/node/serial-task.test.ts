@@ -47,7 +47,10 @@ describe("workflow-runner serial-task", () => {
     expect(started).toEqual(["first"])
 
     gate.resolve()
-    await expect(Promise.all([first, second])).resolves.toEqual(["first", "second"])
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      "first",
+      "second",
+    ])
     expect(maxActive).toBe(1)
   })
 
@@ -56,13 +59,14 @@ describe("workflow-runner serial-task", () => {
     let active = 0
     let maxActive = 0
 
-    const runTask = (key: string) => runSerialTask(key, async () => {
-      active += 1
-      maxActive = Math.max(maxActive, active)
-      await gate.promise
-      active -= 1
-      return key
-    })
+    const runTask = (key: string) =>
+      runSerialTask(key, async () => {
+        active += 1
+        maxActive = Math.max(maxActive, active)
+        await gate.promise
+        active -= 1
+        return key
+      })
 
     const first = runTask("provider-settings")
     const second = runTask("mcp-manager")

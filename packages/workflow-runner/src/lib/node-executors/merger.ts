@@ -1,9 +1,6 @@
 import type { NodeInput } from "@shared/types"
 
-export function mergeResults(
-  inputs: NodeInput[],
-  strategy: string,
-): string {
+export function mergeResults(inputs: NodeInput[], strategy: string): string {
   if (inputs.length === 0) return ""
   if (inputs.length === 1) return inputs[0].content
 
@@ -55,7 +52,8 @@ export function buildMergerPrompt(
     return [
       "You are merging results from multiple parallel branches into a single cohesive output.",
       "",
-      userPrompt || "Synthesize these results into a single, well-organized document.",
+      userPrompt ||
+        "Synthesize these results into a single, well-organized document.",
       "",
       "--- BRANCH RESULTS ---",
       "",
@@ -67,7 +65,8 @@ export function buildMergerPrompt(
   return [
     "You are selecting the best result from multiple parallel branches.",
     "",
-    userPrompt || "Compare these results and return only the best one, explaining why it's superior.",
+    userPrompt ||
+      "Compare these results and return only the best one, explaining why it's superior.",
     "",
     "--- BRANCH RESULTS ---",
     "",

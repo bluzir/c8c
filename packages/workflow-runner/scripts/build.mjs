@@ -37,9 +37,13 @@ await build({
   tsconfig: resolve(packageRoot, "tsconfig.json"),
 })
 
-await execFile(process.execPath, [tscCliPath, "-p", resolve(packageRoot, "tsconfig.declarations.json")], {
-  cwd: packageRoot,
-})
+await execFile(
+  process.execPath,
+  [tscCliPath, "-p", resolve(packageRoot, "tsconfig.declarations.json")],
+  {
+    cwd: packageRoot,
+  },
+)
 
 await Promise.all([
   writeDeclarationWrapper("index"),

@@ -22,7 +22,12 @@ function extractToolResultOutput(content: unknown): string {
     const text = content
       .map((item) => {
         if (typeof item === "string") return item
-        if (isRecord(item) && item.type === "text" && typeof item.text === "string") return item.text
+        if (
+          isRecord(item) &&
+          item.type === "text" &&
+          typeof item.text === "string"
+        )
+          return item.text
         return ""
       })
       .filter(Boolean)
@@ -38,10 +43,14 @@ function extractToolResultOutput(content: unknown): string {
   return String(content)
 }
 
-function resolveToolName(block: Record<string, unknown>, ctx: ParseContext): string {
+function resolveToolName(
+  block: Record<string, unknown>,
+  ctx: ParseContext,
+): string {
   if (typeof block.name === "string") return block.name
   if (typeof block.tool === "string") return block.tool
-  const toolUseId = typeof block.tool_use_id === "string" ? block.tool_use_id : undefined
+  const toolUseId =
+    typeof block.tool_use_id === "string" ? block.tool_use_id : undefined
   if (toolUseId) {
     const mapped = ctx.toolNameByUseId.get(toolUseId)
     if (mapped) return mapped
@@ -59,7 +68,10 @@ function extractContentBlocks(content: unknown, ctx: ParseContext): LogEntry[] {
 
     if (block.type === "text" && typeof block.text === "string") {
       entries.push({ type: "text", content: block.text, timestamp })
-    } else if (block.type === "thinking" && typeof block.thinking === "string") {
+    } else if (
+      block.type === "thinking" &&
+      typeof block.thinking === "string"
+    ) {
       entries.push({ type: "thinking", content: block.thinking, timestamp })
     } else if (block.type === "tool_use" && typeof block.name === "string") {
       ctx.lastToolName = block.name
@@ -69,7 +81,9 @@ function extractContentBlocks(content: unknown, ctx: ParseContext): LogEntry[] {
       entries.push({
         type: "tool_use",
         tool: block.name,
-        input: isRecord(block.input) ? (block.input as Record<string, unknown>) : {},
+        input: isRecord(block.input)
+          ? (block.input as Record<string, unknown>)
+          : {},
         timestamp,
       })
     } else if (block.type === "tool_result") {
@@ -80,7 +94,10 @@ function extractContentBlocks(content: unknown, ctx: ParseContext): LogEntry[] {
         type: "tool_result",
         tool: toolName,
         output,
-        status: block.is_error === true || block.isError === true ? "error" : "success",
+        status:
+          block.is_error === true || block.isError === true
+            ? "error"
+            : "success",
         timestamp,
       })
     }
@@ -119,30 +136,43 @@ function parseEvent(event: unknown, ctx: ParseContext): LogEntry[] {
   }
 
   // Legacy CLI format: {"type":"tool_use","name":"Read","input":{...}}
-  if (event.type === "tool_use" && typeof event.name === "string" && !Array.isArray(event.content)) {
+  if (
+    event.type === "tool_use" &&
+    typeof event.name === "string" &&
+    !Array.isArray(event.content)
+  ) {
     ctx.lastToolName = event.name
     if (typeof event.id === "string") {
       ctx.toolNameByUseId.set(event.id, event.name)
     }
-    return [{
-      type: "tool_use",
-      tool: event.name,
-      input: isRecord(event.input) ? (event.input as Record<string, unknown>) : {},
-      timestamp,
-    }]
+    return [
+      {
+        type: "tool_use",
+        tool: event.name,
+        input: isRecord(event.input)
+          ? (event.input as Record<string, unknown>)
+          : {},
+        timestamp,
+      },
+    ]
   }
 
   // Legacy CLI format: {"type":"tool_result","name":"Read","content":"...","is_error":false}
   if (event.type === "tool_result") {
     const toolName = resolveToolName(event, ctx)
     ctx.lastToolName = toolName
-    return [{
-      type: "tool_result",
-      tool: toolName,
-      output: extractToolResultOutput(event.content),
-      status: event.is_error === true || event.isError === true ? "error" : "success",
-      timestamp,
-    }]
+    return [
+      {
+        type: "tool_result",
+        tool: toolName,
+        output: extractToolResultOutput(event.content),
+        status:
+          event.is_error === true || event.isError === true
+            ? "error"
+            : "success",
+        timestamp,
+      },
+    ]
   }
 
   // content_block_start (stream-json tool_use announcements)
@@ -151,46 +181,64 @@ function parseEvent(event: unknown, ctx: ParseContext): LogEntry[] {
   }
 
   if (event.type === "tool_progress" && typeof event.tool_name === "string") {
-    const elapsedSeconds = typeof event.elapsed_time_seconds === "number"
-      ? formatElapsedSeconds(event.elapsed_time_seconds)
-      : null
-    return [{
-      type: "text",
-      content: `[progress] ${event.tool_name} is still running${elapsedSeconds ? ` (${elapsedSeconds})` : ""}`,
-      timestamp,
-    }]
+    const elapsedSeconds =
+      typeof event.elapsed_time_seconds === "number"
+        ? formatElapsedSeconds(event.elapsed_time_seconds)
+        : null
+    return [
+      {
+        type: "text",
+        content: `[progress] ${event.tool_name} is still running${elapsedSeconds ? ` (${elapsedSeconds})` : ""}`,
+        timestamp,
+      },
+    ]
   }
 
   if (event.type === "tool_use_summary" && typeof event.summary === "string") {
-    return [{
-      type: "text",
-      content: `[progress] ${event.summary}`,
-      timestamp,
-    }]
+    return [
+      {
+        type: "text",
+        content: `[progress] ${event.summary}`,
+        timestamp,
+      },
+    ]
   }
 
-  if (event.type === "system" && event.subtype === "task_started" && typeof event.description === "string") {
-    return [{
-      type: "text",
-      content: `[progress] Started task: ${event.description}`,
-      timestamp,
-    }]
+  if (
+    event.type === "system" &&
+    event.subtype === "task_started" &&
+    typeof event.description === "string"
+  ) {
+    return [
+      {
+        type: "text",
+        content: `[progress] Started task: ${event.description}`,
+        timestamp,
+      },
+    ]
   }
 
-  if (event.type === "system" && event.subtype === "task_notification" && typeof event.summary === "string") {
+  if (
+    event.type === "system" &&
+    event.subtype === "task_notification" &&
+    typeof event.summary === "string"
+  ) {
     const status = typeof event.status === "string" ? event.status : "updated"
-    return [{
-      type: "text",
-      content: `[progress] Task ${status}: ${event.summary}`,
-      timestamp,
-    }]
+    return [
+      {
+        type: "text",
+        content: `[progress] Task ${status}: ${event.summary}`,
+        timestamp,
+      },
+    ]
   }
 
   // Messages API style: content as array of blocks
   const content = Array.isArray(event.content)
     ? event.content
-    : isRecord(event.message) && Array.isArray((event.message as Record<string, unknown>).content)
-      ? (event.message as Record<string, unknown>).content as unknown[]
+    : isRecord(event.message) &&
+        Array.isArray((event.message as Record<string, unknown>).content)
+      ? ((event.message as Record<string, unknown>).content as unknown[])
       : undefined
 
   if (content) {
@@ -199,11 +247,12 @@ function parseEvent(event: unknown, ctx: ParseContext): LogEntry[] {
 
   // Error events
   if (event.type === "error") {
-    const errText = typeof event.error === "string"
-      ? event.error
-      : typeof event.message === "string"
-        ? event.message
-        : "Unknown error"
+    const errText =
+      typeof event.error === "string"
+        ? event.error
+        : typeof event.message === "string"
+          ? event.message
+          : "Unknown error"
     return [{ type: "error", content: errText, timestamp }]
   }
 
@@ -248,7 +297,8 @@ function extractUsage(event: unknown): UsageStats | null {
       if (typeof u.input_tokens === "number") {
         return {
           input_tokens: u.input_tokens,
-          output_tokens: typeof u.output_tokens === "number" ? u.output_tokens : 0,
+          output_tokens:
+            typeof u.output_tokens === "number" ? u.output_tokens : 0,
         }
       }
     }
@@ -257,10 +307,14 @@ function extractUsage(event: unknown): UsageStats | null {
   // Top-level usage field (some CLI formats)
   if (isRecord(event.usage)) {
     const u = event.usage as Record<string, unknown>
-    if (typeof u.input_tokens === "number" || typeof u.output_tokens === "number") {
+    if (
+      typeof u.input_tokens === "number" ||
+      typeof u.output_tokens === "number"
+    ) {
       return {
         input_tokens: typeof u.input_tokens === "number" ? u.input_tokens : 0,
-        output_tokens: typeof u.output_tokens === "number" ? u.output_tokens : 0,
+        output_tokens:
+          typeof u.output_tokens === "number" ? u.output_tokens : 0,
       }
     }
   }
@@ -294,13 +348,18 @@ export class LogParser {
 
   get textContent(): string {
     return this.entries
-      .filter((e): e is Extract<LogEntry, { type: "text" }> => e.type === "text")
+      .filter(
+        (e): e is Extract<LogEntry, { type: "text" }> => e.type === "text",
+      )
       .map((e) => e.content)
       .join("")
   }
 
   get usage(): UsageStats {
-    return { input_tokens: this._inputTokens, output_tokens: this._outputTokens }
+    return {
+      input_tokens: this._inputTokens,
+      output_tokens: this._outputTokens,
+    }
   }
 
   appendEntry(entry: LogEntry): void {
@@ -317,16 +376,18 @@ export class LogParser {
       outputTokens?: number
     },
   ): boolean {
-    const nextInput = typeof usage.input_tokens === "number"
-      ? usage.input_tokens
-      : typeof usage.inputTokens === "number"
-        ? usage.inputTokens
-        : undefined
-    const nextOutput = typeof usage.output_tokens === "number"
-      ? usage.output_tokens
-      : typeof usage.outputTokens === "number"
-        ? usage.outputTokens
-        : undefined
+    const nextInput =
+      typeof usage.input_tokens === "number"
+        ? usage.input_tokens
+        : typeof usage.inputTokens === "number"
+          ? usage.inputTokens
+          : undefined
+    const nextOutput =
+      typeof usage.output_tokens === "number"
+        ? usage.output_tokens
+        : typeof usage.outputTokens === "number"
+          ? usage.outputTokens
+          : undefined
 
     let changed = false
     if (typeof nextInput === "number" && nextInput > this._inputTokens) {

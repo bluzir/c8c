@@ -1,6 +1,11 @@
 import { appendFile, open, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
-import type { NodeState, RunStatus, WorkflowEvent, WorkflowInput } from "../schema.js"
+import type {
+  NodeState,
+  RunStatus,
+  WorkflowEvent,
+  WorkflowInput,
+} from "../schema.js"
 import type { RuntimeWorkflow } from "./runtime-graph.js"
 import type { PersistedRunState } from "./persisted-run-state.js"
 import { writeFileAtomic } from "./atomic-write.js"
@@ -46,7 +51,9 @@ export interface WorkflowRunSnapshot {
   result: PersistedRunResult | null
 }
 
-export function serializeNodeStates(nodeStates: Record<string, NodeState>): PersistedRunState["nodeStates"] {
+export function serializeNodeStates(
+  nodeStates: Record<string, NodeState>,
+): PersistedRunState["nodeStates"] {
   const serializableStates: PersistedRunState["nodeStates"] = {}
   for (const [id, state] of Object.entries(nodeStates)) {
     serializableStates[id] = {
@@ -67,7 +74,9 @@ export function serializeNodeStates(nodeStates: Record<string, NodeState>): Pers
   return serializableStates
 }
 
-export function serializeHumanTasks(nodeStates: Record<string, NodeState>): PersistedRunState["humanTasks"] {
+export function serializeHumanTasks(
+  nodeStates: Record<string, NodeState>,
+): PersistedRunState["humanTasks"] {
   const humanTasks: PersistedRunState["humanTasks"] = {}
   for (const [id, state] of Object.entries(nodeStates)) {
     if (state.humanTask) {
@@ -123,21 +132,32 @@ export async function persistRunState(
   await runSerialTask(workspacePersistenceSerialKey(workspace), async () => {
     await writeFileAtomic(
       join(workspace, "run-state.json"),
-      JSON.stringify({
-        nodeStates: serializeNodeStates(nodeStates),
-        runtimeNodes: runtimeWorkflow.nodes,
-        runtimeEdges: runtimeWorkflow.edges,
-        runtimeMeta: runtimeWorkflow.runtimeMeta,
-        input,
-        humanTasks: serializeHumanTasks(nodeStates),
-      }, null, 2),
+      JSON.stringify(
+        {
+          nodeStates: serializeNodeStates(nodeStates),
+          runtimeNodes: runtimeWorkflow.nodes,
+          runtimeEdges: runtimeWorkflow.edges,
+          runtimeMeta: runtimeWorkflow.runtimeMeta,
+          input,
+          humanTasks: serializeHumanTasks(nodeStates),
+        },
+        null,
+        2,
+      ),
     )
   })
 }
 
-export async function appendEventLog(workspace: string, event: WorkflowEvent): Promise<void> {
+export async function appendEventLog(
+  workspace: string,
+  event: WorkflowEvent,
+): Promise<void> {
   await runSerialTask(workspacePersistenceSerialKey(workspace), async () => {
-    await appendFile(join(workspace, "events.jsonl"), `${JSON.stringify(event)}\n`, "utf-8")
+    await appendFile(
+      join(workspace, "events.jsonl"),
+      `${JSON.stringify(event)}\n`,
+      "utf-8",
+    )
     await trimEventLogIfNeeded(workspace)
   })
 }
@@ -147,7 +167,10 @@ export async function writeManifest(
   manifest: PersistedRunManifest,
 ): Promise<void> {
   await runSerialTask(workspacePersistenceSerialKey(workspace), async () => {
-    await writeFileAtomic(join(workspace, "manifest.json"), JSON.stringify(manifest, null, 2))
+    await writeFileAtomic(
+      join(workspace, "manifest.json"),
+      JSON.stringify(manifest, null, 2),
+    )
   })
 }
 
@@ -170,15 +193,23 @@ export async function readJsonFile<T>(filePath: string): Promise<T | null> {
   }
 }
 
-export async function readPersistedRunState(workspace: string): Promise<PersistedRunState | null> {
+export async function readPersistedRunState(
+  workspace: string,
+): Promise<PersistedRunState | null> {
   return readJsonFile<PersistedRunState>(join(workspace, "run-state.json"))
 }
 
-export async function readWorkflowRunSnapshot(workspace: string): Promise<WorkflowRunSnapshot> {
+export async function readWorkflowRunSnapshot(
+  workspace: string,
+): Promise<WorkflowRunSnapshot> {
   return {
     workspace,
-    manifest: await readJsonFile<PersistedRunManifest>(join(workspace, "manifest.json")),
+    manifest: await readJsonFile<PersistedRunManifest>(
+      join(workspace, "manifest.json"),
+    ),
     state: await readPersistedRunState(workspace),
-    result: await readJsonFile<PersistedRunResult>(join(workspace, "result.json")),
+    result: await readJsonFile<PersistedRunResult>(
+      join(workspace, "result.json"),
+    ),
   }
 }

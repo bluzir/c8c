@@ -15,7 +15,9 @@ export interface PreparedResumeExecution {
   activatedEdges: Set<string>
 }
 
-export function resolveResumeNodeIdOrThrow(savedState: PersistedRunState): string {
+export function resolveResumeNodeIdOrThrow(
+  savedState: PersistedRunState,
+): string {
   const fromNodeId = findResumeNodeId(savedState)
   if (!fromNodeId) {
     throw new Error("Cannot continue: no unfinished nodes found in run state")
@@ -32,7 +34,10 @@ export function prepareResumeExecution({
   savedState: PersistedRunState
   fromNodeId: string
 }): PreparedResumeExecution {
-  const runtimeWorkflow = buildRuntimeWorkflowFromSavedState(workflow, savedState)
+  const runtimeWorkflow = buildRuntimeWorkflowFromSavedState(
+    workflow,
+    savedState,
+  )
   const { nodeStates, activatedEdges } = prepareRerunState({
     fromNodeId,
     nodeStates: savedState.nodeStates,

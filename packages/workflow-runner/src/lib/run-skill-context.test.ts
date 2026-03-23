@@ -22,17 +22,22 @@ describe("run-skill-context", () => {
     const scannedSkill = join(workspace, "skills", "project", "SKILL.md")
     await mkdir(join(workspace, "skills", "local"), { recursive: true })
     await mkdir(join(workspace, "skills", "project"), { recursive: true })
-    await writeFile(explicitSkill, "---\ntitle: ignore\n---\nUse local checklist.")
+    await writeFile(
+      explicitSkill,
+      "---\ntitle: ignore\n---\nUse local checklist.",
+    )
     await writeFile(scannedSkill, "Use project checklist.")
 
-    const discovered: DiscoveredSkill[] = [{
-      type: "skill",
-      name: "project",
-      description: "Project skill",
-      category: "audit",
-      path: scannedSkill,
-      sourceScope: "project",
-    }]
+    const discovered: DiscoveredSkill[] = [
+      {
+        type: "skill",
+        name: "project",
+        description: "Project skill",
+        category: "audit",
+        path: scannedSkill,
+        sourceScope: "project",
+      },
+    ]
 
     const resolveSkillContext = createSkillContextResolver(
       { warn: () => {} },

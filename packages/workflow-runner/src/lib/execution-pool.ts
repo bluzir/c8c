@@ -69,7 +69,11 @@ export async function acquireExecutionSlot(): Promise<ExecutionPoolTicket> {
       if (index >= 0) {
         queue.splice(index, 1)
       }
-      waiter.reject(new Error(`Timed out waiting for an execution slot after ${executionPoolWaitTimeoutMs()}ms`))
+      waiter.reject(
+        new Error(
+          `Timed out waiting for an execution slot after ${executionPoolWaitTimeoutMs()}ms`,
+        ),
+      )
     }, executionPoolWaitTimeoutMs())
     queue.push(waiter)
   })
@@ -86,7 +90,11 @@ export async function withExecutionSlot<T>(
   }
 }
 
-export function getExecutionPoolSnapshot(): { limit: number; active: number; queued: number } {
+export function getExecutionPoolSnapshot(): {
+  limit: number
+  active: number
+  queued: number
+} {
   return {
     limit: executionPoolLimit(),
     active: activeCount,

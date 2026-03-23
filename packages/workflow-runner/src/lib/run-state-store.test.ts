@@ -2,10 +2,24 @@ import { mkdtemp, mkdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { describe, expect, it } from "vitest"
-import type { NodeState, WorkflowEvent, WorkflowInput, WorkflowNode } from "../schema"
-import { appendEventLog, persistRunState, readWorkflowRunSnapshot, writeManifest, writeRunResultSnapshot } from "./run-state-store"
+import type {
+  NodeState,
+  WorkflowEvent,
+  WorkflowInput,
+  WorkflowNode,
+} from "../schema"
+import {
+  appendEventLog,
+  persistRunState,
+  readWorkflowRunSnapshot,
+  writeManifest,
+  writeRunResultSnapshot,
+} from "./run-state-store"
 
-function createNodeState(status: NodeState["status"], overrides: Partial<NodeState> = {}): NodeState {
+function createNodeState(
+  status: NodeState["status"],
+  overrides: Partial<NodeState> = {},
+): NodeState {
   return {
     status,
     attempts: status === "completed" ? 1 : 0,
@@ -14,7 +28,10 @@ function createNodeState(status: NodeState["status"], overrides: Partial<NodeSta
   }
 }
 
-function createRuntimeNode(id: string, type: WorkflowNode["type"]): WorkflowNode {
+function createRuntimeNode(
+  id: string,
+  type: WorkflowNode["type"],
+): WorkflowNode {
   if (type === "input") {
     return { id, type, position: { x: 0, y: 0 }, config: {} }
   }
@@ -22,7 +39,12 @@ function createRuntimeNode(id: string, type: WorkflowNode["type"]): WorkflowNode
     return { id, type, position: { x: 0, y: 0 }, config: {} }
   }
   if (type === "approval") {
-    return { id, type, position: { x: 0, y: 0 }, config: { show_content: true, allow_edit: false } }
+    return {
+      id,
+      type,
+      position: { x: 0, y: 0 },
+      config: { show_content: true, allow_edit: false },
+    }
   }
   return { id, type, position: { x: 0, y: 0 }, config: { prompt: id } as never }
 }
@@ -53,7 +75,9 @@ describe("run-state-store", () => {
           createRuntimeNode("input", "input"),
           createRuntimeNode("review", "approval"),
         ],
-        edges: [{ id: "e1", source: "input", target: "review", type: "default" }],
+        edges: [
+          { id: "e1", source: "input", target: "review", type: "default" },
+        ],
         runtimeMeta: {},
       },
       { type: "text", value: "Audit this repo" },
@@ -116,6 +140,6 @@ describe("run-state-store", () => {
     expect(snapshot.result?.status).toBe("blocked")
 
     const events = await readFile(join(workspace, "events.jsonl"), "utf-8")
-    expect(events).toContain("\"type\":\"run-done\"")
+    expect(events).toContain('"type":"run-done"')
   })
 })

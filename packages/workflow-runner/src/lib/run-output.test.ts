@@ -9,7 +9,11 @@ import {
   selectIncomingInput,
 } from "./run-output"
 
-function state(status: NodeState["status"], completedAt: number, content?: string): NodeState {
+function state(
+  status: NodeState["status"],
+  completedAt: number,
+  content?: string,
+): NodeState {
   return {
     status,
     attempts: status === "completed" ? 1 : 0,
@@ -45,19 +49,22 @@ describe("run-output", () => {
       config: { skillRef: "dev/audit" },
     }
 
-    const output = createAgentNodeOutput(node, [
-      "---",
-      "diagnostic_summary:",
-      "  headline: Broken auth path",
-      "  tone: danger",
-      "  top_findings:",
-      "    - id: f1",
-      "      label: Missing auth check",
-      "---",
-      "",
-      "# Report",
-      "Failure details",
-    ].join("\n"))
+    const output = createAgentNodeOutput(
+      node,
+      [
+        "---",
+        "diagnostic_summary:",
+        "  headline: Broken auth path",
+        "  tone: danger",
+        "  top_findings:",
+        "    - id: f1",
+        "      label: Missing auth check",
+        "---",
+        "",
+        "# Report",
+        "Failure details",
+      ].join("\n"),
+    )
 
     expect(output.content).toBe("# Report\nFailure details")
     expect(output.metadata.diagnostic_summary).toMatchObject({

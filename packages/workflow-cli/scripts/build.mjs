@@ -17,14 +17,11 @@ async function writeOpenClawExecutableWrappers() {
   await mkdir(distDir, { recursive: true })
   await writeFile(
     lobsterPath,
-    "#!/usr/bin/env node\nimport { main } from \"./index.js\"\nvoid main()\n",
+    '#!/usr/bin/env node\nimport { main } from "./index.js"\nvoid main()\n',
   )
   await chmod(lobsterPath, 0o755)
 
-  await writeFile(
-    lobsterCmdPath,
-    "@echo off\r\nnode \"%~dp0index.js\" %*\r\n",
-  )
+  await writeFile(lobsterCmdPath, '@echo off\r\nnode "%~dp0index.js" %*\r\n')
 }
 
 await execFile(npmCommand, ["run", "build", "-w", "@c8c/workflow-runner"], {

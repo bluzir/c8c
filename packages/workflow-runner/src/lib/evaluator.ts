@@ -40,13 +40,13 @@ export function parseEvaluatorOutput(logs: LogEntry[]): EvaluatorResult | null {
         escaped = false
       } else if (ch === "\\") {
         escaped = true
-      } else if (ch === "\"") {
+      } else if (ch === '"') {
         inString = false
       }
       continue
     }
 
-    if (ch === "\"") {
+    if (ch === '"') {
       inString = true
       continue
     }
@@ -69,7 +69,11 @@ export function parseEvaluatorOutput(logs: LogEntry[]): EvaluatorResult | null {
   for (let i = candidates.length - 1; i >= 0; i--) {
     try {
       const candidate = JSON.parse(candidates[i])
-      if (typeof candidate === "object" && candidate !== null && typeof candidate.score === "number") {
+      if (
+        typeof candidate === "object" &&
+        candidate !== null &&
+        typeof candidate.score === "number"
+      ) {
         parsed = candidate as Record<string, unknown>
         break
       }
@@ -93,8 +97,12 @@ export function parseEvaluatorOutput(logs: LogEntry[]): EvaluatorResult | null {
 
   if (Array.isArray(parsed.criteria) && parsed.criteria.length > 0) {
     result.criteria = parsed.criteria
-      .filter((c: unknown): c is Record<string, unknown> =>
-        typeof c === "object" && c !== null && typeof (c as Record<string, unknown>).id === "string" && typeof (c as Record<string, unknown>).score === "number"
+      .filter(
+        (c: unknown): c is Record<string, unknown> =>
+          typeof c === "object" &&
+          c !== null &&
+          typeof (c as Record<string, unknown>).id === "string" &&
+          typeof (c as Record<string, unknown>).score === "number",
       )
       .map((c: Record<string, unknown>) => ({
         id: c.id as string,
@@ -107,7 +115,11 @@ export function parseEvaluatorOutput(logs: LogEntry[]): EvaluatorResult | null {
   return result
 }
 
-export function buildEvaluatorPrompt(criteria: string, content: string, skillContext?: string): string {
+export function buildEvaluatorPrompt(
+  criteria: string,
+  content: string,
+  skillContext?: string,
+): string {
   return [
     "You are a content quality evaluator. Score the content below against the given criteria.",
     "",

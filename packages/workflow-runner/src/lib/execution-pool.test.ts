@@ -21,10 +21,8 @@ describe("workflow-runner execution-pool", () => {
     process.env.C8C_EXECUTION_POOL_LIMIT = "1"
     process.env.C8C_EXECUTION_POOL_WAIT_TIMEOUT_MS = "25"
 
-    const {
-      acquireExecutionSlot,
-      getExecutionPoolSnapshot,
-    } = await import("./execution-pool")
+    const { acquireExecutionSlot, getExecutionPoolSnapshot } =
+      await import("./execution-pool")
 
     const firstTicket = await acquireExecutionSlot()
     const queuedTicket = acquireExecutionSlot()
@@ -54,10 +52,8 @@ describe("workflow-runner execution-pool", () => {
     process.env.C8C_EXECUTION_POOL_LIMIT = "1"
     process.env.C8C_EXECUTION_POOL_WAIT_TIMEOUT_MS = "25"
 
-    const {
-      acquireExecutionSlot,
-      getExecutionPoolSnapshot,
-    } = await import("./execution-pool")
+    const { acquireExecutionSlot, getExecutionPoolSnapshot } =
+      await import("./execution-pool")
 
     const firstTicket = await acquireExecutionSlot()
     const secondTicketPromise = acquireExecutionSlot()

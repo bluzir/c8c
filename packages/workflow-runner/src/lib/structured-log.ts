@@ -16,7 +16,12 @@ function safeSerialize(payload: Record<string, unknown>): string {
   }
 }
 
-function emit(level: LogLevel, component: string, event: string, context?: LogContext): void {
+function emit(
+  level: LogLevel,
+  component: string,
+  event: string,
+  context?: LogContext,
+): void {
   const payload: Record<string, unknown> = {
     ts: new Date().toISOString(),
     level,
@@ -36,14 +41,26 @@ function emit(level: LogLevel, component: string, event: string, context?: LogCo
   console.log(line)
 }
 
-export function logInfo(component: string, event: string, context?: LogContext): void {
+export function logInfo(
+  component: string,
+  event: string,
+  context?: LogContext,
+): void {
   emit("info", component, event, context)
 }
 
-export function logWarn(component: string, event: string, context?: LogContext): void {
+export function logWarn(
+  component: string,
+  event: string,
+  context?: LogContext,
+): void {
   emit("warn", component, event, context)
 }
 
-export function logError(component: string, event: string, context?: LogContext): void {
+export function logError(
+  component: string,
+  event: string,
+  context?: LogContext,
+): void {
   emit("error", component, event, context)
 }

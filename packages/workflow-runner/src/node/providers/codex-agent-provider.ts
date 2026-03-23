@@ -8,7 +8,10 @@ import type {
   ProviderHealth,
   SafetyProfile,
 } from "../../schema.js"
-import { createErroredExecutionHandle, createLegacyExecutionHandle } from "../../lib/agent-execution.js"
+import {
+  createErroredExecutionHandle,
+  createLegacyExecutionHandle,
+} from "../../lib/agent-execution.js"
 import { resolveSafetyProfile } from "../../provider-metadata.js"
 import {
   buildCodexEnv,
@@ -22,7 +25,11 @@ import {
 } from "../codex-json-normalizer.js"
 import { buildProviderExtraArgs } from "../mcp-config.js"
 import { getCodexApiKey, getProviderSettings } from "../provider-settings.js"
-import { errorMessage, execErrorOutput, normalizeCliText } from "./provider-utils.js"
+import {
+  errorMessage,
+  execErrorOutput,
+  normalizeCliText,
+} from "./provider-utils.js"
 
 function buildCodexToolPolicyPrefix(options: AgentRunOptions): string {
   const sections: string[] = []
@@ -33,7 +40,9 @@ function buildCodexToolPolicyPrefix(options: AgentRunOptions): string {
     sections.push(`Allowed tools: ${options.allowedTools.join(", ")}.`)
   }
   if (options.disallowedTools?.length) {
-    sections.push(`Disallowed tools: ${options.disallowedTools.join(", ")}. Never use them.`)
+    sections.push(
+      `Disallowed tools: ${options.disallowedTools.join(", ")}. Never use them.`,
+    )
   }
   if (sections.length === 0) return options.prompt
   return `${sections.join("\n\n")}\n\n${options.prompt}`
@@ -51,7 +60,12 @@ function codexSafetyArgs(profile: SafetyProfile): string[] {
       return ["--dangerously-bypass-approvals-and-sandbox"]
     case "workspace_auto":
     default:
-      return ["--sandbox", "workspace-write", "--ask-for-approval", "on-request"]
+      return [
+        "--sandbox",
+        "workspace-write",
+        "--ask-for-approval",
+        "on-request",
+      ]
   }
 }
 
@@ -59,7 +73,9 @@ async function checkCodexAvailability(): Promise<ProviderHealth> {
   const executablePath = findCodexExecutable() || undefined
 
   try {
-    const { stdout, stderr } = await execCodex(["--version"], { timeout: 5_000 })
+    const { stdout, stderr } = await execCodex(["--version"], {
+      timeout: 5_000,
+    })
     const version = `${stdout}\n${stderr}`
       .split("\n")
       .map((line) => line.trim())
@@ -84,10 +100,14 @@ async function checkCodexAvailability(): Promise<ProviderHealth> {
 
 function isCodexHeadlessAuthCheckError(text: string): boolean {
   const normalized = normalizeCliText(text).toLowerCase()
-  return normalized.includes("raw mode is not supported")
-    || normalized.includes("could not report auth status in non-interactive mode")
-    || normalized.includes("sign in with chatgpt")
-    || normalized.includes("paste an api key")
+  return (
+    normalized.includes("raw mode is not supported") ||
+    normalized.includes(
+      "could not report auth status in non-interactive mode",
+    ) ||
+    normalized.includes("sign in with chatgpt") ||
+    normalized.includes("paste an api key")
+  )
 }
 
 function sanitizeCodexAuthError(text: string): string {
@@ -100,14 +120,21 @@ function sanitizeCodexAuthError(text: string): string {
     return "Codex CLI could not report auth status in non-interactive mode."
   }
 
-  if (/not authenticated|not logged in|login required|please log in|unauthorized|forbidden|401/i.test(normalized)) {
+  if (
+    /not authenticated|not logged in|login required|please log in|unauthorized|forbidden|401/i.test(
+      normalized,
+    )
+  ) {
     return "Codex CLI is not authenticated."
   }
 
   return normalized
 }
 
-function parseCodexAuth(output: string, apiKeyConfigured: boolean): ProviderAuthStatus {
+function parseCodexAuth(
+  output: string,
+  apiKeyConfigured: boolean,
+): ProviderAuthStatus {
   const normalized = normalizeCliText(output)
   if (/logged in using chatgpt/i.test(normalized)) {
     return {
@@ -147,7 +174,9 @@ function parseCodexAuth(output: string, apiKeyConfigured: boolean): ProviderAuth
 
   return {
     provider: "codex",
-    state: isCodexHeadlessAuthCheckError(normalized) ? "unknown" : "unauthenticated",
+    state: isCodexHeadlessAuthCheckError(normalized)
+      ? "unknown"
+      : "unauthenticated",
     authenticated: false,
     authMethod: null,
     accountLabel: null,
@@ -156,7 +185,9 @@ function parseCodexAuth(output: string, apiKeyConfigured: boolean): ProviderAuth
   }
 }
 
-async function fallbackCodexAuthStatus(apiKeyConfigured: boolean): Promise<ProviderAuthStatus | null> {
+async function fallbackCodexAuthStatus(
+  apiKeyConfigured: boolean,
+): Promise<ProviderAuthStatus | null> {
   try {
     await execCodex(["mcp", "list", "--json"], { timeout: 10_000 })
     return {
@@ -164,13 +195,19 @@ async function fallbackCodexAuthStatus(apiKeyConfigured: boolean): Promise<Provi
       state: "authenticated",
       authenticated: true,
       authMethod: apiKeyConfigured ? "api_key" : "chatgpt",
-      accountLabel: apiKeyConfigured ? "App-managed CODEX_API_KEY" : "ChatGPT subscription",
+      accountLabel: apiKeyConfigured
+        ? "App-managed CODEX_API_KEY"
+        : "ChatGPT subscription",
       apiKeyConfigured,
       error: null,
     }
   } catch (error) {
     const message = sanitizeCodexAuthError(execErrorOutput(error))
-    if (/not authenticated|login required|unauthorized|forbidden|401/i.test(message)) {
+    if (
+      /not authenticated|login required|unauthorized|forbidden|401/i.test(
+        message,
+      )
+    ) {
       return {
         provider: "codex",
         state: "unauthenticated",
@@ -186,9 +223,10 @@ async function fallbackCodexAuthStatus(apiKeyConfigured: boolean): Promise<Provi
 }
 
 async function getCodexAuthStatus(): Promise<ProviderAuthStatus> {
-  const apiKeyConfigured = Boolean(await getCodexApiKey())
-    || Boolean(process.env.CODEX_API_KEY)
-    || Boolean(process.env.OPENAI_API_KEY)
+  const apiKeyConfigured =
+    Boolean(await getCodexApiKey()) ||
+    Boolean(process.env.CODEX_API_KEY) ||
+    Boolean(process.env.OPENAI_API_KEY)
 
   if (apiKeyConfigured) {
     return {
@@ -203,10 +241,15 @@ async function getCodexAuthStatus(): Promise<ProviderAuthStatus> {
   }
 
   try {
-    const { stdout, stderr } = await execCodex(["login", "status"], { timeout: 10_000 })
-    const parsed = parseCodexAuth([stdout, stderr].filter(Boolean).join("\n"), apiKeyConfigured)
+    const { stdout, stderr } = await execCodex(["login", "status"], {
+      timeout: 10_000,
+    })
+    const parsed = parseCodexAuth(
+      [stdout, stderr].filter(Boolean).join("\n"),
+      apiKeyConfigured,
+    )
     if (parsed.state === "unknown") {
-      return await fallbackCodexAuthStatus(apiKeyConfigured) ?? parsed
+      return (await fallbackCodexAuthStatus(apiKeyConfigured)) ?? parsed
     }
     return parsed
   } catch (error) {
@@ -216,7 +259,10 @@ async function getCodexAuthStatus(): Promise<ProviderAuthStatus> {
       if (fallback) return fallback
     }
 
-    const isUnauthenticated = /not authenticated|login required|unauthorized|forbidden|401/i.test(message)
+    const isUnauthenticated =
+      /not authenticated|login required|unauthorized|forbidden|401/i.test(
+        message,
+      )
     return {
       provider: "codex",
       state: isUnauthenticated ? "unauthenticated" : "unknown",
@@ -289,7 +335,9 @@ export class CodexAgentProvider implements AgentProvider {
     return getCodexAuthStatus()
   }
 
-  private async createUnavailableHandle(reason: string): Promise<AgentExecutionHandle> {
+  private async createUnavailableHandle(
+    reason: string,
+  ): Promise<AgentExecutionHandle> {
     return createErroredExecutionHandle(
       this.id,
       "codex_exec",
@@ -297,25 +345,43 @@ export class CodexAgentProvider implements AgentProvider {
     )
   }
 
-  async executeInteractive(options: AgentRunOptions): Promise<AgentExecutionHandle> {
+  async executeInteractive(
+    options: AgentRunOptions,
+  ): Promise<AgentExecutionHandle> {
     if (!(await supportsCodexExecSubcommand())) {
-      return this.createUnavailableHandle("installed Codex CLI does not support `codex exec`")
+      return this.createUnavailableHandle(
+        "installed Codex CLI does not support `codex exec`",
+      )
     }
-    return createLegacyExecutionHandle(this.id, "codex_exec", options, this.runLegacyCodex.bind(this))
+    return createLegacyExecutionHandle(
+      this.id,
+      "codex_exec",
+      options,
+      this.runLegacyCodex.bind(this),
+    )
   }
 
   async executeTask(options: AgentRunOptions): Promise<AgentExecutionHandle> {
     if (!(await supportsCodexExecSubcommand())) {
-      return this.createUnavailableHandle("installed Codex CLI does not support `codex exec`")
+      return this.createUnavailableHandle(
+        "installed Codex CLI does not support `codex exec`",
+      )
     }
-    return createLegacyExecutionHandle(this.id, "codex_exec", options, this.runLegacyCodex.bind(this))
+    return createLegacyExecutionHandle(
+      this.id,
+      "codex_exec",
+      options,
+      this.runLegacyCodex.bind(this),
+    )
   }
 
   cancel(_sessionId: string): boolean {
     return false
   }
 
-  private async runLegacyCodex(options: AgentRunOptions): Promise<AgentRunResult> {
+  private async runLegacyCodex(
+    options: AgentRunOptions,
+  ): Promise<AgentRunResult> {
     const executable = findCodexExecutable() || "codex"
     const settings = await getProviderSettings()
     const { args } = buildCodexLegacyExecArgs(options, settings.safetyProfile)
@@ -387,7 +453,10 @@ export class CodexAgentProvider implements AgentProvider {
 
       child.on("close", (code, signal) => {
         if (stdoutBuffer.trim()) {
-          const normalized = normalizeCodexJsonLine(stdoutBuffer.trim(), normalizerState)
+          const normalized = normalizeCodexJsonLine(
+            stdoutBuffer.trim(),
+            normalizerState,
+          )
           for (const eventLine of normalized) {
             options.onStdout?.(Buffer.from(`${eventLine}\n`))
           }

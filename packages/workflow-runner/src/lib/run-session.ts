@@ -1,12 +1,11 @@
 import { createInitialNodeStates } from "./graph-engine.js"
-import { prepareResumeExecution, resolveResumeNodeIdOrThrow } from "./run-resume.js"
+import {
+  prepareResumeExecution,
+  resolveResumeNodeIdOrThrow,
+} from "./run-resume.js"
 import { readPersistedRunState } from "./run-state-store.js"
 import type { RuntimeWorkflow } from "./runtime-graph.js"
-import type {
-  NodeState,
-  Workflow,
-  WorkflowInput,
-} from "../schema.js"
+import type { NodeState, Workflow, WorkflowInput } from "../schema.js"
 
 export type RunSessionApprovalBehavior = "wait" | "suspend"
 export type RunSessionWebSearchBackend = "builtin" | "exa"
@@ -89,7 +88,9 @@ export async function createResumeExecutionSession(
 ): Promise<WorkflowExecutionSession> {
   const savedState = await readPersistedRunState(params.workspace)
   if (!savedState) {
-    throw new Error(`Cannot continue: run state not found in ${params.workspace}`)
+    throw new Error(
+      `Cannot continue: run state not found in ${params.workspace}`,
+    )
   }
 
   const fromNodeId = resolveResumeNodeIdOrThrow(savedState)

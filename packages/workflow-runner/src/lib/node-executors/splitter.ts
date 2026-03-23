@@ -18,7 +18,7 @@ export function buildSplitterPrompt(
     "## Output Requirements",
     "Return a JSON array of objects. Each object must have:",
     '- `key`: a short kebab-case identifier (e.g. "hero-section", "user-profile")',
-    '- `content`: the FULL content for this subtask — it must be completely self-contained with all details from the original input. Do not summarize or truncate.',
+    "- `content`: the FULL content for this subtask — it must be completely self-contained with all details from the original input. Do not summarize or truncate.",
     "",
     "Example:",
     "```json",
@@ -109,7 +109,10 @@ function normalizeSubtaskKeyForRuntime(key: string, index: number): string {
 function hasDuplicateSubtaskKeys(subtasks: Subtask[]): boolean {
   const seen = new Set<string>()
   for (let i = 0; i < subtasks.length; i++) {
-    const normalizedKey = normalizeSubtaskKeyForRuntime(subtasks[i]?.key || "", i)
+    const normalizedKey = normalizeSubtaskKeyForRuntime(
+      subtasks[i]?.key || "",
+      i,
+    )
     if (seen.has(normalizedKey)) return true
     seen.add(normalizedKey)
   }
@@ -156,7 +159,8 @@ function extractMarkdownTableRows(inputContent: string): string[] {
   for (let i = 0; i < lines.length - 1; i++) {
     const header = lines[i]?.trim() || ""
     const separator = lines[i + 1]?.trim() || ""
-    if (!header.startsWith("|") || !isMarkdownTableSeparator(separator)) continue
+    if (!header.startsWith("|") || !isMarkdownTableSeparator(separator))
+      continue
 
     let j = i + 2
     while (j < lines.length) {
@@ -206,8 +210,12 @@ export function shouldRetrySplitter(
     countMarkdownTableRows(inputContent),
   )
   const likelyMultiItemInput = detectableItems > 1
-  const expectedCount = Math.min(Math.max(1, maxBranches), Math.max(1, detectableItems))
-  const underSplit = maxBranches > 1 && likelyMultiItemInput && subtasks.length < expectedCount
+  const expectedCount = Math.min(
+    Math.max(1, maxBranches),
+    Math.max(1, detectableItems),
+  )
+  const underSplit =
+    maxBranches > 1 && likelyMultiItemInput && subtasks.length < expectedCount
 
   if (subtasks.length !== 1) return underSplit
 
@@ -220,15 +228,26 @@ export function shouldRetrySplitter(
     "each object must have",
     "create 4-6 independent research aspects",
   ]
-  const hasMarkers = instructionMarkers.some((marker) => combined.includes(marker))
+  const hasMarkers = instructionMarkers.some((marker) =>
+    combined.includes(marker),
+  )
   const normalizedInput = normalizeWhitespace(inputContent).toLowerCase()
   const normalizedOutput = normalizeWhitespace(only).toLowerCase()
   const inputPrefix = normalizedInput.slice(0, 180)
-  const echoesInput = inputPrefix.length > 40 && normalizedOutput.includes(inputPrefix)
-  const suspiciousLength = only.length >= Math.max(900, Math.floor(inputContent.length * 0.75))
-  const suspiciouslyShort = normalizedInput.length > 260 && normalizedOutput.length < 60
+  const echoesInput =
+    inputPrefix.length > 40 && normalizedOutput.includes(inputPrefix)
+  const suspiciousLength =
+    only.length >= Math.max(900, Math.floor(inputContent.length * 0.75))
+  const suspiciouslyShort =
+    normalizedInput.length > 260 && normalizedOutput.length < 60
 
-  return hasMarkers || echoesInput || suspiciousLength || suspiciouslyShort || underSplit
+  return (
+    hasMarkers ||
+    echoesInput ||
+    suspiciousLength ||
+    suspiciouslyShort ||
+    underSplit
+  )
 }
 
 export function buildSplitterRecoveryPrompt(
@@ -263,7 +282,10 @@ export function buildSplitterRecoveryPrompt(
  * calling Claude. Returns `null` for unstructured input that needs Claude's
  * intelligence for meaningful decomposition.
  */
-export function tryStructuredSplit(inputContent: string, maxBranches = 8): Subtask[] | null {
+export function tryStructuredSplit(
+  inputContent: string,
+  maxBranches = 8,
+): Subtask[] | null {
   const limit = Math.max(1, maxBranches)
   const normalized = inputContent.trim()
   if (!normalized) return null
@@ -274,7 +296,10 @@ export function tryStructuredSplit(inputContent: string, maxBranches = 8): Subta
     return tableRows.slice(0, limit).map((row, i) => {
       const leadingCell = row.split("|")[0]?.trim() || row
       return {
-        key: makeKebabKey(leadingCell.split(/\s+/).slice(0, 6).join(" "), `row-${i + 1}`),
+        key: makeKebabKey(
+          leadingCell.split(/\s+/).slice(0, 6).join(" "),
+          `row-${i + 1}`,
+        ),
         content: row,
       }
     })
@@ -283,7 +308,9 @@ export function tryStructuredSplit(inputContent: string, maxBranches = 8): Subta
   // 2. JSON arrays with >1 items
   const array = extractJsonArray(inputContent)
   if (array && array.length > 1) {
-    const prefix = normalizeWhitespace(inputContent.replace(/\[[\s\S]*\]/, "").trim())
+    const prefix = normalizeWhitespace(
+      inputContent.replace(/\[[\s\S]*\]/, "").trim(),
+    )
     const subtasks: Subtask[] = []
     if (prefix && prefix.length > 30) {
       subtasks.push({ key: "research-scope", content: prefix })
@@ -315,7 +342,10 @@ export function tryStructuredSplit(inputContent: string, maxBranches = 8): Subta
 
   if (listItems.length > 1) {
     return listItems.slice(0, limit).map((line, i) => ({
-      key: makeKebabKey(line.split(/\s+/).slice(0, 6).join(" "), `item-${i + 1}`),
+      key: makeKebabKey(
+        line.split(/\s+/).slice(0, 6).join(" "),
+        `item-${i + 1}`,
+      ),
       content: line,
     }))
   }
@@ -324,7 +354,10 @@ export function tryStructuredSplit(inputContent: string, maxBranches = 8): Subta
   return null
 }
 
-export function heuristicSplitInput(inputContent: string, maxBranches = 8): Subtask[] {
+export function heuristicSplitInput(
+  inputContent: string,
+  maxBranches = 8,
+): Subtask[] {
   const limit = Math.max(2, maxBranches)
   const normalized = inputContent.trim()
   if (!normalized) {
@@ -336,7 +369,10 @@ export function heuristicSplitInput(inputContent: string, maxBranches = 8): Subt
     return tableRows.slice(0, limit).map((row, i) => {
       const leadingCell = row.split("|")[0]?.trim() || row
       return {
-        key: makeKebabKey(leadingCell.split(/\s+/).slice(0, 6).join(" "), `row-${i + 1}`),
+        key: makeKebabKey(
+          leadingCell.split(/\s+/).slice(0, 6).join(" "),
+          `row-${i + 1}`,
+        ),
         content: row,
       }
     })
@@ -344,7 +380,9 @@ export function heuristicSplitInput(inputContent: string, maxBranches = 8): Subt
 
   const array = extractJsonArray(inputContent)
   if (array && array.length > 1) {
-    const prefix = normalizeWhitespace(inputContent.replace(/\[[\s\S]*\]/, "").trim())
+    const prefix = normalizeWhitespace(
+      inputContent.replace(/\[[\s\S]*\]/, "").trim(),
+    )
     const subtasks: Subtask[] = []
     if (prefix && prefix.length > 30) {
       subtasks.push({
@@ -381,7 +419,10 @@ export function heuristicSplitInput(inputContent: string, maxBranches = 8): Subt
 
   if (listItems.length > 1) {
     return listItems.slice(0, limit).map((line, i) => ({
-      key: makeKebabKey(line.split(/\s+/).slice(0, 6).join(" "), `item-${i + 1}`),
+      key: makeKebabKey(
+        line.split(/\s+/).slice(0, 6).join(" "),
+        `item-${i + 1}`,
+      ),
       content: line,
     }))
   }

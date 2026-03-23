@@ -24,7 +24,8 @@ describe("checkOutputHeuristics", () => {
   })
 
   it("does not warn on normal-length output", () => {
-    const output = "This is a perfectly normal response that contains enough text to be meaningful and useful to the user."
+    const output =
+      "This is a perfectly normal response that contains enough text to be meaningful and useful to the user."
     const warnings = checkOutputHeuristics(output, "analyst")
     expect(warnings).toHaveLength(0)
   })
@@ -33,10 +34,14 @@ describe("checkOutputHeuristics", () => {
 
   it("warns when a 5-word phrase repeats 4+ times", () => {
     const phrase = "the quick brown fox jumps"
-    const output = Array(6).fill(`${phrase} over something different each time`).join(". ")
+    const output = Array(6)
+      .fill(`${phrase} over something different each time`)
+      .join(". ")
     const warnings = checkOutputHeuristics(output, "writer")
     expect(warnings.some((w) => w.kind === "repetition")).toBe(true)
-    expect(warnings.find((w) => w.kind === "repetition")!.message).toContain("writer")
+    expect(warnings.find((w) => w.kind === "repetition")!.message).toContain(
+      "writer",
+    )
   })
 
   it("does not warn on normal varied text", () => {
@@ -63,7 +68,9 @@ describe("checkOutputHeuristics", () => {
       "As an AI language model I cannot assist. I don't have access to that."
     const warnings = checkOutputHeuristics(output, "researcher")
     expect(warnings.some((w) => w.kind === "refusal")).toBe(true)
-    expect(warnings.find((w) => w.kind === "refusal")!.message).toContain("researcher")
+    expect(warnings.find((w) => w.kind === "refusal")!.message).toContain(
+      "researcher",
+    )
   })
 
   it("does not warn when refusal phrases are a small part of the output", () => {

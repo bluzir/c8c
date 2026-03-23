@@ -5,8 +5,16 @@ import { prepareRerunState } from "./rerun-state"
 describe("prepareRerunState", () => {
   it("resets only the failed linear tail and keeps upstream completed work", () => {
     const nodeStates: Record<string, NodeState> = {
-      input: { status: "completed", attempts: 1, log: [{ type: "text", content: "input ok", timestamp: 1 }] },
-      mapper: { status: "completed", attempts: 1, log: [{ type: "text", content: "mapped", timestamp: 2 }] },
+      input: {
+        status: "completed",
+        attempts: 1,
+        log: [{ type: "text", content: "input ok", timestamp: 1 }],
+      },
+      mapper: {
+        status: "completed",
+        attempts: 1,
+        log: [{ type: "text", content: "mapped", timestamp: 2 }],
+      },
       merger: {
         status: "failed",
         attempts: 2,
@@ -38,7 +46,11 @@ describe("prepareRerunState", () => {
     const nodeStates: Record<string, NodeState> = {
       input: { status: "completed", attempts: 1, log: [] },
       splitter: { status: "completed", attempts: 1, log: [] },
-      "branch-a": { status: "completed", attempts: 1, log: [{ type: "text", content: "done", timestamp: 1 }] },
+      "branch-a": {
+        status: "completed",
+        attempts: 1,
+        log: [{ type: "text", content: "done", timestamp: 1 }],
+      },
       "branch-b": {
         status: "failed",
         attempts: 2,
@@ -46,7 +58,11 @@ describe("prepareRerunState", () => {
         error: "merge failed",
         meta: { subtaskKey: "branch-b" },
       },
-      "branch-c": { status: "completed", attempts: 1, log: [{ type: "text", content: "done", timestamp: 3 }] },
+      "branch-c": {
+        status: "completed",
+        attempts: 1,
+        log: [{ type: "text", content: "done", timestamp: 3 }],
+      },
       merger: { status: "pending", attempts: 0, log: [] },
       summary: { status: "pending", attempts: 0, log: [] },
     }
@@ -67,7 +83,9 @@ describe("prepareRerunState", () => {
       edges,
     })
 
-    expect(result.downstreamIds).toEqual(new Set(["branch-b", "merger", "summary"]))
+    expect(result.downstreamIds).toEqual(
+      new Set(["branch-b", "merger", "summary"]),
+    )
     expect(result.nodeStates["branch-a"].status).toBe("completed")
     expect(result.nodeStates["branch-c"].status).toBe("completed")
     expect(result.nodeStates["branch-b"]).toMatchObject({
@@ -78,6 +96,8 @@ describe("prepareRerunState", () => {
     expect(result.nodeStates["branch-b"].log).toEqual([])
     expect(result.nodeStates.merger.status).toBe("pending")
     expect(result.nodeStates.summary.status).toBe("pending")
-    expect(result.activatedEdges).toEqual(new Set(["e1", "e2", "e3", "e4", "e5", "e7"]))
+    expect(result.activatedEdges).toEqual(
+      new Set(["e1", "e2", "e3", "e4", "e5", "e7"]),
+    )
   })
 })

@@ -37,7 +37,10 @@ export function prepareRerunState({
 
   const activatedEdges = new Set<string>()
   for (const edge of edges) {
-    if (!downstreamIds.has(edge.source) && nodeStates[edge.source]?.status === "completed") {
+    if (
+      !downstreamIds.has(edge.source) &&
+      nodeStates[edge.source]?.status === "completed"
+    ) {
       activatedEdges.add(edge.id)
     }
   }

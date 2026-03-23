@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { buildCodexPath, collectAllowedCodexEnv, composeCodexEnv } from "./codex-cli"
+import {
+  buildCodexPath,
+  collectAllowedCodexEnv,
+  composeCodexEnv,
+} from "./codex-cli"
 
 describe("workflow-runner codex-cli env hardening", () => {
   it("allowlists only safe ambient environment keys", () => {
@@ -29,10 +33,13 @@ describe("workflow-runner codex-cli env hardening", () => {
   })
 
   it("can include PATH explicitly for lookup-only flows", () => {
-    const env = collectAllowedCodexEnv({
-      HOME: "/Users/tester",
-      PATH: "/shell/bin:/usr/bin",
-    }, { includePath: true })
+    const env = collectAllowedCodexEnv(
+      {
+        HOME: "/Users/tester",
+        PATH: "/shell/bin:/usr/bin",
+      },
+      { includePath: true },
+    )
 
     expect(env.HOME).toBe("/Users/tester")
     expect(env.PATH).toBe("/shell/bin:/usr/bin")

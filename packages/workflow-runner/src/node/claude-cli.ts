@@ -28,7 +28,9 @@ export function buildExtendedPath(existingPath: string | undefined): string {
   return [...new Set(merged.filter(Boolean))].join(delimiter)
 }
 
-export function buildClaudeEnv(extraEnv?: Record<string, string>): NodeJS.ProcessEnv {
+export function buildClaudeEnv(
+  extraEnv?: Record<string, string>,
+): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {}
   const passthroughKeys = [
     "HOME",
@@ -162,12 +164,16 @@ function buildClaudeArgs(options: SpawnClaudeOptions): string[] {
   return args
 }
 
-export function spawnClaude(options: SpawnClaudeOptions): Promise<AgentRunResult> {
+export function spawnClaude(
+  options: SpawnClaudeOptions,
+): Promise<AgentRunResult> {
   const executable = findClaudeExecutable() || "claude"
   const timeout = options.timeout ?? 600_000
 
   if (!existsSync(options.workdir)) {
-    options.onStderr?.(Buffer.from(`Working directory does not exist: ${options.workdir}\n`))
+    options.onStderr?.(
+      Buffer.from(`Working directory does not exist: ${options.workdir}\n`),
+    )
     return Promise.resolve({
       success: false,
       exitCode: null,

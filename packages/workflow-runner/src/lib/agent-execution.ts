@@ -41,7 +41,10 @@ class AsyncEventQueue<T> implements AsyncIterable<T> {
     return {
       next: () => {
         if (this.items.length > 0) {
-          return Promise.resolve({ value: this.items.shift() as T, done: false })
+          return Promise.resolve({
+            value: this.items.shift() as T,
+            done: false,
+          })
         }
         if (this.closed) {
           return Promise.resolve({ value: undefined as T, done: true })
@@ -58,8 +61,12 @@ export interface ExecutionEventSinks {
   onStart?: () => void
   onSpawn?: (pid: number) => void
   onProviderSession?: (sessionId: string) => void
-  onLogEntry?: (event: Extract<AgentExecutionEvent, { type: "log-entry" }>["entry"]) => void
-  onUsage?: (usage: Extract<AgentExecutionEvent, { type: "usage" }>["usage"]) => void
+  onLogEntry?: (
+    event: Extract<AgentExecutionEvent, { type: "log-entry" }>["entry"],
+  ) => void
+  onUsage?: (
+    usage: Extract<AgentExecutionEvent, { type: "usage" }>["usage"],
+  ) => void
   onStderr?: (text: string) => void
   onError?: (text: string) => void
   onFinish?: (summary: AgentExecutionSummary) => void
@@ -76,8 +83,8 @@ function emitUsageIfChanged(
     outputTokens: usage.output_tokens,
   }
   if (
-    nextUsage.inputTokens === lastUsage.inputTokens
-    && nextUsage.outputTokens === lastUsage.outputTokens
+    nextUsage.inputTokens === lastUsage.inputTokens &&
+    nextUsage.outputTokens === lastUsage.outputTokens
   ) {
     return
   }
@@ -108,9 +115,7 @@ function buildErrorSummary(
   }
 }
 
-function withMergedAbortSignal(
-  externalSignal?: AbortSignal,
-): {
+function withMergedAbortSignal(externalSignal?: AbortSignal): {
   signal: AbortSignal
   abort: () => void
   cleanup: () => void
@@ -176,44 +181,46 @@ export function createLegacyExecutionHandle(
       options.onStderr?.(data)
       queue.push({ type: "stderr", text: data.toString() })
     },
-  }).then((result) => {
-    const remaining = parser.flush()
-    for (const entry of remaining) {
-      queue.push({ type: "log-entry", entry })
-    }
-    emitUsageIfChanged(parser, queue, lastUsage)
-
-    const summary: AgentExecutionSummary = {
-      ...result,
-      pid: spawnedPid ?? result.pid,
-      error: null,
-      providerSessionId: null,
-      backend,
-    }
-    queue.push({ type: "finish", summary })
-    queue.close()
-    mergedAbort.cleanup()
-    return summary
-  }).catch((error) => {
-    const remaining = parser.flush()
-    for (const entry of remaining) {
-      queue.push({ type: "log-entry", entry })
-    }
-    emitUsageIfChanged(parser, queue, lastUsage)
-
-    const summary = buildErrorSummary(
-      backend,
-      spawnedPid,
-      startedAt,
-      mergedAbort.signal.aborted,
-      error,
-    )
-    queue.push({ type: "error", text: summary.error || "Execution failed." })
-    queue.push({ type: "finish", summary })
-    queue.close()
-    mergedAbort.cleanup()
-    return summary
   })
+    .then((result) => {
+      const remaining = parser.flush()
+      for (const entry of remaining) {
+        queue.push({ type: "log-entry", entry })
+      }
+      emitUsageIfChanged(parser, queue, lastUsage)
+
+      const summary: AgentExecutionSummary = {
+        ...result,
+        pid: spawnedPid ?? result.pid,
+        error: null,
+        providerSessionId: null,
+        backend,
+      }
+      queue.push({ type: "finish", summary })
+      queue.close()
+      mergedAbort.cleanup()
+      return summary
+    })
+    .catch((error) => {
+      const remaining = parser.flush()
+      for (const entry of remaining) {
+        queue.push({ type: "log-entry", entry })
+      }
+      emitUsageIfChanged(parser, queue, lastUsage)
+
+      const summary = buildErrorSummary(
+        backend,
+        spawnedPid,
+        startedAt,
+        mergedAbort.signal.aborted,
+        error,
+      )
+      queue.push({ type: "error", text: summary.error || "Execution failed." })
+      queue.push({ type: "finish", summary })
+      queue.close()
+      mergedAbort.cleanup()
+      return summary
+    })
 
   return {
     provider,

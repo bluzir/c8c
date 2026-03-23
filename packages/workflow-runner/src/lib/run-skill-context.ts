@@ -3,7 +3,11 @@ import { basename, dirname, join } from "node:path"
 import type { DiscoveredSkill } from "../schema.js"
 
 interface SkillContextLogger {
-  warn?(component: string, event: string, context?: Record<string, unknown>): void
+  warn?(
+    component: string,
+    event: string,
+    context?: Record<string, unknown>,
+  ): void
 }
 
 export interface ResolvedSkillContext {
@@ -66,7 +70,9 @@ export function buildSkillPathHint(path: string): string {
       `If the instructions mention ".claude/skills/gstack" or "~/.claude/skills/gstack", use "${packDir}" instead.`,
     )
     lines.push(`Sibling gstack skill pack directory: ${packDir}`)
-    lines.push(`Resolve ".claude/skills/review/..." or "review/..." references under "${reviewDir}".`)
+    lines.push(
+      `Resolve ".claude/skills/review/..." or "review/..." references under "${reviewDir}".`,
+    )
     lines.push(`Resolve "qa/..." references under "${qaDir}".`)
     lines.push(`Resolve "browse/..." references under "${browseDir}".`)
     lines.push(`Resolve "bin/..." helper references under "${binDir}".`)
@@ -124,15 +130,18 @@ export function createSkillContextResolver(
     }
   }
 
-  return async (
-    input: {
-      skillRefs?: string[]
-      skillPaths?: string[]
-    },
-  ): Promise<ResolvedSkillContext> => {
-    const refs = (input.skillRefs || []).map((ref) => ref.trim()).filter(Boolean)
-    const skillPaths = (input.skillPaths || []).map((path) => path.trim()).filter(Boolean)
-    if (refs.length === 0 && skillPaths.length === 0) return { text: "", skillPaths: [] }
+  return async (input: {
+    skillRefs?: string[]
+    skillPaths?: string[]
+  }): Promise<ResolvedSkillContext> => {
+    const refs = (input.skillRefs || [])
+      .map((ref) => ref.trim())
+      .filter(Boolean)
+    const skillPaths = (input.skillPaths || [])
+      .map((path) => path.trim())
+      .filter(Boolean)
+    if (refs.length === 0 && skillPaths.length === 0)
+      return { text: "", skillPaths: [] }
 
     const cacheKey = [
       ...refs.map((ref) => `ref:${normalizeSkillLookupRef(ref)}`),
@@ -150,22 +159,30 @@ export function createSkillContextResolver(
       const body = await readSkillBody(skillPath)
       const label = labelFromSkillPath(skillPath)
       if (!body) {
-        sections.push(`### Skill: ${label}\nSkill file was found but could not be read.`)
+        sections.push(
+          `### Skill: ${label}\nSkill file was found but could not be read.`,
+        )
         continue
       }
-      sections.push(`### Skill: ${label}\n${buildSkillPathHint(skillPath)}\n\n${body}`)
+      sections.push(
+        `### Skill: ${label}\n${buildSkillPathHint(skillPath)}\n\n${body}`,
+      )
     }
 
     const discovered = refs.length > 0 ? await ensureScannedSkills() : []
     for (const ref of refs) {
       const normalizedRef = normalizeSkillLookupRef(ref)
-      const found = discovered.find((skill) => (
-        normalizeSkillLookupRef(`${skill.category}/${skill.name}`) === normalizedRef
-          || normalizeSkillLookupRef(skill.name) === normalizedRef
-      ))
+      const found = discovered.find(
+        (skill) =>
+          normalizeSkillLookupRef(`${skill.category}/${skill.name}`) ===
+            normalizedRef ||
+          normalizeSkillLookupRef(skill.name) === normalizedRef,
+      )
 
       if (!found) {
-        sections.push(`### Skill: ${ref}\nSkill not found in scanned project/user skills.`)
+        sections.push(
+          `### Skill: ${ref}\nSkill not found in scanned project/user skills.`,
+        )
         continue
       }
       if (seenPaths.has(found.path)) continue
@@ -173,10 +190,14 @@ export function createSkillContextResolver(
 
       const body = await readSkillBody(found.path)
       if (!body) {
-        sections.push(`### Skill: ${found.category}/${found.name}\nSkill file was found but could not be read.`)
+        sections.push(
+          `### Skill: ${found.category}/${found.name}\nSkill file was found but could not be read.`,
+        )
         continue
       }
-      sections.push(`### Skill: ${found.category}/${found.name}\n${buildSkillPathHint(found.path)}\n\n${body}`)
+      sections.push(
+        `### Skill: ${found.category}/${found.name}\n${buildSkillPathHint(found.path)}\n\n${body}`,
+      )
     }
 
     const context = {

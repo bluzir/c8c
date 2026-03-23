@@ -61,7 +61,9 @@ function normalizeMcpConfig(raw: unknown): McpConfig | null {
     return { mcpServers: nested as Record<string, McpServerEntry> }
   }
 
-  const flatEntries = Object.entries(raw).filter(([key, value]) => key !== "mcpServers" && isObject(value))
+  const flatEntries = Object.entries(raw).filter(
+    ([key, value]) => key !== "mcpServers" && isObject(value),
+  )
   if (flatEntries.length === 0) return null
 
   const mcpServers: Record<string, McpServerEntry> = {}
@@ -81,7 +83,10 @@ async function readMcpConfig(filePath: string): Promise<McpConfig | null> {
   }
 }
 
-function findUpwards(startDir: string, relativePath: string): string | undefined {
+function findUpwards(
+  startDir: string,
+  relativePath: string,
+): string | undefined {
   let dir = resolve(startDir)
   while (true) {
     const candidate = join(dir, relativePath)
@@ -95,9 +100,18 @@ function findUpwards(startDir: string, relativePath: string): string | undefined
 function resolveExaProxyScriptPath(): string | undefined {
   const resourcesPath = getProcessResourcesPath()
   const candidates = [
-    resolve(process.cwd(), "node_modules/@claude-tools/mcp-search-proxy/dist/exa.js"),
-    resolve(process.cwd(), "packages/shared-claude-tools/packages/mcp-search-proxy/dist/exa.js"),
-    resolve(resourcesPath || "", "app.asar.unpacked/node_modules/@claude-tools/mcp-search-proxy/dist/exa.js"),
+    resolve(
+      process.cwd(),
+      "node_modules/@claude-tools/mcp-search-proxy/dist/exa.js",
+    ),
+    resolve(
+      process.cwd(),
+      "packages/shared-claude-tools/packages/mcp-search-proxy/dist/exa.js",
+    ),
+    resolve(
+      resourcesPath || "",
+      "app.asar.unpacked/node_modules/@claude-tools/mcp-search-proxy/dist/exa.js",
+    ),
   ]
 
   for (const candidate of candidates) {
@@ -111,7 +125,9 @@ function resolveMcpKeyringPath(projectPath?: string): string | undefined {
   if (fromEnv && existsSync(fromEnv)) return fromEnv
 
   const candidates: Array<string | undefined> = [
-    projectPath ? findUpwards(projectPath, "data/config/mcp-keyring.json") : undefined,
+    projectPath
+      ? findUpwards(projectPath, "data/config/mcp-keyring.json")
+      : undefined,
     projectPath ? findUpwards(projectPath, "data/mcp-keyring.json") : undefined,
     findUpwards(process.cwd(), "data/config/mcp-keyring.json"),
     findUpwards(process.cwd(), "data/mcp-keyring.json"),
@@ -157,19 +173,23 @@ function withExaServer(config: McpConfig, projectPath?: string): McpConfig {
 function escapeTomlString(value: string): string {
   return value
     .replaceAll("\\", "\\\\")
-    .replaceAll("\"", "\\\"")
+    .replaceAll('"', '\\"')
     .replaceAll("\n", "\\n")
 }
 
 function toTomlLiteral(value: unknown): string {
   if (typeof value === "string") return `"${escapeTomlString(value)}"`
   if (typeof value === "boolean") return value ? "true" : "false"
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "0"
-  if (Array.isArray(value)) return `[${value.map((item) => toTomlLiteral(item)).join(", ")}]`
+  if (typeof value === "number")
+    return Number.isFinite(value) ? String(value) : "0"
+  if (Array.isArray(value))
+    return `[${value.map((item) => toTomlLiteral(item)).join(", ")}]`
   if (isObject(value)) {
-    return `{ ${Object.entries(value).map(([key, item]) => `${key} = ${toTomlLiteral(item)}`).join(", ")} }`
+    return `{ ${Object.entries(value)
+      .map(([key, item]) => `${key} = ${toTomlLiteral(item)}`)
+      .join(", ")} }`
   }
-  return "\"\""
+  return '""'
 }
 
 function buildCodexMcpOverrides(config: McpConfig): string[] {
@@ -179,7 +199,10 @@ function buildCodexMcpOverrides(config: McpConfig): string[] {
     const pathPrefix = `mcp_servers."${escapeTomlString(name)}"`
 
     if (typeof entry.command === "string" && entry.command.trim()) {
-      overrides.push("-c", `${pathPrefix}.command=${toTomlLiteral(entry.command)}`)
+      overrides.push(
+        "-c",
+        `${pathPrefix}.command=${toTomlLiteral(entry.command)}`,
+      )
     }
     if (Array.isArray(entry.args) && entry.args.length > 0) {
       overrides.push("-c", `${pathPrefix}.args=${toTomlLiteral(entry.args)}`)
@@ -191,7 +214,10 @@ function buildCodexMcpOverrides(config: McpConfig): string[] {
       overrides.push("-c", `${pathPrefix}.url=${toTomlLiteral(entry.url)}`)
     }
     if (isObject(entry.headers) && Object.keys(entry.headers).length > 0) {
-      overrides.push("-c", `${pathPrefix}.http_headers=${toTomlLiteral(entry.headers)}`)
+      overrides.push(
+        "-c",
+        `${pathPrefix}.http_headers=${toTomlLiteral(entry.headers)}`,
+      )
     }
   }
   return overrides
@@ -206,9 +232,17 @@ function readMcpConfigSync(filePath: string): McpConfig | null {
   }
 }
 
-export function buildProviderExtraArgs(provider: ProviderId, mcpConfigPath?: string): string[] {
+export function buildProviderExtraArgs(
+  provider: ProviderId,
+  mcpConfigPath?: string,
+): string[] {
   if (provider === "claude" && mcpConfigPath) {
-    return ["--verbose", "--output-format", "stream-json", `--mcp-config=${mcpConfigPath}`]
+    return [
+      "--verbose",
+      "--output-format",
+      "stream-json",
+      `--mcp-config=${mcpConfigPath}`,
+    ]
   }
 
   if (provider === "claude") {
@@ -240,10 +274,14 @@ export function buildClaudeSdkMcpServers(
       servers[name] = {
         type: "stdio",
         command: entry.command,
-        args: Array.isArray(entry.args) ? entry.args.filter((arg): arg is string => typeof arg === "string") : undefined,
+        args: Array.isArray(entry.args)
+          ? entry.args.filter((arg): arg is string => typeof arg === "string")
+          : undefined,
         env: isObject(entry.env)
           ? Object.fromEntries(
-              Object.entries(entry.env).filter((pair): pair is [string, string] => typeof pair[1] === "string"),
+              Object.entries(entry.env).filter(
+                (pair): pair is [string, string] => typeof pair[1] === "string",
+              ),
             )
           : undefined,
       }
@@ -253,7 +291,9 @@ export function buildClaudeSdkMcpServers(
     if (typeof entry.url === "string" && entry.url.trim()) {
       const headers = isObject(entry.headers)
         ? Object.fromEntries(
-            Object.entries(entry.headers).filter((pair): pair is [string, string] => typeof pair[1] === "string"),
+            Object.entries(entry.headers).filter(
+              (pair): pair is [string, string] => typeof pair[1] === "string",
+            ),
           )
         : undefined
       servers[name] = {
@@ -322,7 +362,11 @@ export async function prepareWorkspaceMcpConfig(
   backend?: WebSearchBackend,
 ): Promise<string | undefined> {
   const workspaceMcpPath = join(workspace, ".mcp.json")
-  const config = await buildRuntimeMcpConfig(projectPath, workspaceMcpPath, backend)
+  const config = await buildRuntimeMcpConfig(
+    projectPath,
+    workspaceMcpPath,
+    backend,
+  )
   if (!config) return undefined
   await writeFileAtomic(workspaceMcpPath, JSON.stringify(config, null, 2))
   return workspaceMcpPath

@@ -2,7 +2,11 @@ import { mkdtemp } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { describe, expect, it } from "vitest"
-import { approvalTaskId, getWorkflowHilTask, upsertApprovalHilTask } from "../hil-store"
+import {
+  approvalTaskId,
+  getWorkflowHilTask,
+  upsertApprovalHilTask,
+} from "../hil-store"
 import {
   createRunInterruptRegistry,
   persistApprovalDecision,
@@ -19,7 +23,9 @@ describe("run-interrupts", () => {
       editedContent: "Ship this",
     })
 
-    await expect(readApprovalDecision(workspace, "approval:1")).resolves.toEqual({
+    await expect(
+      readApprovalDecision(workspace, "approval:1"),
+    ).resolves.toEqual({
       approved: true,
       editedContent: "Ship this",
     })
@@ -50,7 +56,11 @@ describe("run-interrupts", () => {
   it("resolves eval overrides false on abort", async () => {
     const registry = createRunInterruptRegistry()
     const controller = new AbortController()
-    const pending = registry.waitForEvalOverride("run-1", "eval-1", controller.signal)
+    const pending = registry.waitForEvalOverride(
+      "run-1",
+      "eval-1",
+      controller.signal,
+    )
 
     controller.abort()
 
@@ -75,12 +85,17 @@ describe("run-interrupts", () => {
       editedContent: "Ship this version",
     })
 
-    await expect(readApprovalDecision(workspace, "approval-1")).resolves.toEqual({
+    await expect(
+      readApprovalDecision(workspace, "approval-1"),
+    ).resolves.toEqual({
       approved: true,
       editedContent: "Ship this version",
     })
 
-    const task = await getWorkflowHilTask(workspace, approvalTaskId("approval-1"))
+    const task = await getWorkflowHilTask(
+      workspace,
+      approvalTaskId("approval-1"),
+    )
     expect(task?.state.status).toBe("answered")
     expect(task?.state.resolution).toBe("approved")
     expect(task?.latestResponse?.answers).toEqual({

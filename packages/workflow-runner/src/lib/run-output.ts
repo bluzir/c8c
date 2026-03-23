@@ -15,7 +15,11 @@ import type {
 import { writeFileAtomic } from "./atomic-write.js"
 
 interface RunOutputLogger {
-  warn?(component: string, event: string, context?: Record<string, unknown>): void
+  warn?(
+    component: string,
+    event: string,
+    context?: Record<string, unknown>,
+  ): void
 }
 
 function errorCode(error: unknown): string | undefined {
@@ -48,19 +52,23 @@ export function selectIncomingInput(
     const sourceState = nodeStates[edge.source]
     const output = sourceState?.output
     const content = output?.content
-    if (!output || typeof content !== "string" || content.length === 0) return []
-    return [{
-      edge,
-      output,
-      completedAt: sourceState.completedAt ?? 0,
-    }]
+    if (!output || typeof content !== "string" || content.length === 0)
+      return []
+    return [
+      {
+        edge,
+        output,
+        completedAt: sourceState.completedAt ?? 0,
+      },
+    ]
   })
 
   if (candidates.length === 0) return null
 
   candidates.sort((a, b) => {
     if (a.completedAt !== b.completedAt) return b.completedAt - a.completedAt
-    const typeDiff = incomingEdgePriority(a.edge.type) - incomingEdgePriority(b.edge.type)
+    const typeDiff =
+      incomingEdgePriority(a.edge.type) - incomingEdgePriority(b.edge.type)
     if (typeDiff !== 0) return typeDiff
     const sourceDiff = a.edge.source.localeCompare(b.edge.source)
     if (sourceDiff !== 0) return sourceDiff
@@ -70,7 +78,10 @@ export function selectIncomingInput(
   return candidates[0].output
 }
 
-function compactArtifactLabel(value: string | undefined | null, maxLength = 48): string | null {
+function compactArtifactLabel(
+  value: string | undefined | null,
+  maxLength = 48,
+): string | null {
   if (!value) return null
   const normalized = value.replace(/\s+/g, " ").trim()
   if (!normalized) return null
@@ -98,7 +109,10 @@ export function normalizedSkillRef(value: string | undefined): string {
 
 function buildArtifactMetadata(
   node: WorkflowNode,
-): Pick<NodeInput["metadata"], "artifact_type" | "artifact_label" | "artifact_role"> {
+): Pick<
+  NodeInput["metadata"],
+  "artifact_type" | "artifact_label" | "artifact_role"
+> {
   switch (node.type) {
     case "input":
       return {
@@ -110,7 +124,9 @@ function buildArtifactMetadata(
       const config = node.config as SkillNodeConfig
       const skillRef = normalizedSkillRef(config.skillRef)
       const skillName = skillRef
-        ? humanizeIdentifier(skillRef.split("/").filter(Boolean).pop() || skillRef)
+        ? humanizeIdentifier(
+            skillRef.split("/").filter(Boolean).pop() || skillRef,
+          )
         : humanizeIdentifier(node.id)
       return {
         artifact_type: "stage_output",
@@ -132,11 +148,12 @@ function buildArtifactMetadata(
       }
     case "merger": {
       const config = node.config as MergerNodeConfig
-      const artifactLabel = config.strategy === "summarize"
-        ? "Merged summary"
-        : config.strategy === "select_best"
-          ? "Best branch result"
-          : "Merged result"
+      const artifactLabel =
+        config.strategy === "summarize"
+          ? "Merged summary"
+          : config.strategy === "select_best"
+            ? "Best branch result"
+            : "Merged result"
       return {
         artifact_type: "merged_result",
         artifact_label: artifactLabel,
@@ -159,7 +176,8 @@ function buildArtifactMetadata(
       const config = node.config as OutputNodeConfig
       return {
         artifact_type: "final_result",
-        artifact_label: compactArtifactLabel(config.title, 52) || "Final result",
+        artifact_label:
+          compactArtifactLabel(config.title, 52) || "Final result",
         artifact_role: "final",
       }
     }
@@ -194,14 +212,17 @@ export function createNodeOutput(
   }
 }
 
-function normalizeDiagnosticSummaryTone(value: unknown): NodeInput["metadata"]["diagnostic_summary"]["tone"] | undefined {
+function normalizeDiagnosticSummaryTone(
+  value: unknown,
+): NodeInput["metadata"]["diagnostic_summary"]["tone"] | undefined {
   return value === "neutral" || value === "warning" || value === "danger"
     ? value
     : undefined
 }
 
 function normalizeDiagnosticCount(value: unknown): number | undefined {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0)
+    return undefined
   return Math.floor(value)
 }
 
@@ -213,7 +234,11 @@ function normalizeDiagnosticText(value: unknown): string | undefined {
 
 function normalizeDiagnosticCategorySummary(
   value: unknown,
-): NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["categories"][number] | null {
+):
+  | NonNullable<
+      NodeInput["metadata"]["diagnostic_summary"]
+    >["categories"][number]
+  | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null
   const record = value as Record<string, unknown>
   const id = normalizeDiagnosticText(record.id)
@@ -230,7 +255,11 @@ function normalizeDiagnosticCategorySummary(
 
 function normalizeDiagnosticFindingSummary(
   value: unknown,
-): NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["topFindings"][number] | null {
+):
+  | NonNullable<
+      NodeInput["metadata"]["diagnostic_summary"]
+    >["topFindings"][number]
+  | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null
   const record = value as Record<string, unknown>
   const id = normalizeDiagnosticText(record.id)
@@ -247,48 +276,60 @@ function normalizeDiagnosticFindingSummary(
 function normalizeDiagnosticSummary(
   value: unknown,
 ): NodeInput["metadata"]["diagnostic_summary"] | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return undefined
   const record = value as Record<string, unknown>
-  const severityCountsRecord = (record.severity_counts ?? record.severityCounts) as Record<string, unknown> | undefined
-  const severityCounts = severityCountsRecord && typeof severityCountsRecord === "object" && !Array.isArray(severityCountsRecord)
-    ? {
-        critical: normalizeDiagnosticCount(severityCountsRecord.critical),
-        high: normalizeDiagnosticCount(severityCountsRecord.high),
-        medium: normalizeDiagnosticCount(severityCountsRecord.medium),
-        low: normalizeDiagnosticCount(severityCountsRecord.low),
-        info: normalizeDiagnosticCount(severityCountsRecord.info),
-      }
-    : undefined
+  const severityCountsRecord = (record.severity_counts ??
+    record.severityCounts) as Record<string, unknown> | undefined
+  const severityCounts =
+    severityCountsRecord &&
+    typeof severityCountsRecord === "object" &&
+    !Array.isArray(severityCountsRecord)
+      ? {
+          critical: normalizeDiagnosticCount(severityCountsRecord.critical),
+          high: normalizeDiagnosticCount(severityCountsRecord.high),
+          medium: normalizeDiagnosticCount(severityCountsRecord.medium),
+          low: normalizeDiagnosticCount(severityCountsRecord.low),
+          info: normalizeDiagnosticCount(severityCountsRecord.info),
+        }
+      : undefined
   const categories = Array.isArray(record.categories)
     ? record.categories
-      .map((entry) => normalizeDiagnosticCategorySummary(entry))
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+        .map((entry) => normalizeDiagnosticCategorySummary(entry))
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
     : []
   const topFindingsSource = record.top_findings ?? record.topFindings
   const topFindings = Array.isArray(topFindingsSource)
     ? topFindingsSource
-      .map((entry) => normalizeDiagnosticFindingSummary(entry))
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+        .map((entry) => normalizeDiagnosticFindingSummary(entry))
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
     : []
   const summary: NodeInput["metadata"]["diagnostic_summary"] = {
     headline: normalizeDiagnosticText(record.headline),
     summary: normalizeDiagnosticText(record.summary),
     tone: normalizeDiagnosticSummaryTone(record.tone),
     rootCause: normalizeDiagnosticText(record.root_cause ?? record.rootCause),
-    recommendedNextAction: normalizeDiagnosticText(record.recommended_next_action ?? record.recommendedNextAction),
-    severityCounts: severityCounts && Object.values(severityCounts).some((entry) => entry !== undefined)
-      ? severityCounts
-      : undefined,
+    recommendedNextAction: normalizeDiagnosticText(
+      record.recommended_next_action ?? record.recommendedNextAction,
+    ),
+    severityCounts:
+      severityCounts &&
+      Object.values(severityCounts).some((entry) => entry !== undefined)
+        ? severityCounts
+        : undefined,
     categories: categories.length > 0 ? categories : undefined,
     topFindings: topFindings.length > 0 ? topFindings : undefined,
   }
 
-  return Object.values(summary).some((entry) => entry !== undefined) ? summary : undefined
+  return Object.values(summary).some((entry) => entry !== undefined)
+    ? summary
+    : undefined
 }
 
-function extractDiagnosticSummaryDocument(
-  content: string,
-): { body: string; diagnosticSummary?: NodeInput["metadata"]["diagnostic_summary"] } {
+function extractDiagnosticSummaryDocument(content: string): {
+  body: string
+  diagnosticSummary?: NodeInput["metadata"]["diagnostic_summary"]
+} {
   if (!content.startsWith("---")) {
     return { body: content }
   }
@@ -371,18 +412,22 @@ export function buildErrorEnvelopeOutput(
 ): NodeInput {
   const fallback = partialOutput?.content || incomingContent
   return {
-    content: JSON.stringify({
-      ok: false,
-      error: {
-        kind: errorKind,
-        message,
-        nodeId: node.id,
-        attempt,
+    content: JSON.stringify(
+      {
+        ok: false,
+        error: {
+          kind: errorKind,
+          message,
+          nodeId: node.id,
+          attempt,
+        },
+        fallback: {
+          content: fallback,
+        },
       },
-      fallback: {
-        content: fallback,
-      },
-    }, null, 2),
+      null,
+      2,
+    ),
     metadata: buildNodeOutputMetadata(node, {
       partial_on_error: true,
       error_policy_applied: "continue_error_output",
@@ -397,7 +442,9 @@ export function collectUpstreamIds(
   nodeStates: Record<string, { status: string }>,
 ): string[] {
   const visited = new Set<string>()
-  const queue = edges.filter((edge) => edge.target === nodeId).map((edge) => edge.source)
+  const queue = edges
+    .filter((edge) => edge.target === nodeId)
+    .map((edge) => edge.source)
   while (queue.length > 0) {
     const id = queue.shift()!
     if (visited.has(id)) continue
@@ -464,20 +511,23 @@ function pickSkillOutput(
     return { content: effectiveInput, source: "input_fallback" }
   }
 
-  if (!stdout && fileChanged) return { content: fileRaw, source: "content_file" }
+  if (!stdout && fileChanged)
+    return { content: fileRaw, source: "content_file" }
   if (stdout && !fileChanged) return { content: stdout, source: "stdout" }
-  if (!stdout && !fileChanged) return { content: effectiveInput, source: "input_fallback" }
+  if (!stdout && !fileChanged)
+    return { content: effectiveInput, source: "input_fallback" }
 
   const stdoutJson = looksLikeJsonDocument(stdout)
   const fileJson = looksLikeJsonDocument(fileRaw)
   const stdoutLooksNarrative = looksLikeProgressNarration(stdout)
-  const fileSubstantiallyLarger = fileRaw.length > Math.max(stdout.length * 1.25, stdout.length + 200)
+  const fileSubstantiallyLarger =
+    fileRaw.length > Math.max(stdout.length * 1.25, stdout.length + 200)
 
   if (
-    stdoutLooksNarrative
-    || (fileJson && !stdoutJson)
-    || (stdout.length < 120 && fileRaw.length > 220)
-    || fileSubstantiallyLarger
+    stdoutLooksNarrative ||
+    (fileJson && !stdoutJson) ||
+    (stdout.length < 120 && fileRaw.length > 220) ||
+    fileSubstantiallyLarger
   ) {
     return { content: fileRaw, source: "content_file" }
   }
@@ -485,7 +535,10 @@ function pickSkillOutput(
   return { content: stdout, source: "stdout" }
 }
 
-function hasChangedContent(content: string | null, effectiveInput: string): boolean {
+function hasChangedContent(
+  content: string | null,
+  effectiveInput: string,
+): boolean {
   if (!content) return false
   const trimmed = content.trim()
   if (!trimmed) return false
@@ -508,7 +561,8 @@ function pickPreferredContentFile(
     if (primaryJson !== mirroredJson) {
       return mirroredJson ? mirroredFileContent : primaryFileContent
     }
-    return (mirroredFileContent || "").length > (primaryFileContent || "").length
+    return (mirroredFileContent || "").length >
+      (primaryFileContent || "").length
       ? mirroredFileContent
       : primaryFileContent
   }
@@ -522,12 +576,12 @@ export function sanitizeInvalidUnicode(value: string): string {
   let out = ""
   for (let i = 0; i < value.length; i += 1) {
     const code = value.charCodeAt(i)
-    const isHigh = code >= 0xD800 && code <= 0xDBFF
-    const isLow = code >= 0xDC00 && code <= 0xDFFF
+    const isHigh = code >= 0xd800 && code <= 0xdbff
+    const isLow = code >= 0xdc00 && code <= 0xdfff
 
     if (isHigh) {
       const next = value.charCodeAt(i + 1)
-      const nextIsLow = next >= 0xDC00 && next <= 0xDFFF
+      const nextIsLow = next >= 0xdc00 && next <= 0xdfff
       if (nextIsLow) {
         out += value[i] + value[i + 1]
         i += 1
@@ -568,31 +622,55 @@ export async function buildSkillNodeOutput(
     }
   }
 
-  const mirroredContentFile = join(dirname(contentFile), "outputs", basename(contentFile))
+  const mirroredContentFile = join(
+    dirname(contentFile),
+    "outputs",
+    basename(contentFile),
+  )
   let mirroredFileContent: string | null = null
   if (mirroredContentFile !== contentFile) {
     try {
       mirroredFileContent = await readFile(mirroredContentFile, "utf-8")
     } catch (error) {
       if (errorCode(error) !== "ENOENT") {
-        logger.warn?.("workflow-runner", "skill_mirrored_content_file_read_failed", {
-          contentFile: mirroredContentFile,
-          error: errorMessage(error),
-        })
+        logger.warn?.(
+          "workflow-runner",
+          "skill_mirrored_content_file_read_failed",
+          {
+            contentFile: mirroredContentFile,
+            error: errorMessage(error),
+          },
+        )
       }
     }
   }
 
-  const fileContent = pickPreferredContentFile(primaryFileContent, mirroredFileContent, effectiveInput)
-  const selectedOutput = pickSkillOutput(config.outputMode, stdoutText, fileContent, effectiveInput)
+  const fileContent = pickPreferredContentFile(
+    primaryFileContent,
+    mirroredFileContent,
+    effectiveInput,
+  )
+  const selectedOutput = pickSkillOutput(
+    config.outputMode,
+    stdoutText,
+    fileContent,
+    effectiveInput,
+  )
   return createAgentNodeOutput(node, selectedOutput.content || effectiveInput, {
     output_source: selectedOutput.source,
     ...(partialOnError ? { partial_on_error: true } : {}),
   })
 }
 
-export async function writeNodeOutputFile(workspace: string, nodeId: string, content: string): Promise<void> {
-  await writeFileAtomic(join(workspace, "outputs", `${sanitizeNodeId(nodeId)}.md`), content)
+export async function writeNodeOutputFile(
+  workspace: string,
+  nodeId: string,
+  content: string,
+): Promise<void> {
+  await writeFileAtomic(
+    join(workspace, "outputs", `${sanitizeNodeId(nodeId)}.md`),
+    content,
+  )
 }
 
 export function getClaudeResumeSessionId(

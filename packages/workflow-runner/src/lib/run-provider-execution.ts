@@ -18,16 +18,29 @@ import type {
 } from "../schema.js"
 
 const execFile = promisify(execFileCb)
-const CLAUDE_LIMIT_RE = /\b(rate limit(?:ed)?|usage limit|quota(?: exceeded)?|too many requests|http\s*429|status\s*429|credit balance|billing|exceeded (?:your )?(?:usage|rate|monthly|spend|token) limit|limit reached)\b/i
+const CLAUDE_LIMIT_RE =
+  /\b(rate limit(?:ed)?|usage limit|quota(?: exceeded)?|too many requests|http\s*429|status\s*429|credit balance|billing|exceeded (?:your )?(?:usage|rate|monthly|spend|token) limit|limit reached)\b/i
 const MAX_TURNS_RE = /\b(?:error_max_turns|max turns?|turn limit)\b/i
-const PARTIAL_PROGRESS_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"])
+const PARTIAL_PROGRESS_TOOLS = new Set([
+  "Edit",
+  "MultiEdit",
+  "Write",
+  "NotebookEdit",
+])
 
 interface ProviderExecutionLogger {
-  info?(component: string, event: string, context?: Record<string, unknown>): void
+  info?(
+    component: string,
+    event: string,
+    context?: Record<string, unknown>,
+  ): void
 }
 
 export interface ProviderExecutionDeps {
-  startProviderTask(providerId: ProviderId, options: AgentRunOptions): Promise<AgentExecutionHandle>
+  startProviderTask(
+    providerId: ProviderId,
+    options: AgentRunOptions,
+  ): Promise<AgentExecutionHandle>
   logger?: ProviderExecutionLogger
 }
 
@@ -39,7 +52,10 @@ export interface SpawnTrackingContext {
   nodeId?: string
 }
 
-export async function runGitCommand(args: string[], cwd: string): Promise<string> {
+export async function runGitCommand(
+  args: string[],
+  cwd: string,
+): Promise<string> {
   const { stdout } = await withExecutionSlot(() =>
     execFile("git", args, { cwd, encoding: "utf-8" }),
   )
@@ -50,7 +66,10 @@ function normalizeLimitLine(text: string): string {
   return text.replace(/\s+/g, " ").trim()
 }
 
-function collectClaudeFailureEvidence(logParser: LogParser, stderrText: string): string[] {
+function collectClaudeFailureEvidence(
+  logParser: LogParser,
+  stderrText: string,
+): string[] {
   const evidence: string[] = []
   if (stderrText.trim()) evidence.push(stderrText)
 
@@ -71,7 +90,10 @@ function collectClaudeFailureEvidence(logParser: LogParser, stderrText: string):
   return evidence
 }
 
-function detectClaudeLimitEvidence(logParser: LogParser, stderrText: string): string | undefined {
+function detectClaudeLimitEvidence(
+  logParser: LogParser,
+  stderrText: string,
+): string | undefined {
   const evidence = collectClaudeFailureEvidence(logParser, stderrText)
   for (const chunk of evidence) {
     for (const rawLine of chunk.split(/\r?\n/)) {
@@ -88,7 +110,10 @@ function detectClaudeLimitEvidence(logParser: LogParser, stderrText: string): st
   return undefined
 }
 
-function detectMaxTurnsEvidence(logParser: LogParser, stderrText: string): string | undefined {
+function detectMaxTurnsEvidence(
+  logParser: LogParser,
+  stderrText: string,
+): string | undefined {
   const evidence = [
     stderrText,
     ...collectClaudeFailureEvidence(logParser, ""),
@@ -113,15 +138,22 @@ function detectMaxTurnsEvidence(logParser: LogParser, stderrText: string): strin
   return undefined
 }
 
-export function hasPartialSkillProgress(log: LogEntry[], partialOutput: NodeInput | undefined): boolean {
-  if (partialOutput?.metadata?.output_source && partialOutput.metadata.output_source !== "input_fallback") {
+export function hasPartialSkillProgress(
+  log: LogEntry[],
+  partialOutput: NodeInput | undefined,
+): boolean {
+  if (
+    partialOutput?.metadata?.output_source &&
+    partialOutput.metadata.output_source !== "input_fallback"
+  ) {
     return true
   }
 
-  return log.some((entry) =>
-    entry.type === "tool_result"
-    && entry.status === "success"
-    && PARTIAL_PROGRESS_TOOLS.has(entry.tool),
+  return log.some(
+    (entry) =>
+      entry.type === "tool_result" &&
+      entry.status === "success" &&
+      PARTIAL_PROGRESS_TOOLS.has(entry.tool),
   )
 }
 
@@ -142,9 +174,10 @@ export function buildAgentFailureDetail(
       : "Could not start Claude CLI — check that 'claude' is in your PATH and accessible"
   }
 
-  const limitEvidence = providerId === "claude"
-    ? detectClaudeLimitEvidence(logParser, stderrText)
-    : undefined
+  const limitEvidence =
+    providerId === "claude"
+      ? detectClaudeLimitEvidence(logParser, stderrText)
+      : undefined
   if (limitEvidence && providerId === "claude") {
     return `Claude usage limit reached: ${limitEvidence}. Wait for the limit window to reset or use an account/key with available quota, then rerun.`
   }

@@ -12,8 +12,18 @@ function createWorkflow(): Workflow {
     name: "Audit flow",
     nodes: [
       { id: "input", type: "input", position: { x: 0, y: 0 }, config: {} },
-      { id: "audit", type: "skill", position: { x: 100, y: 0 }, config: { prompt: "audit" } },
-      { id: "approve", type: "approval", position: { x: 200, y: 0 }, config: { message: "approve" } },
+      {
+        id: "audit",
+        type: "skill",
+        position: { x: 100, y: 0 },
+        config: { prompt: "audit" },
+      },
+      {
+        id: "approve",
+        type: "approval",
+        position: { x: 200, y: 0 },
+        config: { message: "approve" },
+      },
       { id: "output", type: "output", position: { x: 300, y: 0 }, config: {} },
     ],
     edges: [
@@ -81,11 +91,21 @@ describe("buildRuntimeWorkflowFromSavedState", () => {
     const savedState: PersistedRunState = {
       runtimeNodes: [
         ...workflow.nodes,
-        { id: "audit::security", type: "skill", position: { x: 100, y: 80 }, config: { prompt: "security" } },
+        {
+          id: "audit::security",
+          type: "skill",
+          position: { x: 100, y: 80 },
+          config: { prompt: "security" },
+        },
       ],
       runtimeEdges: [
         ...workflow.edges,
-        { id: "branch-edge", source: "audit", target: "audit::security", type: "default" },
+        {
+          id: "branch-edge",
+          source: "audit",
+          target: "audit::security",
+          type: "default",
+        },
       ],
       runtimeMeta: {
         "audit::security": {
@@ -99,10 +119,19 @@ describe("buildRuntimeWorkflowFromSavedState", () => {
       nodeStates: {},
     }
 
-    const runtimeWorkflow = buildRuntimeWorkflowFromSavedState(workflow, savedState)
+    const runtimeWorkflow = buildRuntimeWorkflowFromSavedState(
+      workflow,
+      savedState,
+    )
 
-    expect(runtimeWorkflow.nodes.map((node) => node.id)).toContain("audit::security")
-    expect(runtimeWorkflow.edges.map((edge) => edge.id)).toContain("branch-edge")
-    expect(runtimeWorkflow.runtimeMeta["audit::security"]?.subtaskKey).toBe("security")
+    expect(runtimeWorkflow.nodes.map((node) => node.id)).toContain(
+      "audit::security",
+    )
+    expect(runtimeWorkflow.edges.map((edge) => edge.id)).toContain(
+      "branch-edge",
+    )
+    expect(runtimeWorkflow.runtimeMeta["audit::security"]?.subtaskKey).toBe(
+      "security",
+    )
   })
 })

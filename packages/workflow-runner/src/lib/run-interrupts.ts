@@ -18,15 +18,24 @@ interface EvalOverrideResolve {
   resolve: (overridden: boolean) => void
 }
 
-export function approvalDecisionPath(workspace: string, nodeId: string): string {
-  return join(workspace, "approvals", `${nodeId.replace(/[^a-zA-Z0-9-]/g, "_")}.decision.json`)
+export function approvalDecisionPath(
+  workspace: string,
+  nodeId: string,
+): string {
+  return join(
+    workspace,
+    "approvals",
+    `${nodeId.replace(/[^a-zA-Z0-9-]/g, "_")}.decision.json`,
+  )
 }
 
 export async function readApprovalDecision(
   workspace: string,
   nodeId: string,
 ): Promise<ApprovalResolution | null> {
-  return readJsonFile<ApprovalResolution>(approvalDecisionPath(workspace, nodeId))
+  return readJsonFile<ApprovalResolution>(
+    approvalDecisionPath(workspace, nodeId),
+  )
 }
 
 export async function persistApprovalDecision(
@@ -161,7 +170,11 @@ export function createRunInterruptRegistry() {
       })
     },
 
-    resolveApproval(runId: string, nodeId: string, decision: ApprovalResolution): boolean {
+    resolveApproval(
+      runId: string,
+      nodeId: string,
+      decision: ApprovalResolution,
+    ): boolean {
       const key = `${runId}:${nodeId}`
       const pending = pendingApprovals.get(key)
       if (!pending) return false
