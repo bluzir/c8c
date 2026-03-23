@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react"
+import { cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type { FlowImprovementRecommendation } from "@shared/types"
 import { HistoryTab } from "./HistoryTab"
+
+afterEach(cleanup)
 
 const BASE_RUN = {
   runId: "run-1",
@@ -40,11 +42,6 @@ function makeRec(
   }
 }
 
-/** Find all recommendation card containers by their surface class. */
-function getRecommendationCards() {
-  return document.querySelectorAll(".surface-info-soft")
-}
-
 describe("HistoryTab", () => {
   it("renders a single recommendation directly without disclosure", () => {
     render(
@@ -57,10 +54,10 @@ describe("HistoryTab", () => {
       />,
     )
 
-    const cards = getRecommendationCards()
+    const cards = screen.getAllByTestId("recommendation-item")
     expect(cards.length).toBe(1)
 
-    const card = cards[0] as HTMLElement
+    const card = cards[0]
     // Verdict text visible immediately
     expect(within(card).getByText("Writer has a better variant")).toBeTruthy()
     // Evidence visible
@@ -97,15 +94,13 @@ describe("HistoryTab", () => {
       />,
     )
 
-    const cards = getRecommendationCards()
+    const cards = screen.getAllByTestId("recommendation-item")
     expect(cards.length).toBe(2)
 
     expect(
-      within(cards[0] as HTMLElement).getByText("Writer has a better variant"),
+      within(cards[0]).getByText("Writer has a better variant"),
     ).toBeTruthy()
-    expect(
-      within(cards[1] as HTMLElement).getByText(/Reviewer needs attention/),
-    ).toBeTruthy()
+    expect(within(cards[1]).getByText(/Reviewer needs attention/)).toBeTruthy()
     // No disclosure toggle
     expect(
       screen.queryByRole("button", { name: /improvement suggestions/i }),
@@ -136,12 +131,12 @@ describe("HistoryTab", () => {
     expect(toggle).toBeTruthy()
 
     // Content should not be visible yet (unmountWhenClosed)
-    expect(getRecommendationCards().length).toBe(0)
+    expect(screen.queryAllByTestId("recommendation-item").length).toBe(0)
 
     await user.click(toggle)
 
     // After expanding, all three recommendation cards visible
-    expect(getRecommendationCards().length).toBe(3)
+    expect(screen.getAllByTestId("recommendation-item").length).toBe(3)
   })
 
   it("formats prefer_variant verdict with metrics", () => {
@@ -165,10 +160,10 @@ describe("HistoryTab", () => {
       />,
     )
 
-    const card = getRecommendationCards()[0] as HTMLElement
+    const card = screen.getByTestId("recommendation-item")
     expect(
       within(card).getByText(
-        "Writer has a better variant — succeeds 80% vs 60%",
+        /Writer has a better variant.*succeeds 80% vs 60%/,
       ),
     ).toBeTruthy()
     expect(within(card).getByText("Better variant")).toBeTruthy()
@@ -194,10 +189,10 @@ describe("HistoryTab", () => {
       />,
     )
 
-    const card = getRecommendationCards()[0] as HTMLElement
+    const card = screen.getByTestId("recommendation-item")
     expect(
       within(card).getByText(
-        "QA needs attention — 40% success rate across 5 runs",
+        /QA needs attention.*40% success rate across 5 runs/,
       ),
     ).toBeTruthy()
     expect(within(card).getByText("Needs attention")).toBeTruthy()
@@ -223,10 +218,10 @@ describe("HistoryTab", () => {
       />,
     )
 
-    const card = getRecommendationCards()[0] as HTMLElement
+    const card = screen.getByTestId("recommendation-item")
     expect(
       within(card).getByText(
-        "Approval at Review gate keeps getting rewritten — 60% of runs edited",
+        /Approval at Review gate keeps getting rewritten.*60% of runs edited/,
       ),
     ).toBeTruthy()
     expect(within(card).getByText("Frequent edits")).toBeTruthy()
@@ -245,7 +240,7 @@ describe("HistoryTab", () => {
       />,
     )
 
-    const card = getRecommendationCards()[0] as HTMLElement
+    const card = screen.getByTestId("recommendation-item")
     expect(within(card).getByText("7 runs analyzed")).toBeTruthy()
   })
 })

@@ -175,8 +175,9 @@ function RecommendationItem({
               }
               size="compact"
             >
-              {recommendation.confidence === "high" ? "High" : "Medium"}{" "}
-              confidence
+              {recommendation.confidence === "high"
+                ? "High confidence"
+                : "Medium confidence"}
             </Badge>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 ui-meta-text text-muted-foreground">
