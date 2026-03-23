@@ -1,5 +1,9 @@
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { deriveExecutionLoopSummary } from "@/lib/execution-loops"
+import {
+  deriveExecutionLoopFlowRules,
+  type FlowRulePreview,
+} from "@/lib/flow-rules"
 import type {
   ArtifactRecord,
   EvaluationResult,
@@ -21,6 +25,8 @@ export interface WorkflowBlockedResumeSummary {
   attachText: string
   latestResultText: string | null
   findings: string[]
+  executionLoopSummary: ReturnType<typeof deriveExecutionLoopSummary> | null
+  flowRules: FlowRulePreview[]
   primaryArtifact: ArtifactRecord | null
   primaryActionLabel: string
 }
@@ -77,40 +83,24 @@ function deriveCriteriaFindings(
 }
 
 function deriveBlockedFindings({
-  workflow,
   task,
-  nodeStates,
-  evalResults,
+  executionLoopSummary,
   reasonText,
 }: {
-  workflow: Workflow
   task: HumanTaskSnapshot
-  nodeStates?: Record<string, NodeState>
-  evalResults?: Record<string, EvaluationResult[]>
+  executionLoopSummary?: ReturnType<typeof deriveExecutionLoopSummary> | null
   reasonText: string
 }) {
-  if (
-    nodeStates &&
-    evalResults &&
-    (task.kind === "approval" || task.request.metadata?.generatedByNodeId)
-  ) {
-    const loopSummary = deriveExecutionLoopSummary({
-      workflow,
-      nodeStates,
-      evalResults,
-      runOutcome: "blocked",
-      preferredEvaluatorNodeId:
-        task.request.metadata?.generatedByNodeId || task.nodeId,
-    })
+  if (executionLoopSummary) {
     const criteriaFindings = deriveCriteriaFindings(
-      loopSummary?.criteriaBreakdown,
-      loopSummary?.threshold || 0,
+      executionLoopSummary.criteriaBreakdown,
+      executionLoopSummary.threshold || 0,
     )
     if (criteriaFindings.length > 0) return criteriaFindings.slice(0, 3)
 
-    const loopReasonFindings = collectFindingLines(loopSummary?.reason).filter(
-      (line) => line !== normalizeFindingLine(reasonText),
-    )
+    const loopReasonFindings = collectFindingLines(
+      executionLoopSummary.reason,
+    ).filter((line) => line !== normalizeFindingLine(reasonText))
     if (loopReasonFindings.length > 0) return loopReasonFindings.slice(0, 3)
   }
 
@@ -154,6 +144,19 @@ export function deriveWorkflowBlockedResumeSummary({
     },
     currentStepLabel,
   )
+  const executionLoopSummary =
+    nodeStates &&
+    evalResults &&
+    (task.kind === "approval" || task.request.metadata?.generatedByNodeId)
+      ? deriveExecutionLoopSummary({
+          workflow,
+          nodeStates,
+          evalResults,
+          runOutcome: "blocked",
+          preferredEvaluatorNodeId:
+            task.request.metadata?.generatedByNodeId || task.nodeId,
+        })
+      : null
 
   return {
     workLabel,
@@ -166,12 +169,12 @@ export function deriveWorkflowBlockedResumeSummary({
         : "Saved work context is already tied to this step.",
     latestResultText: deriveBlockedTaskLatestResultText(primaryArtifact),
     findings: deriveBlockedFindings({
-      workflow,
       task,
-      nodeStates,
-      evalResults,
+      executionLoopSummary,
       reasonText,
     }),
+    executionLoopSummary,
+    flowRules: deriveExecutionLoopFlowRules(executionLoopSummary),
     primaryArtifact,
     primaryActionLabel:
       task.kind === "approval" ? "Open approval" : "Provide input",

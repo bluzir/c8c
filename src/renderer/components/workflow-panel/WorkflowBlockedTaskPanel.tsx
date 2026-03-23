@@ -97,6 +97,8 @@ export function WorkflowBlockedTaskPanel({
                 inputText: blockedResumeSummary.attachText,
                 latestResultText: blockedResumeSummary.latestResultText,
                 findings: blockedResumeSummary.findings,
+                executionLoopSummary: blockedResumeSummary.executionLoopSummary,
+                flowRules: blockedResumeSummary.flowRules,
                 approveText:
                   selectedTask.kind === "approval"
                     ? "Continue this flow after approval."

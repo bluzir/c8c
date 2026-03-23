@@ -147,4 +147,42 @@ describe("ResultTab", () => {
     await user.click(retryButton)
     expect(onRerunSelectedStage).toHaveBeenCalledTimes(1)
   })
+
+  it("shows explicit loop counters and active rules for quality loops", () => {
+    const props = createBaseProps()
+    props.showArtifactContinuation = true
+    props.executionLoopSummary = {
+      loopLabel: "Review loop",
+      title: "UI polish gate",
+      evaluatorNodeId: "eval-1",
+      criteriaText: "Check UI polish",
+      outcome: "auto-return",
+      outcomeLabel: "Return for fixes",
+      score: 6,
+      threshold: 8,
+      attempt: 2,
+      maxAttempts: 3,
+      failedCriteriaCount: 2,
+      deltaLabel: "-2 vs bar",
+      reason: "Accessibility and spacing are still below the bar.",
+      fixInstructions: "Tighten spacing and fix contrast before the next pass.",
+      outcomeSentence:
+        "Score 6/10 stayed below 8/10. Automatic return will retry this loop.",
+      criteriaBreakdown: [
+        { id: "contrast", score: 5 },
+        { id: "spacing", score: 6 },
+      ],
+    }
+
+    render(<ResultTab {...props} />)
+
+    expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
+    expect(screen.getByText("UI polish gate")).toBeTruthy()
+    expect(screen.getByText("Loop 2/3")).toBeTruthy()
+    expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(
+      screen.getByText("Return to fix when checks stay below the threshold"),
+    ).toBeTruthy()
+    expect(screen.getByText("Escalate after 3 loop attempts")).toBeTruthy()
+  })
 })

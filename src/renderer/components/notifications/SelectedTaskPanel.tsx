@@ -2,6 +2,8 @@ import { ArrowRight, ArrowUpRight, Check, Loader2 } from "lucide-react"
 import type { HumanTaskField, HumanTaskSnapshot } from "@shared/types"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ExecutionLoopCard } from "@/components/ui/execution-loop-card"
+import { FlowRulesPreview } from "@/components/ui/flow-rules-preview"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -18,6 +20,8 @@ import {
   taskActionCopy,
   type TaskStageMeta,
 } from "./task-ui"
+import type { ExecutionLoopSummary } from "@/lib/execution-loops"
+import type { FlowRulePreview } from "@/lib/flow-rules"
 
 function normalizePanelLine(value: string) {
   return value
@@ -69,6 +73,8 @@ interface SelectedTaskPanelProps {
     inputText?: string | null
     latestResultText?: string | null
     findings?: string[] | null
+    executionLoopSummary?: ExecutionLoopSummary | null
+    flowRules?: FlowRulePreview[] | null
     approveText?: string | null
     rejectText?: string | null
   } | null
@@ -267,6 +273,21 @@ export function SelectedTaskPanel({
                 </div>
               </div>
             )}
+
+            {blockedSummary?.executionLoopSummary ? (
+              <div className="space-y-3 border-t border-hairline pt-2">
+                <ExecutionLoopCard
+                  summary={blockedSummary.executionLoopSummary}
+                  compact
+                  surface="flat"
+                  detailSummary="Loop details"
+                />
+                <FlowRulesPreview
+                  rules={blockedSummary.flowRules || []}
+                  surface="flat"
+                />
+              </div>
+            ) : null}
 
             {(blockedSummary?.inputText ||
               blockedSummary?.latestResultText) && (

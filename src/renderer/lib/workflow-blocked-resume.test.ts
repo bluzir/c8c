@@ -283,5 +283,11 @@ describe("workflow-blocked-resume", () => {
     })
 
     expect(summary.findings).toEqual(["Security (5/8)", "Regressions (6/8)"])
+    expect(summary.executionLoopSummary?.loopLabel).toBe("Verify loop")
+    expect(summary.flowRules.map((rule) => rule.id)).toEqual([
+      "loop-pass",
+      "loop-return",
+      "loop-approval",
+    ])
   })
 })

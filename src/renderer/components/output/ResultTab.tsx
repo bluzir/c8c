@@ -5,6 +5,8 @@ import ReactMarkdown from "react-markdown"
 import { useVerdictData } from "@/components/output/useVerdictData"
 import { Button } from "@/components/ui/button"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
+import { ExecutionLoopCard } from "@/components/ui/execution-loop-card"
+import { FlowRulesPreview } from "@/components/ui/flow-rules-preview"
 import {
   Select,
   SelectContent,
@@ -13,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/cn"
+import { deriveExecutionLoopFlowRules } from "@/lib/flow-rules"
 import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 import type { ExecutionLoopSummary } from "@/lib/execution-loops"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
@@ -180,6 +183,7 @@ export function ResultTab({
     isDisplayedResultEmpty,
     failedNodeErrors,
   })
+  const loopFlowRules = deriveExecutionLoopFlowRules(executionLoopSummary)
   const terminalVariant = verdictData.terminalVariant
   const isDocumentSurface = verdictData.surfaceMode === "document"
   const isDiagnosticSurface = verdictData.variant === "diagnostic"
@@ -448,6 +452,17 @@ export function ResultTab({
         </div>
       </section>
     ) : null
+  const executionLoopPanel = executionLoopSummary ? (
+    <section className="space-y-3 ui-section-divider">
+      <ExecutionLoopCard
+        summary={executionLoopSummary}
+        compact
+        surface="flat"
+        detailSummary="Loop details"
+      />
+      <FlowRulesPreview rules={loopFlowRules} surface="flat" />
+    </section>
+  ) : null
   const artifactLinkStrip =
     showArtifactContinuation && visibleSavedArtifacts.length > 0 ? (
       <div className="ui-section-divider">
@@ -562,6 +577,7 @@ export function ResultTab({
               </div>
             )}
             {terminalVariant === "failed" ? failureBridge : nextStageHint}
+            {executionLoopPanel}
 
             {evidencePanel}
 

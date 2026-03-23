@@ -28,11 +28,13 @@ export function FlowRulesPreview({
   className,
   collapsible = false,
   defaultOpen = false,
+  surface = "chapter",
 }: {
   rules: FlowRulePreview[]
   className?: string
   collapsible?: boolean
   defaultOpen?: boolean
+  surface?: "chapter" | "flat"
 }) {
   if (rules.length === 0) return null
 
@@ -49,7 +51,7 @@ export function FlowRulesPreview({
     return (
       <DisclosurePanel
         summary={summary}
-        className={cn("ui-chapter-shell", className)}
+        className={cn(surface === "chapter" && "ui-chapter-shell", className)}
         summaryClassName="py-1.5"
         contentClassName="space-y-2"
         defaultOpen={defaultOpen}
@@ -61,7 +63,11 @@ export function FlowRulesPreview({
 
   return (
     <section
-      className={cn("ui-chapter-shell space-y-2 px-3 py-2.5", className)}
+      className={cn(
+        "space-y-2",
+        surface === "chapter" && "ui-chapter-shell px-3 py-2.5",
+        className,
+      )}
     >
       <div className="flex items-center gap-2">
         <p className="ui-meta-label text-muted-foreground">Active rules</p>

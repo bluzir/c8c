@@ -103,4 +103,66 @@ describe("SelectedTaskPanel", () => {
     expect(onSubmitAndContinue).toHaveBeenCalledTimes(1)
     expect(onReject).toHaveBeenCalledTimes(1)
   })
+
+  it("shows loop counters and active rules when blocked by a quality loop", () => {
+    render(
+      <SelectedTaskPanel
+        selectedTask={createSelectedTask()}
+        taskLoading={false}
+        taskSubmitting={false}
+        taskAnswers={{}}
+        selectedTaskStageMeta={{ title: "Ship", group: "Release" }}
+        blockedSummary={{
+          statusText: "Approval required",
+          reasonText: "Two checks are still below the bar.",
+          inputText: "Verification Report",
+          latestResultText: "Latest result: Verification Report.",
+          findings: ["Security (5/8)", "Regressions (6/8)"],
+          executionLoopSummary: {
+            loopLabel: "Review loop",
+            title: "Ship review gate",
+            outcome: "human decision",
+            outcomeLabel: "Decision required",
+            score: 6,
+            threshold: 8,
+            attempt: 2,
+            maxAttempts: 3,
+            failedCriteriaCount: 2,
+            deltaLabel: "-2 vs bar",
+            reason: "Two checks are still below the bar.",
+            fixInstructions: "Decide whether to fix or hold the release.",
+            outcomeSentence:
+              "Score 6/10 stayed below 8/10. Approval is required.",
+            criteriaBreakdown: [
+              { id: "Security", score: 5 },
+              { id: "Regressions", score: 6 },
+            ],
+          },
+          flowRules: [
+            {
+              id: "loop-return",
+              label: "Return to fix when checks stay below the threshold",
+              scope: "Review",
+            },
+            {
+              id: "loop-approval",
+              label: "Ask for human approval when the loop cannot decide",
+              scope: "Review",
+            },
+          ],
+        }}
+        onFieldChange={vi.fn()}
+        onSubmit={vi.fn()}
+        onSubmitAndContinue={vi.fn()}
+        onReject={vi.fn()}
+      />,
+    )
+
+    expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
+    expect(screen.getByText("Loop 2/3")).toBeTruthy()
+    expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(
+      screen.getByText("Ask for human approval when the loop cannot decide"),
+    ).toBeTruthy()
+  })
 })
