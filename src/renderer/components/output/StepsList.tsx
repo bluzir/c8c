@@ -253,7 +253,7 @@ function StepExpandedContent({
         </div>
         {logSummary && (
           <>
-            <div className="ui-meta-text text-muted-foreground">
+            <div className="ui-meta-text tabular-nums text-muted-foreground min-h-[1rem]">
               {logSummary.stats}
             </div>
             <button
@@ -288,9 +288,9 @@ function StepExpandedContent({
     <div className="space-y-2 px-3 py-3">
       {/* Live activity line for running */}
       {status === "running" && logSummary?.lastAction && (
-        <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-body-sm text-muted-foreground min-h-[1.25rem]">
           <Loader2 size={12} className="animate-spin shrink-0" />
-          <span className="truncate">{logSummary.lastAction}</span>
+          <span className="truncate tabular-nums">{logSummary.lastAction}</span>
         </div>
       )}
 
