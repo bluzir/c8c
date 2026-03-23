@@ -19,7 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
+import { PendingTemplateDetails } from "@/components/create/TemplateSuggestionCard"
+import { buildTemplateRoutingPreview } from "@/lib/create-routing-preview"
+import {
+  deriveTemplateExecutionDisciplineLabels,
+  deriveTemplateJobLabel,
+} from "@/lib/workflow-entry"
 
 type DeepLinkStartMode = "create" | "replace"
 
@@ -45,6 +50,19 @@ export function DeepLinkTemplateDialog({
   onReplaceCurrent,
 }: DeepLinkTemplateDialogProps) {
   const nodeCount = template?.workflow.nodes.length ?? 0
+  const disciplineLabels = template
+    ? deriveTemplateExecutionDisciplineLabels(template)
+    : []
+  const executionSummary = template
+    ? template.executionPolicy?.summary?.trim() ||
+      (disciplineLabels.length > 0 ? disciplineLabels.join(", ") : null)
+    : null
+  const routingPreview = template
+    ? buildTemplateRoutingPreview({
+        template,
+        templates: [template],
+      })
+    : null
   const [startMode, setStartMode] = useState<DeepLinkStartMode>(
     projects.length > 0 ? "create" : "replace",
   )
@@ -82,6 +100,12 @@ export function DeepLinkTemplateDialog({
                 {nodeCount} step{nodeCount === 1 ? "" : "s"} ready
               </span>
             </div>
+            <PendingTemplateDetails
+              intentLabel={routingPreview?.helpModeLabel || null}
+              startStageLabel={routingPreview?.stageLabel || null}
+              executionSummary={executionSummary}
+              processStages={routingPreview?.stages || null}
+            />
             {projects.length > 0 ? (
               <div className="space-y-1">
                 <p className="ui-meta-text text-muted-foreground">
@@ -158,7 +182,7 @@ export function DeepLinkTemplateDialog({
                   Replace current draft
                 </p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
-                  Swap the current draft for this library flow.
+                  Swap the current draft for this starting point.
                 </p>
               </button>
             </div>

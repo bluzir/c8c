@@ -16,12 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PendingTemplateDetails } from "@/components/create/TemplateSuggestionCard"
+import type { CreateRoutingPreview } from "@/lib/create-routing-preview"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
 import type { WorkflowTemplate } from "@/lib/store"
 
 export function PendingTemplateDialog({
   pendingTemplate,
+  routingPreview,
+  executionSummary,
   projects,
   targetProjectPath,
   onTargetProjectPathChange,
@@ -35,6 +39,11 @@ export function PendingTemplateDialog({
   onContinue,
 }: {
   pendingTemplate: WorkflowTemplate | null
+  routingPreview?: Pick<
+    CreateRoutingPreview,
+    "helpModeLabel" | "stageLabel" | "stages"
+  > | null
+  executionSummary?: string | null
   projects: string[]
   targetProjectPath: string | null
   onTargetProjectPathChange: (value: string) => void
@@ -101,6 +110,12 @@ export function PendingTemplateDialog({
               {blockerStatement} {actionInstruction}
             </p>
           )}
+          <PendingTemplateDetails
+            intentLabel={routingPreview?.helpModeLabel || null}
+            startStageLabel={routingPreview?.stageLabel || null}
+            executionSummary={executionSummary || null}
+            processStages={routingPreview?.stages || null}
+          />
           <div role="radiogroup" aria-label="Start mode" className="space-y-2">
             {projects.length > 0 ? (
               <button
@@ -143,7 +158,7 @@ export function PendingTemplateDialog({
                   Replace current draft
                 </p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
-                  Swap the current draft for this starting flow.
+                  Swap the current draft for this starting point.
                 </p>
               </button>
             ) : (

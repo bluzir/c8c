@@ -19,6 +19,9 @@ describe("DeepLinkTemplateDialog", () => {
           input: "Current work",
           output: "Review report",
           steps: [],
+          executionPolicy: {
+            summary: "Evidence-first, review checks",
+          },
           workflow: {
             version: 1,
             name: "Delivery Factory: Review Phase",
@@ -37,5 +40,8 @@ describe("DeepLinkTemplateDialog", () => {
     )
 
     expect(screen.getByText("Start Review before ship")).toBeTruthy()
+    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("Dev Process")).toBeTruthy()
+    expect(screen.getAllByText("Review it").length).toBeGreaterThan(0)
   })
 })

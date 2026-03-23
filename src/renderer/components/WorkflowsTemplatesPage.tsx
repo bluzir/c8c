@@ -55,13 +55,16 @@ import {
   resolveProjectRequiredContract,
   splitGuidedTemplateEntryContracts,
 } from "@/lib/entry-state-contracts"
-import { mergeInputAttachments } from "@/lib/workflow-entry"
+import {
+  deriveTemplateExecutionDisciplineLabels,
+  mergeInputAttachments,
+} from "@/lib/workflow-entry"
 import {
   buildResultModeSeedInput,
   countResultModeConfigFields,
   normalizeResultModeConfig,
 } from "@/lib/result-mode-config"
-import { getResultMode } from "@/lib/result-modes"
+import { getResultMode, splitTemplatesForResultMode } from "@/lib/result-modes"
 import { buildTemplateStartState } from "@/lib/template-start"
 import { hasWorkflowCreatePromptContent } from "@/lib/workflow-create-prompt"
 import {
@@ -80,6 +83,7 @@ import {
   TEMPLATE_CATEGORY_META,
   TEMPLATE_CATEGORY_ORDER,
 } from "@/components/templates/templateLibraryModel"
+import { buildTemplateRoutingPreview } from "@/lib/create-routing-preview"
 
 export function WorkflowsTemplatesPage() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([])
@@ -236,6 +240,17 @@ export function WorkflowsTemplatesPage() {
     () => splitGuidedTemplateEntryContracts(filteredTemplates, templates),
     [filteredTemplates, templates],
   )
+  const templateSplit = useMemo(
+    () => splitTemplatesForResultMode(templates, selectedResultModeId),
+    [selectedResultModeId, templates],
+  )
+  const quickStartById = useMemo(
+    () =>
+      new Map(
+        templateSplit.quickStarts.map((entry) => [entry.template.id, entry]),
+      ),
+    [templateSplit.quickStarts],
+  )
 
   const selectedTemplateEntry = useMemo(
     () =>
@@ -245,6 +260,44 @@ export function WorkflowsTemplatesPage() {
     [filteredTemplateEntries.entries, selectedTemplateId],
   )
   const selectedTemplate = selectedTemplateEntry?.template ?? null
+  const selectedQuickStart = selectedTemplate
+    ? quickStartById.get(selectedTemplate.id) || null
+    : null
+  const selectedRoutingPreview = useMemo(() => {
+    if (selectedResultModeId !== "development" || !selectedTemplate) return null
+    return buildTemplateRoutingPreview({
+      template: selectedTemplate,
+      templates,
+      title: selectedQuickStart?.label,
+      helpModeLabel: selectedQuickStart?.intentLabel,
+    })
+  }, [selectedQuickStart, selectedResultModeId, selectedTemplate, templates])
+  const pendingTemplateQuickStart = pendingTemplate
+    ? quickStartById.get(pendingTemplate.id) || null
+    : null
+  const pendingTemplateRoutingPreview = useMemo(() => {
+    if (selectedResultModeId !== "development" || !pendingTemplate) return null
+    return buildTemplateRoutingPreview({
+      template: pendingTemplate,
+      templates,
+      title: pendingTemplateQuickStart?.label,
+      helpModeLabel: pendingTemplateQuickStart?.intentLabel,
+    })
+  }, [
+    pendingTemplate,
+    pendingTemplateQuickStart,
+    selectedResultModeId,
+    templates,
+  ])
+  const pendingTemplateExecutionSummary = useMemo(() => {
+    if (!pendingTemplate) return null
+    const disciplineLabels =
+      deriveTemplateExecutionDisciplineLabels(pendingTemplate)
+    return (
+      pendingTemplate.executionPolicy?.summary?.trim() ||
+      (disciplineLabels.length > 0 ? disciplineLabels.join(", ") : null)
+    )
+  }, [pendingTemplate])
 
   const selectedCategoryMeta = TEMPLATE_CATEGORY_META[activeCategory]
   const createModeId = useMemo(
@@ -673,9 +726,12 @@ export function WorkflowsTemplatesPage() {
             ) : (
               <div className="space-y-6">
                 {filteredTemplateEntries.guidedEntries.length > 0 ? (
-                  <section className="space-y-3" aria-label="Guided entries">
+                  <section
+                    className="space-y-3"
+                    aria-label="Guided starting points"
+                  >
                     <div className="px-1">
-                      <p className="section-kicker">Guided entries</p>
+                      <p className="section-kicker">Guided starting points</p>
                       <p className="mt-1 text-body-sm text-muted-foreground">
                         Start with the first step, then continue through saved
                         work as the path progresses.
@@ -715,6 +771,7 @@ export function WorkflowsTemplatesPage() {
           {selectedTemplateEntry && (
             <TemplateDetailPanel
               entry={selectedTemplateEntry}
+              routingPreview={selectedRoutingPreview}
               onUse={confirmApplyTemplate}
               disabled={createInProjectOnly && !preferredProjectPath}
               onClose={() => setSelectedTemplateId(null)}
@@ -725,6 +782,8 @@ export function WorkflowsTemplatesPage() {
 
       <PendingTemplateDialog
         pendingTemplate={pendingTemplate}
+        routingPreview={pendingTemplateRoutingPreview}
+        executionSummary={pendingTemplateExecutionSummary}
         projects={projects}
         targetProjectPath={targetProjectPath}
         onTargetProjectPathChange={setTargetProjectPath}

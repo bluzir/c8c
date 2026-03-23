@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { CreateEntryRouteOption, WorkflowTemplate } from "@shared/types"
-import { buildCreateRoutingPreview } from "./create-routing-preview"
+import {
+  buildCreateRoutingPreview,
+  buildTemplateRoutingPreview,
+} from "./create-routing-preview"
 
 function createTemplate(
   overrides: Partial<WorkflowTemplate> = {},
@@ -114,6 +117,25 @@ describe("buildCreateRoutingPreview", () => {
     expect(preview?.stages[0]).toMatchObject({
       id: "shape_map",
       state: "current",
+    })
+  })
+
+  it("falls back to default development presentation for deep-linked templates", () => {
+    const template = createTemplate({
+      id: "full-stack-code-audit",
+      name: "Full-Stack Code Audit",
+      pack: undefined,
+    })
+
+    const preview = buildTemplateRoutingPreview({
+      template,
+      templates: [template],
+    })
+
+    expect(preview).toMatchObject({
+      title: "Audit codebase risks",
+      helpModeLabel: "Review it",
+      stageLabel: "Review",
     })
   })
 })

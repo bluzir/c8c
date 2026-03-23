@@ -19,6 +19,9 @@ describe("PendingTemplateDialog", () => {
           input: "Project path",
           output: "Codebase map",
           steps: [],
+          executionPolicy: {
+            summary: "Evidence-first, repo context",
+          },
           workflow: {
             version: 1,
             name: "Delivery Factory: Map Codebase",
@@ -26,6 +29,19 @@ describe("PendingTemplateDialog", () => {
             edges: [],
           },
         }}
+        routingPreview={{
+          helpModeLabel: "Do it",
+          stageLabel: "Shape / Map",
+          stages: [
+            { id: "shape_map", label: "Shape / Map", state: "current" },
+            { id: "plan", label: "Plan", state: "later" },
+            { id: "implement", label: "Implement", state: "later" },
+            { id: "review", label: "Review", state: "later" },
+            { id: "verify", label: "Verify", state: "later" },
+            { id: "ship", label: "Ship", state: "later" },
+          ],
+        }}
+        executionSummary="Evidence-first, repo context"
         projects={["/tmp/project"]}
         targetProjectPath="/tmp/project"
         onTargetProjectPathChange={vi.fn()}
@@ -41,5 +57,7 @@ describe("PendingTemplateDialog", () => {
     )
 
     expect(screen.getByText("Start Change the current app")).toBeTruthy()
+    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("Dev Process")).toBeTruthy()
   })
 })

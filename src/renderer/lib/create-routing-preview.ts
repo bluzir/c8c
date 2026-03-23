@@ -13,6 +13,52 @@ export interface CreateRoutingPreview {
   stages: ProcessSpineStage[]
 }
 
+const DEFAULT_TEMPLATE_ROUTING_PRESENTATIONS: Record<
+  string,
+  { title: string; helpModeLabel?: string | null }
+> = {
+  "delivery-map-codebase": {
+    title: "Understand the current app",
+    helpModeLabel: "Do it",
+  },
+  "delivery-shape-project": {
+    title: "Build from brief",
+    helpModeLabel: "Do it",
+  },
+  "delivery-plan-phase": {
+    title: "Plan the change",
+    helpModeLabel: "Plan it",
+  },
+  "delivery-review-phase": {
+    title: "Review before ship",
+    helpModeLabel: "Review it",
+  },
+  "full-stack-code-audit": {
+    title: "Audit codebase risks",
+    helpModeLabel: "Review it",
+  },
+  "ux-ui-polish-audit": {
+    title: "Audit and polish this UI",
+    helpModeLabel: "Review it",
+  },
+  "impeccable-ui-pipeline": {
+    title: "Improve this UI flow",
+    helpModeLabel: "Do it",
+  },
+  "playwright-visual-audit": {
+    title: "Audit this UI in browser",
+    helpModeLabel: "Review it",
+  },
+  "cto-optimise-audit": {
+    title: "Run a full CTO-grade audit",
+    helpModeLabel: "Review it",
+  },
+  "delivery-investigate-bug": {
+    title: "Investigate a bug",
+    helpModeLabel: "Do it",
+  },
+}
+
 function normalize(value: string | null | undefined) {
   const normalized = value?.trim()
   return normalized ? normalized : null
@@ -51,6 +97,8 @@ export function buildTemplateRoutingPreview({
   title?: string | null
   helpModeLabel?: string | null
 }): CreateRoutingPreview {
+  const defaultPresentation =
+    DEFAULT_TEMPLATE_ROUTING_PRESENTATIONS[template.id] || null
   const stages =
     buildProcessSpine({
       context: {
@@ -70,9 +118,11 @@ export function buildTemplateRoutingPreview({
     templateId: template.id,
     title:
       normalize(title) ||
+      normalize(defaultPresentation?.title) ||
       normalize(deriveTemplateJobLabel(template)) ||
       template.name,
-    helpModeLabel: normalize(helpModeLabel),
+    helpModeLabel:
+      normalize(helpModeLabel) || normalize(defaultPresentation?.helpModeLabel),
     stageLabel: deriveTemplateJourneyStageLabel(template),
     stages,
   }

@@ -1,6 +1,7 @@
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ProcessSpine } from "@/components/ui/process-spine"
 import type { WorkflowTemplate } from "@/lib/store"
 import { deriveTemplateExecutionDisciplineLabels } from "@/lib/workflow-entry"
 import {
@@ -8,14 +9,20 @@ import {
   getTemplateSourceLabel,
 } from "@/lib/template-source"
 import type { GuidedTemplateEntryContract } from "@/lib/entry-state-contracts"
+import type { CreateRoutingPreview } from "@/lib/create-routing-preview"
 
 export function TemplateDetailPanel({
   entry,
+  routingPreview,
   onUse,
   disabled,
   onClose,
 }: {
   entry: GuidedTemplateEntryContract
+  routingPreview?: Pick<
+    CreateRoutingPreview,
+    "helpModeLabel" | "stageLabel" | "stages"
+  > | null
   onUse: (template: WorkflowTemplate) => void
   disabled?: boolean
   onClose: () => void
@@ -29,6 +36,10 @@ export function TemplateDetailPanel({
     (disciplineLabels.length > 0 ? disciplineLabels.join(", ") : null)
   const executionDescription =
     template.executionPolicy?.description?.trim() || null
+  const showsRoutingPreview =
+    Boolean(routingPreview?.helpModeLabel) ||
+    Boolean(routingPreview?.stageLabel) ||
+    Boolean(routingPreview?.stages.length)
 
   return (
     <aside className="w-full lg:w-[22rem] lg:max-h-[calc(100vh-var(--titlebar-height)-6rem)] lg:self-start lg:sticky lg:top-0 flex-shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface-1 flex flex-col">
@@ -98,7 +109,9 @@ export function TemplateDetailPanel({
           </span>
           <p className="mt-1 text-body-sm">{entry.youGetFirst}</p>
         </div>
-        {entry.entryKind === "guided" && entry.stagePathLabel ? (
+        {entry.entryKind === "guided" &&
+        entry.stagePathLabel &&
+        !showsRoutingPreview ? (
           <div>
             <span className="ui-meta-label text-muted-foreground">
               Stage path
@@ -110,21 +123,59 @@ export function TemplateDetailPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto ui-scroll-region px-4 py-4">
         <div className="space-y-4">
-          {(executionSummary || executionDescription) && (
-            <div>
-              <span className="ui-meta-label text-muted-foreground">
-                Flow rules
-              </span>
-              {executionSummary ? (
-                <p className="mt-1 text-body-sm text-foreground">
-                  {executionSummary}
-                </p>
-              ) : null}
-              {executionDescription &&
-              executionDescription !== executionSummary ? (
-                <p className="mt-2 text-body-sm text-muted-foreground">
-                  {executionDescription}
-                </p>
+          {(routingPreview?.helpModeLabel ||
+            routingPreview?.stageLabel ||
+            executionSummary ||
+            executionDescription ||
+            (routingPreview?.stages.length ?? 0) > 0) && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-3">
+                {routingPreview?.helpModeLabel ? (
+                  <div>
+                    <span className="ui-meta-label text-muted-foreground">
+                      Intent
+                    </span>
+                    <p className="mt-1 text-body-sm text-foreground">
+                      {routingPreview.helpModeLabel}
+                    </p>
+                  </div>
+                ) : null}
+                {routingPreview?.stageLabel ? (
+                  <div>
+                    <span className="ui-meta-label text-muted-foreground">
+                      Starts in
+                    </span>
+                    <p className="mt-1 text-body-sm text-foreground">
+                      {routingPreview.stageLabel}
+                    </p>
+                  </div>
+                ) : null}
+                {(executionSummary || executionDescription) && (
+                  <div>
+                    <span className="ui-meta-label text-muted-foreground">
+                      Flow rules
+                    </span>
+                    {executionSummary ? (
+                      <p className="mt-1 text-body-sm text-foreground">
+                        {executionSummary}
+                      </p>
+                    ) : null}
+                    {executionDescription &&
+                    executionDescription !== executionSummary ? (
+                      <p className="mt-2 text-body-sm text-muted-foreground">
+                        {executionDescription}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              {routingPreview?.stages.length ? (
+                <div className="space-y-1">
+                  <span className="ui-meta-label text-muted-foreground">
+                    Dev Process
+                  </span>
+                  <ProcessSpine stages={routingPreview.stages} />
+                </div>
               ) : null}
             </div>
           )}
