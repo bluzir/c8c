@@ -5,6 +5,7 @@ import { subscribeDesktopCommands } from "@/lib/desktop-command-bus"
 import type { FlowSurfaceMode, ViewMode } from "@/lib/store"
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 import type { HumanTaskSnapshot, RunResult, RunStatus } from "@shared/types"
+import { resolveSavedRunReviewRequested } from "./review-mode"
 
 interface OutputTabRequest {
   tab: "nodes" | "log" | "result" | "history"
@@ -78,10 +79,20 @@ export function useWorkflowPanelReviewState({
   scrollOutputPanelToListViewportStart: (padding?: number) => boolean
 }) {
   const completionSurfaceRef = useRef<string | null>(null)
+  const savedRunReviewRequested = resolveSavedRunReviewRequested({
+    showSavedRunReview,
+    hasSelectedPastRun: selectedPastRun !== null,
+  })
 
   useEffect(() => {
-    const isTerminalResultState = runStatus === "error" || (runStatus === "done" && runOutcome !== "blocked")
-    if (!isTerminalResultState || !canShowTerminalResultSurface || viewMode !== "list") {
+    const isTerminalResultState =
+      runStatus === "error" ||
+      (runStatus === "done" && runOutcome !== "blocked")
+    if (
+      !isTerminalResultState ||
+      !canShowTerminalResultSurface ||
+      viewMode !== "list"
+    ) {
       completionSurfaceRef.current = null
       return
     }
@@ -90,7 +101,16 @@ export function useWorkflowPanelReviewState({
     if (completionSurfaceRef.current === completionKey) return
     completionSurfaceRef.current = completionKey
     openResult()
-  }, [canShowTerminalResultSurface, openResult, runId, runOutcome, runStatus, selectedWorkflowPath, setShowSavedRunReview, viewMode])
+  }, [
+    canShowTerminalResultSurface,
+    openResult,
+    runId,
+    runOutcome,
+    runStatus,
+    selectedWorkflowPath,
+    setShowSavedRunReview,
+    viewMode,
+  ])
 
   const handleStartNewRun = useCallback(() => {
     const previousInput = inputValue || lastRunInputRef.current
@@ -143,9 +163,16 @@ export function useWorkflowPanelReviewState({
   ])
 
   const openEditFlow = useCallback(() => {
+    setShowSavedRunReview(false)
+    setSelectedPastRun(null)
     setViewMode("list")
     setFlowSurfaceMode("edit")
-  }, [setFlowSurfaceMode, setViewMode])
+  }, [
+    setFlowSurfaceMode,
+    setSelectedPastRun,
+    setShowSavedRunReview,
+    setViewMode,
+  ])
 
   useEffect(() => {
     if (runStatus !== "idle") return
@@ -157,20 +184,26 @@ export function useWorkflowPanelReviewState({
     }
     if (prepareNewRun) return
     const preferredBlockedRun = selectedResumeTask
-      ? workflowPastRuns.find((run) => run.runId === selectedResumeTask.sourceRunId) || null
+      ? workflowPastRuns.find(
+          (run) => run.runId === selectedResumeTask.sourceRunId,
+        ) || null
       : null
     if (preferredBlockedRun) {
       if (selectedPastRun?.runId === preferredBlockedRun.runId) return
       setSelectedPastRun(preferredBlockedRun)
       return
     }
-    if (!showSavedRunReview) {
+    if (!savedRunReviewRequested) {
       if (selectedPastRun) {
         setSelectedPastRun(null)
       }
       return
     }
-    if (selectedPastRun && workflowPastRuns.some((run) => run.runId === selectedPastRun.runId)) return
+    if (
+      selectedPastRun &&
+      workflowPastRuns.some((run) => run.runId === selectedPastRun.runId)
+    )
+      return
     setSelectedPastRun(workflowPastRuns[0])
   }, [
     prepareNewRun,
@@ -178,7 +211,7 @@ export function useWorkflowPanelReviewState({
     selectedPastRun,
     selectedResumeTask,
     setSelectedPastRun,
-    showSavedRunReview,
+    savedRunReviewRequested,
     workflowPastRuns,
   ])
 
@@ -210,7 +243,14 @@ export function useWorkflowPanelReviewState({
         openRunHistory()
       }
     })
-  }, [handleStartNewRun, openEditFlow, openRunHistory, runStatus, showAnyReviewMode, workflowPastRuns.length])
+  }, [
+    handleStartNewRun,
+    openEditFlow,
+    openRunHistory,
+    runStatus,
+    showAnyReviewMode,
+    workflowPastRuns.length,
+  ])
 
   useEffect(() => {
     if (!hasBlockedResumeState || !selectedResumeTask) {
@@ -238,7 +278,10 @@ export function useWorkflowPanelReviewState({
     idleReviewAutoScrollKeyRef.current = reviewKey
     const tryScroll = () => {
       if (scrollOutputPanelToListViewportStart(16)) return
-      outputPanelRef.current?.scrollIntoView({ behavior: "auto", block: "start" })
+      outputPanelRef.current?.scrollIntoView({
+        behavior: "auto",
+        block: "start",
+      })
     }
 
     window.requestAnimationFrame(() => {

@@ -89,7 +89,10 @@ import { useWorkflowPanelReviewState } from "./workflow-panel/useWorkflowPanelRe
 import { useWorkflowPanelShellDerivations } from "./workflow-panel/useWorkflowPanelShellDerivations"
 import { useWorkflowStageLaunch } from "./workflow-panel/useWorkflowStageLaunch"
 import { WorkflowChatPanelShell } from "./workflow-panel/WorkflowChatPanelShell"
-import { resolveWorkflowReviewModes } from "./workflow-panel/review-mode"
+import {
+  resolveSavedRunReviewRequested,
+  resolveWorkflowReviewModes,
+} from "./workflow-panel/review-mode"
 import { WorkflowBlockedTaskPanel } from "./workflow-panel/WorkflowBlockedTaskPanel"
 import { WorkflowPanelDialogs } from "./workflow-panel/WorkflowPanelDialogs"
 
@@ -278,6 +281,7 @@ export function WorkflowPanel() {
     pendingCreateMessage,
     chatStatus,
     workflowPastRunsCount: workflowPastRuns.length,
+    hasSelectedPastRun: selectedPastRun !== null,
     prepareNewRun,
     projectArtifactsLoading,
     projectArtifactsError,
@@ -364,12 +368,16 @@ export function WorkflowPanel() {
   const effectiveResumeHeader = showEntryResumeHeader || showBlockedResumeHeader
   const effectiveEntryStageLabel =
     blockedResumeSummary?.currentStepLabel || entryStageLabel
+  const savedRunReviewRequested = resolveSavedRunReviewRequested({
+    showSavedRunReview,
+    hasSelectedPastRun: selectedPastRun !== null,
+  })
   const {
     showAnyReviewMode,
     showResumeReviewMode,
     showStandaloneIdleReviewMode,
   } = resolveWorkflowReviewModes({
-    showIdleReviewMode: showIdleReviewMode && showSavedRunReview,
+    showIdleReviewMode: showIdleReviewMode && savedRunReviewRequested,
     showBlockedResumeHeader,
     selectedPastRunStatus: selectedPastRun?.status,
   })
@@ -441,6 +449,7 @@ export function WorkflowPanel() {
     viewMode,
     flowSurfaceMode,
     showAnyReviewMode,
+    selectedPastRunStatus: selectedPastRun?.status,
     showCreateDraftSkeleton,
     prepareNewRun,
     finalContent,
@@ -765,7 +774,7 @@ export function WorkflowPanel() {
                 processSpineStages &&
                 processSpineStages.length > 1 && (
                   <div className="border-b border-hairline">
-                    <div className="ui-content-gutter py-2">
+                    <div className="ui-dialog-gutter py-2">
                       <ProcessSpine
                         stages={processSpineStages}
                         isLive={

@@ -39,7 +39,11 @@ import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import type { Workflow } from "@shared/types"
 import { MultiRunDashboardDetail } from "./multi-run-dashboard/MultiRunDashboardDetail"
 import { MultiRunDashboardSidebar } from "./multi-run-dashboard/MultiRunDashboardSidebar"
-import { isRunInFlight, toExecutionStateSnapshot, type DashboardEntry } from "./multi-run-dashboard/dashboardModel"
+import {
+  isRunInFlight,
+  toExecutionStateSnapshot,
+  type DashboardEntry,
+} from "./multi-run-dashboard/dashboardModel"
 import { useMultiRunDashboardEntries } from "./multi-run-dashboard/useMultiRunDashboardEntries"
 
 export function MultiRunDashboard() {
@@ -51,7 +55,9 @@ export function MultiRunDashboard() {
   const [batchProgress] = useAtom(batchProgressAtom)
   const [batchItems] = useAtom(batchItemsAtom)
   const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
   const [, setCurrentWorkflow] = useAtom(currentWorkflowAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
@@ -59,26 +65,35 @@ export function MultiRunDashboard() {
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const [, setMainView] = useAtom(mainViewAtom)
   const setBatchDialogOpen = useSetAtom(batchDialogOpenAtom)
-  const updateWorkflowExecutionState = useSetAtom(updateWorkflowExecutionStateAtom)
-  const clearWorkflowExecutionState = useSetAtom(clearWorkflowExecutionStateAtom)
+  const updateWorkflowExecutionState = useSetAtom(
+    updateWorkflowExecutionStateAtom,
+  )
+  const clearWorkflowExecutionState = useSetAtom(
+    clearWorkflowExecutionStateAtom,
+  )
   const [selectedEntryKey, setSelectedEntryKey] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
 
-  const {
-    entriesWithHistory,
-    activeCount,
-    aggregateCounts,
-    groupedEntries,
-  } = useMultiRunDashboardEntries({
-    workflowExecutionStates,
-    approvalRequests,
-    pastRuns,
-    selectedWorkflowPath,
-  })
+  const { entriesWithHistory, activeCount, aggregateCounts, groupedEntries } =
+    useMultiRunDashboardEntries({
+      workflowExecutionStates,
+      approvalRequests,
+      pastRuns,
+      selectedWorkflowPath,
+    })
 
-  const selectedEntry = entriesWithHistory.find((entry) => entry.workflowKey === selectedEntryKey) || entriesWithHistory[0] || null
-  const showBatchEntry = batchStatus === "running" || batchStatus === "done" || batchStatus === "error" || batchItems.length > 0
+  const selectedEntry =
+    entriesWithHistory.find(
+      (entry) => entry.workflowKey === selectedEntryKey,
+    ) ||
+    entriesWithHistory[0] ||
+    null
+  const showBatchEntry =
+    batchStatus === "running" ||
+    batchStatus === "done" ||
+    batchStatus === "error" ||
+    batchItems.length > 0
 
   useEffect(() => {
     if (!open) return
@@ -86,7 +101,12 @@ export function MultiRunDashboard() {
       setSelectedEntryKey(null)
       return
     }
-    if (!selectedEntryKey || !entriesWithHistory.some((entry) => entry.workflowKey === selectedEntryKey)) {
+    if (
+      !selectedEntryKey ||
+      !entriesWithHistory.some(
+        (entry) => entry.workflowKey === selectedEntryKey,
+      )
+    ) {
       setSelectedEntryKey(entriesWithHistory[0].workflowKey)
     }
   }, [entriesWithHistory, open, selectedEntryKey])
@@ -97,14 +117,17 @@ export function MultiRunDashboard() {
     return () => window.clearInterval(timer)
   }, [activeCount, open])
 
-  const focusWorkflow = async (entry: DashboardEntry) => {
-    const clearReviewState = () => {
+  const focusWorkflow = async (
+    entry: DashboardEntry,
+    options?: { reviewPastRun?: boolean },
+  ) => {
+    const applyReviewState = () => {
       setSelectedInboxTaskKey(null)
-      setSelectedPastRun(null)
+      setSelectedPastRun(options?.reviewPastRun ? entry.pastRun : null)
     }
 
     if (entry.isSelectedWorkflow) {
-      clearReviewState()
+      applyReviewState()
       setMainView("thread")
       setOpen(false)
       return
@@ -125,7 +148,7 @@ export function MultiRunDashboard() {
       setSelectedWorkflowPath(null)
       setCurrentWorkflow(restoredWorkflow)
       setWorkflowSavedSnapshot(workflowSnapshot(createEmptyWorkflow()))
-      clearReviewState()
+      applyReviewState()
       return true
     }
 
@@ -135,7 +158,7 @@ export function MultiRunDashboard() {
         setSelectedWorkflowPath(entry.workflowPath)
         setCurrentWorkflow(loadedWorkflow)
         setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
-        clearReviewState()
+        applyReviewState()
         setOpen(false)
         return
       } catch (error) {
@@ -146,7 +169,8 @@ export function MultiRunDashboard() {
       }
     } else if (!restoreWorkflowSnapshot(entry.workflowSnapshot)) {
       toastError("Could not open flow", {
-        description: "This dashboard entry does not have a restorable flow snapshot.",
+        description:
+          "This dashboard entry does not have a restorable flow snapshot.",
       })
       return
     }
@@ -233,7 +257,10 @@ export function MultiRunDashboard() {
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <CanvasDialogContent size="xl" className="max-h-[86vh] flex flex-col p-0 gap-0">
+        <CanvasDialogContent
+          size="xl"
+          className="max-h-[86vh] flex flex-col p-0 gap-0"
+        >
           <CanvasDialogHeader className="surface-depth-header border-b border-hairline">
             <DialogTitle className="flex items-center gap-2">
               <Activity size={16} />

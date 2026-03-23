@@ -20,7 +20,11 @@ import {
   workflowTemplateContextsAtom,
   type CreateInboxNotification,
 } from "@/lib/store"
-import type { ActiveExecutionSnapshot, RunResult, WorkflowEvent } from "@shared/types"
+import type {
+  ActiveExecutionSnapshot,
+  RunResult,
+  WorkflowEvent,
+} from "@shared/types"
 import { useInboxNotifications } from "@/hooks/useInboxNotifications"
 
 type UpdateValue<T> = T | ((prev: T) => T)
@@ -28,12 +32,17 @@ type UpdateValue<T> = T | ((prev: T) => T)
 interface UseExecutionControllerArgs {
   workflowExecutionStates: Record<string, WorkflowExecutionState>
   selectedProject: string | null
-  commitExecutionState: (workflowKey: string, nextState: WorkflowExecutionState) => void
+  commitExecutionState: (
+    workflowKey: string,
+    nextState: WorkflowExecutionState,
+  ) => void
   updateApprovalRequests: (update: UpdateValue<ApprovalRequest[]>) => void
   setPastRuns: (runs: RunResult[]) => void
 }
 
-function toInboxLevel(level: ExecutionSurfaceNotice["level"]): "info" | "success" | "warning" | "error" {
+function toInboxLevel(
+  level: ExecutionSurfaceNotice["level"],
+): "info" | "success" | "warning" | "error" {
   if (level === "error") return "error"
   if (level === "warning") return "warning"
   if (level === "success") return "success"
@@ -53,12 +62,16 @@ function showExecutionToast(notice: ExecutionSurfaceNotice) {
 }
 
 function getWorkflowNotificationAction(
-  state: Pick<WorkflowExecutionState, "runWorkflowPath" | "runOutcome">,
+  state: Pick<
+    WorkflowExecutionState,
+    "runWorkflowPath" | "runOutcome" | "workspace"
+  >,
 ) {
   if (!state.runWorkflowPath) return undefined
   return {
     kind: "open_workflow" as const,
     workflowPath: state.runWorkflowPath,
+    workspace: state.workspace || undefined,
     label: state.runOutcome === "completed" ? "Open flow" : "Inspect flow",
   }
 }
@@ -74,13 +87,23 @@ function toInboxTaskKey(workspace: string, taskId: string): string {
 }
 
 function isRecoverableApprovalRun(status: ExecutionRunStatus): boolean {
-  return status === "starting" || status === "running" || status === "paused" || status === "cancelling"
+  return (
+    status === "starting" ||
+    status === "running" ||
+    status === "paused" ||
+    status === "cancelling"
+  )
 }
 
-function findWorkflowNode(state: WorkflowExecutionState, nodeId: string): WorkflowNode | null {
-  return state.workflowSnapshot?.nodes.find((node) => node.id === nodeId)
-    || state.runtimeNodes.find((node) => node.id === nodeId)
-    || null
+function findWorkflowNode(
+  state: WorkflowExecutionState,
+  nodeId: string,
+): WorkflowNode | null {
+  return (
+    state.workflowSnapshot?.nodes.find((node) => node.id === nodeId) ||
+    state.runtimeNodes.find((node) => node.id === nodeId) ||
+    null
+  )
 }
 
 export function buildPendingApprovalNotifications(
@@ -89,28 +112,38 @@ export function buildPendingApprovalNotifications(
   const notifications: CreateInboxNotification[] = []
 
   for (const [workflowKey, state] of Object.entries(workflowExecutionStates)) {
-    if (!state.workspace || !state.runId || !isRecoverableApprovalRun(state.runStatus)) {
+    if (
+      !state.workspace ||
+      !state.runId ||
+      !isRecoverableApprovalRun(state.runStatus)
+    ) {
       continue
     }
 
     const nodes = state.workflowSnapshot?.nodes ?? state.runtimeNodes
     const nodeOrder = new Map(nodes.map((node, index) => [node.id, index]))
     const pendingApprovals = Object.entries(state.nodeStates)
-      .filter(([, nodeState]) =>
-        nodeState.status === "waiting_approval"
-        && (!nodeState.humanTask || nodeState.humanTask.status === "open"),
+      .filter(
+        ([, nodeState]) =>
+          nodeState.status === "waiting_approval" &&
+          (!nodeState.humanTask || nodeState.humanTask.status === "open"),
       )
-      .sort(([leftNodeId], [rightNodeId]) =>
-        (nodeOrder.get(leftNodeId) ?? Number.MAX_SAFE_INTEGER)
-        - (nodeOrder.get(rightNodeId) ?? Number.MAX_SAFE_INTEGER),
+      .sort(
+        ([leftNodeId], [rightNodeId]) =>
+          (nodeOrder.get(leftNodeId) ?? Number.MAX_SAFE_INTEGER) -
+          (nodeOrder.get(rightNodeId) ?? Number.MAX_SAFE_INTEGER),
       )
 
     for (const [nodeId, nodeState] of pendingApprovals) {
       const node = findWorkflowNode(state, nodeId)
-      const presentation = node ? getRuntimeStagePresentation(node, { fallbackId: nodeId }) : null
+      const presentation = node
+        ? getRuntimeStagePresentation(node, { fallbackId: nodeId })
+        : null
       const taskId = nodeState.humanTask?.taskId || approvalTaskId(nodeId)
       const taskKey = toInboxTaskKey(state.workspace, taskId)
-      const workflowName = state.workflowName || (workflowKey === "__draft__" ? "Draft flow" : "Flow")
+      const workflowName =
+        state.workflowName ||
+        (workflowKey === "__draft__" ? "Draft flow" : "Flow")
       const stageTitle = presentation?.title || nodeId
       const stageGroup = presentation?.group
 
@@ -208,8 +241,12 @@ export function useExecutionController({
           showExecutionToast(notice)
         }
         addNotificationRef.current({
-          title: notice?.title || (state.workflowName || "Flow"),
-          description: notice?.description || state.lastError || state.workspace || undefined,
+          title: notice?.title || state.workflowName || "Flow",
+          description:
+            notice?.description ||
+            state.lastError ||
+            state.workspace ||
+            undefined,
           level: notice ? toInboxLevel(notice.level) : "info",
           source: "workflow",
           action: getWorkflowNotificationAction(state),
@@ -220,20 +257,23 @@ export function useExecutionController({
         }
 
         if (
-          state.runOutcome !== "completed"
-          || !state.projectPath
-          || !state.workspace
-          || !templateContext?.contractOut?.length
+          state.runOutcome !== "completed" ||
+          !state.projectPath ||
+          !state.workspace ||
+          !templateContext?.contractOut?.length
         ) {
           return
         }
 
-        controllerRef.current?.updateExecutionForKey(workflowKey, (previous) => ({
-          ...previous,
-          artifactRecords: [],
-          artifactPersistenceStatus: "saving",
-          artifactPersistenceError: null,
-        }))
+        controllerRef.current?.updateExecutionForKey(
+          workflowKey,
+          (previous) => ({
+            ...previous,
+            artifactRecords: [],
+            artifactPersistenceStatus: "saving",
+            artifactPersistenceError: null,
+          }),
+        )
 
         void withIpcTimeout(
           window.api.persistArtifactsFromRun({
@@ -252,27 +292,35 @@ export function useExecutionController({
           }),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
           "Result saving timed out. Check the main flow and try again.",
-        ).then((result) => {
-          controllerRef.current?.updateExecutionForKey(workflowKey, (previous) => ({
-            ...previous,
-            artifactRecords: result.artifacts,
-            artifactPersistenceStatus: "saved",
-            artifactPersistenceError: null,
-          }))
-        }).catch((error) => {
-          const message = errorToUserMessage(error)
-          controllerRef.current?.updateExecutionForKey(workflowKey, (previous) => ({
-            ...previous,
-            artifactPersistenceStatus: "error",
-            artifactPersistenceError: message,
-          }))
-          addNotificationRef.current({
-            title: `Result saving failed: ${state.workflowName || "Flow"}`,
-            description: message,
-            level: "error",
-            source: "workflow",
+        )
+          .then((result) => {
+            controllerRef.current?.updateExecutionForKey(
+              workflowKey,
+              (previous) => ({
+                ...previous,
+                artifactRecords: result.artifacts,
+                artifactPersistenceStatus: "saved",
+                artifactPersistenceError: null,
+              }),
+            )
           })
-        })
+          .catch((error) => {
+            const message = errorToUserMessage(error)
+            controllerRef.current?.updateExecutionForKey(
+              workflowKey,
+              (previous) => ({
+                ...previous,
+                artifactPersistenceStatus: "error",
+                artifactPersistenceError: message,
+              }),
+            )
+            addNotificationRef.current({
+              title: `Result saving failed: ${state.workflowName || "Flow"}`,
+              description: message,
+              level: "error",
+              source: "workflow",
+            })
+          })
       },
       onError: (scope, error) => {
         console.error(`[useChainExecution] ${scope} failed:`, error)
@@ -302,33 +350,51 @@ export function useExecutionController({
     const activeKeys = new Set(
       pendingApprovalNotifications
         .map((notification) => notification.persistentKey)
-        .filter((value): value is string => typeof value === "string" && value.length > 0),
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.length > 0,
+        ),
     )
     const staleKeys = inboxNotifications
       .map((notification) => notification.persistentKey)
-      .filter((value): value is string =>
-        typeof value === "string"
-        && value.startsWith(APPROVAL_NOTIFICATION_KEY_PREFIX)
-        && !activeKeys.has(value),
+      .filter(
+        (value): value is string =>
+          typeof value === "string" &&
+          value.startsWith(APPROVAL_NOTIFICATION_KEY_PREFIX) &&
+          !activeKeys.has(value),
       )
 
     if (staleKeys.length > 0) {
       removeByPersistentKeys(staleKeys)
     }
-  }, [addNotification, inboxNotifications, pendingApprovalNotifications, removeByPersistentKeys])
+  }, [
+    addNotification,
+    inboxNotifications,
+    pendingApprovalNotifications,
+    removeByPersistentKeys,
+  ])
 
   useEffect(() => {
     let cancelled = false
-    window.api.getActiveExecutions().then((executions: ActiveExecutionSnapshot[]) => {
-      if (cancelled) return
-      for (const execution of executions) {
-        if (execution.kind !== "run") continue
-        controller.rehydrateActiveRun(execution)
-      }
-    }).catch((error) => {
-      if (!cancelled) console.error("[useExecutionController] getActiveExecutions failed:", error)
-    })
-    return () => { cancelled = true }
+    window.api
+      .getActiveExecutions()
+      .then((executions: ActiveExecutionSnapshot[]) => {
+        if (cancelled) return
+        for (const execution of executions) {
+          if (execution.kind !== "run") continue
+          controller.rehydrateActiveRun(execution)
+        }
+      })
+      .catch((error) => {
+        if (!cancelled)
+          console.error(
+            "[useExecutionController] getActiveExecutions failed:",
+            error,
+          )
+      })
+    return () => {
+      cancelled = true
+    }
   }, [controller])
 
   return controller

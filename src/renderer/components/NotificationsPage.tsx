@@ -27,7 +27,7 @@ import { useInboxNotifications } from "@/hooks/useInboxNotifications"
 import { useChainExecution } from "@/hooks/useChainExecution"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
-import { selectedPastRunAtom } from "@/features/execution"
+import { pastRunsAtom, selectedPastRunAtom } from "@/features/execution"
 import { consumeShortcut, isShortcutConsumed, matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
 import type { ArtifactRecord, CaseStateRecord, HumanTaskField, HumanTaskSnapshot, HumanTaskSummary, RunResult, Workflow } from "@shared/types"
 import {
@@ -95,6 +95,7 @@ export function NotificationsPage() {
   const [, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
   const [, setWorkflow] = useAtom(currentWorkflowAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
+  const pastRuns = useAtomValue(pastRunsAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
   const { continueWithWorkflow } = useChainExecution()
@@ -345,6 +346,19 @@ export function NotificationsPage() {
   )
 
   const unreadCount = notifications.filter((notification) => !notification.read).length
+  const pastRunByWorkspace = useMemo(
+    () =>
+      new Map(
+        pastRuns
+          .filter(
+            (run): run is RunResult & { workspace: string } =>
+              typeof run.workspace === "string" &&
+              run.workspace.trim().length > 0,
+          )
+          .map((run) => [run.workspace, run] as const),
+      ),
+    [pastRuns],
+  )
   const openHumanTaskCount = visibleHumanTasks.length
   const selectedTaskStageMeta = selectedTask ? taskStageMetaByKey[taskStageKey(selectedTask) || ""] || null : null
   const openWorkflowPath = useCallback(async (workflowPath: string, options?: OpenWorkflowPathOptions) => {
@@ -371,7 +385,11 @@ export function NotificationsPage() {
   const handleNotificationAction = async (notification: InboxNotification) => {
     if (!notification.action) return
     if (notification.action.kind === "open_workflow") {
-      await openWorkflowPath(notification.action.workflowPath)
+      await openWorkflowPath(notification.action.workflowPath, {
+        pastRun: notification.action.workspace
+          ? pastRunByWorkspace.get(notification.action.workspace) || null
+          : null,
+      })
       markRead(notification.id)
       return
     }

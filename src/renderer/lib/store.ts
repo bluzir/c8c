@@ -352,6 +352,7 @@ export type InboxNotificationAction =
   | {
       kind: "open_workflow"
       workflowPath: string
+      workspace?: string
       label?: string
     }
   | {
@@ -391,7 +392,11 @@ function areInboxActionsEqual(
   if (!left || !right) return false
   if (left.kind !== right.kind) return false
   if (left.kind === "open_workflow" && right.kind === "open_workflow") {
-    return left.workflowPath === right.workflowPath && left.label === right.label
+    return (
+      left.workflowPath === right.workflowPath &&
+      left.workspace === right.workspace &&
+      left.label === right.label
+    )
   }
   if (left.kind === "open_inbox_task" && right.kind === "open_inbox_task") {
     return left.taskKey === right.taskKey

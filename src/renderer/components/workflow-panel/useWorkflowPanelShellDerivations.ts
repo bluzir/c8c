@@ -1,8 +1,6 @@
 import { useMemo } from "react"
 
-import {
-  buildArtifactInputAttachments,
-} from "@/lib/workflow-entry"
+import { buildArtifactInputAttachments } from "@/lib/workflow-entry"
 import { buildRunProgressSummary } from "@/lib/run-progress"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import type { WorkflowPanelShellState } from "@/components/workflow-panel/WorkflowPanelChrome"
@@ -26,6 +24,16 @@ import type {
 } from "@shared/types"
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 
+export function resolveReviewShellState(
+  status: RunStatus | null | undefined,
+): WorkflowPanelShellState | null {
+  if (status === "completed") return "completed"
+  if (status === "failed") return "failed"
+  if (status === "cancelled" || status === "interrupted") return "cancelled"
+  if (status === "blocked") return "blocked"
+  return null
+}
+
 export function useWorkflowPanelShellDerivations({
   workflow,
   runtimeNodes,
@@ -39,6 +47,7 @@ export function useWorkflowPanelShellDerivations({
   viewMode,
   flowSurfaceMode,
   showAnyReviewMode,
+  selectedPastRunStatus,
   showCreateDraftSkeleton,
   prepareNewRun,
   finalContent,
@@ -72,6 +81,7 @@ export function useWorkflowPanelShellDerivations({
   viewMode: ViewMode
   flowSurfaceMode: FlowSurfaceMode
   showAnyReviewMode: boolean
+  selectedPastRunStatus: RunStatus | null | undefined
   showCreateDraftSkeleton: boolean
   prepareNewRun: boolean
   finalContent: string
@@ -93,46 +103,87 @@ export function useWorkflowPanelShellDerivations({
   workflowName: string
   elapsed: string
 }) {
-  const hasResult = finalContent.trim().length > 0
-    || reportPath !== null
-    || Object.values(nodeStates).some((state) => typeof state.output?.content === "string")
+  const hasResult =
+    finalContent.trim().length > 0 ||
+    reportPath !== null ||
+    Object.values(nodeStates).some(
+      (state) => typeof state.output?.content === "string",
+    )
 
-  const runSummary = useMemo(() => buildRunProgressSummary({
-    workflow,
-    runtimeNodes,
-    runtimeMeta,
-    nodeStates,
-    runStatus,
-    runOutcome,
-    activeNodeId,
-  }), [activeNodeId, nodeStates, runOutcome, runStatus, runtimeMeta, runtimeNodes, workflow])
+  const runSummary = useMemo(
+    () =>
+      buildRunProgressSummary({
+        workflow,
+        runtimeNodes,
+        runtimeMeta,
+        nodeStates,
+        runStatus,
+        runOutcome,
+        activeNodeId,
+      }),
+    [
+      activeNodeId,
+      nodeStates,
+      runOutcome,
+      runStatus,
+      runtimeMeta,
+      runtimeNodes,
+      workflow,
+    ],
+  )
 
-  const runDisplayState = useMemo(() => resolveWorkflowRunDisplayState({
-    runStatus,
-    runOutcome,
-  }), [runOutcome, runStatus])
+  const runDisplayState = useMemo(
+    () =>
+      resolveWorkflowRunDisplayState({
+        runStatus,
+        runOutcome,
+      }),
+    [runOutcome, runStatus],
+  )
 
   const shellState = useMemo<WorkflowPanelShellState>(() => {
+    const reviewShellState =
+      showAnyReviewMode && runStatus === "idle"
+        ? resolveReviewShellState(selectedPastRunStatus)
+        : null
+    if (reviewShellState) return reviewShellState
     if (runDisplayState.state === "paused") return "paused"
-    if (runDisplayState.state === "starting" || runDisplayState.state === "running" || runDisplayState.state === "cancelling") return "running"
-    if (hasBlockedResumeState || runDisplayState.state === "blocked") return "blocked"
+    if (
+      runDisplayState.state === "starting" ||
+      runDisplayState.state === "running" ||
+      runDisplayState.state === "cancelling"
+    )
+      return "running"
+    if (hasBlockedResumeState || runDisplayState.state === "blocked")
+      return "blocked"
     if (runDisplayState.state === "failed") return "failed"
     if (runDisplayState.state === "completed") return "completed"
     if (runDisplayState.state === "cancelled") return "cancelled"
     if (effectiveResumeHeader) return "ready"
     return "idle"
-  }, [effectiveResumeHeader, hasBlockedResumeState, runDisplayState.state])
+  }, [
+    effectiveResumeHeader,
+    hasBlockedResumeState,
+    runDisplayState.state,
+    runStatus,
+    selectedPastRunStatus,
+    showAnyReviewMode,
+  ])
 
   const shellDetail = useMemo(() => {
     if (shellState !== "running" && shellState !== "paused") return null
 
-    const progressLabel = runSummary.branchLabel || (
-      runSummary.totalSteps > 0
+    const progressLabel =
+      runSummary.branchLabel ||
+      (runSummary.totalSteps > 0
         ? `${Math.min(runSummary.completedSteps, runSummary.totalSteps)}/${runSummary.totalSteps}`
-        : null
-    )
+        : null)
     const detailParts = [
-      runStatus === "running" || runStatus === "paused" ? runSummary.activeStepLabel : null,
+      runStatus === "starting"
+        ? "Preparing run"
+        : runStatus === "running" || runStatus === "paused"
+          ? runSummary.activeStepLabel
+          : null,
       progressLabel,
       elapsed || null,
     ].filter((value): value is string => Boolean(value))
@@ -146,38 +197,52 @@ export function useWorkflowPanelShellDerivations({
     : "ui-content-shell py-3 space-y-3"
 
   const firstRunnableNode = useMemo(
-    () => workflow.nodes.find((node) => node.type !== "input" && node.type !== "output") || null,
+    () =>
+      workflow.nodes.find(
+        (node) => node.type !== "input" && node.type !== "output",
+      ) || null,
     [workflow.nodes],
   )
 
-  const canShowTerminalResultSurface = hasResult || runStatus === "error" || (runStatus === "done" && runOutcome !== "blocked")
-  const primaryScreenState = useMemo<WorkflowPrimaryScreenState>(() => resolveWorkflowPrimaryScreenState({
-    runStatus,
-    runOutcome,
-    showAnyReviewMode,
-    hasBlockedResumeState,
-    hasActiveEntryState,
-    hasSourceArtifacts,
-    canShowTerminalResultSurface,
-    nextStageTemplate,
-    prepareNewRun,
-  }), [
-    canShowTerminalResultSurface,
-    hasActiveEntryState,
-    hasBlockedResumeState,
-    hasSourceArtifacts,
-    nextStageTemplate,
-    prepareNewRun,
-    runOutcome,
-    runStatus,
-    showAnyReviewMode,
-  ])
+  const canShowTerminalResultSurface =
+    hasResult ||
+    runStatus === "error" ||
+    (runStatus === "done" && runOutcome !== "blocked")
+  const primaryScreenState = useMemo<WorkflowPrimaryScreenState>(
+    () =>
+      resolveWorkflowPrimaryScreenState({
+        runStatus,
+        runOutcome,
+        showAnyReviewMode,
+        hasBlockedResumeState,
+        hasActiveEntryState,
+        hasSourceArtifacts,
+        canShowTerminalResultSurface,
+        nextStageTemplate,
+        prepareNewRun,
+      }),
+    [
+      canShowTerminalResultSurface,
+      hasActiveEntryState,
+      hasBlockedResumeState,
+      hasSourceArtifacts,
+      nextStageTemplate,
+      prepareNewRun,
+      runOutcome,
+      runStatus,
+      showAnyReviewMode,
+    ],
+  )
 
   const idleStageContract = useMemo(() => {
     if (!firstRunnableNode) return null
 
-    const presentation = getRuntimeStagePresentation(firstRunnableNode, { fallbackId: firstRunnableNode.id })
-    const isEntryContractState = primaryScreenState === "fresh_start" || primaryScreenState === "cross_flow_handoff"
+    const presentation = getRuntimeStagePresentation(firstRunnableNode, {
+      fallbackId: firstRunnableNode.id,
+    })
+    const isEntryContractState =
+      primaryScreenState === "fresh_start" ||
+      primaryScreenState === "cross_flow_handoff"
     return {
       title: isEntryContractState ? stageStartTitle : presentation.title,
       resultLabel: templateOutputText?.trim() || presentation.artifactLabel,
@@ -198,16 +263,17 @@ export function useWorkflowPanelShellDerivations({
     templateOutputText,
   ])
 
-  const liveTerminalResultOwnsLayout = (
-    viewMode === "list"
-    && runStatus === "idle"
-    && canShowTerminalResultSurface
-    && !showAnyReviewMode
-    && !prepareNewRun
-  )
-  const showOutputPanel = showAnyReviewMode
-    || runStatus !== "idle"
-    || (liveTerminalResultOwnsLayout && shouldShowLiveOutputPanel(primaryScreenState))
+  const liveTerminalResultOwnsLayout =
+    viewMode === "list" &&
+    runStatus === "idle" &&
+    canShowTerminalResultSurface &&
+    !showAnyReviewMode &&
+    !prepareNewRun
+  const showOutputPanel =
+    showAnyReviewMode ||
+    runStatus !== "idle" ||
+    (liveTerminalResultOwnsLayout &&
+      shouldShowLiveOutputPanel(primaryScreenState))
 
   const resultSourceText = useMemo(() => {
     const trimmedFinalContent = finalContent.trim()
@@ -241,58 +307,61 @@ export function useWorkflowPanelShellDerivations({
       return buildArtifactInputAttachments(artifactRecords)
     }
     if (runId && workspace) {
-      return [{
-        kind: "run",
-        runId,
-        workspace,
-        workflowName: workflowName || "Current flow",
-      }]
+      return [
+        {
+          kind: "run",
+          runId,
+          workspace,
+          workflowName: workflowName || "Current flow",
+        },
+      ]
     }
     if (resultSourceText) {
-      return [{
-        kind: "text",
-        label: workflowName
-          ? `${workflowName} result`
-          : "Current result",
-        content: resultSourceText,
-      }]
+      return [
+        {
+          kind: "text",
+          label: workflowName ? `${workflowName} result` : "Current result",
+          content: resultSourceText,
+        },
+      ]
     }
     return []
   }, [artifactRecords, resultSourceText, runId, workflowName, workspace])
 
   const resultSourceLabel = useMemo(() => {
     if (artifactRecords.length > 0) {
-      const visibleTitles = artifactRecords.slice(0, 2).map((artifact) => artifact.title)
+      const visibleTitles = artifactRecords
+        .slice(0, 2)
+        .map((artifact) => artifact.title)
       if (artifactRecords.length > 2) {
         visibleTitles.push(`+${artifactRecords.length - 2} more`)
       }
       return visibleTitles.join(" · ")
     }
-    return workflowName
-      ? `${workflowName} result`
-      : "Current result"
+    return workflowName ? `${workflowName} result` : "Current result"
   }, [artifactRecords, workflowName])
 
-  const canUseInNewFlow = Boolean(selectedProject && canShowTerminalResultSurface && resultSourceAttachments.length > 0)
+  const canUseInNewFlow = Boolean(
+    selectedProject &&
+    canShowTerminalResultSurface &&
+    resultSourceAttachments.length > 0,
+  )
 
-  const showIdleStageContract = (
-    viewMode === "list"
-    && (primaryScreenState === "fresh_start" || primaryScreenState === "cross_flow_handoff")
-    && !showCreateDraftSkeleton
-    && !showAnyReviewMode
-    && idleStageContract !== null
-  )
-  const showFlowEditor = (
-    shellState === "running"
-    || shellState === "paused"
-    || (
-      shellState === "idle"
-      && flowSurfaceMode === "edit"
-      && !showAnyReviewMode
-      && primaryScreenState !== "cross_flow_handoff"
-      && primaryScreenState !== "blocked_decision"
-    )
-  )
+  const showIdleStageContract =
+    viewMode === "list" &&
+    (primaryScreenState === "fresh_start" ||
+      primaryScreenState === "cross_flow_handoff") &&
+    !showCreateDraftSkeleton &&
+    !showAnyReviewMode &&
+    idleStageContract !== null
+  const showFlowEditor =
+    shellState === "running" ||
+    shellState === "paused" ||
+    (shellState === "idle" &&
+      flowSurfaceMode === "edit" &&
+      !showAnyReviewMode &&
+      primaryScreenState !== "cross_flow_handoff" &&
+      primaryScreenState !== "blocked_decision")
 
   return {
     primaryScreenState,

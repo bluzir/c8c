@@ -44,10 +44,21 @@ interface UseWorkflowPanelEntryStateParams {
   pendingCreateMessage: Record<string, string>
   chatStatus: string
   workflowPastRunsCount: number
+  hasSelectedPastRun: boolean
   prepareNewRun: boolean
   projectArtifactsLoading: boolean
   projectArtifactsError: string | null
   selectedProject: string | null
+}
+
+export function hasWorkflowReviewHistory({
+  workflowPastRunsCount,
+  hasSelectedPastRun,
+}: {
+  workflowPastRunsCount: number
+  hasSelectedPastRun: boolean
+}) {
+  return workflowPastRunsCount > 0 || hasSelectedPastRun
 }
 
 export function resolveActiveWorkflowEntryState({
@@ -89,6 +100,7 @@ export function useWorkflowPanelEntryState({
   pendingCreateMessage,
   chatStatus,
   workflowPastRunsCount,
+  hasSelectedPastRun,
   prepareNewRun,
   projectArtifactsLoading,
   projectArtifactsError,
@@ -347,7 +359,10 @@ export function useWorkflowPanelEntryState({
     runStatus === "idle" &&
     activeEntryState === null &&
     !showCreateDraftSkeleton &&
-    workflowPastRunsCount > 0 &&
+    hasWorkflowReviewHistory({
+      workflowPastRunsCount,
+      hasSelectedPastRun,
+    }) &&
     !prepareNewRun
   const showIdleInputPanel =
     viewMode === "list" &&
