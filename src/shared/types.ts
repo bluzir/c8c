@@ -673,6 +673,7 @@ export type ResultModeId =
   | "content"
   | "marketing"
   | "courses"
+  | "research"
   | (string & {})
 
 export interface CreateEntryPromptScaffold {

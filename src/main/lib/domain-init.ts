@@ -3,6 +3,7 @@ import { developmentDomain } from "../../shared/domains/development-data"
 import { contentDomain } from "../../shared/domains/content-data"
 import { marketingDomain } from "../../shared/domains/marketing-data"
 import { coursesDomain } from "../../shared/domains/courses-data"
+import { researchDomain } from "../../shared/domains/research-data"
 
 // Main process does not score templates — use no-op scoring.
 const noOpScore = () => 0
@@ -17,4 +18,5 @@ export function initDomains(): void {
   registerDomain({ ...contentDomain, scoreTemplate: noOpScore })
   registerDomain({ ...marketingDomain, scoreTemplate: noOpScore })
   registerDomain({ ...coursesDomain, scoreTemplate: noOpScore })
+  registerDomain({ ...researchDomain, scoreTemplate: noOpScore })
 }

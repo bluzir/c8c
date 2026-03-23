@@ -44,6 +44,7 @@ describe("result-modes", () => {
       "content",
       "marketing",
       "courses",
+      "research",
     ])
   })
 

@@ -8,6 +8,7 @@ import {
   coursesDomain,
   COURSES_STAGE_TOKENS,
 } from "@shared/domains/courses-data"
+import { researchDomain } from "@shared/domains/research-data"
 import {
   isProductTemplate,
   isContentTemplate,
@@ -117,6 +118,23 @@ function scoreCourses(template: WorkflowTemplate): number {
   return score
 }
 
+function scoreResearch(template: WorkflowTemplate): number {
+  const text = metadataText(template)
+  let score = 0
+  const matchesResearch = metadataIncludesAny(
+    text,
+    researchDomain.metadataTokens,
+  )
+  // Research-native templates get top score
+  if (researchDomain.templateIds.has(template.id)) score += 80
+  // Templates that overlap from marketing get a medium boost
+  if (isMarketingTemplate(template) && matchesResearch) score += 25
+  if (template.stage === "research" || template.stage === "strategy")
+    score += 30
+  if (matchesResearch) score += 10
+  return score
+}
+
 // ── Registration ────────────────────────────────────────────
 
 let initialized = false
@@ -129,4 +147,5 @@ export function initDomains(): void {
   registerDomain({ ...contentDomain, scoreTemplate: scoreContent })
   registerDomain({ ...marketingDomain, scoreTemplate: scoreMarketing })
   registerDomain({ ...coursesDomain, scoreTemplate: scoreCourses })
+  registerDomain({ ...researchDomain, scoreTemplate: scoreResearch })
 }
