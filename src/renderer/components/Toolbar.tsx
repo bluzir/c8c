@@ -13,6 +13,13 @@ import { WorkflowPrimaryActions } from "@/components/toolbar/WorkflowPrimaryActi
 import { WorkflowRunControls } from "@/components/toolbar/WorkflowRunControls"
 import { WorkflowRunBlocker } from "@/components/toolbar/WorkflowRunBlocker"
 import { WorkflowToolbarDialogs } from "@/components/toolbar/WorkflowToolbarDialogs"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { HistoryTab } from "@/components/output/HistoryTab"
 import { useBlankWorkflowCreation } from "@/hooks/useBlankWorkflowCreation"
 import { useToolbarCommandBindings } from "@/hooks/useToolbarCommandBindings"
 import { useToolbarDesktopMenuState } from "@/hooks/useToolbarDesktopMenuState"
@@ -122,6 +129,7 @@ export function Toolbar({
   const canUndo = useAtomValue(canUndoAtom)
   const canRedo = useAtomValue(canRedoAtom)
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [runsDialogOpen, setRunsDialogOpen] = useState(false)
   const [renameInput, setRenameInput] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
@@ -756,7 +764,7 @@ export function Toolbar({
               onToggleChat={toggleChatPanel}
               onOpenRuns={
                 workflowPastRuns.length > 0
-                  ? () => dispatchDesktopCommand("flow.history")
+                  ? () => setRunsDialogOpen(true)
                   : null
               }
               pastRunsCount={workflowPastRuns.length}
@@ -817,6 +825,30 @@ export function Toolbar({
       />
 
       {unsavedChangesDialog}
+
+      {runsDialogOpen && (
+        <Dialog open={runsDialogOpen} onOpenChange={setRunsDialogOpen}>
+          <DialogContent className="max-w-xl max-h-[70vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Run history</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto ui-scroll-region">
+              <HistoryTab
+                pastRuns={workflowPastRuns}
+                runStatus={runStatus}
+                onOpenReport={(path) => void window.api.openReport(path)}
+                onContinueRun={() => {}}
+                selectedRunId={null}
+                improvementRecommendations={[]}
+                onSelectRun={(run) => {
+                  setSelectedPastRun(run)
+                  setRunsDialogOpen(false)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
