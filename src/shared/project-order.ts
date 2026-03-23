@@ -1,7 +1,13 @@
 export type ProjectDropPosition = "before" | "after"
 
 function uniqueProjectPaths(projects: string[]): string[] {
-  return Array.from(new Set(projects.filter((project): project is string => typeof project === "string")))
+  return Array.from(
+    new Set(
+      projects.filter(
+        (project): project is string => typeof project === "string",
+      ),
+    ),
+  )
 }
 
 export function moveProjectBeforeOrAfterTarget(
@@ -12,14 +18,16 @@ export function moveProjectBeforeOrAfterTarget(
 ): string[] {
   const normalizedProjects = uniqueProjectPaths(projects)
   if (
-    draggedProjectPath === targetProjectPath
-    || !normalizedProjects.includes(draggedProjectPath)
-    || !normalizedProjects.includes(targetProjectPath)
+    draggedProjectPath === targetProjectPath ||
+    !normalizedProjects.includes(draggedProjectPath) ||
+    !normalizedProjects.includes(targetProjectPath)
   ) {
     return normalizedProjects
   }
 
-  const projectsWithoutDragged = normalizedProjects.filter((projectPath) => projectPath !== draggedProjectPath)
+  const projectsWithoutDragged = normalizedProjects.filter(
+    (projectPath) => projectPath !== draggedProjectPath,
+  )
   const targetIndex = projectsWithoutDragged.indexOf(targetProjectPath)
   if (targetIndex < 0) return normalizedProjects
 
@@ -36,13 +44,16 @@ export function mergeProjectOrderWithCurrent(
   requestedOrder: string[],
 ): string[] {
   const normalizedCurrent = uniqueProjectPaths(currentProjects)
-  const requestedKnownProjects = uniqueProjectPaths(requestedOrder)
-    .filter((projectPath) => normalizedCurrent.includes(projectPath))
+  const requestedKnownProjects = uniqueProjectPaths(requestedOrder).filter(
+    (projectPath) => normalizedCurrent.includes(projectPath),
+  )
 
   if (requestedKnownProjects.length === 0) {
     return normalizedCurrent
   }
 
-  const remainingProjects = normalizedCurrent.filter((projectPath) => !requestedKnownProjects.includes(projectPath))
+  const remainingProjects = normalizedCurrent.filter(
+    (projectPath) => !requestedKnownProjects.includes(projectPath),
+  )
   return [...requestedKnownProjects, ...remainingProjects]
 }

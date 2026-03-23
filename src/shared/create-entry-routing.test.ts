@@ -16,15 +16,42 @@ describe("create-entry-routing", () => {
   })
 
   it("blocks banned development templates from direct entry", () => {
-    expect(isBannedDirectCreateEntryTemplateId("development", "delivery-implement-phase")).toBe(true)
-    expect(isBannedDirectCreateEntryTemplateId("development", "delivery-verify-phase")).toBe(true)
-    expect(isBannedDirectCreateEntryTemplateId("development", "gstack-preflight-gate")).toBe(true)
-    expect(isBannedDirectCreateEntryTemplateId("development", "delivery-review-phase")).toBe(false)
+    expect(
+      isBannedDirectCreateEntryTemplateId(
+        "development",
+        "delivery-implement-phase",
+      ),
+    ).toBe(true)
+    expect(
+      isBannedDirectCreateEntryTemplateId(
+        "development",
+        "delivery-verify-phase",
+      ),
+    ).toBe(true)
+    expect(
+      isBannedDirectCreateEntryTemplateId(
+        "development",
+        "gstack-preflight-gate",
+      ),
+    ).toBe(true)
+    expect(
+      isBannedDirectCreateEntryTemplateId(
+        "development",
+        "delivery-review-phase",
+      ),
+    ).toBe(false)
   })
 
   it("does not apply the development ban list to other modes", () => {
-    expect(isBannedDirectCreateEntryTemplateId("content", "delivery-implement-phase")).toBe(false)
-    expect(isBannedDirectCreateEntryTemplateId("courses", "delivery-verify-phase")).toBe(false)
+    expect(
+      isBannedDirectCreateEntryTemplateId(
+        "content",
+        "delivery-implement-phase",
+      ),
+    ).toBe(false)
+    expect(
+      isBannedDirectCreateEntryTemplateId("courses", "delivery-verify-phase"),
+    ).toBe(false)
   })
 
   it("filters disallowed development options while preserving allowed ones", () => {
@@ -43,10 +70,32 @@ describe("create-entry-routing", () => {
   })
 
   it("sanitizes banned direct-entry fallback templates in development mode", () => {
-    expect(sanitizeDirectCreateFallbackTemplateId("development", "delivery-implement-phase")).toBeUndefined()
-    expect(sanitizeDirectCreateFallbackTemplateId("development", " delivery-verify-phase ")).toBeUndefined()
-    expect(sanitizeDirectCreateFallbackTemplateId("development", "delivery-review-phase")).toBe("delivery-review-phase")
-    expect(sanitizeDirectCreateFallbackTemplateId("content", "delivery-implement-phase")).toBe("delivery-implement-phase")
-    expect(sanitizeDirectCreateFallbackTemplateId("development", "  ")).toBeUndefined()
+    expect(
+      sanitizeDirectCreateFallbackTemplateId(
+        "development",
+        "delivery-implement-phase",
+      ),
+    ).toBeUndefined()
+    expect(
+      sanitizeDirectCreateFallbackTemplateId(
+        "development",
+        " delivery-verify-phase ",
+      ),
+    ).toBeUndefined()
+    expect(
+      sanitizeDirectCreateFallbackTemplateId(
+        "development",
+        "delivery-review-phase",
+      ),
+    ).toBe("delivery-review-phase")
+    expect(
+      sanitizeDirectCreateFallbackTemplateId(
+        "content",
+        "delivery-implement-phase",
+      ),
+    ).toBe("delivery-implement-phase")
+    expect(
+      sanitizeDirectCreateFallbackTemplateId("development", "  "),
+    ).toBeUndefined()
   })
 })

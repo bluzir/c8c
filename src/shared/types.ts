@@ -1,6 +1,14 @@
 // ── Node Types ──────────────────────────────────────────
 
-export type NodeType = "input" | "skill" | "evaluator" | "splitter" | "merger" | "output" | "approval" | "human"
+export type NodeType =
+  | "input"
+  | "skill"
+  | "evaluator"
+  | "splitter"
+  | "merger"
+  | "output"
+  | "approval"
+  | "human"
 
 export interface NodePosition {
   x: number
@@ -31,7 +39,11 @@ export interface NodeRuntimeConfig {
 
 export type PermissionMode = "plan" | "edit"
 export type ProviderId = "claude" | "codex"
-export type AgentExecutionBackend = "claude_sdk" | "claude_cli" | "codex_acp" | "codex_exec"
+export type AgentExecutionBackend =
+  | "claude_sdk"
+  | "claude_cli"
+  | "codex_acp"
+  | "codex_exec"
 export type SafetyProfile =
   | "safe_readonly"
   | "workspace_auto"
@@ -191,7 +203,14 @@ export interface ApprovalNodeConfig {
   runtime?: NodeRuntimeConfig
 }
 
-export type HumanTaskFieldType = "text" | "textarea" | "number" | "boolean" | "select" | "multiselect" | "json"
+export type HumanTaskFieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "boolean"
+  | "select"
+  | "multiselect"
+  | "json"
 
 export interface HumanTaskFieldOption {
   value: string
@@ -262,11 +281,20 @@ interface BaseWorkflowNode<TType extends NodeType, TConfig> {
 
 export type InputWorkflowNode = BaseWorkflowNode<"input", InputNodeConfig>
 export type SkillWorkflowNode = BaseWorkflowNode<"skill", SkillNodeConfig>
-export type EvaluatorWorkflowNode = BaseWorkflowNode<"evaluator", EvaluatorNodeConfig>
-export type SplitterWorkflowNode = BaseWorkflowNode<"splitter", SplitterNodeConfig>
+export type EvaluatorWorkflowNode = BaseWorkflowNode<
+  "evaluator",
+  EvaluatorNodeConfig
+>
+export type SplitterWorkflowNode = BaseWorkflowNode<
+  "splitter",
+  SplitterNodeConfig
+>
 export type MergerWorkflowNode = BaseWorkflowNode<"merger", MergerNodeConfig>
 export type OutputWorkflowNode = BaseWorkflowNode<"output", OutputNodeConfig>
-export type ApprovalWorkflowNode = BaseWorkflowNode<"approval", ApprovalNodeConfig>
+export type ApprovalWorkflowNode = BaseWorkflowNode<
+  "approval",
+  ApprovalNodeConfig
+>
 export type HumanWorkflowNode = BaseWorkflowNode<"human", HumanNodeConfig>
 
 export type WorkflowNode =
@@ -476,9 +504,19 @@ export type ContinuationStatus =
   | "paused"
   | "completed"
 
-export type DurableGateOutcome = "passed" | "returned" | "awaiting_human" | "rejected" | "blocked"
+export type DurableGateOutcome =
+  | "passed"
+  | "returned"
+  | "awaiting_human"
+  | "rejected"
+  | "blocked"
 
-export type DurableGateFamily = "approval" | "input" | "review_check" | "verification_check" | "ship_decision"
+export type DurableGateFamily =
+  | "approval"
+  | "input"
+  | "review_check"
+  | "verification_check"
+  | "ship_decision"
 
 export interface DurableGateRecord {
   family: DurableGateFamily
@@ -619,11 +657,7 @@ export interface SpawnFactoryCasesFromArtifactResult {
   plannedCases: FactoryPlannedCase[]
 }
 
-export type ResultModeId =
-  | "development"
-  | "content"
-  | "courses"
-  | (string & {})
+export type ResultModeId = "development" | "content" | "courses" | (string & {})
 
 export interface CreateEntryPromptScaffold {
   goal: string
@@ -816,16 +850,36 @@ export interface WorkflowTemplate {
 
 // ── Execution State ─────────────────────────────────────
 
-export type HumanTaskLifecycleStatus = "open" | "answered" | "rejected" | "timed_out" | "consumed"
+export type HumanTaskLifecycleStatus =
+  | "open"
+  | "answered"
+  | "rejected"
+  | "timed_out"
+  | "consumed"
 
 export interface HumanTaskPointer {
   taskId: string
   status: HumanTaskLifecycleStatus
 }
 
-export type NodeStatus = "pending" | "queued" | "running" | "completed" | "failed" | "skipped" | "waiting_approval" | "waiting_human"
+export type NodeStatus =
+  | "pending"
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "waiting_approval"
+  | "waiting_human"
 
-export type RunStatus = "running" | "paused" | "blocked" | "completed" | "failed" | "cancelled" | "interrupted"
+export type RunStatus =
+  | "running"
+  | "paused"
+  | "blocked"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "interrupted"
 
 export type DiagnosticSummaryTone = "neutral" | "warning" | "danger"
 
@@ -887,7 +941,13 @@ export interface NodeInput {
   }
 }
 
-export type ErrorKind = "tool" | "model" | "timeout" | "policy" | "network" | "unknown"
+export type ErrorKind =
+  | "tool"
+  | "model"
+  | "timeout"
+  | "policy"
+  | "network"
+  | "unknown"
 
 export interface NodeMetrics {
   tokens_in: number
@@ -993,7 +1053,10 @@ export interface HumanTaskSnapshot {
   latestResponse: HumanTaskResponse | null
 }
 
-export type HumanTaskSummary = Omit<HumanTaskSnapshot, "request" | "latestResponse">
+export type HumanTaskSummary = Omit<
+  HumanTaskSnapshot,
+  "request" | "latestResponse"
+>
 
 export interface HumanTaskSubmitInput {
   answers: Record<string, unknown>
@@ -1007,8 +1070,19 @@ export interface HumanTaskSubmitInput {
 export type LogEntry =
   | { type: "thinking"; content: string; timestamp: number }
   | { type: "text"; content: string; timestamp: number }
-  | { type: "tool_use"; tool: string; input: Record<string, unknown>; timestamp: number }
-  | { type: "tool_result"; tool: string; output: string; status: "success" | "error"; timestamp: number }
+  | {
+      type: "tool_use"
+      tool: string
+      input: Record<string, unknown>
+      timestamp: number
+    }
+  | {
+      type: "tool_result"
+      tool: string
+      output: string
+      status: "success" | "error"
+      timestamp: number
+    }
   | { type: "error"; content: string; timestamp: number }
   | { type: "diff"; content: string; files: string[]; timestamp: number }
 
@@ -1020,8 +1094,24 @@ export type WorkflowEvent =
   | { type: "node-log"; runId: string; nodeId: string; entry: LogEntry }
   | { type: "node-done"; runId: string; nodeId: string; output: NodeInput }
   | { type: "node-error"; runId: string; nodeId: string; error: string }
-  | { type: "node-warning"; runId: string; nodeId: string; warning: string; warningKind: "empty" | "repetition" | "refusal" | "length_anomaly" }
-  | { type: "eval-result"; runId: string; nodeId: string; score: number; reason: string; passed: boolean; attempt: number; fix_instructions?: string; criteria?: Array<{ id: string; score: number; weight?: number }> }
+  | {
+      type: "node-warning"
+      runId: string
+      nodeId: string
+      warning: string
+      warningKind: "empty" | "repetition" | "refusal" | "length_anomaly"
+    }
+  | {
+      type: "eval-result"
+      runId: string
+      nodeId: string
+      score: number
+      reason: string
+      passed: boolean
+      attempt: number
+      fix_instructions?: string
+      criteria?: Array<{ id: string; score: number; weight?: number }>
+    }
   | {
       type: "nodes-expanded"
       runId: string
@@ -1030,8 +1120,21 @@ export type WorkflowEvent =
       nodes: WorkflowNode[]
       edges: WorkflowEdge[]
     }
-  | { type: "approval-requested"; runId: string; nodeId: string; content: string; message?: string; allowEdit: boolean }
-  | { type: "human-task-created"; runId: string; nodeId: string; taskId: string; title: string }
+  | {
+      type: "approval-requested"
+      runId: string
+      nodeId: string
+      content: string
+      message?: string
+      allowEdit: boolean
+    }
+  | {
+      type: "human-task-created"
+      runId: string
+      nodeId: string
+      taskId: string
+      title: string
+    }
   | {
       type: "human-task-resolved"
       runId: string
@@ -1039,9 +1142,22 @@ export type WorkflowEvent =
       taskId: string
       resolution: "submitted" | "rejected" | "timed_out"
     }
-  | { type: "eval-exhausted"; runId: string; nodeId: string; score: number; threshold: number; attempt: number }
+  | {
+      type: "eval-exhausted"
+      runId: string
+      nodeId: string
+      score: number
+      threshold: number
+      attempt: number
+    }
   | { type: "eval-overridden"; runId: string; nodeId: string }
-  | { type: "run-done"; runId: string; status: RunStatus; reportPath?: string; workspace?: string }
+  | {
+      type: "run-done"
+      runId: string
+      status: RunStatus
+      reportPath?: string
+      workspace?: string
+    }
 
 // ── Input ───────────────────────────────────────────────
 
@@ -1124,10 +1240,21 @@ export interface BatchSummary {
 }
 
 export type BatchEvent =
-  | { type: "batch-progress"; batchId: string; completed: number; total: number; running: number }
+  | {
+      type: "batch-progress"
+      batchId: string
+      completed: number
+      total: number
+      running: number
+    }
   | { type: "batch-item-done"; batchId: string; item: BatchItemResult }
   | { type: "batch-error"; batchId: string; error: string }
-  | { type: "batch-done"; batchId: string; summary: BatchSummary; items: BatchItemResult[] }
+  | {
+      type: "batch-done"
+      batchId: string
+      summary: BatchSummary
+      items: BatchItemResult[]
+    }
 
 export interface ActiveWorkflowRun {
   kind: "run"
@@ -1288,8 +1415,18 @@ export interface ChatSessionSnapshot {
 }
 
 export type ChatEvent =
-  | { type: "text-delta"; sessionId: string; workflowPath: string; content: string }
-  | { type: "thinking"; sessionId: string; workflowPath: string; content?: string }
+  | {
+      type: "text-delta"
+      sessionId: string
+      workflowPath: string
+      content: string
+    }
+  | {
+      type: "thinking"
+      sessionId: string
+      workflowPath: string
+      content?: string
+    }
   | {
       type: "tool-call"
       sessionId: string
@@ -1307,9 +1444,24 @@ export type ChatEvent =
       toolOutput?: string
       toolError?: string
     }
-  | { type: "workflow-mutated"; sessionId: string; workflowPath: string; workflow: Workflow }
-  | { type: "message-complete"; sessionId: string; workflowPath: string; message: ChatMessage }
-  | { type: "turn-complete"; sessionId: string; workflowPath: string; workflow: Workflow }
+  | {
+      type: "workflow-mutated"
+      sessionId: string
+      workflowPath: string
+      workflow: Workflow
+    }
+  | {
+      type: "message-complete"
+      sessionId: string
+      workflowPath: string
+      message: ChatMessage
+    }
+  | {
+      type: "turn-complete"
+      sessionId: string
+      workflowPath: string
+      workflow: Workflow
+    }
   | { type: "error"; sessionId: string; workflowPath: string; content: string }
 
 export type ChatEventType = ChatEvent["type"]
@@ -1384,12 +1536,38 @@ export interface McpTestResult {
 
 export interface McpProvider {
   id: ProviderId
-  listServers(scope?: McpServerScope, projectPath?: string): Promise<McpServerInfo[]>
+  listServers(
+    scope?: McpServerScope,
+    projectPath?: string,
+  ): Promise<McpServerInfo[]>
   listAllServers?(): Promise<McpServerInfo[]>
-  addServer(server: McpServerInfo, projectPath?: string): Promise<McpMutationResult>
-  updateServer?(name: string, server: McpServerInfo, projectPath?: string): Promise<McpMutationResult>
-  removeServer(name: string, scope: McpServerScope, projectPath?: string): Promise<McpMutationResult>
-  toggleServer(name: string, scope: McpServerScope, disabled: boolean, projectPath?: string): Promise<McpMutationResult>
-  testServer(name: string, scope: McpServerScope, projectPath?: string): Promise<McpTestResult>
-  discoverTools(serverName?: string, projectPath?: string): Promise<McpToolInfo[]>
+  addServer(
+    server: McpServerInfo,
+    projectPath?: string,
+  ): Promise<McpMutationResult>
+  updateServer?(
+    name: string,
+    server: McpServerInfo,
+    projectPath?: string,
+  ): Promise<McpMutationResult>
+  removeServer(
+    name: string,
+    scope: McpServerScope,
+    projectPath?: string,
+  ): Promise<McpMutationResult>
+  toggleServer(
+    name: string,
+    scope: McpServerScope,
+    disabled: boolean,
+    projectPath?: string,
+  ): Promise<McpMutationResult>
+  testServer(
+    name: string,
+    scope: McpServerScope,
+    projectPath?: string,
+  ): Promise<McpTestResult>
+  discoverTools(
+    serverName?: string,
+    projectPath?: string,
+  ): Promise<McpToolInfo[]>
 }

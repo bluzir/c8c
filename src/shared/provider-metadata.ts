@@ -51,28 +51,30 @@ export function getProviderModels(provider: ProviderId): string[] {
   return PROVIDER_MODELS[provider]
 }
 
-export function inferProviderFromModel(model?: string | null): ProviderId | null {
+export function inferProviderFromModel(
+  model?: string | null,
+): ProviderId | null {
   const normalized = (model || "").trim().toLowerCase()
   if (!normalized) return null
 
   if (
-    normalized.includes("sonnet")
-    || normalized.includes("opus")
-    || normalized.includes("haiku")
-    || normalized.startsWith("claude")
+    normalized.includes("sonnet") ||
+    normalized.includes("opus") ||
+    normalized.includes("haiku") ||
+    normalized.startsWith("claude")
   ) {
     return "claude"
   }
 
   if (
-    normalized.startsWith("gpt-")
-    || normalized.includes("codex")
-    || normalized === "o1"
-    || normalized === "o3"
-    || normalized === "o4-mini"
-    || normalized.startsWith("o1-")
-    || normalized.startsWith("o3-")
-    || normalized.startsWith("o4-")
+    normalized.startsWith("gpt-") ||
+    normalized.includes("codex") ||
+    normalized === "o1" ||
+    normalized === "o3" ||
+    normalized === "o4-mini" ||
+    normalized.startsWith("o1-") ||
+    normalized.startsWith("o3-") ||
+    normalized.startsWith("o4-")
   ) {
     return "codex"
   }
@@ -80,7 +82,10 @@ export function inferProviderFromModel(model?: string | null): ProviderId | null
   return null
 }
 
-export function modelLooksCompatible(provider: ProviderId, model?: string | null): boolean {
+export function modelLooksCompatible(
+  provider: ProviderId,
+  model?: string | null,
+): boolean {
   const inferred = inferProviderFromModel(model)
   if (!inferred) return true
   return inferred === provider
@@ -94,11 +99,12 @@ export function resolveWorkflowProvider(
 }
 
 export function workflowRequiresProvider(workflow: Workflow): boolean {
-  return workflow.nodes.some((node) =>
-    node.type === "skill"
-    || node.type === "evaluator"
-    || node.type === "splitter"
-    || node.type === "merger",
+  return workflow.nodes.some(
+    (node) =>
+      node.type === "skill" ||
+      node.type === "evaluator" ||
+      node.type === "splitter" ||
+      node.type === "merger",
   )
 }
 

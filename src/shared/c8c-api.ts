@@ -45,7 +45,10 @@ import type {
   WorkflowInput,
   WorkflowTemplate,
 } from "@shared/types"
-import type { DesktopCommandId, DesktopMenuState } from "@shared/desktop-commands"
+import type {
+  DesktopCommandId,
+  DesktopMenuState,
+} from "@shared/desktop-commands"
 import type { WorkflowConfigIssue } from "./workflow-config-validation"
 
 export interface ExecutionStartError {
@@ -54,7 +57,11 @@ export interface ExecutionStartError {
   validationIssues?: WorkflowConfigIssue[]
 }
 
-export type ExecutionStartResult = string | ExecutionStartError | null | undefined
+export type ExecutionStartResult =
+  | string
+  | ExecutionStartError
+  | null
+  | undefined
 
 export interface C8cTestHarnessEnvironment {
   testMode: true
@@ -94,10 +101,20 @@ export interface C8cApi {
   listGlobalWorkflows: () => Promise<WorkflowFile[]>
   loadWorkflow: (filePath: string) => Promise<Workflow>
   saveWorkflow: (filePath: string, chain: Workflow) => Promise<string>
-  saveWorkflowAs: (chain: Workflow, projectPath?: string) => Promise<string | null>
-  exportWorkflowCopy: (chain: Workflow, projectPath?: string) => Promise<string | null>
+  saveWorkflowAs: (
+    chain: Workflow,
+    projectPath?: string,
+  ) => Promise<string | null>
+  exportWorkflowCopy: (
+    chain: Workflow,
+    projectPath?: string,
+  ) => Promise<string | null>
   openWorkflowFile: () => Promise<{ filePath: string; chain: Workflow } | null>
-  createWorkflow: (projectPath: string, name: string, chain: Workflow) => Promise<string>
+  createWorkflow: (
+    projectPath: string,
+    name: string,
+    chain: Workflow,
+  ) => Promise<string>
   renameWorkflow: (filePath: string, nextName: string) => Promise<string>
   duplicateWorkflow: (filePath: string) => Promise<string>
   deleteWorkflow: (filePath: string) => Promise<void>
@@ -112,28 +129,49 @@ export interface C8cApi {
   scanPlugins: () => Promise<InstalledPlugin[]>
   setPluginEnabled: (pluginId: string, enabled: boolean) => Promise<boolean>
   listTemplates: () => Promise<WorkflowTemplate[]>
-  listPopularProjectTemplates: (projectPath: string, limit?: number) => Promise<WorkflowTemplate[]>
-  recordProjectTemplateUsage: (projectPath: string, templateId: string) => Promise<void>
+  listPopularProjectTemplates: (
+    projectPath: string,
+    limit?: number,
+  ) => Promise<WorkflowTemplate[]>
+  recordProjectTemplateUsage: (
+    projectPath: string,
+    templateId: string,
+  ) => Promise<void>
   saveAsTemplate: (name: string, workflow: Workflow) => Promise<string>
   fetchHubTemplate: (templateId: string) => Promise<WorkflowTemplate>
   refreshCatalog: () => Promise<void>
-  inspectCreateEntryProject: (projectPath: string) => Promise<ProjectInspectionSummary>
-  routeCreateEntry: (input: CreateEntryRouteInput) => Promise<CreateEntryRouteResult>
+  inspectCreateEntryProject: (
+    projectPath: string,
+  ) => Promise<ProjectInspectionSummary>
+  routeCreateEntry: (
+    input: CreateEntryRouteInput,
+  ) => Promise<CreateEntryRouteResult>
   generateWorkflow: (
     description: string,
-    availableSkills: Pick<DiscoveredSkill, "name" | "category" | "description">[],
+    availableSkills: Pick<
+      DiscoveredSkill,
+      "name" | "category" | "description"
+    >[],
     projectPath?: string,
   ) => Promise<Workflow>
   cancelGenerate: () => Promise<void>
   getAppVersion: () => Promise<string>
   getDesktopRuntime: () => Promise<DesktopRuntimeInfo>
-  onDesktopRuntimeChange: (callback: (runtime: DesktopRuntimeInfo) => void) => () => void
+  onDesktopRuntimeChange: (
+    callback: (runtime: DesktopRuntimeInfo) => void,
+  ) => () => void
   updateDesktopMenuState: (state: DesktopMenuState) => Promise<boolean>
-  onDesktopCommand: (callback: (commandId: DesktopCommandId) => void) => () => void
-  getProjectStatus: (projectPath: string | null) => Promise<{ branch: string | null }>
+  onDesktopCommand: (
+    callback: (commandId: DesktopCommandId) => void,
+  ) => () => void
+  getProjectStatus: (
+    projectPath: string | null,
+  ) => Promise<{ branch: string | null }>
   getClaudeCodeSubscriptionStatus: () => Promise<ClaudeCodeSubscriptionStatus>
   getProviderDiagnostics: () => Promise<ProviderDiagnostics>
-  updateProviderSettings: (patch: Partial<ProviderSettings>) => Promise<ProviderSettings>
+  updateProviderSettings: (
+    patch: Partial<ProviderSettings>,
+  ) => Promise<ProviderSettings>
   setCodexApiKey: (apiKey: string) => Promise<ProviderDiagnostics>
   clearCodexApiKey: () => Promise<ProviderDiagnostics>
   logoutProvider: (provider: ProviderId) => Promise<ProviderDiagnostics>
@@ -175,13 +213,21 @@ export interface C8cApi {
   loadRunResult: (workspace: string) => Promise<LoadedRunResult | null>
   openReport: (reportPath: string) => Promise<string>
   getActiveExecutions: () => Promise<ActiveExecutionSnapshot[]>
-  persistArtifactsFromRun: (input: PersistArtifactsFromRunRequest) => Promise<PersistArtifactsFromRunResult>
+  persistArtifactsFromRun: (
+    input: PersistArtifactsFromRunRequest,
+  ) => Promise<PersistArtifactsFromRunResult>
   listProjectArtifacts: (projectPath: string) => Promise<ArtifactRecord[]>
   listProjectCaseStates: (projectPath: string) => Promise<CaseStateRecord[]>
-  loadProjectFactoryBlueprint: (projectPath: string) => Promise<ProjectFactoryBlueprint | null>
-  saveProjectFactoryBlueprint: (input: SaveProjectFactoryBlueprintInput) => Promise<ProjectFactoryBlueprint>
+  loadProjectFactoryBlueprint: (
+    projectPath: string,
+  ) => Promise<ProjectFactoryBlueprint | null>
+  saveProjectFactoryBlueprint: (
+    input: SaveProjectFactoryBlueprintInput,
+  ) => Promise<ProjectFactoryBlueprint>
   loadProjectFactoryState: (projectPath: string) => Promise<ProjectFactoryState>
-  spawnFactoryCasesFromArtifact: (input: SpawnFactoryCasesFromArtifactInput) => Promise<SpawnFactoryCasesFromArtifactResult>
+  spawnFactoryCasesFromArtifact: (
+    input: SpawnFactoryCasesFromArtifactInput,
+  ) => Promise<SpawnFactoryCasesFromArtifactResult>
   chatSendMessage: (
     workflowPath: string,
     message: string,
@@ -189,16 +235,34 @@ export interface C8cApi {
     currentWorkflow: Workflow,
   ) => Promise<string>
   chatLoadHistory: (workflowPath: string) => Promise<ChatConversation | null>
-  chatGetActiveSession: (workflowPath: string) => Promise<ChatSessionSnapshot | null>
+  chatGetActiveSession: (
+    workflowPath: string,
+  ) => Promise<ChatSessionSnapshot | null>
   chatCancel: (sessionId: string) => Promise<boolean>
   chatClearHistory: (workflowPath: string) => Promise<void>
-  approveNode: (runId: string, nodeId: string, editedContent?: string) => Promise<boolean>
+  approveNode: (
+    runId: string,
+    nodeId: string,
+    editedContent?: string,
+  ) => Promise<boolean>
   rejectNode: (runId: string, nodeId: string) => Promise<boolean>
   overrideEvaluator: (runId: string, nodeId: string) => Promise<boolean>
   listHumanTasks: (projectPath?: string) => Promise<HumanTaskSummary[]>
-  loadHumanTask: (taskId: string, workspace: string) => Promise<HumanTaskSnapshot | null>
-  submitHumanTask: (taskId: string, workspace: string, input: HumanTaskSubmitInput) => Promise<boolean>
-  rejectHumanTask: (taskId: string, workspace: string, comment?: string, idempotencyKey?: string) => Promise<boolean>
+  loadHumanTask: (
+    taskId: string,
+    workspace: string,
+  ) => Promise<HumanTaskSnapshot | null>
+  submitHumanTask: (
+    taskId: string,
+    workspace: string,
+    input: HumanTaskSubmitInput,
+  ) => Promise<boolean>
+  rejectHumanTask: (
+    taskId: string,
+    workspace: string,
+    comment?: string,
+    idempotencyKey?: string,
+  ) => Promise<boolean>
   runBatch: (
     workflow: Workflow,
     inputs: WorkflowInput[],
@@ -211,9 +275,15 @@ export interface C8cApi {
   onBatchEvent: (callback: (event: BatchEvent) => void) => () => void
   onChatEvent: (callback: (event: ChatEvent) => void) => () => void
   onWorkflowEvent: (callback: (event: WorkflowEvent) => void) => () => void
-  onGenerateProgress: (callback: (progress: GenerationProgress) => void) => () => void
-  onDeepLinkTemplate: (callback: (template: WorkflowTemplate) => void) => () => void
-  onDeepLinkTemplateError: (callback: (err: { templateId: string; error: string }) => void) => () => void
+  onGenerateProgress: (
+    callback: (progress: GenerationProgress) => void,
+  ) => () => void
+  onDeepLinkTemplate: (
+    callback: (template: WorkflowTemplate) => void,
+  ) => () => void
+  onDeepLinkTemplateError: (
+    callback: (err: { templateId: string; error: string }) => void,
+  ) => () => void
   listProjectFiles: (
     projectPath: string,
     query?: string,
@@ -222,7 +292,10 @@ export interface C8cApi {
     filePath: string,
     projectPath: string,
   ) => Promise<{ content: string; truncated: boolean }>
-  mcpListServers: (provider: ProviderId, projectPath?: string) => Promise<McpServerInfo[]>
+  mcpListServers: (
+    provider: ProviderId,
+    projectPath?: string,
+  ) => Promise<McpServerInfo[]>
   mcpListAllServers: (provider: ProviderId) => Promise<McpServerInfo[]>
   mcpListPluginServers: () => Promise<PluginMcpServerInfo[]>
   mcpAddServer: (

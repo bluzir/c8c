@@ -7,7 +7,9 @@ export function nextWorkflowTitle(
   baseTitle = "New flow",
 ): string {
   const normalizedExisting = new Set(
-    existingTitles.map((name) => normalizeWorkflowTitle(name).toLocaleLowerCase()),
+    existingTitles.map((name) =>
+      normalizeWorkflowTitle(name).toLocaleLowerCase(),
+    ),
   )
 
   let suffix = 1

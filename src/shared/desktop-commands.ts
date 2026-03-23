@@ -47,7 +47,10 @@ export interface DesktopMenuState {
   }
 }
 
-function commandState(enabled = false, overrides: Partial<DesktopMenuCommandState> = {}): DesktopMenuCommandState {
+function commandState(
+  enabled = false,
+  overrides: Partial<DesktopMenuCommandState> = {},
+): DesktopMenuCommandState {
   return {
     enabled,
     ...overrides,

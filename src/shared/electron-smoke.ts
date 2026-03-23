@@ -22,9 +22,11 @@ export const ELECTRON_SMOKE_SCENARIOS = [
   "blocked-reject-resolution",
 ] as const
 
-export type ElectronSmokeScenario = typeof ELECTRON_SMOKE_SCENARIOS[number]
+export type ElectronSmokeScenario = (typeof ELECTRON_SMOKE_SCENARIOS)[number]
 
-export function isElectronSmokeScenario(value: string): value is ElectronSmokeScenario {
+export function isElectronSmokeScenario(
+  value: string,
+): value is ElectronSmokeScenario {
   return ELECTRON_SMOKE_SCENARIOS.includes(value as ElectronSmokeScenario)
 }
 
@@ -115,9 +117,15 @@ export interface ElectronSmokeExecutionSeedInput {
 
 export interface ElectronRendererSmokeHarness {
   getUiState: () => ElectronSmokeUiState
-  openWorkflow?: (input: ElectronSmokeWorkflowOpenInput) => Promise<boolean> | boolean
-  setMainView?: (input: ElectronSmokeMainViewInput) => Promise<boolean> | boolean
-  seedExecutionState?: (input: ElectronSmokeExecutionSeedInput) => Promise<boolean> | boolean
+  openWorkflow?: (
+    input: ElectronSmokeWorkflowOpenInput,
+  ) => Promise<boolean> | boolean
+  setMainView?: (
+    input: ElectronSmokeMainViewInput,
+  ) => Promise<boolean> | boolean
+  seedExecutionState?: (
+    input: ElectronSmokeExecutionSeedInput,
+  ) => Promise<boolean> | boolean
 }
 
 export interface ElectronSmokeAssertion {

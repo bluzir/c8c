@@ -3,7 +3,9 @@ import { normalizeWorkflowTitle, toWorkflowFileStem } from "./workflow-name"
 
 describe("normalizeWorkflowTitle", () => {
   it("collapses whitespace and preserves normalized unicode symbols", () => {
-    expect(normalizeWorkflowTitle("  Design   \u2192   Code  ")).toBe("Design \u2192 Code")
+    expect(normalizeWorkflowTitle("  Design   \u2192   Code  ")).toBe(
+      "Design \u2192 Code",
+    )
   })
 })
 
@@ -13,6 +15,8 @@ describe("toWorkflowFileStem", () => {
   })
 
   it("removes punctuation while preserving readable separators", () => {
-    expect(toWorkflowFileStem("Design \u2192 Code \u2192 Test")).toBe("design-code-test")
+    expect(toWorkflowFileStem("Design \u2192 Code \u2192 Test")).toBe(
+      "design-code-test",
+    )
   })
 })

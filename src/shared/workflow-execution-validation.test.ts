@@ -83,32 +83,35 @@ describe("workflow execution validation", () => {
 
     const issues = validateWorkflowForExecution(brokenWorkflow)
 
-    expect(issues).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        nodeId: "skill-1",
-        field: "config.prompt",
-        message: "Add a prompt or select a skill reference.",
-        severity: "error",
-      }),
-      expect.objectContaining({
-        nodeId: "__workflow__",
-        field: "nodes.input",
-        message: "Workflow must have at least one input node.",
-        severity: "error",
-      }),
-      expect.objectContaining({
-        nodeId: "__workflow__",
-        field: "edges.edge-1.source",
-        message: 'Edge "edge-1" references nonexistent source node "missing-source".',
-        severity: "error",
-      }),
-      expect.objectContaining({
-        nodeId: "skill-1",
-        field: "id",
-        message: 'Duplicate node ID "skill-1".',
-        severity: "error",
-      }),
-    ]))
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeId: "skill-1",
+          field: "config.prompt",
+          message: "Add a prompt or select a skill reference.",
+          severity: "error",
+        }),
+        expect.objectContaining({
+          nodeId: "__workflow__",
+          field: "nodes.input",
+          message: "Workflow must have at least one input node.",
+          severity: "error",
+        }),
+        expect.objectContaining({
+          nodeId: "__workflow__",
+          field: "edges.edge-1.source",
+          message:
+            'Edge "edge-1" references nonexistent source node "missing-source".',
+          severity: "error",
+        }),
+        expect.objectContaining({
+          nodeId: "skill-1",
+          field: "id",
+          message: 'Duplicate node ID "skill-1".',
+          severity: "error",
+        }),
+      ]),
+    )
   })
 
   it("ignores evaluator fail loops when checking for execution cycles", () => {
@@ -132,7 +135,12 @@ describe("workflow execution validation", () => {
           id: "eval-1",
           type: "evaluator",
           position: { x: 320, y: 0 },
-          config: { criteria: "Score clarity", threshold: 8, maxRetries: 3, retryFrom: "skill-1" },
+          config: {
+            criteria: "Score clarity",
+            threshold: 8,
+            maxRetries: 3,
+            retryFrom: "skill-1",
+          },
         },
         {
           id: "output-1",
@@ -150,7 +158,9 @@ describe("workflow execution validation", () => {
     }
 
     expect(
-      validateWorkflowForExecution(retryWorkflow).find((issue) => issue.field === "edges"),
+      validateWorkflowForExecution(retryWorkflow).find(
+        (issue) => issue.field === "edges",
+      ),
     ).toBeUndefined()
   })
 
@@ -169,7 +179,12 @@ describe("workflow execution validation", () => {
           id: "eval-1",
           type: "evaluator",
           position: { x: 160, y: 0 },
-          config: { criteria: "Check quality", threshold: 8, maxRetries: 2, retryFrom: "missing-node" },
+          config: {
+            criteria: "Check quality",
+            threshold: 8,
+            maxRetries: 2,
+            retryFrom: "missing-node",
+          },
         },
         {
           id: "output-1",
@@ -184,29 +199,38 @@ describe("workflow execution validation", () => {
       ],
     }
 
-    expect(validateWorkflowForExecution(workflow)).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        nodeId: "eval-1",
-        field: "config.retryFrom",
-        message: 'Retry target "missing-node" does not exist in this workflow.',
-        severity: "error",
-      }),
-    ]))
+    expect(validateWorkflowForExecution(workflow)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeId: "eval-1",
+          field: "config.retryFrom",
+          message:
+            'Retry target "missing-node" does not exist in this workflow.',
+          severity: "error",
+        }),
+      ]),
+    )
   })
 
   it("formats workflow-level and node-level execution issues for UI display", () => {
-    expect(formatWorkflowExecutionIssue({
-      nodeId: "__workflow__",
-      field: "nodes.output",
-      message: "Workflow must have at least one output node.",
-      severity: "error",
-    })).toBe("Workflow must have at least one output node.")
+    expect(
+      formatWorkflowExecutionIssue({
+        nodeId: "__workflow__",
+        field: "nodes.output",
+        message: "Workflow must have at least one output node.",
+        severity: "error",
+      }),
+    ).toBe("Workflow must have at least one output node.")
 
-    expect(formatWorkflowExecutionIssue({
-      nodeId: "skill-1",
-      field: "config.prompt",
-      message: "Add a prompt or select a skill reference.",
-      severity: "error",
-    })).toBe('Node "skill-1" config.prompt: Add a prompt or select a skill reference.')
+    expect(
+      formatWorkflowExecutionIssue({
+        nodeId: "skill-1",
+        field: "config.prompt",
+        message: "Add a prompt or select a skill reference.",
+        severity: "error",
+      }),
+    ).toBe(
+      'Node "skill-1" config.prompt: Add a prompt or select a skill reference.',
+    )
   })
 })

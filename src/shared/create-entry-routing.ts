@@ -6,16 +6,20 @@ export const DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS = new Set([
   "gstack-preflight-gate",
 ])
 
-export function isBannedDirectCreateEntryTemplateId(modeId: ResultModeId, templateId: string): boolean {
+export function isBannedDirectCreateEntryTemplateId(
+  modeId: ResultModeId,
+  templateId: string,
+): boolean {
   if (modeId !== "development") return false
   return DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS.has(templateId)
 }
 
-export function filterDirectCreateEntryOptions<T extends { templateId: string }>(
-  modeId: ResultModeId,
-  options: T[],
-): T[] {
-  return options.filter((option) => !isBannedDirectCreateEntryTemplateId(modeId, option.templateId))
+export function filterDirectCreateEntryOptions<
+  T extends { templateId: string },
+>(modeId: ResultModeId, options: T[]): T[] {
+  return options.filter(
+    (option) => !isBannedDirectCreateEntryTemplateId(modeId, option.templateId),
+  )
 }
 
 export function sanitizeDirectCreateFallbackTemplateId(
@@ -24,5 +28,7 @@ export function sanitizeDirectCreateFallbackTemplateId(
 ): string | undefined {
   const normalized = (fallbackTemplateId || "").trim()
   if (!normalized) return undefined
-  return isBannedDirectCreateEntryTemplateId(modeId, normalized) ? undefined : normalized
+  return isBannedDirectCreateEntryTemplateId(modeId, normalized)
+    ? undefined
+    : normalized
 }

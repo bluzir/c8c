@@ -13,7 +13,8 @@ const INTERNAL_BLOCK_TAGS = [
   "result",
 ] as const
 
-const INTERNAL_TAG_RE = /<\/?(?:tool_result|tool_results|tool_response|tool_call|tool_use|thinking|result)\b[^>]*>/gi
+const INTERNAL_TAG_RE =
+  /<\/?(?:tool_result|tool_results|tool_response|tool_call|tool_use|thinking|result)\b[^>]*>/gi
 const INLINE_TOOL_CALL_LINE_RE = /^[ \t]*\{[^\n]*\}[ \t]*$/gm
 const FENCED_BLOCK_RE = /```(?:[a-zA-Z0-9_-]+)?\s*\n?([\s\S]*?)\n?```/g
 
@@ -25,9 +26,17 @@ function looksLikeToolCallPayload(text: string): boolean {
   const normalized = text.trim()
   if (!normalized) return false
 
-  const hasToolField = /(?:["']tool["']\s*:|(^|\n)\s*tool\s*:)/mi.test(normalized)
-  const hasInputField = /(?:["'](?:input|arguments|params|parameters)["']\s*:|(^|\n)\s*(?:input|arguments|params|parameters)\s*:)/mi.test(normalized)
-  const hasCallIdField = /(?:["'](?:call_id|callId|id)["']\s*:|(^|\n)\s*(?:call_id|callId|id)\s*:)/mi.test(normalized)
+  const hasToolField = /(?:["']tool["']\s*:|(^|\n)\s*tool\s*:)/im.test(
+    normalized,
+  )
+  const hasInputField =
+    /(?:["'](?:input|arguments|params|parameters)["']\s*:|(^|\n)\s*(?:input|arguments|params|parameters)\s*:)/im.test(
+      normalized,
+    )
+  const hasCallIdField =
+    /(?:["'](?:call_id|callId|id)["']\s*:|(^|\n)\s*(?:call_id|callId|id)\s*:)/im.test(
+      normalized,
+    )
 
   return hasToolField && hasInputField && hasCallIdField
 }
@@ -48,7 +57,10 @@ function stripCompleteInternalBlocks(text: string): string {
   let cleaned = text
 
   for (const tag of INTERNAL_BLOCK_TAGS) {
-    cleaned = cleaned.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`, "gi"), "\n")
+    cleaned = cleaned.replace(
+      new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`, "gi"),
+      "\n",
+    )
   }
 
   return cleaned
@@ -80,7 +92,10 @@ function stripTrailingPartialToolFence(text: string): string {
   if (start < 0) return text
 
   const suffix = text.slice(start + 3).replace(/^\s*(?:json|yaml|yml)?\s*/i, "")
-  if (!looksLikeToolCallPayload(suffix) && !/(?:["']tool["']\s*:|(^|\n)\s*tool\s*:)/mi.test(suffix)) {
+  if (
+    !looksLikeToolCallPayload(suffix) &&
+    !/(?:["']tool["']\s*:|(^|\n)\s*tool\s*:)/im.test(suffix)
+  ) {
     return text
   }
 

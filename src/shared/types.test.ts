@@ -17,7 +17,12 @@ describe("Workflow types", () => {
             prompt: "Do something",
           },
         },
-        { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 600, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "skill-1", type: "default" },
@@ -52,7 +57,12 @@ describe("Workflow types", () => {
             retryFrom: "skill-1",
           },
         },
-        { id: "output-1", type: "output", position: { x: 900, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 900, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "skill-1", type: "default" },

@@ -1,5 +1,8 @@
 import type { Workflow } from "./types"
-import { validateWorkflowNodeConfigs, type WorkflowConfigIssue } from "./workflow-config-validation"
+import {
+  validateWorkflowNodeConfigs,
+  type WorkflowConfigIssue,
+} from "./workflow-config-validation"
 
 function pushIssue(
   issues: WorkflowConfigIssue[],
@@ -11,17 +14,29 @@ function pushIssue(
   issues.push({ nodeId, field, message, severity })
 }
 
-export function validateWorkflowForExecution(workflow: Workflow): WorkflowConfigIssue[] {
+export function validateWorkflowForExecution(
+  workflow: Workflow,
+): WorkflowConfigIssue[] {
   const issues: WorkflowConfigIssue[] = [
     ...validateWorkflowNodeConfigs(workflow),
   ]
 
   if (!workflow.nodes.some((node) => node.type === "input")) {
-    pushIssue(issues, "__workflow__", "nodes.input", "Workflow must have at least one input node.")
+    pushIssue(
+      issues,
+      "__workflow__",
+      "nodes.input",
+      "Workflow must have at least one input node.",
+    )
   }
 
   if (!workflow.nodes.some((node) => node.type === "output")) {
-    pushIssue(issues, "__workflow__", "nodes.output", "Workflow must have at least one output node.")
+    pushIssue(
+      issues,
+      "__workflow__",
+      "nodes.output",
+      "Workflow must have at least one output node.",
+    )
   }
 
   const nodeIds = new Set(workflow.nodes.map((node) => node.id))
@@ -107,7 +122,9 @@ export function validateWorkflowForExecution(workflow: Workflow): WorkflowConfig
   return issues
 }
 
-export function formatWorkflowExecutionIssue(issue: WorkflowConfigIssue): string {
+export function formatWorkflowExecutionIssue(
+  issue: WorkflowConfigIssue,
+): string {
   if (issue.nodeId === "__workflow__") {
     return issue.message
   }
