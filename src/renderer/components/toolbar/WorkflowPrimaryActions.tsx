@@ -89,21 +89,17 @@ export function WorkflowPrimaryActions({
       ) : null}
 
       {onOpenRuns && pastRunsCount > 0 ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-muted-foreground hover:border-transparent hover:bg-surface-2/55"
-              onClick={onOpenRuns}
-              aria-label="View run history"
-            >
-              <GitBranch size={14} />
-              Runs {pastRunsCount}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>View past runs</TooltipContent>
-        </Tooltip>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-muted-foreground hover:border-transparent hover:bg-surface-2/55"
+          onClick={onOpenRuns}
+          aria-label="View run history"
+        >
+          <GitBranch size={14} />
+          Runs {pastRunsCount}
+        </Button>
       ) : null}
 
       <Tooltip>

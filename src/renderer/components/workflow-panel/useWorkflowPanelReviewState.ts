@@ -143,14 +143,14 @@ export function useWorkflowPanelReviewState({
   ])
 
   const openRunHistory = useCallback(() => {
-    if (runStatus !== "idle" || workflowPastRuns.length === 0) return
+    if (workflowPastRuns.length === 0) return
     setPrepareNewRun(false)
     setShowSavedRunReview(true)
     if (!selectedPastRun) {
       setSelectedPastRun(workflowPastRuns[0] || null)
     }
     setViewMode("list")
-    setOutputTabRequest({ tab: "history", nonce: Date.now() })
+    setOutputTabRequest({ tab: "result", nonce: Date.now() })
   }, [
     runStatus,
     selectedPastRun,
