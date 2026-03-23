@@ -144,11 +144,7 @@ describe("case-summary", () => {
     expect(
       index.latestArtifactByCaseId.get("case:seller-photo-upload")?.title,
     ).toBe("Feature Spec")
-    expect(index.cases[0]?.lineageLabels).toEqual([
-      "Review",
-      "Plan",
-      "Implement",
-    ])
+    expect(index.cases[0]?.lineageLabels).toEqual(["Review", "Plan", "Build"])
     expect(index.cases[0]).toMatchObject({
       continuationStatus: "ready",
       nextStepLabel: "Apply approved changes",

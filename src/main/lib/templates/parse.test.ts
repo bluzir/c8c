@@ -13,6 +13,8 @@ describe("parseTemplate", () => {
         "stage: research",
         "recommended_next:",
         "  - delivery-review",
+        "suggested_tools:",
+        "  - web_search",
         'emoji: "\\U0001F5FA"',
         "headline: Map codebase",
         "how: Build a repo map",
@@ -55,6 +57,7 @@ describe("parseTemplate", () => {
 
     expect(template.useWhen).toBe("You need orientation before planning.")
     expect(template.recommendedNext).toEqual(["delivery-review"])
+    expect(template.suggestedTools).toEqual(["web_search"])
     expect(template.pack).toEqual({
       id: "delivery-foundation",
       label: "Delivery Factory",

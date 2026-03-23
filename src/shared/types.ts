@@ -819,6 +819,8 @@ export type ExecutionPolicyTag =
   | "consistency_checks"
   | (string & {})
 
+export type WorkflowTemplateSuggestedTool = "web_search" | (string & {})
+
 export interface WorkflowExecutionPolicyProfile {
   profileId?: string
   summary?: string
@@ -840,6 +842,7 @@ export interface WorkflowTemplate {
   stage: WorkflowTemplateStage
   stageFamily?: StageFamily
   recommendedNext?: string[]
+  suggestedTools?: WorkflowTemplateSuggestedTool[]
   emoji: string
   headline: string
   how: string

@@ -956,7 +956,7 @@ async function assertCreateReadyContinuationScenario(
     invariants: {
       kind: "create-ready-continuation",
       title: "Checkout polish",
-      readinessText: "Project Brief from Shape / Map -> Research the Change",
+      readinessText: "Project Brief from Understand -> Research the Change",
       actionLabel: "Continue work",
       latestCheckText: "Project brief saved. Research can continue.",
     },

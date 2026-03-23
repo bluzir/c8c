@@ -341,6 +341,8 @@ const workflowTemplateCreditSchema = z
   })
   .passthrough()
 
+const workflowTemplateSuggestedToolSchema = z.string().min(1)
+
 export const workflowSchema = z
   .object({
     id: z.string().optional(),
@@ -359,6 +361,8 @@ export const templateDocumentSchema = workflowSchema
     stage: workflowTemplateStageSchema,
     recommendedNext: z.array(z.string()).optional(),
     recommended_next: z.array(z.string()).optional(),
+    suggestedTools: z.array(workflowTemplateSuggestedToolSchema).optional(),
+    suggested_tools: z.array(workflowTemplateSuggestedToolSchema).optional(),
     emoji: z.string().min(1),
     headline: z.string().min(1),
     how: z.string().min(1),

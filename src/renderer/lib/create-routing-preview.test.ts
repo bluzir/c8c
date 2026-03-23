@@ -104,7 +104,7 @@ describe("buildCreateRoutingPreview", () => {
     expect(preview).toMatchObject({
       title: "Investigate a bug",
       helpModeLabel: "Do it",
-      stageLabel: "Shape / Map",
+      stageLabel: "Understand",
     })
     expect(preview?.stages.map((stage) => stage.id)).toEqual([
       "shape_map",

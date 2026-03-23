@@ -30,6 +30,7 @@ function createRouteResult(
       primaryInputValue: "Fix the spacing in the settings form",
       attachments: [],
     },
+    domainMode: "development",
     confidence: 0.88,
     source: "agent",
     clarification: null,

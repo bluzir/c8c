@@ -4,6 +4,10 @@ import { UseInNewFlowDialog } from "@/components/output/UseInNewFlowDialog"
 import { CancelFlowConfirmDialog } from "@/components/workflow-panel/CancelFlowConfirmDialog"
 import { WorkflowGraphDialog } from "@/components/workflow-panel/WorkflowGraphDialog"
 import { WorkflowPanelOverlays } from "@/components/workflow-panel/WorkflowPanelOverlays"
+import {
+  WorkflowRouteAlternativesDialog,
+  type WorkflowRouteAlternativeOption,
+} from "@/components/workflow-panel/WorkflowRouteAlternativesDialog"
 import type { FlowRulePreview } from "@/lib/flow-rules"
 
 interface WorkflowPanelDialogsProps {
@@ -41,6 +45,11 @@ interface WorkflowPanelDialogsProps {
   onConfirmUseInNewFlow: () => void
   flowGraphOpen: boolean
   onFlowGraphOpenChange: (open: boolean) => void
+  routeAlternativesOpen: boolean
+  onRouteAlternativesOpenChange: (open: boolean) => void
+  routeAlternativeOptions: WorkflowRouteAlternativeOption[]
+  pendingRouteAlternativeTemplateId?: string | null
+  onSelectRouteAlternative: (templateId: string) => void
 }
 
 export function WorkflowPanelDialogs({
@@ -78,6 +87,11 @@ export function WorkflowPanelDialogs({
   onConfirmUseInNewFlow,
   flowGraphOpen,
   onFlowGraphOpenChange,
+  routeAlternativesOpen,
+  onRouteAlternativesOpenChange,
+  routeAlternativeOptions,
+  pendingRouteAlternativeTemplateId,
+  onSelectRouteAlternative,
 }: WorkflowPanelDialogsProps) {
   return (
     <>
@@ -129,6 +143,14 @@ export function WorkflowPanelDialogs({
       <WorkflowGraphDialog
         open={flowGraphOpen}
         onOpenChange={onFlowGraphOpenChange}
+      />
+
+      <WorkflowRouteAlternativesDialog
+        open={routeAlternativesOpen}
+        options={routeAlternativeOptions}
+        pendingTemplateId={pendingRouteAlternativeTemplateId}
+        onOpenChange={onRouteAlternativesOpenChange}
+        onSelect={onSelectRouteAlternative}
       />
     </>
   )

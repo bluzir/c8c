@@ -142,6 +142,9 @@ export function buildTemplateStartStateFromRoute({
         source: routeResult.source,
         reason: routeResult.reason,
         confidence: routeResult.confidence,
+        domainMode: routeResult.domainMode,
+        alternateTemplateIds: routeResult.alternateTemplateIds,
+        projectInspection: routeResult.projectInspection,
       },
     },
   }

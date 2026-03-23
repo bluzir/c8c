@@ -5,11 +5,11 @@ import type {
   CreateEntryRouteInput,
   CreateEntryRouteOption,
   CreateEntryRouteResult,
-  CreateEntryRouteSeed,
   ProjectInspectionSummary,
   WorkflowTemplate,
 } from "@shared/types"
 import {
+  buildCreateEntryRouteSeed,
   filterDirectCreateEntryOptions,
   sanitizeDirectCreateFallbackTemplateId,
 } from "@shared/create-entry-routing"
@@ -28,6 +28,7 @@ interface CreateEntryRouteDecision {
   kind?: "route"
   recommendedTemplateId: string
   alternateTemplateIds?: string[]
+  domainMode?: string
   reason?: string
   confidence?: number
 }
@@ -36,6 +37,7 @@ interface CreateEntryClarificationDecision {
   kind: "clarification"
   recommendedTemplateId: string
   alternateTemplateIds?: string[]
+  domainMode?: string
   reason?: string
   confidence?: number
   clarification: CreateEntryRouteClarification
@@ -45,13 +47,9 @@ type CreateEntryAgentDecision =
   | CreateEntryRouteDecision
   | CreateEntryClarificationDecision
 
-const DIRECTORY_ROUTE_TEMPLATES = new Set([
-  "delivery-map-codebase",
-  "ux-ui-polish-audit",
-  "full-stack-code-audit",
-])
 const ROUTER_FAILURE_MESSAGE =
   "The AI router couldn't choose a starting point right now. Try again."
+const KNOWN_ROUTE_DOMAIN_MODES = new Set(["development", "content", "courses"])
 
 function deriveIntentValue(
   option: CreateEntryRouteOption,
@@ -94,70 +92,12 @@ function buildAllowedOptionMap(
     )
 }
 
-function buildRouteSeed(
-  templateId: string,
-  projectInspection: ProjectInspectionSummary,
-  requestedResult: string,
-): CreateEntryRouteSeed {
-  const cleanRequestedResult = normalize(requestedResult)
-
-  if (DIRECTORY_ROUTE_TEMPLATES.has(templateId)) {
-    return {
-      primaryInputMode: "directory",
-      primaryInputValue: projectInspection.projectPath,
-      attachments: cleanRequestedResult
-        ? [
-            {
-              kind: "text",
-              label: "Requested result",
-              content: cleanRequestedResult,
-            },
-          ]
-        : [],
-    }
-  }
-
-  if (templateId === "delivery-verify-phase") {
-    return {
-      primaryInputMode: "branch_or_diff",
-      primaryInputValue: projectInspection.git.branch || cleanRequestedResult,
-      attachments:
-        cleanRequestedResult &&
-        cleanRequestedResult !== projectInspection.git.branch
-          ? [
-              {
-                kind: "text",
-                label: "Requested result",
-                content: cleanRequestedResult,
-              },
-            ]
-          : [],
-    }
-  }
-
-  if (templateId === "delivery-review-phase") {
-    return {
-      primaryInputMode: "branch_or_diff",
-      primaryInputValue: projectInspection.git.branch || cleanRequestedResult,
-      attachments:
-        cleanRequestedResult &&
-        cleanRequestedResult !== projectInspection.git.branch
-          ? [
-              {
-                kind: "text",
-                label: "Requested result",
-                content: cleanRequestedResult,
-              },
-            ]
-          : [],
-    }
-  }
-
-  return {
-    primaryInputMode: "text",
-    primaryInputValue: cleanRequestedResult,
-    attachments: [],
-  }
+function normalizeDomainMode(
+  value: string | undefined | null,
+  fallback: CreateEntryRouteInput["modeId"],
+) {
+  const normalized = normalize(value)
+  return KNOWN_ROUTE_DOMAIN_MODES.has(normalized) ? normalized : fallback
 }
 
 function validateClarification(
@@ -251,6 +191,7 @@ function validateClarification(
 function validateAgentDecision(
   decision: CreateEntryAgentDecision,
   allowedTemplateIds: Set<string>,
+  fallbackMode: CreateEntryRouteInput["modeId"],
 ): CreateEntryAgentDecision | null {
   const recommendedTemplateId = normalize(decision.recommendedTemplateId)
   if (!recommendedTemplateId || !allowedTemplateIds.has(recommendedTemplateId))
@@ -270,6 +211,7 @@ function validateAgentDecision(
   const normalizedDecision = {
     recommendedTemplateId,
     alternateTemplateIds,
+    domainMode: normalizeDomainMode(decision.domainMode, fallbackMode),
     reason: normalize(decision.reason),
     confidence:
       typeof decision.confidence === "number" ? decision.confidence : undefined,
@@ -348,10 +290,10 @@ function buildRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous between distinct job entries inside that intent.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses","reason":"one sentence","confidence":0.0}',
     "",
     "Clarification output schema:",
-    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
+    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
   ].join("\n")
 }
 
@@ -376,12 +318,13 @@ function extractRouterJsonCandidate(rawText: string) {
 function parseRouterDecision(
   rawText: string,
   allowedTemplateIds: Set<string>,
+  fallbackMode: CreateEntryRouteInput["modeId"],
 ): CreateEntryAgentDecision | null {
   try {
     const parsed = JSON.parse(
       extractRouterJsonCandidate(rawText),
     ) as CreateEntryAgentDecision
-    return validateAgentDecision(parsed, allowedTemplateIds)
+    return validateAgentDecision(parsed, allowedTemplateIds, fallbackMode)
   } catch {
     return null
   }
@@ -439,7 +382,7 @@ async function runAgentRouteDecision(
     if (!result.success || result.killed || result.aborted) return null
     const text = logParser.textContent.trim()
     if (!text) return null
-    return parseRouterDecision(text, allowedTemplateIds)
+    return parseRouterDecision(text, allowedTemplateIds, input.modeId)
   } catch (error) {
     logWarn("create-entry-router", "agent_route_failed", {
       error: String(error),
@@ -512,11 +455,12 @@ export async function routeCreateEntry(
       alternateTemplateIds: agentDecision.alternateTemplateIds || [],
       reason: agentDecision.reason || agentDecision.clarification.message,
       projectInspection,
-      seed: buildRouteSeed(
+      seed: buildCreateEntryRouteSeed(
         agentDecision.recommendedTemplateId,
         projectInspection,
         input.requestedResult || "",
       ),
+      domainMode: agentDecision.domainMode || input.modeId,
       confidence: agentDecision.confidence ?? 0.7,
       source: "agent",
       clarification: agentDecision.clarification,
@@ -530,11 +474,12 @@ export async function routeCreateEntry(
       agentDecision.reason ||
       "Recommended from the current request and project context.",
     projectInspection,
-    seed: buildRouteSeed(
+    seed: buildCreateEntryRouteSeed(
       agentDecision.recommendedTemplateId,
       projectInspection,
       input.requestedResult || "",
     ),
+    domainMode: agentDecision.domainMode || input.modeId,
     confidence: agentDecision.confidence ?? 0.8,
     source: "agent",
     clarification: null,

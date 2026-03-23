@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { Workflow } from "@shared/types"
 import {
   applyWebSearchBackendPreset,
+  resolveTemplateToolingRecommendation,
   resolveTemplateWorkflow,
 } from "./web-search-backend"
 
@@ -102,6 +103,22 @@ describe("applyWebSearchBackendPreset", () => {
     const next = applyWebSearchBackendPreset(workflow, "content", "exa")
     expect(next).toEqual(workflow)
   })
+
+  it("enables Exa tools for non-research templates that explicitly suggest web search", () => {
+    const workflow = makeWorkflow()
+    const next = applyWebSearchBackendPreset(workflow, "content", "exa", [
+      "web_search",
+    ])
+    expect(next.defaults?.disallowedTools).toEqual(
+      expect.arrayContaining([
+        "WebSearch",
+        "WebFetch",
+        "ToolSearch",
+        "Bash(curl:*)",
+        "Bash(wget:*)",
+      ]),
+    )
+  })
 })
 
 describe("resolveTemplateWorkflow", () => {
@@ -169,5 +186,45 @@ describe("resolveTemplateWorkflow", () => {
     expect((next.nodes[1]?.config as { strategy: string }).strategy).toContain(
       "create up to 20 parallel audit tasks",
     )
+  })
+
+  it("applies the selected web backend to content templates that declare web search", () => {
+    const workflow = makeWorkflow()
+    const next = resolveTemplateWorkflow(
+      {
+        name: "Content Trend Watch",
+        stage: "content",
+        workflow,
+        suggestedTools: ["web_search"],
+      },
+      "exa",
+    )
+
+    expect(next.defaults?.disallowedTools).toEqual(
+      expect.arrayContaining(["WebSearch", "WebFetch", "ToolSearch"]),
+    )
+  })
+})
+
+describe("resolveTemplateToolingRecommendation", () => {
+  it("recommends Exa when a template declares web search but builtin backend is active", () => {
+    expect(
+      resolveTemplateToolingRecommendation({
+        suggestedTools: ["web_search"],
+        backend: "builtin",
+      }),
+    ).toMatchObject({
+      action: "switch_to_exa",
+      actionLabel: "Use Exa",
+    })
+  })
+
+  it("does not warn when Exa is already active", () => {
+    expect(
+      resolveTemplateToolingRecommendation({
+        suggestedTools: ["web_search"],
+        backend: "exa",
+      }),
+    ).toBeNull()
   })
 })

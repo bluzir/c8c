@@ -1,12 +1,22 @@
 import type {
   Workflow,
   WorkflowTemplate,
+  WorkflowTemplateSuggestedTool,
   WorkflowTemplateStage,
 } from "@shared/types"
 import { cloneWorkflow } from "./workflow-graph-utils"
 import { applyWorkflowDetailBudget } from "./workflow-detail-budget"
 
 export type WebSearchBackend = "builtin" | "exa"
+export type TemplateToolingRecommendationAction = "switch_to_exa"
+
+export interface TemplateToolingRecommendation {
+  level: "warning" | "info"
+  title: string
+  description: string
+  actionLabel: string
+  action: TemplateToolingRecommendationAction
+}
 
 const BUILTIN_WEB_TOOLS = ["WebSearch", "WebFetch", "ToolSearch"] as const
 const EXA_WEB_TOOLS = [
@@ -14,6 +24,40 @@ const EXA_WEB_TOOLS = [
   "mcp__exa__crawling_exa",
 ] as const
 const SHELL_WEB_FETCH_TOOLS = ["Bash(curl:*)", "Bash(wget:*)"] as const
+
+function hasSuggestedTool(
+  suggestedTools: WorkflowTemplateSuggestedTool[] | undefined,
+  tool: WorkflowTemplateSuggestedTool,
+) {
+  return Boolean(suggestedTools?.includes(tool))
+}
+
+export function templateNeedsWebSearch(
+  stage: WorkflowTemplateStage,
+  suggestedTools?: WorkflowTemplateSuggestedTool[],
+) {
+  return stage === "research" || hasSuggestedTool(suggestedTools, "web_search")
+}
+
+export function resolveTemplateToolingRecommendation({
+  suggestedTools,
+  backend,
+}: {
+  suggestedTools?: WorkflowTemplateSuggestedTool[]
+  backend: WebSearchBackend
+}): TemplateToolingRecommendation | null {
+  if (!hasSuggestedTool(suggestedTools, "web_search")) return null
+  if (backend === "exa") return null
+
+  return {
+    level: "warning",
+    title: "Recommended: Exa web search",
+    description:
+      "This flow relies on live web research. Switch the web-search backend to Exa so MCP-backed search is available during execution.",
+    actionLabel: "Use Exa",
+    action: "switch_to_exa",
+  }
+}
 
 function unique(tools: string[] | undefined): string[] | undefined {
   if (!tools || tools.length === 0) return undefined
@@ -38,9 +82,10 @@ export function applyWebSearchBackendPreset(
   workflow: Workflow,
   stage: WorkflowTemplateStage,
   backend: WebSearchBackend,
+  suggestedTools?: WorkflowTemplateSuggestedTool[],
 ): Workflow {
   const next = cloneWorkflow(workflow)
-  if (stage !== "research") return next
+  if (!templateNeedsWebSearch(stage, suggestedTools)) return next
 
   next.defaults = { ...(next.defaults || {}) }
 
@@ -84,6 +129,7 @@ export function resolveTemplateWorkflow(
     template.workflow,
     template.stage,
     backend,
+    template.suggestedTools,
   )
   if (options?.detailBudget != null) {
     nextWorkflow = applyWorkflowDetailBudget(

@@ -463,7 +463,7 @@ export const RESULT_MODES: WorkflowResultMode[] = [
     stagePreferences: ["research", "strategy", "code", "operations"],
     startTemplateId: "delivery-map-codebase",
     startActionLabel: "Start from request",
-    guidedPath: ["Shape / Map", "Plan", "Implement", "Review", "Verify"],
+    guidedPath: ["Understand", "Plan", "Build", "Review", "Check"],
     runtimeLine: "Chooses the right path after you submit.",
     composerPlaceholder:
       "Describe what you want by the end. Add repo context and delivery constraints if they matter...",

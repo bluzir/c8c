@@ -27,7 +27,7 @@ const POLICY_RULE_REGISTRY: Partial<
   },
   consistency_checks: {
     label: "Check completion before the flow continues",
-    scope: "Verify",
+    scope: "Check",
   },
   publish_gate: {
     label: "Always ask before shipping",
@@ -43,7 +43,7 @@ const POLICY_RULE_REGISTRY: Partial<
   },
   test_first: {
     label: "Run checks before calling the work complete",
-    scope: "Verify",
+    scope: "Check",
   },
   isolated_workspace: {
     label: "Run in an isolated workspace",

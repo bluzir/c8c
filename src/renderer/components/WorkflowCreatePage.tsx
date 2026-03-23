@@ -83,10 +83,8 @@ import {
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
-import {
-  buildTemplateStartState,
-  buildTemplateStartStateFromRoute,
-} from "@/lib/template-start"
+import { buildTemplateStartState } from "@/lib/template-start"
+import { prepareRoutedTemplateLaunch } from "@/lib/routed-template-launch"
 import { shouldAutoRunCreateStart } from "@/lib/workflow-create-start-policy"
 import {
   RouteClarificationDialog,
@@ -960,6 +958,12 @@ export function WorkflowCreatePage() {
         setRouteClarification(routeResult.clarification)
         return
       }
+      if (
+        routeResult?.domainMode &&
+        routeResult.domainMode !== selectedResultMode.id
+      ) {
+        setSelectedResultModeId(routeResult.domainMode)
+      }
       if (isDevelopmentRouting) {
         setRoutingPhase("opening")
       }
@@ -990,6 +994,32 @@ export function WorkflowCreatePage() {
         const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
           resolvedStartTemplate,
         )
+        if (routeResult) {
+          const launch = await prepareRoutedTemplateLaunch({
+            projectPath: ensuredProjectPath,
+            template: templateForWorkflowUse,
+            webSearchBackend,
+            routeResult,
+            requestedResult: message,
+            sourceArtifacts,
+            detailBudget,
+          })
+          await openWorkflowFile(launch.filePath, ensuredProjectPath, {
+            entryState: launch.templateStartState.entryState,
+            templateContext: launch.templateStartState.templateContext,
+            initialInputValue: launch.templateStartState.initialInputValue,
+            initialAttachments: mergeInputAttachments(
+              sourceAttachments,
+              launch.templateStartState.initialAttachments,
+            ),
+            autoRunIfAllowed: shouldAutoRunCreateStart(
+              routeResult,
+              templateForWorkflowUse,
+            ),
+          })
+          return
+        }
+
         const nextWorkflow = resolveTemplateWorkflow(
           templateForWorkflowUse,
           webSearchBackend,
@@ -1007,22 +1037,13 @@ export function WorkflowCreatePage() {
           ...templateForWorkflowUse,
           workflow: nextWorkflow,
         }
-        const templateStartState = routeResult
-          ? buildTemplateStartStateFromRoute({
-              template,
-              workflowPath: filePath,
-              projectPath: ensuredProjectPath,
-              requestedResult: message,
-              routeResult,
-              sourceArtifacts,
-            })
-          : buildTemplateStartState({
-              template,
-              workflowPath: filePath,
-              projectPath: ensuredProjectPath,
-              requestedResult: message,
-              sourceArtifacts,
-            })
+        const templateStartState = buildTemplateStartState({
+          template,
+          workflowPath: filePath,
+          projectPath: ensuredProjectPath,
+          requestedResult: message,
+          sourceArtifacts,
+        })
 
         await window.api
           .recordProjectTemplateUsage(ensuredProjectPath, startTemplate.id)

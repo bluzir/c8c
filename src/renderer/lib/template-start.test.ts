@@ -15,7 +15,7 @@ function createTemplate(inputType: "text" | "directory"): WorkflowTemplate {
       inputType === "directory"
         ? "delivery-map-codebase"
         : "delivery-shape-project",
-    name: "Dev Process",
+    name: "Development Flow",
     description: "Start a development process.",
     stage: "research",
     emoji: "🧩",
@@ -26,7 +26,7 @@ function createTemplate(inputType: "text" | "directory"): WorkflowTemplate {
     steps: ["Input", "Run"],
     workflow: {
       version: 1,
-      name: "Dev Process",
+      name: "Development Flow",
       description: "",
       defaults: {
         model: "sonnet",
@@ -150,6 +150,7 @@ describe("buildTemplateStartState", () => {
         primaryInputValue: "Shape the VIBECON landing page",
         attachments: [],
       },
+      domainMode: "development",
       confidence: 0.91,
       source: "agent",
     }
@@ -166,7 +167,10 @@ describe("buildTemplateStartState", () => {
     expect(state.entryState.routing).toEqual({
       source: "agent",
       reason: "Recommended because this looks like a brief-first request.",
+      domainMode: "development",
+      alternateTemplateIds: ["delivery-map-codebase"],
       confidence: 0.91,
+      projectInspection: routeResult.projectInspection,
     })
     expect(state.initialInputValue).toBe("Shape the VIBECON landing page")
     expect(state.initialAttachments).toEqual([])

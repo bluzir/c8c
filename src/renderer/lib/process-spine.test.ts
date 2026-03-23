@@ -166,11 +166,11 @@ describe("process-spine", () => {
       expect.objectContaining({ id: "ship", state: "later" }),
     ])
     expect(stages?.map((stage) => stage.label)).toEqual([
-      "Shape / Map",
+      "Understand",
       "Plan",
-      "Implement",
+      "Build",
       "Review",
-      "Verify",
+      "Check",
       "Ship",
     ])
   })
@@ -225,13 +225,7 @@ describe("process-spine", () => {
           label: "Delivery Factory",
           recipe: {
             packIds: ["delivery-foundation"],
-            stageOrder: [
-              "Shape / Map",
-              "Plan",
-              "Implement",
-              "Review",
-              "Verify",
-            ],
+            stageOrder: ["Understand", "Plan", "Build", "Review", "Check"],
           },
           createdAt: 1,
           updatedAt: 1,
@@ -263,13 +257,7 @@ describe("process-spine", () => {
           label: "Delivery Factory",
           recipe: {
             packIds: ["delivery-foundation"],
-            stageOrder: [
-              "Shape / Map",
-              "Plan",
-              "Implement",
-              "Review",
-              "Verify",
-            ],
+            stageOrder: ["Understand", "Plan", "Build", "Review", "Check"],
           },
           createdAt: 1,
           updatedAt: 1,
@@ -279,13 +267,7 @@ describe("process-spine", () => {
           label: "Checkout Delivery Factory",
           recipe: {
             packIds: ["delivery-foundation"],
-            stageOrder: [
-              "Shape / Map",
-              "Plan",
-              "Implement",
-              "Review",
-              "Verify",
-            ],
+            stageOrder: ["Understand", "Plan", "Build", "Review", "Check"],
           },
           createdAt: 2,
           updatedAt: 2,

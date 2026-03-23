@@ -31,13 +31,13 @@ describe("PendingTemplateDialog", () => {
         }}
         routingPreview={{
           helpModeLabel: "Do it",
-          stageLabel: "Shape / Map",
+          stageLabel: "Understand",
           stages: [
-            { id: "shape_map", label: "Shape / Map", state: "current" },
+            { id: "shape_map", label: "Understand", state: "current" },
             { id: "plan", label: "Plan", state: "later" },
-            { id: "implement", label: "Implement", state: "later" },
+            { id: "implement", label: "Build", state: "later" },
             { id: "review", label: "Review", state: "later" },
-            { id: "verify", label: "Verify", state: "later" },
+            { id: "verify", label: "Check", state: "later" },
             { id: "ship", label: "Ship", state: "later" },
           ],
         }}
@@ -58,6 +58,6 @@ describe("PendingTemplateDialog", () => {
 
     expect(screen.getByText("Start Change the current app")).toBeTruthy()
     expect(screen.getByText("Starts in")).toBeTruthy()
-    expect(screen.getByText("Dev Process")).toBeTruthy()
+    expect(screen.getByText("Steps")).toBeTruthy()
   })
 })

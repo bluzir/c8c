@@ -1,5 +1,10 @@
 import { useMemo } from "react"
 import { resolveWorkflowInput } from "@/lib/input-type"
+import {
+  resolveTemplateToolingRecommendation,
+  type TemplateToolingRecommendation,
+  type WebSearchBackend,
+} from "@/lib/web-search-backend"
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 import {
   areTemplateContractsSatisfied,
@@ -9,6 +14,7 @@ import {
   deriveTemplateContextJourneyStageLabel,
   formatArtifactContractLabel,
   getTemplateContextRecommendedNext,
+  getTemplateContextSuggestedTools,
   selectArtifactsForTemplateContracts,
   type WorkflowEntryState,
   type WorkflowTemplateRunContext,
@@ -41,6 +47,7 @@ interface UseWorkflowPanelEntryStateParams {
   selectedWorkflowTemplateContext: WorkflowTemplateRunContext | null
   packTemplates: WorkflowTemplate[]
   runStatus: ExecutionRunStatus
+  webSearchBackend: WebSearchBackend
   viewMode: "list" | "settings"
   pendingCreateMessage: Record<string, string>
   chatStatus: string
@@ -50,6 +57,32 @@ interface UseWorkflowPanelEntryStateParams {
   projectArtifactsLoading: boolean
   projectArtifactsError: string | null
   selectedProject: string | null
+}
+
+export function formatTemplateToolingRecommendationNote(
+  recommendation: TemplateToolingRecommendation,
+) {
+  return `${recommendation.title}. ${recommendation.description}`
+}
+
+export function resolveStageStartPolicyNotes({
+  notes,
+  templateToolingRecommendation,
+}: {
+  notes: string[]
+  templateToolingRecommendation?: TemplateToolingRecommendation | null
+}) {
+  const baseNotes = notes
+    .map((note) => note.trim())
+    .filter((note) => note.length > 0 && !note.startsWith('"Target operator:'))
+    .slice(0, templateToolingRecommendation ? 2 : 3)
+
+  if (!templateToolingRecommendation) return baseNotes
+
+  return [
+    formatTemplateToolingRecommendationNote(templateToolingRecommendation),
+    ...baseNotes,
+  ]
 }
 
 export function hasWorkflowReviewHistory({
@@ -122,6 +155,7 @@ export function useWorkflowPanelEntryState({
   selectedWorkflowTemplateContext,
   packTemplates,
   runStatus,
+  webSearchBackend,
   viewMode,
   pendingCreateMessage,
   chatStatus,
@@ -176,6 +210,16 @@ export function useWorkflowPanelEntryState({
         context: selectedWorkflowTemplateContext,
       }),
     [artifactRecords, projectArtifacts, selectedWorkflowTemplateContext],
+  )
+  const templateToolingRecommendation = useMemo(
+    () =>
+      resolveTemplateToolingRecommendation({
+        suggestedTools: getTemplateContextSuggestedTools(
+          selectedWorkflowTemplateContext,
+        ),
+        backend: webSearchBackend,
+      }),
+    [selectedWorkflowTemplateContext, webSearchBackend],
   )
 
   const nextStageSelection = useMemo(() => {
@@ -308,13 +352,11 @@ export function useWorkflowPanelEntryState({
   }, [inputAttachments, selectedWorkflowTemplateContext])
   const stageStartPolicyNotes = useMemo(
     () =>
-      (selectedWorkflowTemplateContext?.executionPolicy?.notes || [])
-        .map((note) => note.trim())
-        .filter(
-          (note) => note.length > 0 && !note.startsWith('"Target operator:'),
-        )
-        .slice(0, 3),
-    [selectedWorkflowTemplateContext],
+      resolveStageStartPolicyNotes({
+        notes: selectedWorkflowTemplateContext?.executionPolicy?.notes || [],
+        templateToolingRecommendation,
+      }),
+    [selectedWorkflowTemplateContext, templateToolingRecommendation],
   )
   const stageStartFlowName =
     workflow.name ||
@@ -426,6 +468,7 @@ export function useWorkflowPanelEntryState({
     resumeEntrySummary,
     stageStartInputLabels,
     stageStartPolicyNotes,
+    templateToolingRecommendation,
     stageStartTitle,
     stageStartFlowName,
     stageStartDescription,

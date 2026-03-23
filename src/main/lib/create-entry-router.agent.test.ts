@@ -202,6 +202,7 @@ describe("routeCreateEntry agent-first", () => {
 
     expect(route.source).toBe("agent")
     expect(route.clarification).toBeNull()
+    expect(route.domainMode).toBe("development")
     expect(route.recommendedTemplateId).toBe("delivery-shape-project")
   })
 
@@ -247,6 +248,7 @@ describe("routeCreateEntry agent-first", () => {
     )
 
     expect(route.source).toBe("agent")
+    expect(route.domainMode).toBe("development")
     expect(route.clarification?.kind).toBe("job_route")
     if (route.clarification?.kind !== "job_route")
       throw new Error("Expected job_route clarification")
@@ -295,6 +297,7 @@ describe("routeCreateEntry agent-first", () => {
     )
 
     expect(route.source).toBe("agent")
+    expect(route.domainMode).toBe("development")
     expect(route.recommendedTemplateId).toBe("ux-ui-polish-audit")
     expect(route.seed.primaryInputMode).toBe("directory")
   })

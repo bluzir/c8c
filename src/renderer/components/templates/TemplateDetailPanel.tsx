@@ -172,7 +172,7 @@ export function TemplateDetailPanel({
               {routingPreview?.stages.length ? (
                 <div className="space-y-1">
                   <span className="ui-meta-label text-muted-foreground">
-                    Dev Process
+                    Steps
                   </span>
                   <ProcessSpine stages={routingPreview.stages} />
                 </div>

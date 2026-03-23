@@ -71,12 +71,25 @@ import { useUndoRedo } from "@/hooks/useUndoRedo"
 import { useChainExecution } from "@/hooks/useChainExecution"
 import { useSelectedRunReview } from "@/hooks/useSelectedRunReview"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
+import { buildTemplateRoutingPreview } from "@/lib/create-routing-preview"
 import {
   buildProcessSpine,
   selectProcessSpineFactory,
 } from "@/lib/process-spine"
+import {
+  buildRoutedTemplateResultForTemplate,
+  prepareRoutedTemplateLaunch,
+} from "@/lib/routed-template-launch"
+import { toastErrorFromCatch } from "@/lib/toast-error"
+import { shouldAutoRunCreateStart } from "@/lib/workflow-create-start-policy"
+import {
+  getRequestedResultFromEntryState,
+  type WorkflowEntryState,
+} from "@/lib/workflow-entry"
+import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { Tabs } from "@/components/ui/tabs"
-import type { Workflow } from "@shared/types"
+import { buildCreateEntryRouteSeed } from "@shared/create-entry-routing"
+import type { CreateEntryRouteResult, Workflow } from "@shared/types"
 import { ProcessSpine } from "@/components/ui/process-spine"
 import { useWorkflowPanelResources } from "./workflow-panel/useWorkflowPanelResources"
 import { useWorkflowBlockedResumeTask } from "./workflow-panel/useWorkflowBlockedResumeTask"
@@ -177,6 +190,11 @@ export function WorkflowPanel() {
   })
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
   const [showSavedRunReview, setShowSavedRunReview] = useState(false)
+  const [routeAlternativesOpen, setRouteAlternativesOpen] = useState(false)
+  const [
+    pendingRouteAlternativeTemplateId,
+    setPendingRouteAlternativeTemplateId,
+  ] = useState<string | null>(null)
 
   const LONG_RUNNING_THRESHOLD_MS = 2 * 60 * 1000
 
@@ -621,6 +639,189 @@ export function WorkflowPanel() {
     setSelectedInboxTaskKey,
     setWorkflowEntryState,
   })
+  const routeAlternativeOptions = useMemo(() => {
+    const alternateTemplateIds =
+      effectiveEntryState?.routing?.alternateTemplateIds || []
+    if (alternateTemplateIds.length === 0 || packTemplates.length === 0) {
+      return []
+    }
+
+    return alternateTemplateIds.flatMap((templateId) => {
+      const template =
+        packTemplates.find((candidate) => candidate.id === templateId) || null
+      if (!template) return []
+
+      const preview = buildTemplateRoutingPreview({
+        template,
+        templates: packTemplates,
+      })
+      return [
+        {
+          templateId,
+          title: preview.title,
+          helpModeLabel: preview.helpModeLabel,
+          stageLabel: preview.stageLabel,
+        },
+      ]
+    })
+  }, [effectiveEntryState?.routing?.alternateTemplateIds, packTemplates])
+  const canShowRouteAlternatives = Boolean(
+    selectedProject &&
+    effectiveEntryState?.routing?.source === "agent" &&
+    effectiveEntryState.routing.projectInspection &&
+    routeAlternativeOptions.length > 0,
+  )
+
+  const buildActiveRouteResult = useCallback(
+    (entryState: WorkflowEntryState): CreateEntryRouteResult | null => {
+      const projectInspection = entryState.routing?.projectInspection
+      if (!projectInspection) return null
+
+      return {
+        recommendedTemplateId:
+          selectedWorkflowTemplateContext?.templateId ||
+          "delivery-shape-project",
+        alternateTemplateIds: entryState.routing?.alternateTemplateIds || [],
+        reason:
+          entryState.routing?.reason ||
+          "Recommended from the current request and project context.",
+        projectInspection,
+        seed: buildCreateEntryRouteSeed(
+          selectedWorkflowTemplateContext?.templateId ||
+            "delivery-shape-project",
+          projectInspection,
+          getRequestedResultFromEntryState(entryState),
+        ),
+        domainMode: entryState.routing?.domainMode || "development",
+        confidence: entryState.routing?.confidence ?? 0.8,
+        source: "agent",
+        clarification: null,
+      }
+    },
+    [selectedWorkflowTemplateContext?.templateId],
+  )
+  const handleSelectRouteAlternative = useCallback(
+    async (templateId: string) => {
+      if (
+        !selectedProject ||
+        !effectiveEntryState ||
+        pendingRouteAlternativeTemplateId
+      ) {
+        return
+      }
+
+      const baseRouteResult = buildActiveRouteResult(effectiveEntryState)
+      if (!baseRouteResult) return
+
+      const requestedResult =
+        getRequestedResultFromEntryState(effectiveEntryState)
+      const currentTemplateId =
+        selectedWorkflowTemplateContext?.templateId || null
+      const nextAlternateTemplateIds = [
+        ...(currentTemplateId ? [currentTemplateId] : []),
+        ...routeAlternativeOptions.map((option) => option.templateId),
+      ].filter(
+        (candidate, index, values) =>
+          candidate !== templateId && values.indexOf(candidate) === index,
+      )
+
+      setPendingRouteAlternativeTemplateId(templateId)
+      try {
+        const availableTemplates =
+          packTemplates.length > 0
+            ? packTemplates
+            : await window.api.listTemplates()
+        const nextTemplate =
+          availableTemplates.find((template) => template.id === templateId) ||
+          null
+        if (!nextTemplate) {
+          throw new Error("That starting point is no longer available.")
+        }
+
+        const nextRouteResult = buildRoutedTemplateResultForTemplate({
+          routeResult: baseRouteResult,
+          templateId,
+          requestedResult,
+          alternateTemplateIds: nextAlternateTemplateIds,
+        })
+        const launch = await prepareRoutedTemplateLaunch({
+          projectPath: selectedProject,
+          template: nextTemplate,
+          webSearchBackend,
+          routeResult: nextRouteResult,
+          requestedResult,
+          sourceArtifacts,
+        })
+
+        setWorkflows(launch.refreshedWorkflows)
+        setSelectedWorkflowPath(launch.filePath)
+        setWorkflowDirect(launch.loadedWorkflow)
+        setWorkflowSavedSnapshot(launch.savedSnapshot)
+        setInputValue(launch.templateStartState.initialInputValue)
+        setInputAttachments(launch.templateStartState.initialAttachments)
+        setWorkflowEntryState(launch.templateStartState.entryState)
+        setWorkflowRequestedResultForKey({
+          key: toWorkflowExecutionKey(launch.filePath),
+          value:
+            getRequestedResultFromEntryState(
+              launch.templateStartState.entryState,
+            ) || null,
+        })
+        setWorkflowTemplateContextForKey({
+          key: toWorkflowExecutionKey(launch.filePath),
+          context: launch.templateStartState.templateContext,
+        })
+        setQueuedAutoRunPath(
+          shouldAutoRunCreateStart(nextRouteResult, nextTemplate)
+            ? launch.filePath
+            : null,
+        )
+        setSelectedInboxTaskKey(null)
+        setSelectedPastRun(null)
+        setPrepareNewRun(false)
+        setWorkflowReviewMode(false)
+        setViewMode("list")
+        setOutputTabRequest(null)
+        setChatOpen(false)
+        setMainView("thread")
+        setRouteAlternativesOpen(false)
+      } catch (error) {
+        toastErrorFromCatch("Could not switch starting point", error)
+      } finally {
+        setPendingRouteAlternativeTemplateId(null)
+      }
+    },
+    [
+      buildActiveRouteResult,
+      effectiveEntryState,
+      packTemplates,
+      pendingRouteAlternativeTemplateId,
+      routeAlternativeOptions,
+      selectedProject,
+      selectedWorkflowTemplateContext?.templateId,
+      setChatOpen,
+      setInputAttachments,
+      setInputValue,
+      setMainView,
+      setOutputTabRequest,
+      setPrepareNewRun,
+      setQueuedAutoRunPath,
+      setRouteAlternativesOpen,
+      setSelectedInboxTaskKey,
+      setSelectedPastRun,
+      setSelectedWorkflowPath,
+      setViewMode,
+      setWorkflowDirect,
+      setWorkflowEntryState,
+      setWorkflowRequestedResultForKey,
+      setWorkflowReviewMode,
+      setWorkflowSavedSnapshot,
+      setWorkflowTemplateContextForKey,
+      setWorkflows,
+      sourceArtifacts,
+      webSearchBackend,
+    ],
+  )
 
   const blockedTaskPanel =
     showBlockedResumeHeader && selectedResumeTask ? (
@@ -701,6 +902,12 @@ export function WorkflowPanel() {
     showBlockedResumeHeader,
     viewMode,
   ])
+
+  useEffect(() => {
+    if (!canShowRouteAlternatives && routeAlternativesOpen) {
+      setRouteAlternativesOpen(false)
+    }
+  }, [canShowRouteAlternatives, routeAlternativesOpen])
 
   if (!selectedProject && !hasMeaningfulContent) {
     return (
@@ -815,6 +1022,14 @@ export function WorkflowPanel() {
                   }
                   focusInputPanel()
                 }}
+                onSecondaryEntryAction={
+                  canShowRouteAlternatives
+                    ? () => setRouteAlternativesOpen(true)
+                    : null
+                }
+                secondaryEntryActionLabel={
+                  canShowRouteAlternatives ? "Other starts" : null
+                }
                 inputPanelRef={inputPanelRef}
                 showProjectArtifactsPanel={showInlineProjectArtifactsPanel}
                 combinedArtifactRecords={combinedArtifactRecords}
@@ -908,6 +1123,13 @@ export function WorkflowPanel() {
             if (!open) {
               setShowEntryEditor(false)
             }
+          }}
+          routeAlternativesOpen={routeAlternativesOpen}
+          onRouteAlternativesOpenChange={setRouteAlternativesOpen}
+          routeAlternativeOptions={routeAlternativeOptions}
+          pendingRouteAlternativeTemplateId={pendingRouteAlternativeTemplateId}
+          onSelectRouteAlternative={(templateId) => {
+            void handleSelectRouteAlternative(templateId)
           }}
         />
       </div>

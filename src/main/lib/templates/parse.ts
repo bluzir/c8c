@@ -9,6 +9,7 @@ import type {
   Workflow,
   StageFamily,
   WorkflowExecutionPolicyProfile,
+  WorkflowTemplateSuggestedTool,
   WorkflowTemplate,
   WorkflowTemplateCredit,
   WorkflowTemplateJourneyStage,
@@ -42,6 +43,8 @@ interface FlatTemplate {
   stage_family?: StageFamily
   recommendedNext?: string[]
   recommended_next?: string[]
+  suggestedTools?: WorkflowTemplateSuggestedTool[]
+  suggested_tools?: WorkflowTemplateSuggestedTool[]
   emoji: string
   headline: string
   how: string
@@ -130,6 +133,8 @@ export function parseTemplate(
     stage_family,
     recommendedNext,
     recommended_next,
+    suggestedTools,
+    suggested_tools,
     emoji,
     headline,
     how,
@@ -155,6 +160,7 @@ export function parseTemplate(
     stage,
     stageFamily: stageFamily ?? stage_family,
     recommendedNext: recommendedNext ?? recommended_next,
+    suggestedTools: suggestedTools ?? suggested_tools,
     emoji,
     headline,
     how,

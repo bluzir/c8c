@@ -14,7 +14,9 @@ import {
   deriveTemplateContextJourneyStageLabel,
   deriveTemplateJourneyStageLabel,
   getTemplateContextRecommendedNext,
+  getTemplateContextSuggestedTools,
   getTemplateRecommendedNext,
+  getTemplateSuggestedTools,
   getRequestedResultFromEntryState,
   selectArtifactsForTemplateContracts,
 } from "./workflow-entry"
@@ -39,6 +41,7 @@ function createTemplate(
       journeyStage: "plan",
       recommendedNext: [],
     },
+    suggestedTools: ["web_search"],
     contractIn: [
       { kind: "project_brief", title: "Project Brief" },
       { kind: "roadmap", title: "Roadmap", required: false },
@@ -66,6 +69,8 @@ describe("workflow-entry factory helpers", () => {
     expect(context.pack?.id).toBe("delivery-foundation")
     expect(getTemplateRecommendedNext(template)).toEqual([])
     expect(getTemplateContextRecommendedNext(context)).toEqual([])
+    expect(getTemplateSuggestedTools(template)).toEqual(["web_search"])
+    expect(getTemplateContextSuggestedTools(context)).toEqual(["web_search"])
     expect(context.contractOut?.[0]?.kind).toBe("phase_plan")
     expect(context.factoryId).toBeUndefined()
     expect(context.caseId).toBeUndefined()
@@ -306,7 +311,7 @@ describe("workflow-entry factory helpers", () => {
           },
         }),
       ),
-    ).toBe("Shape / Map")
+    ).toBe("Understand")
 
     expect(
       deriveTemplateJourneyStageLabel(
@@ -332,7 +337,7 @@ describe("workflow-entry factory helpers", () => {
           },
         }),
       ),
-    ).toBe("Verify")
+    ).toBe("Check")
 
     expect(
       deriveTemplateJourneyStageLabel(
@@ -345,7 +350,7 @@ describe("workflow-entry factory helpers", () => {
           },
         }),
       ),
-    ).toBe("Implement")
+    ).toBe("Build")
 
     const entryState = buildTemplateWorkflowEntryState({
       template: createTemplate({
@@ -374,7 +379,7 @@ describe("workflow-entry factory helpers", () => {
           journeyStage: "verify",
         },
       }),
-    ).toBe("Verify")
+    ).toBe("Check")
 
     expect(
       deriveTemplateDisplayLabel(
@@ -400,7 +405,7 @@ describe("workflow-entry factory helpers", () => {
           journeyStage: "verify",
         },
       }),
-    ).toBe("Verify")
+    ).toBe("Check")
 
     expect(
       deriveTemplateJobLabel(

@@ -72,11 +72,11 @@ describe("WorkflowCreatePendingTemplateDialog", () => {
         pendingTemplateStartStageLabel="Review"
         pendingTemplateExecutionSummary="Evidence-first, review checks"
         pendingTemplateProcessStages={[
-          { id: "shape_map", label: "Shape / Map", state: "available" },
+          { id: "shape_map", label: "Understand", state: "available" },
           { id: "plan", label: "Plan", state: "available" },
-          { id: "implement", label: "Implement", state: "available" },
+          { id: "implement", label: "Build", state: "available" },
           { id: "review", label: "Review", state: "current" },
-          { id: "verify", label: "Verify", state: "later" },
+          { id: "verify", label: "Check", state: "later" },
           { id: "ship", label: "Ship", state: "later" },
         ]}
         openingProject={false}
@@ -92,9 +92,9 @@ describe("WorkflowCreatePendingTemplateDialog", () => {
     expect(screen.getByText("Review it")).toBeTruthy()
     expect(screen.getByText("Starts in")).toBeTruthy()
     expect(screen.getAllByText("Review").length).toBeGreaterThan(0)
-    expect(screen.getByText("Dev Process")).toBeTruthy()
-    expect(screen.getByText("Shape / Map")).toBeTruthy()
-    expect(screen.getByText("Verify")).toBeTruthy()
+    expect(screen.getByText("Steps")).toBeTruthy()
+    expect(screen.getByText("Understand")).toBeTruthy()
+    expect(screen.getByText("Check")).toBeTruthy()
   })
 
   it("falls back to the template job for the dialog title", () => {
@@ -122,7 +122,7 @@ describe("WorkflowCreatePendingTemplateDialog", () => {
         targetProjectPath="/tmp/project"
         targetProjectName="project"
         pendingTemplateIntentLabel="Do it"
-        pendingTemplateStartStageLabel="Shape / Map"
+        pendingTemplateStartStageLabel="Understand"
         pendingTemplateExecutionSummary={null}
         pendingTemplateProcessStages={null}
         openingProject={false}

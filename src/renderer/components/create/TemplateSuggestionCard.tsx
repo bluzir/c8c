@@ -94,7 +94,7 @@ export function PendingTemplateDetails({
       </div>
       {processStages && processStages.length > 0 ? (
         <div className="space-y-1">
-          <p className="ui-meta-text text-muted-foreground">Dev Process</p>
+          <p className="ui-meta-text text-muted-foreground">Steps</p>
           <ProcessSpine stages={processStages} />
         </div>
       ) : null}

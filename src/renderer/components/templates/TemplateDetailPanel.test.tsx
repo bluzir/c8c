@@ -37,19 +37,19 @@ describe("TemplateDetailPanel", () => {
           useWhen: "The work needs a final review before shipping.",
           youProvide: "Current work",
           youGetFirst: "Review report",
-          stagePath: ["Shape / Map", "Plan", "Implement", "Review"],
-          stagePathLabel: "Shape / Map -> Plan -> Implement -> Review",
+          stagePath: ["Understand", "Plan", "Build", "Review"],
+          stagePathLabel: "Understand -> Plan -> Build -> Review",
           firstStageLabel: "Review",
         }}
         routingPreview={{
           helpModeLabel: "Review it",
           stageLabel: "Review",
           stages: [
-            { id: "shape_map", label: "Shape / Map", state: "available" },
+            { id: "shape_map", label: "Understand", state: "available" },
             { id: "plan", label: "Plan", state: "available" },
-            { id: "implement", label: "Implement", state: "available" },
+            { id: "implement", label: "Build", state: "available" },
             { id: "review", label: "Review", state: "current" },
-            { id: "verify", label: "Verify", state: "later" },
+            { id: "verify", label: "Check", state: "later" },
             { id: "ship", label: "Ship", state: "later" },
           ],
         }}
@@ -62,8 +62,8 @@ describe("TemplateDetailPanel", () => {
     expect(screen.getAllByText("Review it").length).toBeGreaterThan(0)
     expect(screen.getByText("Starts in")).toBeTruthy()
     expect(screen.getAllByText("Review").length).toBeGreaterThan(0)
-    expect(screen.getByText("Dev Process")).toBeTruthy()
-    expect(screen.getByText("Shape / Map")).toBeTruthy()
+    expect(screen.getByText("Steps")).toBeTruthy()
+    expect(screen.getByText("Understand")).toBeTruthy()
     expect(screen.queryByText("Stage path")).toBeNull()
     expect(
       screen.getByRole("button", { name: "Start Review before ship" }),

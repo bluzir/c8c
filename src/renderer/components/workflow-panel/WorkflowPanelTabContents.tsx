@@ -68,6 +68,8 @@ interface WorkflowListTabProps {
   stageStartInputLabels: string[]
   entryFlowRules: FlowRulePreview[]
   onPrimaryEntryAction: () => void
+  onSecondaryEntryAction?: (() => void) | null
+  secondaryEntryActionLabel?: string | null
   inputPanelRef: RefObject<HTMLDivElement | null>
   showProjectArtifactsPanel: boolean
   combinedArtifactRecords: ArtifactRecord[]
@@ -112,6 +114,8 @@ export function WorkflowListTab({
   stageStartInputLabels,
   entryFlowRules,
   onPrimaryEntryAction,
+  onSecondaryEntryAction = null,
+  secondaryEntryActionLabel = null,
   inputPanelRef,
   showProjectArtifactsPanel,
   combinedArtifactRecords,
@@ -172,6 +176,8 @@ export function WorkflowListTab({
                       ? resumeEntrySummary?.continueLabel || "Run"
                       : "Add input"
                   }
+                  onSecondaryAction={onSecondaryEntryAction}
+                  secondaryActionLabel={secondaryEntryActionLabel}
                 />
                 {showResumeInput ? (
                   <StageInputSection
@@ -225,6 +231,8 @@ export function WorkflowListTab({
                       ? resumeEntrySummary?.continueLabel || "Run"
                       : "Add input")
                   }
+                  onSecondaryAction={onSecondaryEntryAction}
+                  secondaryActionLabel={secondaryEntryActionLabel}
                 />
               )}
             {showIdleInputPanel && !terminalResultOwnsLayout && (

@@ -30,11 +30,11 @@ export interface ProcessSpineStage {
 }
 
 const PROCESS_STAGE_LABELS: Record<ProcessSpineStageId, string> = {
-  shape_map: "Shape / Map",
+  shape_map: "Understand",
   plan: "Plan",
-  implement: "Implement",
+  implement: "Build",
   review: "Review",
-  verify: "Verify",
+  verify: "Check",
   ship: "Ship",
 }
 

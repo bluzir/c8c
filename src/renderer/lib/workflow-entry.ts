@@ -3,11 +3,14 @@ import type {
   ArtifactRecord,
   InputAttachment,
   InputNodeConfig,
+  ProjectInspectionSummary,
   OutputNodeConfig,
   ProjectFactoryDefinition,
+  ResultModeId,
   Workflow,
   WorkflowExecutionPolicyProfile,
   WorkflowTemplatePackMetadata,
+  WorkflowTemplateSuggestedTool,
   WorkflowTemplate,
 } from "@shared/types"
 
@@ -32,6 +35,9 @@ export interface WorkflowEntryState {
     source: "agent"
     reason?: string
     confidence?: number
+    domainMode?: ResultModeId
+    alternateTemplateIds?: string[]
+    projectInspection?: ProjectInspectionSummary
   }
 }
 
@@ -42,6 +48,7 @@ export interface WorkflowTemplateRunContext {
   workflowName: string
   source: Extract<WorkflowEntrySource, "template" | "template_customize">
   recommendedNext?: string[]
+  suggestedTools?: WorkflowTemplateSuggestedTool[]
   useWhen?: string
   inputText?: string
   outputText?: string
@@ -218,21 +225,21 @@ const JOURNEY_STAGE_LABELS: Record<string, string> = {
   plan: "Plan",
   execute: "Execute",
   review: "Review",
-  verify: "Verify",
+  verify: "Check",
   operate: "Operate",
 }
 
 const TEMPLATE_STAGE_LABELS: Record<string, string> = {
-  "delivery-map-codebase": "Shape / Map",
-  "delivery-shape-project": "Shape / Map",
-  "delivery-investigate-bug": "Shape / Map",
-  "gstack-feature-squad": "Shape / Map",
+  "delivery-map-codebase": "Understand",
+  "delivery-shape-project": "Understand",
+  "delivery-investigate-bug": "Understand",
+  "gstack-feature-squad": "Understand",
   "delivery-plan-phase": "Plan",
-  "delivery-implement-phase": "Implement",
+  "delivery-implement-phase": "Build",
   "delivery-review-phase": "Review",
-  "delivery-verify-phase": "Verify",
+  "delivery-verify-phase": "Check",
   "full-stack-code-audit": "Review",
-  "gstack-preflight-gate": "Verify",
+  "gstack-preflight-gate": "Check",
   "gstack-release-room": "Ship",
 }
 
@@ -375,6 +382,18 @@ export function getTemplateContextRecommendedNext(
   context?: Pick<WorkflowTemplateRunContext, "recommendedNext" | "pack"> | null,
 ) {
   return context?.recommendedNext ?? context?.pack?.recommendedNext ?? []
+}
+
+export function getTemplateSuggestedTools(
+  template?: Pick<WorkflowTemplate, "suggestedTools"> | null,
+) {
+  return template?.suggestedTools ?? []
+}
+
+export function getTemplateContextSuggestedTools(
+  context?: Pick<WorkflowTemplateRunContext, "suggestedTools"> | null,
+) {
+  return context?.suggestedTools ?? []
 }
 
 export function deriveTemplateDisplayLabel(
@@ -719,6 +738,7 @@ export function buildTemplateRunContext({
     workflowName: template.workflow.name || template.name,
     source,
     recommendedNext: getTemplateRecommendedNext(template),
+    suggestedTools: getTemplateSuggestedTools(template),
     useWhen: deriveTemplateUseWhen(template),
     inputText: ensureSentence(
       template.input,

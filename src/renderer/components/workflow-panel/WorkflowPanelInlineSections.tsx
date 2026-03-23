@@ -238,6 +238,8 @@ export function WorkflowIdleStageContract({
   showNeeds = true,
   onPrimaryAction,
   primaryActionLabel,
+  onSecondaryAction,
+  secondaryActionLabel,
 }: {
   title: string
   resultLabel: string
@@ -249,6 +251,8 @@ export function WorkflowIdleStageContract({
   showNeeds?: boolean
   onPrimaryAction?: (() => void) | null
   primaryActionLabel?: string
+  onSecondaryAction?: (() => void) | null
+  secondaryActionLabel?: string | null
 }) {
   const needsText =
     inputLabels.length > 0
@@ -295,6 +299,11 @@ export function WorkflowIdleStageContract({
                 <Play size={14} />
                 {primaryActionLabel}
               </Button>
+              {onSecondaryAction && secondaryActionLabel ? (
+                <Button variant="outline" size="sm" onClick={onSecondaryAction}>
+                  {secondaryActionLabel}
+                </Button>
+              ) : null}
             </div>
           )}
         </div>
@@ -352,6 +361,8 @@ export function WorkflowResumeHeader({
   flowRules = [],
   onPrimaryAction,
   primaryActionLabel,
+  onSecondaryAction,
+  secondaryActionLabel,
 }: {
   entry: WorkflowEntryState
   displayTitle: string
@@ -365,6 +376,8 @@ export function WorkflowResumeHeader({
   flowRules?: FlowRulePreview[]
   onPrimaryAction: () => void
   primaryActionLabel: string
+  onSecondaryAction?: (() => void) | null
+  secondaryActionLabel?: string | null
 }) {
   const headline = blockedResumeSummary
     ? blockedResumeSummary.statusText
@@ -432,6 +445,11 @@ export function WorkflowResumeHeader({
               <Play size={14} />
               {primaryActionLabel}
             </Button>
+            {onSecondaryAction && secondaryActionLabel ? (
+              <Button variant="outline" size="sm" onClick={onSecondaryAction}>
+                {secondaryActionLabel}
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

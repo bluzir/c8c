@@ -14,10 +14,10 @@ function createContinuation(
     title: "Seller photo upload",
     status: "ready",
     readinessText: "Ready to continue to Plan the change.",
-    supportText: "Using saved Feature Spec from Shape / Map.",
+    supportText: "Using saved Feature Spec from Understand.",
     lastGateText: null,
     latestResultLabel: "Feature Spec",
-    latestStepLabel: "Shape / Map",
+    latestStepLabel: "Understand",
     nextStepLabel: "Plan the change",
     updatedAt: 1,
     action: {
@@ -50,7 +50,7 @@ function createContinuation(
 describe("WorkflowCreateContinuationCard helpers", () => {
   it("builds step chips for latest and next continuation stages", () => {
     expect(buildContinuationStepChips(createContinuation())).toEqual([
-      "Latest step: Shape / Map",
+      "Latest step: Understand",
       "Next step: Plan the change",
     ])
   })

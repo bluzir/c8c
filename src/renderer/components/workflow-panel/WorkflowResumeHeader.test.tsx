@@ -33,19 +33,19 @@ describe("WorkflowResumeHeader", () => {
         displayTitle="Ship flow"
         readyToRun
         startApprovalRequired={false}
-        stageLabel="Verify"
+        stageLabel="Check"
         resumeSummary={{
           workLabel: "Verification",
-          currentStepLabel: "Verify",
+          currentStepLabel: "Check",
           readyBecauseText: "Ready because Verification Report is saved.",
           checksText: "No blocking checks or approvals.",
           attachText: "Verification Report",
           latestResultText: "Latest result: Verification Report.",
-          continueLabel: "Continue to Verify",
+          continueLabel: "Continue to Check",
           primaryArtifact: null,
         }}
         blockedResumeSummary={null}
-        nextStepLabel="Continue to Verify."
+        nextStepLabel="Continue to Check."
         inputLabels={[]}
         flowRules={[
           {
@@ -59,8 +59,8 @@ describe("WorkflowResumeHeader", () => {
       />,
     )
 
-    expect(screen.getByText("Saved work · Verify")).toBeTruthy()
-    expect(screen.getByText("Continue to Verify.")).toBeTruthy()
+    expect(screen.getByText("Saved work · Check")).toBeTruthy()
+    expect(screen.getByText("Continue to Check.")).toBeTruthy()
     expect(
       screen.getByText("Status: No blocking checks or approvals."),
     ).toBeTruthy()
@@ -112,5 +112,41 @@ describe("WorkflowResumeHeader", () => {
       screen.getByText("Previous: Previous: Verification Report"),
     ).toBeTruthy()
     expect(screen.getByText("Status: Legal review required.")).toBeTruthy()
+  })
+
+  it("renders a secondary action for alternative starts when provided", async () => {
+    const user = userEvent.setup()
+    const onSecondaryAction = vi.fn()
+
+    render(
+      <WorkflowResumeHeader
+        entry={baseEntry}
+        displayTitle="Ship flow"
+        readyToRun
+        startApprovalRequired={false}
+        stageLabel="Understand"
+        resumeSummary={{
+          workLabel: "Starting point",
+          currentStepLabel: "Understand",
+          readyBecauseText: "Ready to continue.",
+          checksText: "No blocking checks or approvals.",
+          attachText: "Requested result",
+          latestResultText: null,
+          continueLabel: "Continue",
+          primaryArtifact: null,
+        }}
+        blockedResumeSummary={null}
+        nextStepLabel="Continue."
+        inputLabels={[]}
+        flowRules={[]}
+        onPrimaryAction={() => undefined}
+        primaryActionLabel="Continue"
+        onSecondaryAction={onSecondaryAction}
+        secondaryActionLabel="Other starts"
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Other starts" }))
+    expect(onSecondaryAction).toHaveBeenCalledTimes(1)
   })
 })
