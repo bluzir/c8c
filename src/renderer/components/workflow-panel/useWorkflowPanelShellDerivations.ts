@@ -11,7 +11,7 @@ import {
   type WorkflowPrimaryScreenState,
 } from "@/components/workflow-panel/screen-state"
 import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state"
-import type { FlowSurfaceMode, ViewMode } from "@/lib/store"
+import type { ViewMode } from "@/lib/store"
 import type {
   ArtifactRecord,
   InputAttachment,
@@ -71,7 +71,6 @@ export function useWorkflowPanelShellDerivations({
   hasBlockedResumeState,
   effectiveResumeHeader,
   viewMode,
-  flowSurfaceMode,
   showAnyReviewMode,
   selectedPastRunStatus,
   showCreateDraftSkeleton,
@@ -82,7 +81,6 @@ export function useWorkflowPanelShellDerivations({
   runId,
   workspace,
   selectedProject,
-  effectiveResumeHeaderVisible,
   hasActiveEntryState,
   hasSourceArtifacts,
   nextStageTemplate,
@@ -105,7 +103,6 @@ export function useWorkflowPanelShellDerivations({
   hasBlockedResumeState: boolean
   effectiveResumeHeader: boolean
   viewMode: ViewMode
-  flowSurfaceMode: FlowSurfaceMode
   showAnyReviewMode: boolean
   selectedPastRunStatus: RunStatus | null | undefined
   showCreateDraftSkeleton: boolean
@@ -116,7 +113,6 @@ export function useWorkflowPanelShellDerivations({
   runId: string | null
   workspace: string | null
   selectedProject: string | null
-  effectiveResumeHeaderVisible: boolean
   hasActiveEntryState: boolean
   hasSourceArtifacts: boolean
   nextStageTemplate: WorkflowTemplate | null
@@ -381,14 +377,6 @@ export function useWorkflowPanelShellDerivations({
     idleStageContract,
     effectiveResumeHeader,
   })
-  const showFlowEditor =
-    shellState === "running" ||
-    shellState === "paused" ||
-    (shellState === "idle" &&
-      flowSurfaceMode === "edit" &&
-      !showAnyReviewMode &&
-      primaryScreenState !== "cross_flow_handoff" &&
-      primaryScreenState !== "blocked_decision")
 
   return {
     primaryScreenState,
@@ -404,8 +392,6 @@ export function useWorkflowPanelShellDerivations({
     resultSourceLabel,
     canUseInNewFlow,
     showIdleStageContract,
-    showFlowEditor,
     showProcessSpine: shouldShowProcessSpine(primaryScreenState),
-    reviewFlowHasSnapshot: showAnyReviewMode && effectiveResumeHeaderVisible,
   }
 }

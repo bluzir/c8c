@@ -220,6 +220,7 @@ export function WorkflowPanel() {
     setWorkflowOpenState,
     setWorkflowEntryState,
     setShowEntryEditor,
+    setFlowSurfaceMode,
     setPrepareNewRun,
     setShowSavedRunReview,
     setOutputTabRequest,
@@ -432,10 +433,8 @@ export function WorkflowPanel() {
     resultSourceLabel,
     canUseInNewFlow,
     showIdleStageContract,
-    showFlowEditor,
     showProcessSpine,
     primaryScreenState,
-    reviewFlowHasSnapshot,
   } = useWorkflowPanelShellDerivations({
     workflow,
     runtimeNodes,
@@ -447,7 +446,6 @@ export function WorkflowPanel() {
     hasBlockedResumeState,
     effectiveResumeHeader,
     viewMode,
-    flowSurfaceMode,
     showAnyReviewMode,
     selectedPastRunStatus: selectedPastRun?.status,
     showCreateDraftSkeleton,
@@ -458,7 +456,6 @@ export function WorkflowPanel() {
     runId,
     workspace,
     selectedProject,
-    effectiveResumeHeaderVisible: !!reviewedRunDetails?.snapshot,
     hasActiveEntryState: activeEntryState !== null,
     hasSourceArtifacts: sourceArtifacts.length > 0,
     nextStageTemplate,
@@ -476,7 +473,6 @@ export function WorkflowPanel() {
     requestOutputTab,
     openResult,
     handleSurfaceNoticeAction,
-    focusStageDetails,
     handleOpenArtifact,
   } = useWorkflowPanelOutputSurface({
     showBlockedResumeHeader,
@@ -649,17 +645,7 @@ export function WorkflowPanel() {
       />
     ) : null
 
-  const isFlowEditing = effectiveResumeHeader
-    ? showEntryEditor
-    : flowSurfaceMode === "edit"
-  const chainBuilderMode =
-    shellState === "running" || shellState === "paused"
-      ? "monitor"
-      : reviewFlowHasSnapshot
-        ? "monitor"
-        : isFlowEditing
-          ? "edit"
-          : "outline"
+  const flowGraphOpen = flowSurfaceMode === "edit" || showEntryEditor
   const showInlineProjectArtifactsPanel =
     showProjectArtifactsPanel &&
     primaryScreenState !== "fresh_start" &&
@@ -836,14 +822,6 @@ export function WorkflowPanel() {
                   showIdleInputPanel &&
                   primaryScreenState !== "blocked_decision"
                 }
-                showFlowEditor={showFlowEditor}
-                chainBuilderMode={chainBuilderMode}
-                onFocusStageDetails={focusStageDetails}
-                reviewSnapshot={
-                  showAnyReviewMode
-                    ? (reviewedRunDetails?.snapshot ?? null)
-                    : null
-                }
                 showReviewOutputMode={showAnyReviewMode}
                 showReviewOutputPanel={
                   !showBlockedResumeHeader || blockedInspectionVisible
@@ -915,6 +893,13 @@ export function WorkflowPanel() {
           pending={useInNewFlowPending}
           onConfirmUseInNewFlow={() => {
             void handleConfirmUseInNewFlow()
+          }}
+          flowGraphOpen={flowGraphOpen}
+          onFlowGraphOpenChange={(open) => {
+            setFlowSurfaceMode(open ? "edit" : "outline")
+            if (!open) {
+              setShowEntryEditor(false)
+            }
           }}
         />
       </div>

@@ -177,14 +177,27 @@ describe("ResultTab", () => {
 
     render(<ResultTab {...props} />)
 
-    expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
+    // Loop summary is visible in the top-level disclosure trigger
+    expect(screen.getByText("Review loop")).toBeTruthy()
     expect(screen.getByText("UI polish gate")).toBeTruthy()
-    expect(screen.getByText("Active rules")).toBeTruthy()
+
+    // Inner details are hidden until the disclosure is opened
+    expect(screen.queryByText("Active rules")).toBeNull()
     expect(screen.queryByText("Loop 2/3")).toBeNull()
     expect(
       screen.queryByText("Return to fix when checks stay below the threshold"),
     ).toBeNull()
     expect(screen.queryByText("Escalate after 3 loop attempts")).toBeNull()
+
+    // Open the top-level loop disclosure
+    await user.click(screen.getByText("Review loop"))
+
+    // Now the loop card and rules disclosure are visible
+    expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(screen.getByText("Technical details")).toBeTruthy()
+
+    // Technical badges still hidden until inner disclosure is opened
+    expect(screen.queryByText("Attempt 2/3")).toBeNull()
 
     await user.click(screen.getByText("Technical details"))
     expect(screen.getByText("Attempt 2/3")).toBeTruthy()

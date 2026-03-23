@@ -1,5 +1,6 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react"
 import { Download, Loader2, RefreshCw } from "lucide-react"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import type {
   ProviderAuthStatus,
   ProviderHealth,
@@ -649,36 +650,42 @@ export function SettingsProvidersSection({
                 </div>
 
                 {available ? (
-                  <div className="grid grid-cols-1 gap-2 text-body-sm text-muted-foreground sm:grid-cols-2">
-                    <p>
-                      CLI path:{" "}
-                      <span className="text-foreground">
-                        {health?.executablePath || "not found"}
-                      </span>
-                    </p>
-                    <p>
-                      Signed in via:{" "}
-                      <span className="text-foreground">
-                        {getProviderSignInMethod(
-                          providerId,
-                          auth?.authMethod,
-                          authenticated,
-                        )}
-                      </span>
-                    </p>
-                    <p>
-                      Signed in as:{" "}
-                      <span className="text-foreground">
-                        {auth?.accountLabel || "n/a"}
-                      </span>
-                    </p>
-                    <p>
-                      Custom API key:{" "}
-                      <span className="text-foreground">
-                        {auth?.apiKeyConfigured ? "configured" : "not set"}
-                      </span>
-                    </p>
-                  </div>
+                  <DisclosurePanel
+                    summary="Diagnostics"
+                    surface="flat"
+                    defaultOpen={false}
+                  >
+                    <div className="grid grid-cols-1 gap-2 text-body-sm text-muted-foreground sm:grid-cols-2">
+                      <p>
+                        CLI path:{" "}
+                        <span className="text-foreground">
+                          {health?.executablePath || "not found"}
+                        </span>
+                      </p>
+                      <p>
+                        Signed in via:{" "}
+                        <span className="text-foreground">
+                          {getProviderSignInMethod(
+                            providerId,
+                            auth?.authMethod,
+                            authenticated,
+                          )}
+                        </span>
+                      </p>
+                      <p>
+                        Signed in as:{" "}
+                        <span className="text-foreground">
+                          {auth?.accountLabel || "n/a"}
+                        </span>
+                      </p>
+                      <p>
+                        Custom API key:{" "}
+                        <span className="text-foreground">
+                          {auth?.apiKeyConfigured ? "configured" : "not set"}
+                        </span>
+                      </p>
+                    </div>
+                  </DisclosurePanel>
                 ) : (
                   <p className="text-body-sm text-muted-foreground">
                     Install:{" "}
@@ -824,32 +831,38 @@ export function SettingsPrivacySection({
           </div>
 
           {telemetryAvailable ? (
-            <div className="grid grid-cols-1 gap-2 text-body-sm text-muted-foreground sm:grid-cols-2">
-              <p>
-                Build:{" "}
-                <span className="text-foreground">
-                  {telemetryBuildLabel || "unknown"}
-                </span>
-              </p>
-              <p>
-                Provider:{" "}
-                <span className="text-foreground">
-                  {telemetryProviderLabel}
-                </span>
-              </p>
-              <p>
-                Config:{" "}
-                <span className="text-foreground">
-                  {telemetryConfigDetected ? "present" : "missing"}
-                </span>
-              </p>
-              <p>
-                Local test flag:{" "}
-                <span className="text-foreground">
-                  {telemetryLocalTest ? "on" : "off"}
-                </span>
-              </p>
-            </div>
+            <DisclosurePanel
+              summary="Developer"
+              surface="flat"
+              defaultOpen={false}
+            >
+              <div className="grid grid-cols-1 gap-2 text-body-sm text-muted-foreground sm:grid-cols-2">
+                <p>
+                  Build:{" "}
+                  <span className="text-foreground">
+                    {telemetryBuildLabel || "unknown"}
+                  </span>
+                </p>
+                <p>
+                  Provider:{" "}
+                  <span className="text-foreground">
+                    {telemetryProviderLabel}
+                  </span>
+                </p>
+                <p>
+                  Config:{" "}
+                  <span className="text-foreground">
+                    {telemetryConfigDetected ? "present" : "missing"}
+                  </span>
+                </p>
+                <p>
+                  Local test flag:{" "}
+                  <span className="text-foreground">
+                    {telemetryLocalTest ? "on" : "off"}
+                  </span>
+                </p>
+              </div>
+            </DisclosurePanel>
           ) : null}
 
           <div className="flex items-center justify-between gap-3 ui-section-divider pt-4">

@@ -299,13 +299,13 @@ export function SettingsPage() {
     if (telemetrySettings.enabledInBuild)
       return "Telemetry pipeline is compiled into this build."
     if (!telemetrySettings.configDetected) {
-      return "Missing C8C_POSTHOG_HOST / C8C_POSTHOG_KEY at app start."
+      return "Telemetry configuration error \u2014 check app settings or reinstall."
     }
     if (
       telemetrySettings.buildFlavor !== "release" &&
       !telemetrySettings.telemetryLocalTest
     ) {
-      return "For local OSS testing set C8C_TELEMETRY_LOCAL_TEST=1 before starting dev."
+      return "Telemetry is not active in development builds by default."
     }
     return "Telemetry is disabled by current build flags."
   }, [telemetrySettings])

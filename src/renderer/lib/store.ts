@@ -357,10 +357,7 @@ export const viewModeAtom = atom(
   },
 )
 export type FlowSurfaceMode = "outline" | "edit"
-export const flowSurfaceModeAtom = atomWithStorage<FlowSurfaceMode>(
-  "c8c:flow-surface-mode",
-  "edit",
-)
+export const flowSurfaceModeAtom = atom<FlowSurfaceMode>("outline")
 export const workflowReviewModeAtom = atom(false)
 export const workflowRunBlockReasonAtom = atom<string | null>(null)
 export type WorkflowOpenStatus = "idle" | "loading" | "error"
@@ -375,12 +372,11 @@ export const workflowOpenStateAtom = atom<WorkflowOpenState>({
   message: null,
 })
 
-// First launch / onboarding
+// First launch / onboarding — default false, never auto-shows
 const IS_TEST_MODE = typeof __TEST_MODE__ !== "undefined" && __TEST_MODE__
-const DEFAULT_FIRST_LAUNCH = IS_TEST_MODE ? false : true
 export const firstLaunchAtom = IS_TEST_MODE
-  ? atom(DEFAULT_FIRST_LAUNCH)
-  : atomWithStorage("c8c:firstLaunch", DEFAULT_FIRST_LAUNCH)
+  ? atom(false)
+  : atomWithStorage("c8c:firstLaunch", false)
 export const hasCompletedFirstFlowAtom = atomWithStorage(
   "c8c:has-completed-first-flow",
   false,

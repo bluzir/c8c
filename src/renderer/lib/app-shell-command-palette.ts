@@ -385,9 +385,9 @@ export function buildDesktopCommandEntries(
     entries.push(
       desktopCommandEntry(
         "view.edit_flow",
-        "Edit flow",
-        ["edit", "flow", "outline"],
-        "Open the editable flow outline",
+        "Edit flow graph",
+        ["edit", "flow", "graph", "advanced"],
+        "Open the advanced flow graph editor",
       ),
     )
   }

@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest"
 import {
   buildAppShellActionEntries,
   buildAppShellCommandSections,
+  buildDesktopCommandEntries,
   buildAppShellProjectEntries,
   buildAppShellWorkflowEntries,
   buildAppShellStartEntry,
 } from "./app-shell-command-palette"
+import { createDefaultDesktopMenuState } from "@shared/desktop-commands"
 import { createEmptyWorkflowExecutionState } from "@/lib/workflow-execution"
 
 describe("app-shell-command-palette", () => {
@@ -229,5 +231,18 @@ describe("app-shell-command-palette", () => {
       kind: "project",
       label: "content-os",
     })
+  })
+
+  it("labels advanced graph editing as edit flow graph", () => {
+    const state = createDefaultDesktopMenuState()
+    state.view.editFlow.enabled = true
+
+    expect(buildDesktopCommandEntries(state)).toContainEqual(
+      expect.objectContaining({
+        commandId: "view.edit_flow",
+        label: "Edit flow graph",
+        subtitle: "Open the advanced flow graph editor",
+      }),
+    )
   })
 })

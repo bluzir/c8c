@@ -118,22 +118,24 @@ export function ExecutionApprovalSummary({
         </div>
       ) : null}
 
-      <div className="grid gap-3 ui-section-divider sm:grid-cols-2">
-        <div className="space-y-1">
-          <div className="ui-meta-label text-status-success">
-            {approveLabel}
-          </div>
-          <div className="text-body-sm font-medium text-foreground">
-            {approveConsequence}
-          </div>
+      <div className="space-y-1 ui-section-divider">
+        <div className="ui-meta-label text-status-success">{approveLabel}</div>
+        <div className="text-body-sm font-medium text-foreground">
+          {approveConsequence}
         </div>
-        <div className="space-y-1">
+      </div>
+
+      <details className="group text-body-sm">
+        <summary className="cursor-pointer select-none ui-meta-label text-muted-foreground hover:text-foreground ui-transition-colors ui-motion-fast">
+          What happens on reject?
+        </summary>
+        <div className="mt-1 space-y-1">
           <div className="ui-meta-label text-status-danger">{rejectLabel}</div>
           <div className="text-body-sm font-medium text-foreground">
             {rejectConsequence}
           </div>
         </div>
-      </div>
+      </details>
     </section>
   )
 }

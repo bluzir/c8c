@@ -1,18 +1,16 @@
-import { ChevronDown, Sparkles } from "lucide-react"
+import { ChevronDown, Ellipsis, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import type { CreateEntryHelpModeHint, ResultModeId } from "@shared/types"
 import { RESULT_MODES, type WorkflowResultMode } from "@/lib/result-modes"
 import {
@@ -54,6 +52,7 @@ export function WorkflowCreateComposerFooter({
   optionalDetailCount: number
   detailBudget: number
   onDetailBudgetChange: (value: number) => void
+  /** @deprecated Shortcut hint is now shown via tooltip on the submit button. Kept for API compat. */
   shortcutHint: string
 }) {
   const selectedHelpModeLabel =
@@ -61,69 +60,41 @@ export function WorkflowCreateComposerFooter({
       (option) => option.value === developmentHelpModeHint,
     )?.label || "Auto"
   const selectedDetailBudgetPreset = resolveDetailBudgetPreset(detailBudget)
+  const detailsBadge =
+    optionalDetailCount > 0 ? ` (${optionalDetailCount})` : ""
 
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex items-center justify-between">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {showSupportControls ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                className="gap-1.5 text-muted-foreground"
-              >
-                <span aria-hidden>{selectedResultMode.emoji}</span>
-                {selectedResultMode.label}
-                <ChevronDown size={13} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {RESULT_MODES.map((mode) => (
-                <DropdownMenuItem
-                  key={mode.id}
-                  onSelect={() => onSelectMode(mode.id)}
-                >
-                  <span className="mr-2" aria-hidden>
-                    {mode.emoji}
-                  </span>
-                  {mode.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        {showSupportControls ? (
           <>
-            <div className="flex items-center text-muted-foreground">
-              <Select
-                value={selectedDetailBudgetPreset.id}
-                onValueChange={(value) => {
-                  const preset = getDetailBudgetPresetById(value)
-                  if (preset) onDetailBudgetChange(preset.value)
-                }}
-              >
-                <SelectTrigger
-                  className="h-7 gap-1 border-0 bg-transparent px-2 text-body-sm text-muted-foreground hover:text-foreground"
-                  aria-label="Exploration depth"
-                  title="How deeply to explore your project before choosing a starting point."
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className="gap-1.5 text-muted-foreground"
                 >
-                  <span className="text-muted-foreground">Depth</span>{" "}
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DETAIL_BUDGET_PRESETS.map((preset) => (
-                    <SelectItem key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  <span aria-hidden>{selectedResultMode.emoji}</span>
+                  {selectedResultMode.label}
+                  <ChevronDown size={13} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {RESULT_MODES.map((mode) => (
+                  <DropdownMenuItem
+                    key={mode.id}
+                    onSelect={() => onSelectMode(mode.id)}
+                  >
+                    <span className="mr-2" aria-hidden>
+                      {mode.emoji}
+                    </span>
+                    {mode.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {selectedResultMode.id === "development" ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -137,7 +108,7 @@ export function WorkflowCreateComposerFooter({
                     <ChevronDown size={13} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="start">
                   {DEVELOPMENT_HELP_MODE_OPTIONS.map((option) => (
                     <DropdownMenuItem
                       key={option.label}
@@ -149,24 +120,49 @@ export function WorkflowCreateComposerFooter({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
-            <Button
-              type="button"
-              variant={promptHelperOpen ? "secondary" : "ghost"}
-              size="xs"
-              aria-pressed={promptHelperOpen}
-              className="text-muted-foreground"
-              onClick={onTogglePromptHelper}
-            >
-              <Sparkles size={13} />
-              {promptHelperOpen ? "Hide details" : "Details"}
-              {optionalDetailCount > 0 ? ` (${optionalDetailCount})` : ""}
-            </Button>
           </>
         ) : null}
       </div>
-      <p className="ui-meta-text text-muted-foreground lg:ml-auto">
-        {shortcutHint}
-      </p>
+
+      {showSupportControls ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground"
+              aria-label="More options"
+            >
+              <Ellipsis size={15} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuCheckboxItem
+              checked={promptHelperOpen}
+              onCheckedChange={onTogglePromptHelper}
+            >
+              <Sparkles size={13} className="mr-1.5" />
+              Details{detailsBadge}
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Exploration depth</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={selectedDetailBudgetPreset.id}
+              onValueChange={(value) => {
+                const preset = getDetailBudgetPresetById(value)
+                if (preset) onDetailBudgetChange(preset.value)
+              }}
+            >
+              {DETAIL_BUDGET_PRESETS.map((preset) => (
+                <DropdownMenuRadioItem key={preset.id} value={preset.id}>
+                  {preset.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
     </div>
   )
 }

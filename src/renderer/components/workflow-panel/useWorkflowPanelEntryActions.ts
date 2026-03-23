@@ -83,7 +83,8 @@ export function useWorkflowPanelEntryActions({
       onAddSkill: (skill) => {
         handleAddSkillToFlow(skill)
         toast.success(`Attached ${skill.name}`, {
-          description: "Added to this flow. Review the new skill in Edit flow.",
+          description:
+            "Added to this flow. Review the new skill in Edit flow graph.",
         })
       },
     })

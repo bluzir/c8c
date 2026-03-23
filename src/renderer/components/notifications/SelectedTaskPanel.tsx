@@ -317,22 +317,26 @@ export function SelectedTaskPanel({
               </div>
             )}
 
-            <div className="grid gap-3 border-t border-hairline pt-2 sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="ui-meta-label text-muted-foreground">
-                  {primaryOutcomeLabel}
-                </p>
-                <p className="text-body-sm text-foreground">
-                  {primaryOutcomeText}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="ui-meta-label text-muted-foreground">On reject</p>
+            <div className="space-y-1 border-t border-hairline pt-2">
+              <p className="ui-meta-label text-muted-foreground">
+                {primaryOutcomeLabel}
+              </p>
+              <p className="text-body-sm text-foreground">
+                {primaryOutcomeText}
+              </p>
+            </div>
+
+            <details className="group text-body-sm">
+              <summary className="cursor-pointer select-none ui-meta-label text-muted-foreground hover:text-foreground ui-transition-colors ui-motion-fast">
+                What happens on reject?
+              </summary>
+              <div className="mt-1 space-y-1">
+                <p className="ui-meta-label text-status-danger">On reject</p>
                 <p className="text-body-sm text-foreground">
                   {rejectOutcomeText}
                 </p>
               </div>
-            </div>
+            </details>
           </div>
 
           <div className="space-y-2.5">

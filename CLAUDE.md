@@ -8,9 +8,9 @@ c8c (cybernetic) is a flow composer with hidden orchestration underneath. Simple
 
 North star: the user describes point B, c8c picks the best first step, then reveals state instead of structure as the flow runs.
 
-## Product Vocabulary (R2-CANON)
+## Product Vocabulary
 
-Canonical product decisions live in `docs/conventions/R2-CANON.md`. When writing or modifying user-facing strings, use these terms:
+Canonical product decisions live in `docs/conventions/CANON.md`. When writing or modifying user-facing strings, use these terms:
 
 | User sees                        | Code uses                    | Never in UI                   |
 | -------------------------------- | ---------------------------- | ----------------------------- |
@@ -31,7 +31,7 @@ Any logic that interprets user natural language (routing, intent classification,
 
 The only non-agent logic allowed is reading structural project facts (empty dir vs has code, project kind, git state). These are **inputs to the agent**, not decision branches.
 
-See `AGENTS.md` and `docs/conventions/R2-CANON.md` Section 2.4 for full spec.
+See `AGENTS.md` and `docs/conventions/CANON.md` Section 2.4 for full spec.
 
 ## Visual Hierarchy Rules (Ship-Blockers)
 

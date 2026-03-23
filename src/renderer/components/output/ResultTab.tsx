@@ -358,7 +358,7 @@ export function ResultTab({
           className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
           onClick={onEditFlow}
         >
-          Edit flow
+          Edit flow graph
         </Button>,
       )
     }
@@ -454,7 +454,21 @@ export function ResultTab({
       </section>
     ) : null
   const executionLoopPanel = executionLoopSummary ? (
-    <section className="space-y-3 ui-section-divider">
+    <DisclosurePanel
+      summary={
+        <span className="flex items-center gap-2">
+          <span>{executionLoopSummary.loopLabel}</span>
+          <span className="text-body-sm font-normal text-foreground">
+            {executionLoopSummary.title}
+          </span>
+        </span>
+      }
+      surface="plain"
+      className="ui-section-divider"
+      contentClassName="space-y-3"
+      defaultOpen={false}
+      unmountWhenClosed
+    >
       <ExecutionLoopCard
         summary={executionLoopSummary}
         compact
@@ -468,7 +482,7 @@ export function ResultTab({
         collapsible
         defaultOpen={false}
       />
-    </section>
+    </DisclosurePanel>
   ) : null
   const artifactLinkStrip =
     showArtifactContinuation && visibleSavedArtifacts.length > 0 ? (

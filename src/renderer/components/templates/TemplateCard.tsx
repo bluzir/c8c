@@ -54,42 +54,6 @@ export function TemplateCard({
         <p className="text-body-sm text-muted-foreground mt-1 line-clamp-2">
           {entry.jobSummary || deriveTemplateCardCopy(template)}
         </p>
-        {entry.entryKind === "guided" ? (
-          <dl className="mt-3 space-y-2 text-sidebar-meta">
-            <div>
-              <dt className="ui-meta-label text-muted-foreground">
-                Use this when
-              </dt>
-              <dd className="mt-0.5 text-body-sm text-foreground">
-                {entry.useWhen}
-              </dd>
-            </div>
-            <div>
-              <dt className="ui-meta-label text-muted-foreground">
-                You provide
-              </dt>
-              <dd className="mt-0.5 text-body-sm text-foreground">
-                {entry.youProvide}
-              </dd>
-            </div>
-            <div>
-              <dt className="ui-meta-label text-muted-foreground">
-                You get first
-              </dt>
-              <dd className="mt-0.5 text-body-sm text-foreground">
-                {entry.youGetFirst}
-              </dd>
-            </div>
-            {entry.stagePathLabel ? (
-              <div>
-                <dt className="ui-meta-label text-muted-foreground">Path</dt>
-                <dd className="mt-0.5 text-body-sm text-foreground">
-                  {entry.stagePathLabel}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-        ) : null}
       </div>
     </Button>
   )

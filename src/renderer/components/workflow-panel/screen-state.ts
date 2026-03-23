@@ -12,6 +12,14 @@ export type WorkflowPrimaryScreenState =
   | "auto_chain_gate"
   | "review"
 
+export type WorkflowListPrimaryQuestion =
+  | "What am I about to run?"
+  | "What is ready to continue?"
+  | "What input do I need to continue?"
+  | "What is blocking progress?"
+  | "What is happening right now?"
+  | "What result do I have?"
+
 export function resolveWorkflowPrimaryScreenState({
   runStatus,
   runOutcome,
@@ -76,11 +84,50 @@ export function resolveWorkflowPrimaryScreenState({
 }
 
 export function shouldShowProcessSpine(state: WorkflowPrimaryScreenState) {
-  return (
-    state !== "fresh_start" &&
-    state !== "cross_flow_handoff" &&
-    state !== "one_off_done"
-  )
+  // State alone is not enough to decide whether the spine should render.
+  // Empty fresh-start screens have no process data, so the render path stays
+  // hidden upstream when `processSpineStages` is null. Once a routed path
+  // exists, the spine should stay visible across runtime states.
+  void state
+  return true
+}
+
+export function resolveWorkflowListPrimaryQuestion({
+  primaryScreenState,
+  showResumeHeader,
+  readyToRun,
+}: {
+  primaryScreenState: WorkflowPrimaryScreenState
+  showResumeHeader: boolean
+  readyToRun: boolean
+}): WorkflowListPrimaryQuestion {
+  if (showResumeHeader) {
+    return readyToRun
+      ? "What is ready to continue?"
+      : "What input do I need to continue?"
+  }
+
+  switch (primaryScreenState) {
+    case "blocked_decision":
+      return "What is blocking progress?"
+    case "running":
+    case "paused_resume":
+      return "What is happening right now?"
+    case "one_off_done":
+    case "auto_chain_gate":
+    case "review":
+      return "What result do I have?"
+    case "fresh_start":
+    case "cross_flow_handoff":
+    default:
+      return "What am I about to run?"
+  }
+}
+
+export function shouldShowResumeInputPanel(
+  question: WorkflowListPrimaryQuestion,
+) {
+  return question === "What input do I need to continue?"
 }
 
 export function shouldShowLiveOutputPanel(state: WorkflowPrimaryScreenState) {

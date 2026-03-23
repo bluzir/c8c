@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import type { ViewMode, WorkflowOpenState } from "@/lib/store"
+import type { FlowSurfaceMode, ViewMode, WorkflowOpenState } from "@/lib/store"
 import { formatElapsedTime } from "@/lib/run-progress"
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
@@ -22,6 +22,7 @@ export function useWorkflowPanelLifecycle({
   setWorkflowOpenState,
   setWorkflowEntryState,
   setShowEntryEditor,
+  setFlowSurfaceMode,
   setPrepareNewRun,
   setShowSavedRunReview,
   setOutputTabRequest,
@@ -37,6 +38,7 @@ export function useWorkflowPanelLifecycle({
   setWorkflowOpenState: (value: WorkflowOpenState) => void
   setWorkflowEntryState: (value: WorkflowEntryState | null) => void
   setShowEntryEditor: (value: boolean) => void
+  setFlowSurfaceMode: (value: FlowSurfaceMode) => void
   setPrepareNewRun: (value: boolean) => void
   setShowSavedRunReview: (value: boolean) => void
   setOutputTabRequest: (value: OutputTabRequest | null) => void
@@ -162,6 +164,7 @@ export function useWorkflowPanelLifecycle({
 
   useEffect(() => {
     setShowEntryEditor(false)
+    setFlowSurfaceMode("outline")
     setPrepareNewRun(false)
     setShowSavedRunReview(false)
     setOutputTabRequest(null)
@@ -171,11 +174,18 @@ export function useWorkflowPanelLifecycle({
   }, [
     idleReviewAutoScrollKeyRef,
     selectedWorkflowPath,
+    setFlowSurfaceMode,
     setOutputTabRequest,
     setPrepareNewRun,
     setShowEntryEditor,
     setShowSavedRunReview,
   ])
+
+  useEffect(() => {
+    if (runStatus === "idle") return
+    setShowEntryEditor(false)
+    setFlowSurfaceMode("outline")
+  }, [runStatus, setFlowSurfaceMode, setShowEntryEditor])
 
   useEffect(() => {
     if (runStatus !== "idle" && workflowEntryState) {

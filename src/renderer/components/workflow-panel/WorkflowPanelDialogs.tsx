@@ -2,6 +2,7 @@ import type { WorkflowTemplate } from "@shared/types"
 import { SkillPicker } from "@/components/SkillPicker"
 import { UseInNewFlowDialog } from "@/components/output/UseInNewFlowDialog"
 import { CancelFlowConfirmDialog } from "@/components/workflow-panel/CancelFlowConfirmDialog"
+import { WorkflowGraphDialog } from "@/components/workflow-panel/WorkflowGraphDialog"
 import { WorkflowPanelOverlays } from "@/components/workflow-panel/WorkflowPanelOverlays"
 import type { FlowRulePreview } from "@/lib/flow-rules"
 
@@ -38,6 +39,8 @@ interface WorkflowPanelDialogsProps {
   loading: boolean
   pending: boolean
   onConfirmUseInNewFlow: () => void
+  flowGraphOpen: boolean
+  onFlowGraphOpenChange: (open: boolean) => void
 }
 
 export function WorkflowPanelDialogs({
@@ -73,6 +76,8 @@ export function WorkflowPanelDialogs({
   loading,
   pending,
   onConfirmUseInNewFlow,
+  flowGraphOpen,
+  onFlowGraphOpenChange,
 }: WorkflowPanelDialogsProps) {
   return (
     <>
@@ -119,6 +124,11 @@ export function WorkflowPanelDialogs({
         loading={loading}
         pending={pending}
         onConfirm={onConfirmUseInNewFlow}
+      />
+
+      <WorkflowGraphDialog
+        open={flowGraphOpen}
+        onOpenChange={onFlowGraphOpenChange}
       />
     </>
   )

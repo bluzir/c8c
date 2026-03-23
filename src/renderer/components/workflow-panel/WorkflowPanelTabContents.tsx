@@ -4,7 +4,6 @@ import { SectionErrorBoundary } from "@/components/ui/error-boundary"
 import { ExecutionSurfaceNoticeBanner } from "@/components/ui/execution-surface-notice"
 import { OutputPanel } from "@/components/OutputPanel"
 import { WorkflowSettingsPanel } from "@/components/WorkflowSettingsPanel"
-import { ChainBuilder } from "@/components/ChainBuilder"
 import {
   StageInputSection,
   WorkflowDraftSkeleton,
@@ -15,11 +14,7 @@ import { cn } from "@/lib/cn"
 import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume"
 import type { FlowRulePreview } from "@/lib/flow-rules"
 import type { WorkflowResumeEntrySummary } from "@/lib/workflow-resume-entry"
-import type {
-  ArtifactContract,
-  ArtifactRecord,
-  PersistedRunSnapshot,
-} from "@shared/types"
+import type { ArtifactContract, ArtifactRecord } from "@shared/types"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
 import type { ExecutionSurfaceNotice } from "@/lib/workflow-execution"
 
@@ -87,15 +82,6 @@ interface WorkflowListTabProps {
     showNeeds?: boolean
   } | null
   showIdleInputPanel: boolean
-  showFlowEditor: boolean
-  chainBuilderMode: "edit" | "outline" | "monitor"
-  onFocusStageDetails:
-    | ((payload: {
-        nodeId: string
-        preferredTab: "nodes" | "log" | "result"
-      }) => void)
-    | undefined
-  reviewSnapshot: PersistedRunSnapshot | null
   showReviewOutputMode: boolean
   showReviewOutputPanel?: boolean
   showLiveOutputPanel?: boolean
@@ -131,10 +117,6 @@ export function WorkflowListTab({
   showIdleStageContract,
   idleStageContract,
   showIdleInputPanel,
-  showFlowEditor,
-  chainBuilderMode,
-  onFocusStageDetails,
-  reviewSnapshot,
   showReviewOutputMode,
   showReviewOutputPanel = true,
   showLiveOutputPanel = false,
@@ -232,16 +214,6 @@ export function WorkflowListTab({
                 requiredContracts={requiredContracts}
                 onOpenArtifact={onOpenArtifact}
               />
-            )}
-            {showFlowEditor && !terminalResultOwnsLayout && (
-              <SectionErrorBoundary sectionName="flow editor">
-                <ChainBuilder
-                  compact
-                  mode={chainBuilderMode}
-                  onStageSelect={onFocusStageDetails}
-                  reviewSnapshot={reviewSnapshot}
-                />
-              </SectionErrorBoundary>
             )}
             {showReviewOutputMode && showReviewOutputPanel && (
               <div

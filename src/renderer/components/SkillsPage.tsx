@@ -3,6 +3,7 @@ import { useAtom } from "jotai"
 import { Button } from "@/components/ui/button"
 import {
   currentWorkflowAtom,
+  flowSurfaceModeAtom,
   librariesAtom,
   mainViewAtom,
   selectedProjectAtom,
@@ -47,6 +48,7 @@ export function SkillsPage() {
   const [currentWorkflow, setCurrentWorkflow] = useAtom(currentWorkflowAtom)
   const [, setSelectedNodeId] = useAtom(selectedNodeIdAtom)
   const [, setMainView] = useAtom(mainViewAtom)
+  const [, setFlowSurfaceMode] = useAtom(flowSurfaceModeAtom)
 
   const [marketplaces, setMarketplaces] = useState<MarketplaceSource[]>([])
   const [plugins, setPlugins] = useState<InstalledPlugin[]>([])
@@ -411,10 +413,13 @@ export function SkillsPage() {
         setSelectedNodeId(nextSelectedId)
       }
       toast.success(`Skill attached: ${skill.name}`, {
-        description: "The new step is ready in Edit flow.",
+        description: "The new step is ready in Edit flow graph.",
         action: {
-          label: "Edit flow",
-          onClick: () => setMainView("thread"),
+          label: "Edit flow graph",
+          onClick: () => {
+            setMainView("thread")
+            setFlowSurfaceMode("edit")
+          },
         },
       })
       setStatusMessage(`${skill.name} attached to flow`)
@@ -423,6 +428,7 @@ export function SkillsPage() {
       selectedProject,
       selectedWorkflowPath,
       setCurrentWorkflow,
+      setFlowSurfaceMode,
       setMainView,
       setSelectedNodeId,
     ],

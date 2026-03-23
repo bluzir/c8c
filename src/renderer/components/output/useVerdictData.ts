@@ -448,7 +448,6 @@ export function deriveVerdictData({
               : warningCount > 0
                 ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
                 : null,
-          executionLoopSummary?.deltaLabel || null,
           durationLabel,
           costLabel,
         ]
@@ -468,9 +467,6 @@ export function deriveVerdictData({
               : null,
           durationLabel,
           costLabel,
-          executionLoopSummary?.attempt && executionLoopSummary.attempt > 1
-            ? `Attempt ${executionLoopSummary.attempt}/${executionLoopSummary.maxAttempts}`
-            : null,
         ]
           .filter((value): value is string => Boolean(value))
           .slice(0, 5)

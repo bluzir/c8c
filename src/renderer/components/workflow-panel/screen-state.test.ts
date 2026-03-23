@@ -98,11 +98,15 @@ describe("resolveWorkflowPrimaryScreenState", () => {
     ).toBe("fresh_start")
   })
 
-  it("hides live output and spine on fresh start style states", () => {
+  it("keeps live output hidden on fresh start style states", () => {
     expect(shouldShowLiveOutputPanel("fresh_start")).toBe(false)
     expect(shouldShowLiveOutputPanel("cross_flow_handoff")).toBe(false)
-    expect(shouldShowProcessSpine("fresh_start")).toBe(false)
-    expect(shouldShowProcessSpine("cross_flow_handoff")).toBe(false)
+  })
+
+  it("keeps the process spine available across routed and completed states", () => {
+    expect(shouldShowProcessSpine("fresh_start")).toBe(true)
+    expect(shouldShowProcessSpine("cross_flow_handoff")).toBe(true)
+    expect(shouldShowProcessSpine("one_off_done")).toBe(true)
   })
 
   it("keeps chain chrome visible for auto-chain gates", () => {

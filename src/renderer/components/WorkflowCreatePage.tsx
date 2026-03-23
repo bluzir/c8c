@@ -1212,7 +1212,7 @@ export function WorkflowCreatePage() {
                     aria-label={
                       selectedResultMode.startActionLabel || "Start flow"
                     }
-                    title={`${selectedResultMode.startActionLabel || "Start flow"} (${primaryActionShortcutLabel})`}
+                    title={`${selectedResultMode.startActionLabel || "Start flow"} (${primaryActionShortcutLabel}) · Enter for newline`}
                   >
                     {submitting ? (
                       <Loader2 size={16} className="animate-spin" />

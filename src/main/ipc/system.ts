@@ -194,12 +194,6 @@ function buildDesktopMenuTemplate(
           "view.defaults",
         ),
         checkboxMenuItem(
-          "Edit Flow",
-          "CommandOrControl+E",
-          state.view.editFlow,
-          "view.edit_flow",
-        ),
-        checkboxMenuItem(
           "Toggle Agent Panel",
           "CommandOrControl+L",
           state.view.toggleAgentPanel,
@@ -210,6 +204,12 @@ function buildDesktopMenuTemplate(
     {
       label: "Flow",
       submenu: [
+        checkboxMenuItem(
+          "Edit Flow Graph",
+          "CommandOrControl+E",
+          state.view.editFlow,
+          "view.edit_flow",
+        ),
         fileMenuItem(
           "Run",
           "CommandOrControl+Enter",
