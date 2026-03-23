@@ -1,6 +1,8 @@
 id: application-tailoring-pipeline
 stage: outreach
 stage_family: execute
+recommended_next:
+  - copy-quality-pipeline
 emoji: "\U0001F3AF"
 headline: Tailor any application for accelerators, grants, or partnerships
 how: Extract requirements and evaluation criteria from the opportunity, tailor the application to address each with concrete evidence, evaluate for completeness and differentiation.
@@ -13,6 +15,13 @@ steps:
   - Tailor application to address each criterion with evidence
   - Evaluate completeness, authenticity, and differentiation
   - Output tailored application
+contract_out:
+  - kind: draft
+    title: Tailored Application
+    description: Tailored application copy aligned to the target opportunity criteria and evidence.
+  - kind: qa_report
+    title: Application Review
+    description: Coverage gaps, weak evidence, and differentiation risks that still need attention.
 version: 1
 name: Application Tailoring Pipeline
 description: Tailor applications for accelerators (YC, Techstars), grants, partnership proposals, and freelance/consulting opportunities by extracting requirements, optimizing for each criterion, and evaluating for completeness and differentiation.

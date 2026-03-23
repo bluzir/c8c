@@ -1,6 +1,7 @@
 id: delivery-verify-phase
 stage: operations
 stage_family: validate
+recommended_next: []
 emoji: "\U0001F9EA"
 headline: Verify a finished change before sign-off
 how: Run automated checks first, then compare the implemented outcome against the plan in a verification report, evaluate report quality, and require explicit human approval before completion.

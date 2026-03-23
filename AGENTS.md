@@ -18,6 +18,7 @@
 - **No cards inside cards**: bordered containers never nest other bordered containers.
 - **Contextual depth only where real content exists**: if an inspect/result state would otherwise become a dead end, allow local depth navigation inside the owner surface. This may be one low-emphasis advanced link or a compact content-aware tab strip (`Result`, `Activity`, `Step log`, `History`). Never render empty tabs, and never use page-chrome tabs for idle/create states.
 - **Technical detail stays secondary**: thresholds, rule inventories, per-check breakdowns, rubric scores, and other execution diagnostics should default to disclosure or local depth. Keep the primary surface focused on the current decision, outcome, and next action.
+- **Design heuristics stay internal**: JTBD framing, "one question per state", and similar composition tools should shape layout decisions, not appear as explanatory runtime copy. Daily-use surfaces should read as `status -> object -> action`.
 - **One page header**: a workflow or project gets one strong top-level header. Child surfaces below it use flat context strips, not repeated hero headers.
 - Thresholds: ≤3 bordered containers, ≤5 clickable elements, 0 duplicate signals, 0 nested cards, 0 rendered-but-empty sections per state.
 - Full spec: `docs/conventions/DESIGN-PHILOSOPHY.md` §8.

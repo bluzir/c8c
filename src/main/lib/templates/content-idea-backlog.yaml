@@ -1,6 +1,8 @@
 id: content-idea-backlog
 stage: content
 stage_family: design
+recommended_next:
+  - content-editorial-calendar
 emoji: "\U0001F4A1"
 headline: Turn trends into a backlog of post ideas
 how: Convert evidence and themes into concrete content ideas with hooks, angles, and why each idea is worth publishing.

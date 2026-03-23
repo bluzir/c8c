@@ -41,6 +41,7 @@ export interface WorkflowTemplateRunContext {
   workflowPath: string | null
   workflowName: string
   source: Extract<WorkflowEntrySource, "template" | "template_customize">
+  recommendedNext?: string[]
   useWhen?: string
   inputText?: string
   outputText?: string
@@ -362,6 +363,18 @@ export function deriveTemplateContextJourneyStageLabel(
   const stage = context.pack?.journeyStage
   if (!stage) return null
   return JOURNEY_STAGE_LABELS[stage] ?? titleCaseFromIdentifier(stage)
+}
+
+export function getTemplateRecommendedNext(
+  template?: Pick<WorkflowTemplate, "recommendedNext" | "pack"> | null,
+) {
+  return template?.recommendedNext ?? template?.pack?.recommendedNext ?? []
+}
+
+export function getTemplateContextRecommendedNext(
+  context?: Pick<WorkflowTemplateRunContext, "recommendedNext" | "pack"> | null,
+) {
+  return context?.recommendedNext ?? context?.pack?.recommendedNext ?? []
 }
 
 export function deriveTemplateDisplayLabel(
@@ -705,6 +718,7 @@ export function buildTemplateRunContext({
     workflowPath,
     workflowName: template.workflow.name || template.name,
     source,
+    recommendedNext: getTemplateRecommendedNext(template),
     useWhen: deriveTemplateUseWhen(template),
     inputText: ensureSentence(
       template.input,

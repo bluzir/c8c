@@ -1,6 +1,7 @@
 id: cold-outreach-pipeline
 stage: outreach
 stage_family: deliver
+recommended_next: []
 emoji: "\U0001F4E7"
 headline: Generate personalized cold emails that get replies
 how: Builds company context, generates pain hypotheses, crafts reusable prompts, generates personalized emails, and simulates buyer response
@@ -14,6 +15,13 @@ steps:
   - Generate personalized emails and follow-up sequences
   - Simulate buyer response and evaluate email quality
   - Founder approves final outreach before sending
+contract_out:
+  - kind: distribution_bundle
+    title: Cold Outreach Pack
+    description: Personalized email sequences and follow-ups ready for manual send review.
+  - kind: qa_report
+    title: Buyer Response Review
+    description: Response-simulation findings and weak spots to tighten before sending.
 execution_policy:
   notes:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."

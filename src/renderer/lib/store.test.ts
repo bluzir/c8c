@@ -10,8 +10,11 @@ import {
   skillPickerOpenAtom,
   skillPickerRequestAtom,
   type InboxNotification,
+  workflowEntryStateAtom,
   workflowDirtyAtom,
+  workflowRequestedResultsAtom,
   workflowSavedSnapshotAtom,
+  workflowTemplateContextsAtom,
 } from "./store"
 import { workflowSnapshot } from "./workflow-snapshot"
 
@@ -230,6 +233,51 @@ describe("workflowDirtyAtom", () => {
 
     store.set(currentWorkflowAtom, savedWorkflow)
     expect(store.get(workflowDirtyAtom)).toBe(false)
+  })
+})
+
+describe("workflow continuation storage atoms", () => {
+  it("stores bookmark state in serializable continuation atoms", () => {
+    const store = createStore()
+    store.set(workflowEntryStateAtom, {
+      workflowPath: "/tmp/plan.chain",
+      workflowName: "Plan",
+      source: "template",
+      title: "Plan the change",
+      summary: "Resume planning.",
+      contractLabel: "Requested result",
+      contractText: "Ship the feature.",
+      inputText: "Input",
+      outputText: "Output",
+      readinessText: "Ready",
+    })
+    store.set(workflowRequestedResultsAtom, {
+      "/tmp/plan.chain": "Ship the feature.",
+    })
+    store.set(workflowTemplateContextsAtom, {
+      "/tmp/plan.chain": {
+        templateId: "delivery-plan-phase",
+        templateName: "Plan",
+        workflowPath: "/tmp/plan.chain",
+        workflowName: "Plan",
+        source: "template",
+        recommendedNext: ["delivery-implement-phase"],
+      },
+    })
+
+    expect(store.get(workflowEntryStateAtom)).toMatchObject({
+      workflowPath: "/tmp/plan.chain",
+      workflowName: "Plan",
+    })
+    expect(store.get(workflowRequestedResultsAtom)).toMatchObject({
+      "/tmp/plan.chain": "Ship the feature.",
+    })
+    expect(store.get(workflowTemplateContextsAtom)).toMatchObject({
+      "/tmp/plan.chain": {
+        templateId: "delivery-plan-phase",
+        recommendedNext: ["delivery-implement-phase"],
+      },
+    })
   })
 })
 

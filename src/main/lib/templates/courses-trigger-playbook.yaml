@@ -1,6 +1,8 @@
 id: courses-trigger-playbook
 stage: content
 stage_family: execute
+recommended_next:
+  - courses-launch-assets
 emoji: "\U0001FA9D"
 headline: Turn folder materials into a grounded trigger playbook
 how: Extract the trigger logic from the source materials folder, then ground those triggers to a specific course input instead of copying the source blindly.

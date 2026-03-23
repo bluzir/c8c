@@ -357,6 +357,8 @@ export const templateDocumentSchema = workflowSchema
   .extend({
     id: z.string().min(1),
     stage: workflowTemplateStageSchema,
+    recommendedNext: z.array(z.string()).optional(),
+    recommended_next: z.array(z.string()).optional(),
     emoji: z.string().min(1),
     headline: z.string().min(1),
     how: z.string().min(1),

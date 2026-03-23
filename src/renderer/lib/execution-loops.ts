@@ -14,8 +14,11 @@ export type ExecutionLoopOutcome =
   | "human decision"
   | "retry cap reached"
 
+export type ExecutionLoopType = "review" | "verify"
+
 export interface ExecutionLoopSummary {
   evaluatorNodeId: string
+  loopType?: ExecutionLoopType
   loopLabel: string
   title: string
   attempt: number
@@ -58,11 +61,23 @@ function isEvaluatorNode(
   return node.type === "evaluator"
 }
 
-function inferLoopLabel(workflowName: string, nodeTitle: string) {
+function inferLoopType(
+  workflowName: string,
+  nodeTitle: string,
+): ExecutionLoopType | null {
   const text = `${workflowName} ${nodeTitle}`.toLowerCase()
-  if (/\b(verify|verification|preflight|validation|ship)\b/.test(text))
-    return "Verify loop"
-  if (/\b(review|audit|polish|critique|qa)\b/.test(text)) return "Review loop"
+  if (/\b(verify|verification|preflight|validation|ship)\b/.test(text)) {
+    return "verify"
+  }
+  if (/\b(review|audit|polish|critique|qa)\b/.test(text)) {
+    return "review"
+  }
+  return null
+}
+
+function inferLoopLabel(loopType: ExecutionLoopType | null) {
+  if (loopType === "verify") return "Verify loop"
+  if (loopType === "review") return "Review loop"
   return "Quality loop"
 }
 
@@ -194,6 +209,7 @@ export function deriveExecutionLoopSummary({
   const presentation = getRuntimeStagePresentation(selected.node, {
     fallbackId: selected.node.id,
   })
+  const loopType = inferLoopType(workflow.name || "", presentation.title)
   const outcome = deriveOutcome({
     latestAttempt,
     evaluatorState: selected.nodeState,
@@ -205,7 +221,8 @@ export function deriveExecutionLoopSummary({
 
   return {
     evaluatorNodeId: selected.node.id,
-    loopLabel: inferLoopLabel(workflow.name || "", presentation.title),
+    loopType: loopType || undefined,
+    loopLabel: inferLoopLabel(loopType),
     title: presentation.title,
     attempt: latestAttempt.attempt,
     maxAttempts: Math.max(config.maxRetries, latestAttempt.attempt),

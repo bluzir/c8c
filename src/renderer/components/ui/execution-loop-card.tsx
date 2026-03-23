@@ -4,17 +4,21 @@ import { cn } from "@/lib/cn"
 import type {
   ExecutionLoopOutcome,
   ExecutionLoopSummary,
+  ExecutionLoopType,
 } from "@/lib/execution-loops"
 import { CheckCircle2, RefreshCcw, ShieldAlert, TimerReset } from "lucide-react"
 
-function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
+function resolveLoopOutcomePresentation(
+  outcome: ExecutionLoopOutcome,
+  loopType?: ExecutionLoopType,
+) {
   switch (outcome) {
     case "auto-pass":
       return {
         Icon: CheckCircle2,
         badgeVariant: "success" as const,
         iconToneClass: "text-status-success surface-success-soft",
-        headline: "Check passed",
+        headline: loopType === "verify" ? "All checks passed" : "Check passed",
         nextAction: "Continue",
       }
     case "human decision":
@@ -22,25 +26,65 @@ function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
         Icon: ShieldAlert,
         badgeVariant: "warning" as const,
         iconToneClass: "text-status-warning surface-warning-soft",
-        headline: "Decision required",
-        nextAction: "Approve or reject",
+        headline:
+          loopType === "verify"
+            ? "Cannot pass automatically"
+            : "Needs human judgment",
+        nextAction:
+          loopType === "verify" ? "Decide manually" : "Approve or reject",
       }
     case "retry cap reached":
       return {
         Icon: TimerReset,
         badgeVariant: "warning" as const,
         iconToneClass: "text-status-warning surface-warning-soft",
-        headline: "Retry limit hit",
-        nextAction: "Decide manually",
+        headline: loopType === "verify" ? "Cannot pass yet" : "Retry limit hit",
+        nextAction: loopType === "verify" ? "Fix failures" : "Decide manually",
       }
     default:
       return {
         Icon: RefreshCcw,
         badgeVariant: "info" as const,
         iconToneClass: "text-status-info surface-info-soft",
-        headline: "Returning with fixes",
-        nextAction: "Auto return",
+        headline:
+          loopType === "verify"
+            ? "Returning to fix failures"
+            : "Returning for polish",
+        nextAction: loopType === "verify" ? "Fix failures" : "Review findings",
       }
+  }
+}
+
+function resolveLoopTypeBadge(loopType?: ExecutionLoopType) {
+  return loopType === "verify" ? "Verify" : "Check"
+}
+
+function buildPrimarySummary(summary: ExecutionLoopSummary) {
+  const issueCount = summary.failedCriteriaCount
+  const loopType = summary.loopType
+
+  switch (summary.outcome) {
+    case "auto-pass":
+      return loopType === "verify"
+        ? "All checks passed. This flow can continue."
+        : "This check passed. This flow can continue."
+    case "auto-return":
+      if (loopType === "verify") {
+        return issueCount > 0
+          ? `${issueCount} checks need fixes before this flow can continue.`
+          : "Verification found issues that need fixes before this flow can continue."
+      }
+      return issueCount > 0
+        ? `${issueCount} findings need attention before this flow can continue.`
+        : "This step needs another polish pass before this flow can continue."
+    case "human decision":
+      return loopType === "verify"
+        ? "Verification could not pass automatically. Decide the next move manually."
+        : "Human judgment is needed before this flow can continue."
+    default:
+      return loopType === "verify"
+        ? "The retry limit was reached. Decide whether to keep fixing or stop here."
+        : "The retry limit was reached. Decide the next move manually."
   }
 }
 
@@ -50,7 +94,7 @@ export function ExecutionLoopCard({
   detailSummary = "Loop details",
   compact = false,
   surface = "card",
-  showTechnicalBadges = true,
+  showTechnicalBadges = false,
 }: {
   summary: ExecutionLoopSummary | null
   className?: string
@@ -61,10 +105,14 @@ export function ExecutionLoopCard({
 }) {
   if (!summary) return null
 
-  const outcome = resolveLoopOutcomePresentation(summary.outcome)
+  const outcome = resolveLoopOutcomePresentation(
+    summary.outcome,
+    summary.loopType,
+  )
   const criteriaCount = summary.criteriaBreakdown?.length || 0
   const compactDetail = summary.fixInstructions || summary.reason
   const flatSurface = surface === "flat"
+  const primarySummary = buildPrimarySummary(summary)
 
   return (
     <div
@@ -103,6 +151,9 @@ export function ExecutionLoopCard({
           </div>
         </div>
         <div className="ui-badge-row">
+          <Badge variant="outline" size="compact">
+            {resolveLoopTypeBadge(summary.loopType)}
+          </Badge>
           <Badge variant={outcome.badgeVariant} size="compact">
             {summary.outcomeLabel}
           </Badge>
@@ -149,9 +200,21 @@ export function ExecutionLoopCard({
           )}
         </div>
       ) : (
-        <p className="mt-2 text-body-sm text-muted-foreground">
-          {compactDetail || summary.outcomeSentence}
-        </p>
+        <>
+          <p className="mt-2 text-body-sm text-muted-foreground">
+            {primarySummary}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <Badge variant={outcome.badgeVariant} size="compact">
+              {outcome.nextAction}
+            </Badge>
+          </div>
+          {compactDetail && compactDetail !== primarySummary && (
+            <p className="mt-2 line-clamp-2 ui-meta-text text-muted-foreground">
+              {compactDetail}
+            </p>
+          )}
+        </>
       )}
 
       {compact && compactDetail && showTechnicalBadges && (

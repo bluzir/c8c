@@ -59,6 +59,7 @@ describe("deriveExecutionLoopSummary", () => {
     })
 
     expect(summary).toMatchObject({
+      loopType: "review",
       loopLabel: "Review loop",
       outcome: "auto-pass",
       outcomeLabel: "Auto-pass",
@@ -95,6 +96,7 @@ describe("deriveExecutionLoopSummary", () => {
     })
 
     expect(summary).toMatchObject({
+      loopType: "review",
       outcome: "auto-return",
       outcomeLabel: "Auto-return",
       attempt: 1,
@@ -129,6 +131,7 @@ describe("deriveExecutionLoopSummary", () => {
     })
 
     expect(summary).toMatchObject({
+      loopType: "review",
       outcome: "human decision",
       outcomeLabel: "Human decision",
       attempt: 3,

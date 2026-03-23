@@ -1,6 +1,7 @@
 id: meeting-actions-plan
 stage: operations
 stage_family: design
+recommended_next: []
 emoji: "\U0001F4CB"
 headline: Turn meeting transcripts into action plans
 how: Analyzes meeting transcript, extracts action items, prioritizes and plans each, and compiles into a project document
@@ -13,6 +14,10 @@ steps:
   - Prioritize and plan each action item in parallel
   - Compile into a project planning document
   - Evaluate completeness, deduplication, and owner assignment quality
+contract_out:
+  - kind: phase_plan
+    title: Action Plan
+    description: Prioritized meeting follow-ups, owners, deadlines, and unresolved questions.
 version: 1
 name: Meeting → Actions → Plan
 description: Analyze meeting transcript, extract action items, prioritize and plan each, compile into a project document

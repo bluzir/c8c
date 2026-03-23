@@ -446,6 +446,9 @@ export type KnownArtifactKind =
   | "implementation_report"
   | "validation_contract"
   | "verification_report"
+  | "audit_report"
+  | "ux_audit_report"
+  | "visual_qa_report"
   | "audience_offer_brief"
   | "curriculum_map"
   | "lesson_system"
@@ -774,6 +777,7 @@ export interface CreateEntryRouteResult {
   reason: string
   projectInspection: ProjectInspectionSummary
   seed: CreateEntryRouteSeed
+  domainMode: ResultModeId
   confidence: number
   source: "agent"
   clarification?: CreateEntryRouteClarification | null
@@ -835,6 +839,7 @@ export interface WorkflowTemplate {
   description: string
   stage: WorkflowTemplateStage
   stageFamily?: StageFamily
+  recommendedNext?: string[]
   emoji: string
   headline: string
   how: string

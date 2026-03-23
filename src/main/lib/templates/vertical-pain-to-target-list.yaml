@@ -1,6 +1,8 @@
 id: vertical-pain-to-target-list
 stage: research
 stage_family: understand
+recommended_next:
+  - raw-list-to-verified-contacts
 emoji: "\U0001F52D"
 headline: Turn a vertical hunch into target accounts
 how: Uses external market research to validate pain, convert it into searchable hypotheses, build the first account universe, and tier who deserves attention
@@ -13,6 +15,10 @@ steps:
   - Distill the pain into search angles that list-building can actually run.
   - Build and enrich a first-pass account universe instead of prospecting blind.
   - Tier the list and explain which accounts deserve outreach first and why now.
+contract_out:
+  - kind: research_pack
+    title: Vertical Target Pack
+    description: Validated pain hypotheses, account universe, and first-pass prioritized hunt list.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

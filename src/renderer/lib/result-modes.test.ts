@@ -4,7 +4,6 @@ import {
   filterTemplatesForResultMode,
   getResultMode,
   getResultModeQuickStarts,
-  inferResultModeFromText,
   presentDevelopmentCreateQuickStarts,
   presentDevelopmentCreateRouteOptions,
   prioritizeDevelopmentCreateQuickStarts,
@@ -127,22 +126,6 @@ describe("result-modes", () => {
 
   it("falls back to development for unknown mode ids", () => {
     expect(getResultMode("unknown-mode").id).toBe("development")
-  })
-
-  it("infers development mode for engineering intent", () => {
-    expect(
-      inferResultModeFromText(
-        "ux ui polish the current app and review the implementation",
-      ),
-    ).toBe("development")
-  })
-
-  it("infers marketing mode for growth intent", () => {
-    expect(
-      inferResultModeFromText(
-        "build a campaign and positioning plan for this audience",
-      ),
-    ).toBe("content")
   })
 
   it("resolves development quick starts in canonical order", () => {

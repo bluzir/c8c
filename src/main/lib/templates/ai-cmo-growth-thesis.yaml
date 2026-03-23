@@ -1,6 +1,12 @@
 id: ai-cmo-growth-thesis
 stage: strategy
 stage_family: understand
+recommended_next:
+  - ai-cmo-seo-engine
+  - ai-cmo-geo-engine
+  - ai-cmo-x-engine
+  - ai-cmo-reddit-engine
+  - ai-cmo-hacker-news-engine
 emoji: "\U0001F4C8"
 headline: Turn a product brief into a growth thesis
 how: Extracts the offer and audience, builds a practical growth thesis across key channels, then turns it into an operator-ready 14-day plan with evaluation

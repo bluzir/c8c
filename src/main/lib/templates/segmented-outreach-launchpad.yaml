@@ -1,6 +1,7 @@
 id: segmented-outreach-launchpad
 stage: outreach
 stage_family: deliver
+recommended_next: []
 emoji: "\U0001F4E9"
 headline: Turn segmented contacts into send-ready outreach without sounding batch-blasted
 how: Refreshes the GTM context, writes a self-contained prompt, generates messages per segment, pressure-tests the copy, and prepares sequencer handoff without auto-sending
@@ -15,6 +16,13 @@ steps:
   - Generate follow-up sequences for each branch so the first touch is not the only touch.
   - Merge the best copy, run a quality check, and prep provider upload without activating anything.
   - Founder approves the final outreach pack before sequencer handoff.
+contract_out:
+  - kind: distribution_bundle
+    title: Outreach Launch Pack
+    description: Segment-specific outreach copy, follow-ups, and sequencer handoff notes.
+  - kind: qa_report
+    title: Outreach Risk Review
+    description: Simulation findings, risky rows, and manual-review items before sending.
 execution_policy:
   notes:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."

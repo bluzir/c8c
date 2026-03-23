@@ -1,6 +1,8 @@
 id: predictable-text-factory
 stage: content
 stage_family: execute
+recommended_next:
+  - copy-quality-pipeline
 emoji: "\U0001F3ED"
 headline: Write long-form content with quality checks
 how: Plans sections, processes each independently, runs section-level and final quality checks, iterates until pass
@@ -13,6 +15,13 @@ steps:
   - Write each section independently in parallel
   - Run section-level quality checks
   - Run the final document-wide quality check
+contract_out:
+  - kind: draft
+    title: Long-form Draft
+    description: Sectioned long-form draft assembled into a coherent final document.
+  - kind: qa_report
+    title: Draft QA Report
+    description: Section-level and final-document quality findings from the writing pass.
 version: 1
 name: Predictable Text Lab
 description: Plan sections, process each section independently, run section-level and final quality checks, iterate until pass

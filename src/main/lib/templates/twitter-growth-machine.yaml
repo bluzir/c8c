@@ -1,6 +1,7 @@
 id: twitter-growth-machine
 stage: outreach
 stage_family: execute
+recommended_next: []
 emoji: "\U0001F426"
 headline: Turn trends into ready-to-post tweets
 how: Researches trending topics, generates multiple tweet angles, optimizes each for algorithm, selects the best, and evaluates quality
@@ -13,6 +14,10 @@ steps:
   - Generate multiple tweet angles in parallel
   - Optimize each for the algorithm and select the best
   - Founder approves the final tweet batch before posting
+contract_out:
+  - kind: distribution_bundle
+    title: Tweet Queue
+    description: Ready-to-post tweets or short threads with posting notes and selected winners.
 execution_policy:
   notes:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."

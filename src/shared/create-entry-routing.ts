@@ -1,4 +1,9 @@
-import type { CreateEntryRouteOption, ResultModeId } from "./types"
+import type {
+  CreateEntryRouteOption,
+  CreateEntryRouteSeed,
+  ProjectInspectionSummary,
+  ResultModeId,
+} from "./types"
 
 export const DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS = new Set([
   "delivery-implement-phase",
@@ -31,4 +36,65 @@ export function sanitizeDirectCreateFallbackTemplateId(
   return isBannedDirectCreateEntryTemplateId(modeId, normalized)
     ? undefined
     : normalized
+}
+
+const DIRECTORY_ROUTE_TEMPLATES = new Set([
+  "delivery-map-codebase",
+  "ux-ui-polish-audit",
+  "full-stack-code-audit",
+])
+
+function normalize(value: string | undefined | null) {
+  return (value || "").trim()
+}
+
+export function buildCreateEntryRouteSeed(
+  templateId: string,
+  projectInspection: ProjectInspectionSummary,
+  requestedResult: string,
+): CreateEntryRouteSeed {
+  const cleanRequestedResult = normalize(requestedResult)
+
+  if (DIRECTORY_ROUTE_TEMPLATES.has(templateId)) {
+    return {
+      primaryInputMode: "directory",
+      primaryInputValue: projectInspection.projectPath,
+      attachments: cleanRequestedResult
+        ? [
+            {
+              kind: "text",
+              label: "Requested result",
+              content: cleanRequestedResult,
+            },
+          ]
+        : [],
+    }
+  }
+
+  if (
+    templateId === "delivery-verify-phase" ||
+    templateId === "delivery-review-phase"
+  ) {
+    return {
+      primaryInputMode: "branch_or_diff",
+      primaryInputValue: projectInspection.git.branch || cleanRequestedResult,
+      attachments:
+        cleanRequestedResult &&
+        cleanRequestedResult !== projectInspection.git.branch
+          ? [
+              {
+                kind: "text",
+                label: "Requested result",
+                content: cleanRequestedResult,
+              },
+            ]
+          : [],
+    }
+  }
+
+  return {
+    primaryInputMode: "text",
+    primaryInputValue: cleanRequestedResult,
+    attachments: [],
+  }
 }

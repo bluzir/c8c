@@ -1,6 +1,9 @@
 id: delivery-shape-project
 stage: strategy
 stage_family: understand
+recommended_next:
+  - delivery-research-phase
+  - delivery-plan-phase
 emoji: "\U0001F9ED"
 headline: Turn a repo or idea into a build-ready project shape
 how: Turn the available context into a project brief, requirements, and roadmap, then run a review pass for consistency and assumptions before routing through an approval step.

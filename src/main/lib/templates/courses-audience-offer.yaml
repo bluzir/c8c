@@ -1,6 +1,8 @@
 id: courses-audience-offer
 stage: strategy
 stage_family: understand
+recommended_next:
+  - courses-curriculum-map
 emoji: "\U0001F3AF"
 headline: Turn expertise into a clear audience and offer brief
 how: Clarify who the course is for, what transformation it promises, and how the offer should be framed before building curriculum.

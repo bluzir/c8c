@@ -93,6 +93,7 @@ import {
   resolveSavedRunReviewRequested,
   resolveWorkflowReviewModes,
 } from "./workflow-panel/review-mode"
+import { resolveWorkflowListSurfaceIntent } from "./workflow-panel/screen-state"
 import { WorkflowBlockedTaskPanel } from "./workflow-panel/WorkflowBlockedTaskPanel"
 import { WorkflowPanelDialogs } from "./workflow-panel/WorkflowPanelDialogs"
 
@@ -646,6 +647,16 @@ export function WorkflowPanel() {
     ) : null
 
   const flowGraphOpen = flowSurfaceMode === "edit" || showEntryEditor
+  const showSavedWorkResumeHeader =
+    effectiveResumeHeader &&
+    primaryScreenState !== "fresh_start" &&
+    primaryScreenState !== "cross_flow_handoff" &&
+    blockedResumeSummary === null
+  const listSurfaceIntent = resolveWorkflowListSurfaceIntent({
+    primaryScreenState,
+    showResumeHeader: showSavedWorkResumeHeader,
+    readyToRun,
+  })
   const showInlineProjectArtifactsPanel =
     showProjectArtifactsPanel &&
     primaryScreenState !== "fresh_start" &&
@@ -781,11 +792,8 @@ export function WorkflowPanel() {
                 listScrollRegionRef={listScrollRegionRef}
                 listShellClass={listShellClass}
                 showCreateDraftSkeleton={showCreateDraftSkeleton}
-                showResumeHeader={
-                  effectiveResumeHeader &&
-                  primaryScreenState !== "fresh_start" &&
-                  primaryScreenState !== "cross_flow_handoff"
-                }
+                showResumeHeader={showSavedWorkResumeHeader}
+                listSurfaceIntent={listSurfaceIntent}
                 activeEntryState={effectiveEntryState}
                 workflowName={workflow.name}
                 readyToRun={readyToRun}

@@ -1,6 +1,9 @@
 id: gstack-feature-squad
 stage: strategy
 stage_family: understand
+recommended_next:
+  - gstack-preflight-gate
+  - gstack-web-quality-board
 emoji: "\U0001F9E0"
 headline: Pressure-test a feature through founder and engineering-lead lenses
 how: Reframes the request into the right product outcome, turns it into a repo-ready plan, and checks whether the brief is ready to build.

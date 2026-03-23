@@ -1,6 +1,7 @@
 id: content-repurposing-factory
 stage: content
 stage_family: execute
+recommended_next: []
 emoji: "\U0000267B"
 headline: Turn one piece of content into platform-ready variants
 how: Analyzes content, creates platform-specific rewrites, compiles all versions, and evaluates quality
@@ -12,6 +13,10 @@ steps:
   - Analyze source content for key themes and hooks
   - Fan out into platform-specific rewrites in parallel
   - Compile all versions and evaluate quality
+contract_out:
+  - kind: distribution_bundle
+    title: Content Repurposing Bundle
+    description: Platform-ready variants and channel notes derived from the source piece.
 version: 1
 name: Content Repurposing Lab
 description: Analyze content, create platform-specific rewrites, compile all versions, evaluate quality

@@ -1,6 +1,8 @@
 id: cto-product-spec
 stage: strategy
 stage_family: design
+recommended_next:
+  - delivery-plan-phase
 emoji: "\U0001F4DD"
 headline: Go from idea to CTO-grade product spec
 how: Breaks the idea into modules, makes stack and architecture decisions per module, then assembles everything into one spec
@@ -14,6 +16,21 @@ steps:
   - Break down into implementation modules
   - Generate CTO-grade specification document
   - Evaluate internal consistency, scope realism, and technical justification
+contract_in:
+  - kind: audit_report
+    title: Audit Report
+    description: Findings and system risks that the spec should resolve explicitly.
+    required: false
+contract_out:
+  - kind: project_brief
+    title: Project Brief
+    description: Problem, scope, goals, constraints, and assumptions for the product or feature.
+  - kind: requirements_spec
+    title: Requirements Spec
+    description: Functional and non-functional requirements derived from the spec.
+  - kind: roadmap
+    title: Delivery Roadmap
+    description: Suggested sequencing, milestones, and implementation phases from the spec.
 version: 1
 name: CTO Product Spec
 description: Generate a CTO-grade product specification from idea to modular implementation details

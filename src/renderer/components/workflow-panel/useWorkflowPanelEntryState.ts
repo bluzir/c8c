@@ -8,6 +8,7 @@ import {
   deriveTemplateContextJobLabel,
   deriveTemplateContextJourneyStageLabel,
   formatArtifactContractLabel,
+  getTemplateContextRecommendedNext,
   selectArtifactsForTemplateContracts,
   type WorkflowEntryState,
   type WorkflowTemplateRunContext,
@@ -178,8 +179,9 @@ export function useWorkflowPanelEntryState({
   )
 
   const nextStageSelection = useMemo(() => {
-    const recommendedNext =
-      selectedWorkflowTemplateContext?.pack?.recommendedNext || []
+    const recommendedNext = getTemplateContextRecommendedNext(
+      selectedWorkflowTemplateContext,
+    )
     if (recommendedNext.length === 0 || packTemplates.length === 0) {
       return { template: null, artifacts: [] as ArtifactRecord[] }
     }

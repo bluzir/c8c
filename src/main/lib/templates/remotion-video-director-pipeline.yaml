@@ -1,6 +1,7 @@
 id: remotion-video-director-pipeline
 stage: code
 stage_family: evaluate
+recommended_next: []
 emoji: "\U0001F3AC"
 headline: Turn a video brief into Remotion delivery
 how: Frames the video, checks the scenario, builds each scene, assembles the project, adds audio, and loops through expert review before handoff
@@ -13,6 +14,13 @@ steps:
   - Design a build-ready scene system and check it before implementation
   - Split scene implementation into parallel build tickets and assemble the project
   - Add audio, render a first pass, and run multi-expert review plus a final ship approval
+contract_out:
+  - kind: implementation_report
+    title: Remotion Delivery Report
+    description: Scene build decisions, project assembly details, and render handoff notes.
+  - kind: review_notes
+    title: Revision Notes
+    description: Scored creative feedback, blockers, and revision priorities from the review loop.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

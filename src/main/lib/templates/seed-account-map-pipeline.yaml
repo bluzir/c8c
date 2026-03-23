@@ -1,6 +1,8 @@
 id: seed-account-map-pipeline
 stage: research
 stage_family: understand
+recommended_next:
+  - raw-list-to-verified-contacts
 emoji: "\U0001F3AF"
 headline: Turn best customers into target accounts
 how: Captures why existing wins closed, converts that into explicit buying hypotheses, builds and enriches an account table, then tiers who deserves attention now
@@ -13,6 +15,10 @@ steps:
   - Build a candidate account universe and reject vague search angles before enrichment.
   - Add only the research columns needed to prove fit, timing, and hook quality.
   - Tier every account and explain why it belongs in this campaign or why it should wait.
+contract_out:
+  - kind: research_pack
+    title: Target Account Pack
+    description: Prioritized account universe with fit hypotheses, tiers, and personalization hooks.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

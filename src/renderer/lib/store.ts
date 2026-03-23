@@ -611,8 +611,6 @@ export const clearInboxNotificationsAtom = atom(null, (_get, set) => {
 })
 
 // Templates & generation
-export const templateBrowserOpenAtom = atom(false)
-export const generateDialogOpenAtom = atom(false)
 export const workflowCreateContextAtom = atom<{
   projectPath: string | null
   locked: boolean
@@ -637,8 +635,11 @@ export const workflowCreateSourceAttachmentsAtom = atom<InputAttachment[]>([])
 export const workflowCreatePendingMessageAtom = atom<Record<string, string>>({})
 export const workflowCreatePendingEntryAtom = atom<Record<string, string>>({})
 export const workflowQueuedAutoRunPathAtom = atom<string | null>(null)
-export const workflowEntryStateAtom = atom<WorkflowEntryState | null>(null)
-export const workflowRequestedResultsAtom = atom<Record<string, string>>({})
+export const workflowEntryStateAtom =
+  atomWithStorage<WorkflowEntryState | null>("c8c:workflow-entry-state", null)
+export const workflowRequestedResultsAtom = atomWithStorage<
+  Record<string, string>
+>("c8c:workflow-requested-results", {})
 export const requestedResultAtom = atom(
   (get) => {
     const workflowPath = get(selectedWorkflowPathAtom)
@@ -710,9 +711,9 @@ export const clearWorkflowRequestedResultForKeyAtom = atom(
     set(workflowRequestedResultsAtom, updated)
   },
 )
-export const workflowTemplateContextsAtom = atom<
+export const workflowTemplateContextsAtom = atomWithStorage<
   Record<string, WorkflowTemplateRunContext>
->({})
+>("c8c:workflow-template-contexts", {})
 export const selectedWorkflowTemplateContextAtom = atom(
   (get) =>
     get(workflowTemplateContextsAtom)[

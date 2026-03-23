@@ -1,6 +1,8 @@
 id: cto-optimise-audit
 stage: code
 stage_family: evaluate
+recommended_next:
+  - cto-product-spec
 emoji: "\U0001F6E0"
 headline: Audit a project through a CTO lens
 how: Maps the system, audits through CTO optimization lenses, and merges findings into one prioritized report
@@ -13,6 +15,10 @@ steps:
   - Fan out repo-wide CTO audit tracks by optimization lens
   - Merge findings into one prioritized optimization report
   - Run a report quality check before output
+contract_out:
+  - kind: audit_report
+    title: CTO Audit Report
+    description: Prioritized system risks, optimization opportunities, and recommended next moves.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

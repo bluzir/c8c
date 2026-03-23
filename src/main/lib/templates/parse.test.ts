@@ -11,6 +11,8 @@ describe("parseTemplate", () => {
         "name: Delivery Map",
         "description: map a codebase",
         "stage: research",
+        "recommended_next:",
+        "  - delivery-review",
         'emoji: "\\U0001F5FA"',
         "headline: Map codebase",
         "how: Build a repo map",
@@ -52,6 +54,7 @@ describe("parseTemplate", () => {
     )
 
     expect(template.useWhen).toBe("You need orientation before planning.")
+    expect(template.recommendedNext).toEqual(["delivery-review"])
     expect(template.pack).toEqual({
       id: "delivery-foundation",
       label: "Delivery Factory",

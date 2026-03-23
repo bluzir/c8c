@@ -1,6 +1,8 @@
 id: copy-quality-pipeline
 stage: content
 stage_family: evaluate
+recommended_next:
+  - content-distribution-bundle
 emoji: "\U0001F9F9"
 headline: Polish copy until it reads clean
 how: Audits the draft for slop and infostyle issues, rewrites it through cleanup passes, then checks that the final copy reads clean and specific.
@@ -14,6 +16,13 @@ steps:
   - Apply infostyle rules — remove buzzwords, enforce positive rules
   - Polish for consistency, number deduplication, and flow
   - Run a quality-check retry loop
+contract_out:
+  - kind: draft
+    title: Polished Copy
+    description: Cleaned copy that preserves the core message while removing slop and infostyle violations.
+  - kind: qa_report
+    title: Copy Quality Report
+    description: What was fixed, what still reads weakly, and where manual edits may still help.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

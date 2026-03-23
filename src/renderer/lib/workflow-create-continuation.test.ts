@@ -251,6 +251,64 @@ describe("workflow-create-continuation", () => {
     expect(candidates).toEqual([])
   })
 
+  it("uses top-level recommended next metadata for standalone continuations", () => {
+    const auditTemplate = createTemplate({
+      id: "ux-ui-polish-audit",
+      name: "UX/UI Polish Audit",
+      pack: undefined,
+      recommendedNext: ["impeccable-ui-pipeline"],
+      contractOut: [{ kind: "ux_audit_report", title: "UX Audit Report" }],
+      workflow: {
+        version: 1,
+        name: "UX/UI Polish Audit",
+        nodes: [],
+        edges: [],
+      },
+    })
+    const improveTemplate = createTemplate({
+      id: "impeccable-ui-pipeline",
+      name: "Impeccable UI Pipeline",
+      pack: undefined,
+      recommendedNext: [],
+      contractIn: [
+        {
+          kind: "ux_audit_report",
+          title: "UX Audit Report",
+          required: false,
+        },
+      ],
+      contractOut: [
+        { kind: "implementation_report", title: "UI Improvements" },
+      ],
+      workflow: {
+        version: 1,
+        name: "Impeccable UI Pipeline",
+        nodes: [],
+        edges: [],
+      },
+    })
+
+    const candidates = deriveWorkflowCreateContinuations({
+      artifacts: [
+        createArtifact({
+          kind: "ux_audit_report",
+          title: "UX Audit Report",
+          templateId: "ux-ui-polish-audit",
+          templateName: "UX/UI Polish Audit",
+        }),
+      ],
+      caseStates: [createCaseState()],
+      humanTasks: [],
+      templates: [auditTemplate, improveTemplate],
+    })
+
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0]).toMatchObject({
+      status: "ready",
+      nextStepLabel: "Polish this UI",
+    })
+  })
+
   it("creates a blocked candidate even when the task has no artifact match yet", () => {
     const candidates = deriveWorkflowCreateContinuations({
       artifacts: [],

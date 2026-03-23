@@ -1,6 +1,8 @@
 id: raw-list-to-verified-contacts
 stage: outreach
 stage_family: execute
+recommended_next:
+  - segmented-outreach-launchpad
 emoji: "\U0001F4C7"
 headline: Turn raw accounts into verified contacts
 how: Cleans the raw list, frames fit hypotheses, enriches only the signals that matter, tiers the companies, then finds and verifies the right people
@@ -13,6 +15,13 @@ steps:
   - Add the smallest useful set of fit and personalization columns, then tier the companies.
   - Find the right people only for the accounts worth pursuing.
   - Verify emails, measure coverage, and surface the gaps before anyone starts sending.
+contract_out:
+  - kind: handoff_pack
+    title: Verified Contacts Pack
+    description: Clean company and contact tables plus verified export-ready contact data.
+  - kind: qa_report
+    title: Coverage Report
+    description: Verification failures, coverage gaps, and rows that still need manual follow-up.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

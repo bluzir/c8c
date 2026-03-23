@@ -1,6 +1,8 @@
 id: content-trend-watch
 stage: content
 stage_family: understand
+recommended_next:
+  - content-post-calendar
 emoji: "\U0001F4E1"
 headline: Track trends and turn them into a usable trend digest
 how: Gather recent signals, themes, launches, and discussion patterns, then condense them into a trend digest that can drive ideation.

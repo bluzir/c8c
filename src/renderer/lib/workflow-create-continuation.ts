@@ -9,6 +9,7 @@ import {
   deriveArtifactCaseKey,
   deriveTemplateContinuationLabel,
   deriveTemplateDisplayLabel,
+  getTemplateRecommendedNext,
   selectArtifactsForTemplateContracts,
 } from "./workflow-entry"
 import {
@@ -203,7 +204,7 @@ function resolveReadyContinuation(
   for (const artifact of artifacts) {
     if (!artifact.templateId) continue
     const sourceTemplate = templateById.get(artifact.templateId)
-    const recommendedNext = sourceTemplate?.pack?.recommendedNext || []
+    const recommendedNext = getTemplateRecommendedNext(sourceTemplate)
     if (recommendedNext.length === 0) continue
 
     const nextTemplate = recommendedNext

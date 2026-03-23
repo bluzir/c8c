@@ -1,6 +1,7 @@
 id: gstack-release-room
 stage: operations
 stage_family: deliver
+recommended_next: []
 emoji: "\U0001F6A2"
 headline: Prep docs and hand a branch to ship
 how: Updates release-facing docs from the current branch, requires a human ship decision, and then runs gstack's ship step with that approved context

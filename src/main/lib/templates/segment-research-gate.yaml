@@ -1,6 +1,9 @@
 id: segment-research-gate
 stage: research
 stage_family: understand
+recommended_next:
+  - vertical-pain-to-target-list
+  - lead-research-machine
 emoji: "\U0001F3AF"
 headline: Validate market segments with evidence
 how: Analyzes input context first, then generates grounded segment hypotheses, researches each, and filters by quality check
@@ -13,6 +16,10 @@ steps:
   - Generate grounded segment hypotheses based on context analysis
   - Research each segment in parallel with signal grounding
   - Score and filter segments through a quality check
+contract_out:
+  - kind: research_pack
+    title: Segment Research Pack
+    description: Validated segment list with evidence, quality ratings, and reasons to focus or skip.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

@@ -1,6 +1,8 @@
 id: lead-research-machine
 stage: research
 stage_family: understand
+recommended_next:
+  - raw-list-to-verified-contacts
 emoji: "\U0001F50E"
 headline: Find and prioritize leads in any vertical
 how: Researches a market vertical, splits into segments, finds leads per segment, and compiles a prioritized list
@@ -13,6 +15,10 @@ steps:
   - Fan out to find leads per segment in parallel
   - Compile and prioritize the final lead list
   - Evaluate lead quality, deduplication, and outreach specificity
+contract_out:
+  - kind: research_pack
+    title: Lead Research Pack
+    description: Prioritized lead list with company context and concrete outreach angles.
 version: 1
 name: Lead Research Machine
 description: Research a market vertical, split into segments, find leads per segment, compile a prioritized list

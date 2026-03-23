@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode, RefObject } from "react"
 import { TabsContent } from "@/components/ui/tabs"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { SectionErrorBoundary } from "@/components/ui/error-boundary"
 import { ExecutionSurfaceNoticeBanner } from "@/components/ui/execution-surface-notice"
 import { OutputPanel } from "@/components/OutputPanel"
@@ -14,6 +15,8 @@ import { cn } from "@/lib/cn"
 import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume"
 import type { FlowRulePreview } from "@/lib/flow-rules"
 import type { WorkflowResumeEntrySummary } from "@/lib/workflow-resume-entry"
+import type { WorkflowListSurfaceIntent } from "@/components/workflow-panel/screen-state"
+import { shouldShowResumeInputPanel } from "@/components/workflow-panel/screen-state"
 import type { ArtifactContract, ArtifactRecord } from "@shared/types"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
 import type { ExecutionSurfaceNotice } from "@/lib/workflow-execution"
@@ -53,6 +56,7 @@ interface WorkflowListTabProps {
   listShellClass: string
   showCreateDraftSkeleton: boolean
   showResumeHeader: boolean
+  listSurfaceIntent: WorkflowListSurfaceIntent
   activeEntryState: WorkflowEntryState | null
   workflowName: string
   readyToRun: boolean
@@ -96,6 +100,7 @@ export function WorkflowListTab({
   listShellClass,
   showCreateDraftSkeleton,
   showResumeHeader,
+  listSurfaceIntent,
   activeEntryState,
   workflowName,
   readyToRun,
@@ -131,6 +136,7 @@ export function WorkflowListTab({
     "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col",
     !terminalResultOwnsLayout && "flex-1",
   )
+  const showResumeInput = shouldShowResumeInputPanel(listSurfaceIntent)
 
   return (
     <TabsContent
@@ -143,7 +149,7 @@ export function WorkflowListTab({
           <WorkflowDraftSkeleton />
         ) : (
           <>
-            {showResumeHeader && activeEntryState && !blockedResumeSummary && (
+            {showResumeHeader && activeEntryState && (
               <>
                 <WorkflowResumeHeader
                   entry={activeEntryState}
@@ -167,7 +173,7 @@ export function WorkflowListTab({
                       : "Add input"
                   }
                 />
-                {!blockedResumeSummary && (
+                {showResumeInput ? (
                   <StageInputSection
                     inputPanelRef={inputPanelRef}
                     showTemplateContext={false}
@@ -178,6 +184,24 @@ export function WorkflowListTab({
                     requiredContracts={requiredContracts}
                     onOpenArtifact={onOpenArtifact}
                   />
+                ) : (
+                  <DisclosurePanel
+                    summary="Adjust step input"
+                    surface="plain"
+                    unmountWhenClosed
+                    contentClassName="px-0 py-2"
+                  >
+                    <StageInputSection
+                      inputPanelRef={inputPanelRef}
+                      showTemplateContext={false}
+                      showProjectArtifactsPanel={showProjectArtifactsPanel}
+                      artifacts={combinedArtifactRecords}
+                      loading={projectArtifactsLoading}
+                      error={projectArtifactsError}
+                      requiredContracts={requiredContracts}
+                      onOpenArtifact={onOpenArtifact}
+                    />
+                  </DisclosurePanel>
                 )}
               </>
             )}

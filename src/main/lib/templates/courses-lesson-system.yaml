@@ -1,6 +1,8 @@
 id: courses-lesson-system
 stage: content
 stage_family: execute
+recommended_next:
+  - courses-launch-assets
 emoji: "\U0001F4DA"
 headline: Turn the curriculum map into a lesson system
 how: Convert the curriculum into lesson briefs and delivery guidance so lesson production has a strong scaffold.

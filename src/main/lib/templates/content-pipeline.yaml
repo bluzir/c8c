@@ -1,6 +1,9 @@
 id: content-pipeline
 stage: content
 stage_family: deliver
+recommended_next:
+  - landing-page-generator
+  - predictable-text-factory
 emoji: "\U0001F4F0"
 headline: Turn strategy into marketing outputs
 how: Builds the strategy, turns it into a report, then drafts the first marketing outputs from it.
@@ -14,6 +17,13 @@ steps:
   - Generate comprehensive strategy report
   - Create marketing results from the strategy
   - Evaluate quality and iterate if needed
+contract_out:
+  - kind: direction_set
+    title: Strategy Direction
+    description: Positioning and messaging direction that should guide downstream asset creation.
+  - kind: content_brief
+    title: Content Brief
+    description: Initial marketing angles, asset assignments, and output directions derived from the strategy.
 execution_policy:
   notes:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."

@@ -1,6 +1,7 @@
 id: new-vertical-to-live-campaign
 stage: outreach
 stage_family: deliver
+recommended_next: []
 emoji: "\U0001F680"
 headline: Turn a market thesis into a live campaign
 how: Researches the market, builds and segments the account list, finds contacts, generates branch-specific emails, pressure-tests the copy, and prepares sequencer upload
@@ -15,6 +16,13 @@ steps:
   - Find the right people and verify emails before writing outreach.
   - Generate emails and follow-up sequences, stress-test the copy.
   - Founder approves the final outreach pack before sequencer handoff.
+contract_out:
+  - kind: distribution_bundle
+    title: Live Campaign Pack
+    description: Research-backed account, contact, and outreach assets prepared for launch.
+  - kind: qa_report
+    title: Campaign Readiness Review
+    description: Remaining gaps, risky rows, and operator checks before sequencer handoff.
 execution_policy:
   notes:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."

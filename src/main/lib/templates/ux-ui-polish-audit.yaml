@@ -1,6 +1,8 @@
 id: ux-ui-polish-audit
 stage: code
 stage_family: evaluate
+recommended_next:
+  - impeccable-ui-pipeline
 emoji: "\U0001F3A8"
 headline: Audit UX/UI polish across the whole project
 how: Maps the product surface, audits through UX/UI lenses, and merges findings into one prioritized polish report
@@ -13,6 +15,10 @@ steps:
   - Fan out repo-wide UX/UI audit tracks by lens
   - Merge findings into one prioritized polish report
   - Run a report quality check before output
+contract_out:
+  - kind: ux_audit_report
+    title: UX Audit Report
+    description: Prioritized UX/UI findings with file-level evidence and a polish roadmap.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

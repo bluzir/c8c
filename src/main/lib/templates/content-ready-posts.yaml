@@ -1,6 +1,7 @@
 id: content-ready-posts
 stage: content
 stage_family: execute
+recommended_next: []
 emoji: "\U0001F4DD"
 headline: Turn a post calendar into ready-to-publish posts
 how: Draft the posts from the plan, apply voice/quality discipline, and hand back publish-ready copy.

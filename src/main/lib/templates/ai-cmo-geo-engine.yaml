@@ -1,6 +1,7 @@
 id: ai-cmo-geo-engine
 stage: content
 stage_family: execute
+recommended_next: []
 emoji: "\U0001F310"
 headline: Build answer-ready assets for AI search and answer engines
 how: Maps buyer questions and entities, creates a GEO answer brief, drafts answer-ready site assets, and adds a human publish approval

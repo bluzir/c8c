@@ -1,6 +1,8 @@
 id: delivery-review-phase
 stage: code
 stage_family: evaluate
+recommended_next:
+  - delivery-verify-phase
 emoji: "\U0001F50D"
 headline: Review a finished change before final verification
 how: Review the current implementation against the plan and validation contract, surface concrete issues, and hand focused review notes to verification.

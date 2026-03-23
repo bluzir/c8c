@@ -1,6 +1,8 @@
 id: design-code-test
 stage: code
 stage_family: execute
+recommended_next:
+  - playwright-visual-audit
 emoji: "\U0001F9EA"
 headline: Design a component, build it, and test it
 how: Generates a frontend component, reviews code quality, checks standards, writes tests, and checks coverage
@@ -12,6 +14,13 @@ steps:
   - Generate frontend component from specification
   - Review code quality against standards
   - Write tests and validate coverage
+contract_out:
+  - kind: implementation_report
+    title: Component Delivery Report
+    description: What was built, how it was implemented, and the final code handoff notes.
+  - kind: verification_report
+    title: Component Test Report
+    description: Test coverage, quality checks, and validation results for the delivered component.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

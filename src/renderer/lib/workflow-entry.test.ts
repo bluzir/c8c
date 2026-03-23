@@ -13,6 +13,8 @@ import {
   deriveTemplateContextDisplayLabel,
   deriveTemplateContextJourneyStageLabel,
   deriveTemplateJourneyStageLabel,
+  getTemplateContextRecommendedNext,
+  getTemplateRecommendedNext,
   getRequestedResultFromEntryState,
   selectArtifactsForTemplateContracts,
 } from "./workflow-entry"
@@ -62,6 +64,8 @@ describe("workflow-entry factory helpers", () => {
 
     expect(context.templateId).toBe("delivery-plan-phase")
     expect(context.pack?.id).toBe("delivery-foundation")
+    expect(getTemplateRecommendedNext(template)).toEqual([])
+    expect(getTemplateContextRecommendedNext(context)).toEqual([])
     expect(context.contractOut?.[0]?.kind).toBe("phase_plan")
     expect(context.factoryId).toBeUndefined()
     expect(context.caseId).toBeUndefined()

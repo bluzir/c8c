@@ -106,12 +106,80 @@ const COURSES_TEMPLATE_IDS = new Set([
   "courses-launch-assets",
 ])
 
-const DEVELOPMENT_TEXT_RE =
-  /\b(codebase|repository|repo|feature|implementation|verification|spec|audit|bug|architecture|ui audit|design system|roadmap|qa|test|ship)\b/i
-const CONTENT_TEXT_RE =
-  /\b(marketing|growth|seo|geo|reddit|hacker news|trend|campaign|landing page|positioning|messaging|outreach|lead|prospect|segment|audience|jtbd|competitive|ads?)\b/i
-const COURSES_TEXT_RE =
-  /\b(content|post|copy|editorial|newsletter|draft|publish|course|curriculum|lesson|module|education|workshop|cohort|training|launch bundle|transformation|video|script)\b/i
+const DEVELOPMENT_METADATA_TOKENS = [
+  "codebase",
+  "repository",
+  "repo",
+  "feature",
+  "implementation",
+  "verification",
+  "spec",
+  "audit",
+  "bug",
+  "architecture",
+  "ui audit",
+  "design system",
+  "roadmap",
+  "qa",
+  "test",
+  "ship",
+]
+
+const CONTENT_METADATA_TOKENS = [
+  "marketing",
+  "growth",
+  "seo",
+  "geo",
+  "reddit",
+  "hacker news",
+  "trend",
+  "campaign",
+  "landing page",
+  "positioning",
+  "messaging",
+  "outreach",
+  "lead",
+  "prospect",
+  "segment",
+  "audience",
+  "jtbd",
+  "competitive",
+  "ad ",
+  "ads",
+]
+
+const COURSES_METADATA_TOKENS = [
+  "content",
+  "post",
+  "copy",
+  "editorial",
+  "newsletter",
+  "draft",
+  "publish",
+  "course",
+  "curriculum",
+  "lesson",
+  "module",
+  "education",
+  "workshop",
+  "cohort",
+  "training",
+  "launch bundle",
+  "transformation",
+  "video",
+  "script",
+]
+
+const COURSES_STAGE_TOKENS = [
+  "audience",
+  "positioning",
+  "offer",
+  "lesson",
+  "curriculum",
+  "launch",
+  "draft",
+  "publish",
+]
 
 const QUICK_STARTS_BY_MODE: Partial<
   Record<ResultModeId, WorkflowResultModeQuickStart[]>
@@ -370,7 +438,11 @@ function metadataText(template: WorkflowTemplate): string {
     template.executionPolicy?.summary,
     template.executionPolicy?.description,
     template.executionPolicy?.tags?.join(" "),
-  ])
+  ]).toLowerCase()
+}
+
+function metadataIncludesAny(text: string, tokens: string[]) {
+  return tokens.some((token) => text.includes(token))
 }
 
 export const RESULT_MODES: WorkflowResultMode[] = [
@@ -482,21 +554,6 @@ export function getResultMode(modeId: ResultModeId): WorkflowResultMode {
   return MODE_BY_ID.get(modeId) || RESULT_MODES[0]
 }
 
-export function inferResultModeFromText(text: string): ResultModeId {
-  const normalized = compactText([text])
-  if (!normalized) return "development"
-
-  const developmentScore = DEVELOPMENT_TEXT_RE.test(normalized) ? 2 : 0
-  const contentScore = CONTENT_TEXT_RE.test(normalized) ? 2 : 0
-  const coursesScore = COURSES_TEXT_RE.test(normalized) ? 2 : 0
-
-  if (contentScore > developmentScore && contentScore >= coursesScore)
-    return "content"
-  if (coursesScore > developmentScore && coursesScore > contentScore)
-    return "courses"
-  return "development"
-}
-
 export function getResultModeQuickStarts(
   templates: WorkflowTemplate[],
   modeId: ResultModeId,
@@ -521,6 +578,10 @@ function templateScoreForMode(
 
   if (modeId === "development") {
     let score = 0
+    const matchesDevelopment = metadataIncludesAny(
+      text,
+      DEVELOPMENT_METADATA_TOKENS,
+    )
     if (template.pack?.id && DEVELOPMENT_PACK_IDS.has(template.pack.id))
       score += 100
     if (DEVELOPMENT_TEMPLATE_IDS.has(template.id)) score += 80
@@ -530,15 +591,16 @@ function templateScoreForMode(
       (template.stage === "research" ||
         template.stage === "strategy" ||
         template.stage === "operations") &&
-      DEVELOPMENT_TEXT_RE.test(text)
+      matchesDevelopment
     )
       score += 20
-    if (DEVELOPMENT_TEXT_RE.test(text)) score += 10
+    if (matchesDevelopment) score += 10
     return score
   }
 
   if (modeId === "content") {
     let score = 0
+    const matchesContent = metadataIncludesAny(text, CONTENT_METADATA_TOKENS)
     if (template.pack?.id && CONTENT_PACK_IDS.has(template.pack.id))
       score += 100
     if (CONTENT_TEMPLATE_IDS.has(template.id)) score += 80
@@ -551,25 +613,24 @@ function templateScoreForMode(
       score += 30
     if (
       (template.stage === "strategy" || template.stage === "research") &&
-      CONTENT_TEXT_RE.test(text)
+      matchesContent
     )
       score += 20
-    if (CONTENT_TEXT_RE.test(text)) score += 10
+    if (matchesContent) score += 10
     return score
   }
 
   if (modeId === "courses") {
     let score = 0
+    const matchesCourses = metadataIncludesAny(text, COURSES_METADATA_TOKENS)
     if (template.pack?.id && COURSES_PACK_IDS.has(template.pack.id))
       score += 100
     if (COURSES_TEMPLATE_IDS.has(template.id)) score += 90
     if (isContentTemplate(template)) score += 35
-    if (COURSES_TEXT_RE.test(text)) score += 60
+    if (matchesCourses) score += 60
     if (
       (template.stage === "strategy" || template.stage === "content") &&
-      /(audience|positioning|offer|lesson|curriculum|launch|draft|publish)/i.test(
-        text,
-      )
+      metadataIncludesAny(text, COURSES_STAGE_TOKENS)
     )
       score += 20
     return score

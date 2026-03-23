@@ -1,6 +1,8 @@
 id: playwright-visual-audit
 stage: code
 stage_family: validate
+recommended_next:
+  - impeccable-ui-pipeline
 emoji: "\U0001F3AD"
 headline: Audit app flows for visual regressions
 how: Maps the product surface, turns it into Playwright-ready scenarios, runs each flow end-to-end, and merges findings into one evidence-backed audit
@@ -13,6 +15,10 @@ steps:
   - Split the plan into self-contained browser scenarios
   - Run each scenario end-to-end and capture visual QA evidence
   - Merge findings into one prioritized audit and quality-check it
+contract_out:
+  - kind: visual_qa_report
+    title: Visual QA Report
+    description: Browser-backed visual findings, screenshots, blockers, and recommended fixes.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

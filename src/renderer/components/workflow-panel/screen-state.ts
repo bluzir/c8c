@@ -12,13 +12,15 @@ export type WorkflowPrimaryScreenState =
   | "auto_chain_gate"
   | "review"
 
-export type WorkflowListPrimaryQuestion =
-  | "What am I about to run?"
-  | "What is ready to continue?"
-  | "What input do I need to continue?"
-  | "What is blocking progress?"
-  | "What is happening right now?"
-  | "What result do I have?"
+// Internal screen-composition contract only. These ids drive ownership and
+// layout decisions; they must not leak into user-facing copy.
+export type WorkflowListSurfaceIntent =
+  | "start_contract"
+  | "resume_ready"
+  | "resume_needs_input"
+  | "blocked_decision"
+  | "runtime_status"
+  | "result_inspect"
 
 export function resolveWorkflowPrimaryScreenState({
   runStatus,
@@ -92,7 +94,7 @@ export function shouldShowProcessSpine(state: WorkflowPrimaryScreenState) {
   return true
 }
 
-export function resolveWorkflowListPrimaryQuestion({
+export function resolveWorkflowListSurfaceIntent({
   primaryScreenState,
   showResumeHeader,
   readyToRun,
@@ -100,34 +102,30 @@ export function resolveWorkflowListPrimaryQuestion({
   primaryScreenState: WorkflowPrimaryScreenState
   showResumeHeader: boolean
   readyToRun: boolean
-}): WorkflowListPrimaryQuestion {
+}): WorkflowListSurfaceIntent {
   if (showResumeHeader) {
-    return readyToRun
-      ? "What is ready to continue?"
-      : "What input do I need to continue?"
+    return readyToRun ? "resume_ready" : "resume_needs_input"
   }
 
   switch (primaryScreenState) {
     case "blocked_decision":
-      return "What is blocking progress?"
+      return "blocked_decision"
     case "running":
     case "paused_resume":
-      return "What is happening right now?"
+      return "runtime_status"
     case "one_off_done":
     case "auto_chain_gate":
     case "review":
-      return "What result do I have?"
+      return "result_inspect"
     case "fresh_start":
     case "cross_flow_handoff":
     default:
-      return "What am I about to run?"
+      return "start_contract"
   }
 }
 
-export function shouldShowResumeInputPanel(
-  question: WorkflowListPrimaryQuestion,
-) {
-  return question === "What input do I need to continue?"
+export function shouldShowResumeInputPanel(intent: WorkflowListSurfaceIntent) {
+  return intent === "resume_needs_input"
 }
 
 export function shouldShowLiveOutputPanel(state: WorkflowPrimaryScreenState) {

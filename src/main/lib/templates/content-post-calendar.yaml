@@ -1,6 +1,8 @@
 id: content-post-calendar
 stage: content
 stage_family: design
+recommended_next:
+  - content-ready-posts
 emoji: "\U0001F5D3"
 headline: Turn a trend digest into a concrete post calendar
 how: Convert current signals into a short, usable post plan so drafting can start immediately.

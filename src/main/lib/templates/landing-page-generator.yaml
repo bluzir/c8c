@@ -1,6 +1,8 @@
 id: landing-page-generator
 stage: content
 stage_family: execute
+recommended_next:
+  - landing-audit-loop
 emoji: "\U0001F680"
 headline: Build landing page copy block-by-block with quality loops
 how: Constructs landing page copy section by section with per-block quality loops, then assembles with cross-block QC
@@ -12,6 +14,10 @@ steps:
   - Define page structure and key blocks
   - Generate copy for each block with quality loops
   - Assemble and run cross-block quality check
+contract_out:
+  - kind: draft
+    title: Landing Page Draft
+    description: Structured landing page copy with core sections, proof, and calls to action.
 execution_policy:
   profile_id: solo_operator
   summary: Solo founder operational context

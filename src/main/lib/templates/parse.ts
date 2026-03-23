@@ -40,6 +40,8 @@ interface FlatTemplate {
   stage: WorkflowTemplateStage
   stageFamily?: StageFamily
   stage_family?: StageFamily
+  recommendedNext?: string[]
+  recommended_next?: string[]
   emoji: string
   headline: string
   how: string
@@ -126,6 +128,8 @@ export function parseTemplate(
     stage,
     stageFamily,
     stage_family,
+    recommendedNext,
+    recommended_next,
     emoji,
     headline,
     how,
@@ -150,6 +154,7 @@ export function parseTemplate(
     description: workflow.description ?? "",
     stage,
     stageFamily: stageFamily ?? stage_family,
+    recommendedNext: recommendedNext ?? recommended_next,
     emoji,
     headline,
     how,

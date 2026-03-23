@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  resolveWorkflowListSurfaceIntent,
   resolveWorkflowPrimaryScreenState,
+  shouldShowResumeInputPanel,
   shouldShowLiveOutputPanel,
   shouldShowProcessSpine,
 } from "./screen-state"
@@ -112,5 +114,55 @@ describe("resolveWorkflowPrimaryScreenState", () => {
   it("keeps chain chrome visible for auto-chain gates", () => {
     expect(shouldShowLiveOutputPanel("auto_chain_gate")).toBe(true)
     expect(shouldShowProcessSpine("auto_chain_gate")).toBe(true)
+  })
+
+  it("defines one internal surface intent for each list state", () => {
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "fresh_start",
+        showResumeHeader: false,
+        readyToRun: false,
+      }),
+    ).toBe("start_contract")
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "blocked_decision",
+        showResumeHeader: false,
+        readyToRun: false,
+      }),
+    ).toBe("blocked_decision")
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "running",
+        showResumeHeader: false,
+        readyToRun: false,
+      }),
+    ).toBe("runtime_status")
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "one_off_done",
+        showResumeHeader: false,
+        readyToRun: false,
+      }),
+    ).toBe("result_inspect")
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "paused_resume",
+        showResumeHeader: true,
+        readyToRun: true,
+      }),
+    ).toBe("resume_ready")
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "paused_resume",
+        showResumeHeader: true,
+        readyToRun: false,
+      }),
+    ).toBe("resume_needs_input")
+  })
+
+  it("shows resume input only when the question is about missing input", () => {
+    expect(shouldShowResumeInputPanel("resume_needs_input")).toBe(true)
+    expect(shouldShowResumeInputPanel("resume_ready")).toBe(false)
   })
 })

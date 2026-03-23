@@ -1,6 +1,7 @@
 id: deep-research
 stage: research
 stage_family: understand
+recommended_next: []
 emoji: "\U0001F50D"
 headline: Research any topic from multiple angles
 how: Decomposes a topic into lenses, investigates each separately, then synthesizes a structured report
@@ -13,6 +14,13 @@ steps:
   - Fan out parallel investigation per lens
   - Synthesize findings into a comprehensive report
   - Evaluate evidence quality, disconfirming coverage, and source specificity
+contract_out:
+  - kind: research_pack
+    title: Research Pack
+    description: Multi-angle findings, source-grounded evidence, and practical takeaways for the question.
+  - kind: decision_record
+    title: Decision Record
+    description: Executive summary, options, and implications distilled from the research.
 version: 1
 name: Deep Research
 description:

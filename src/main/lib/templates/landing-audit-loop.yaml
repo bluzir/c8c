@@ -1,6 +1,8 @@
 id: landing-audit-loop
 stage: content
 stage_family: evaluate
+recommended_next:
+  - copy-quality-pipeline
 emoji: "\U0001F50D"
 headline: Audit and rewrite a landing page
 how: Analyze the landing page against the stated job-to-be-done, split into logical blocks for parallel rewriting, merge with consistency checks, and route through an approval step.
@@ -16,6 +18,13 @@ steps:
   - Evaluate JTBD alignment and copy quality
   - Founder approval before finalizing
   - Output rewritten landing page
+contract_out:
+  - kind: draft
+    title: Rewritten Landing Page
+    description: JTBD-aligned landing page copy rewritten block by block for clarity and conversion.
+  - kind: qa_report
+    title: Landing Page QA Report
+    description: Alignment, consistency, and copy-quality findings from the audit loop.
 version: 1
 name: Landing Page Audit Loop
 description: Analyze a landing page using JTBD framework, split into blocks for parallel rewriting, merge with consistency checks, and iterate until quality threshold met

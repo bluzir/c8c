@@ -1,6 +1,7 @@
 id: invoice-chaos-fixer
 stage: operations
 stage_family: execute
+recommended_next: []
 emoji: "\U0001F9FE"
 headline: Organize messy invoices into clean expense data
 how: Organizes invoices, extracts data from PDFs, creates expense spreadsheet, detects anomalies, and evaluates completeness
@@ -13,6 +14,13 @@ steps:
   - Extract structured data from each invoice
   - Create expense spreadsheet and detect anomalies
   - Evaluate data completeness
+contract_out:
+  - kind: handoff_pack
+    title: Expense Data Pack
+    description: Clean expense data, renamed files, and export-ready bookkeeping artifacts.
+  - kind: qa_report
+    title: Invoice Completeness Report
+    description: Missing fields, anomalies, and documents that still need manual review.
 version: 1
 name: Invoice Chaos Fixer
 description: Organize invoices, extract data from PDFs, create expense spreadsheet, detect anomalies, evaluate completeness

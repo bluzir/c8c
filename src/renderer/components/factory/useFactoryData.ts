@@ -12,6 +12,7 @@ import {
   deriveTemplateJourneyStageLabel,
   deriveTemplatePackStagePath,
   formatArtifactContractLabel,
+  getTemplateRecommendedNext,
   type WorkflowTemplateRunContext,
 } from "@/lib/workflow-entry"
 import {
@@ -134,7 +135,7 @@ export function selectFactoryCaseNextTemplates({
     compatibleTemplates.map((template) => template.id),
   )
   const recommendedNextTemplates = latestArtifact?.templateId
-    ? (templateById.get(latestArtifact.templateId)?.pack?.recommendedNext || [])
+    ? getTemplateRecommendedNext(templateById.get(latestArtifact.templateId))
         .map((templateId) => templateById.get(templateId) || null)
         .filter(
           (template): template is WorkflowTemplate =>

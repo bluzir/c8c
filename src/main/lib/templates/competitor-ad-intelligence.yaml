@@ -1,6 +1,8 @@
 id: competitor-ad-intelligence
 stage: research
 stage_family: understand
+recommended_next:
+  - content-pipeline
 emoji: "\U0001F4CA"
 headline: Decode competitor ads and build your counter-strategy
 how: Structures your context, researches each competitor separately, synthesizes gaps, evaluates evidence quality, then builds a counter-positioning plan
@@ -14,6 +16,13 @@ steps:
   - Synthesize competitive landscape and identify gaps
   - Evaluate evidence quality and budget-appropriateness
   - Build counter-positioning strategy with ready-to-test ad concepts
+contract_out:
+  - kind: research_pack
+    title: Competitive Ad Landscape
+    description: Evidence-backed readout of competitor angles, channels, and budget-fit signals.
+  - kind: angle_map
+    title: Counter-Positioning Plan
+    description: Counter-angles and ready-to-test ad territories derived from the landscape.
 version: 1
 name: Competitor Ad Intelligence
 description: Structure context, research competitor ads separately, synthesize gaps, evaluate evidence, build counter-positioning strategy with ad concepts
