@@ -5,13 +5,7 @@ import type {
   ExecutionLoopOutcome,
   ExecutionLoopSummary,
 } from "@/lib/execution-loops"
-import {
-  CheckCircle2,
-  Gauge,
-  RefreshCcw,
-  ShieldAlert,
-  TimerReset,
-} from "lucide-react"
+import { CheckCircle2, RefreshCcw, ShieldAlert, TimerReset } from "lucide-react"
 
 function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
   switch (outcome) {
@@ -56,19 +50,18 @@ export function ExecutionLoopCard({
   detailSummary = "Loop details",
   compact = false,
   surface = "card",
+  showTechnicalBadges = true,
 }: {
   summary: ExecutionLoopSummary | null
   className?: string
   detailSummary?: string
   compact?: boolean
   surface?: "card" | "flat"
+  showTechnicalBadges?: boolean
 }) {
   if (!summary) return null
 
   const outcome = resolveLoopOutcomePresentation(summary.outcome)
-  const scoreVariant =
-    summary.score >= summary.threshold ? "success" : "warning"
-  const scoreGap = Math.max(summary.threshold - summary.score, 0)
   const criteriaCount = summary.criteriaBreakdown?.length || 0
   const compactDetail = summary.fixInstructions || summary.reason
   const flatSurface = surface === "flat"
@@ -113,41 +106,55 @@ export function ExecutionLoopCard({
           <Badge variant={outcome.badgeVariant} size="compact">
             {summary.outcomeLabel}
           </Badge>
-          <Badge variant={scoreVariant} size="compact">
-            <Gauge size={11} />
-            {summary.score}/10
-          </Badge>
-          <Badge variant="outline" size="compact">
-            Bar {summary.threshold}/10
-          </Badge>
-          <Badge variant="outline" size="compact">
-            Loop {summary.attempt}/{summary.maxAttempts}
-          </Badge>
+          {showTechnicalBadges && (
+            <>
+              <Badge
+                variant={
+                  summary.score >= summary.threshold ? "success" : "warning"
+                }
+                size="compact"
+              >
+                {summary.score}/10
+              </Badge>
+              <Badge variant="outline" size="compact">
+                Bar {summary.threshold}/10
+              </Badge>
+              <Badge variant="outline" size="compact">
+                Loop {summary.attempt}/{summary.maxAttempts}
+              </Badge>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <Badge variant={outcome.badgeVariant} size="compact">
-          {outcome.nextAction}
-        </Badge>
-        {summary.failedCriteriaCount > 0 && (
-          <Badge variant="warning" size="compact">
-            {summary.failedCriteriaCount} below bar
+      {showTechnicalBadges ? (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <Badge variant={outcome.badgeVariant} size="compact">
+            {outcome.nextAction}
           </Badge>
-        )}
-        {summary.deltaLabel && (
-          <Badge variant="outline" size="compact">
-            {summary.deltaLabel}
-          </Badge>
-        )}
-        {scoreGap > 0 && (
-          <Badge variant="outline" size="compact">
-            -{scoreGap} to pass
-          </Badge>
-        )}
-      </div>
+          {summary.failedCriteriaCount > 0 && (
+            <Badge variant="warning" size="compact">
+              {summary.failedCriteriaCount} below bar
+            </Badge>
+          )}
+          {summary.deltaLabel && (
+            <Badge variant="outline" size="compact">
+              {summary.deltaLabel}
+            </Badge>
+          )}
+          {summary.score < summary.threshold && (
+            <Badge variant="outline" size="compact">
+              -{Math.max(summary.threshold - summary.score, 0)} to pass
+            </Badge>
+          )}
+        </div>
+      ) : (
+        <p className="mt-2 text-body-sm text-muted-foreground">
+          {compactDetail || summary.outcomeSentence}
+        </p>
+      )}
 
-      {compact && compactDetail && (
+      {compact && compactDetail && showTechnicalBadges && (
         <p className="mt-2 line-clamp-2 ui-meta-text text-muted-foreground">
           {compactDetail}
         </p>
@@ -160,7 +167,24 @@ export function ExecutionLoopCard({
           className={cn("mt-2", !flatSurface && "border-0 bg-transparent")}
           summaryClassName={cn("py-1.5", !flatSurface && "px-0")}
           contentClassName="space-y-2.5"
+          unmountWhenClosed
         >
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant={
+                summary.score >= summary.threshold ? "success" : "warning"
+              }
+              size="compact"
+            >
+              {summary.score}/10
+            </Badge>
+            <Badge variant="outline" size="compact">
+              Threshold {summary.threshold}/10
+            </Badge>
+            <Badge variant="outline" size="compact">
+              Attempt {summary.attempt}/{summary.maxAttempts}
+            </Badge>
+          </div>
           {summary.reason && (
             <div>
               <p className="ui-meta-label text-muted-foreground">Why</p>

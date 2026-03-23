@@ -55,6 +55,7 @@ export function FlowRulesPreview({
         summaryClassName="py-1.5"
         contentClassName="space-y-2"
         defaultOpen={defaultOpen}
+        unmountWhenClosed
       >
         <FlowRulesList rules={rules} />
       </DisclosurePanel>

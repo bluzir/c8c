@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { WorkflowIdleStageContract } from "./WorkflowPanelInlineSections"
 
 describe("WorkflowIdleStageContract", () => {
-  it("shows active rules on the idle stage contract surface", () => {
+  it("keeps active rules collapsed on the idle stage contract surface", async () => {
+    const user = userEvent.setup()
+
     render(
       <WorkflowIdleStageContract
         title="Change the current app"
@@ -28,6 +31,11 @@ describe("WorkflowIdleStageContract", () => {
 
     expect(screen.getByText("Stage contract")).toBeTruthy()
     expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(
+      screen.queryByText("Keep implementation anchored to the agreed scope"),
+    ).toBeNull()
+
+    await user.click(screen.getByText("Active rules"))
     expect(
       screen.getByText("Keep implementation anchored to the agreed scope"),
     ).toBeTruthy()

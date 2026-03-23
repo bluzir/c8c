@@ -30,7 +30,7 @@ import {
   splitTemplatesForResultMode,
 } from "@/lib/result-modes"
 import { buildCreateRoutingPreview } from "@/lib/create-routing-preview"
-import { STAGE_META } from "@/lib/template-stages"
+import { STAGE_FAMILY_META, STAGE_META } from "@/lib/template-stages"
 import {
   countWorkflowCreateScaffoldFields,
   hasWorkflowCreatePromptContent,
@@ -249,7 +249,9 @@ export function useWorkflowCreateDerivedState({
     ? deriveTemplateExecutionDisciplineLabels(pendingTemplate)
     : []
   const pendingTemplateCategoryLabel = pendingTemplate
-    ? STAGE_META[pendingTemplate.stage].label
+    ? pendingTemplate.stageFamily
+      ? STAGE_FAMILY_META[pendingTemplate.stageFamily].label
+      : STAGE_META[pendingTemplate.stage].label
     : null
   const pendingTemplateExecutionSummary = pendingTemplate
     ? pendingTemplate.executionPolicy?.summary?.trim() ||

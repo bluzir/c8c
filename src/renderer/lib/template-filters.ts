@@ -1,7 +1,11 @@
-import type { WorkflowTemplate, WorkflowTemplateStage } from "@shared/types"
+import type {
+  StageFamily,
+  WorkflowTemplate,
+  WorkflowTemplateStage,
+} from "@shared/types"
 
 export type TemplateCategoryKey = "all" | "product" | "marketing" | "content"
-export type TemplateLibraryFilterKey = "all" | WorkflowTemplateStage
+export type TemplateLibraryFilterKey = "all" | StageFamily
 
 const PRODUCT_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
 
@@ -292,5 +296,5 @@ export function templateMatchesLibraryFilter(
   filter: TemplateLibraryFilterKey,
 ): boolean {
   if (filter === "all") return true
-  return template.stage === filter
+  return template.stageFamily === filter
 }

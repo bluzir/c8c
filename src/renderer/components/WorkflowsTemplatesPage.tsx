@@ -49,7 +49,12 @@ import {
 } from "@/lib/template-filters"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
-import { STAGE_ORDER, STAGE_META } from "@/lib/template-stages"
+import {
+  STAGE_ORDER,
+  STAGE_META,
+  STAGE_FAMILY_ORDER,
+  STAGE_FAMILY_META,
+} from "@/lib/template-stages"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import {
   resolveProjectRequiredContract,
@@ -224,10 +229,10 @@ export function WorkflowsTemplatesPage() {
 
   const availableStageFilters = useMemo(
     () =>
-      STAGE_ORDER.map((stage) => ({
+      STAGE_FAMILY_ORDER.map((stage) => ({
         stage,
         count: categoryFilteredTemplates.filter(
-          (template) => template.stage === stage,
+          (template) => template.stageFamily === stage,
         ).length,
       })).filter((entry) => entry.count > 0),
     [categoryFilteredTemplates],
@@ -674,7 +679,7 @@ export function WorkflowsTemplatesPage() {
                 <SelectItem value="all">All steps</SelectItem>
                 {availableStageFilters.map(({ stage }) => (
                   <SelectItem key={stage} value={stage}>
-                    {STAGE_META[stage].label}
+                    {STAGE_FAMILY_META[stage].label}
                   </SelectItem>
                 ))}
               </SelectContent>

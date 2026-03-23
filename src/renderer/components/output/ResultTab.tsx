@@ -408,6 +408,7 @@ export function ResultTab({
       </p>
     ) : null
   const evidencePanel =
+    verdictData.evidencePanelKind === "diagnostic" &&
     verdictData.evidencePanelItems.length > 0 ? (
       <section className="space-y-2 ui-section-divider">
         {verdictData.evidencePanelTitle ? (
@@ -458,9 +459,15 @@ export function ResultTab({
         summary={executionLoopSummary}
         compact
         surface="flat"
-        detailSummary="Loop details"
+        detailSummary="Technical details"
+        showTechnicalBadges={false}
       />
-      <FlowRulesPreview rules={loopFlowRules} surface="flat" />
+      <FlowRulesPreview
+        rules={loopFlowRules}
+        surface="flat"
+        collapsible
+        defaultOpen={false}
+      />
     </section>
   ) : null
   const artifactLinkStrip =

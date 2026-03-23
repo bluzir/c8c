@@ -224,7 +224,7 @@ describe("deriveVerdictData", () => {
     expect(result.headline).toBe("CLI crashed while mapping the repo.")
   })
 
-  it("promotes evaluator-backed reviews to diagnostic verdicts with an evidence panel", () => {
+  it("keeps evaluator-backed review diagnostics out of the main evidence panel", () => {
     const result = deriveVerdictData({
       nodeStates: {
         result: createCompletedNodeState(),
@@ -262,8 +262,9 @@ describe("deriveVerdictData", () => {
 
     expect(result.variant).toBe("diagnostic")
     expect(result.surfaceMode).toBe("decision")
-    expect(result.evidencePanelTitle).toBe("Review loop")
-    expect(result.evidencePanelItems).toHaveLength(2)
+    expect(result.evidencePanelKind).toBeNull()
+    expect(result.evidencePanelTitle).toBeNull()
+    expect(result.evidencePanelItems).toHaveLength(0)
     expect(result.followUpLabel).toBe("Create follow-up flow")
   })
 
@@ -323,6 +324,7 @@ describe("deriveVerdictData", () => {
     expect(result.headline).toBe("Critical UX debt blocks reliable execution.")
     expect(result.evidenceItems).toContain("2 critical")
     expect(result.evidenceItems).toContain("3 high")
+    expect(result.evidencePanelKind).toBe("diagnostic")
     expect(result.evidencePanelTitle).toBe("Top findings")
     expect(result.evidencePanelItems).toMatchObject([
       {

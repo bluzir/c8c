@@ -339,8 +339,9 @@ export function ApprovalDialog() {
           <ExecutionLoopCard
             summary={evaluatorSummary}
             compact
-            detailSummary="Why / checks"
+            detailSummary="Technical details"
             surface="flat"
+            showTechnicalBadges={false}
           />
         )}
 

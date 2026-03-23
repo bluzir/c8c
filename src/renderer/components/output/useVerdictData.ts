@@ -29,6 +29,7 @@ export interface VerdictData {
   headline: string
   provenanceLabel: string | null
   evidenceItems: string[]
+  evidencePanelKind: "diagnostic" | null
   evidencePanelTitle: string | null
   evidencePanelItems: VerdictEvidencePanelItem[]
   followUpLabel: string | null
@@ -424,79 +425,59 @@ export function deriveVerdictData({
             isDisplayedResultEmpty,
           })
 
-  const evidenceItems = hasDiagnosticStructure
-    ? [
-        formatScore(scoreValue),
-        formatSeverityCount("critical", structuredSeverityCounts?.critical),
-        formatSeverityCount("high", structuredSeverityCounts?.high),
-        formatSeverityCount("medium", structuredSeverityCounts?.medium),
-        formatSeverityCount("low", structuredSeverityCounts?.low),
-        structuredCriteria.length > 0
-          ? `${structuredCriteria.length} check${structuredCriteria.length === 1 ? "" : "s"}`
-          : criticalCount > 0
-            ? `${criticalCount} failed step${criticalCount === 1 ? "" : "s"}`
-            : null,
-        failedCriteriaCount > 0
-          ? `${failedCriteriaCount} below threshold`
-          : structuredCriteria.length > 0
-            ? "0 below threshold"
-            : warningCount > 0
-              ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
+  const evidenceItems = executionLoopSummary
+    ? [durationLabel, costLabel]
+        .filter((value): value is string => Boolean(value))
+        .slice(0, 2)
+    : hasDiagnosticStructure
+      ? [
+          formatScore(scoreValue),
+          formatSeverityCount("critical", structuredSeverityCounts?.critical),
+          formatSeverityCount("high", structuredSeverityCounts?.high),
+          formatSeverityCount("medium", structuredSeverityCounts?.medium),
+          formatSeverityCount("low", structuredSeverityCounts?.low),
+          structuredCriteria.length > 0
+            ? `${structuredCriteria.length} check${structuredCriteria.length === 1 ? "" : "s"}`
+            : criticalCount > 0
+              ? `${criticalCount} failed step${criticalCount === 1 ? "" : "s"}`
               : null,
-        executionLoopSummary?.deltaLabel || null,
-        durationLabel,
-        costLabel,
-      ]
-        .filter((value): value is string => Boolean(value))
-        .slice(0, 5)
-    : [
-        formatScore(scoreValue),
-        criticalCount > 0
-          ? `${criticalCount} critical`
-          : scoreValue != null || warningCount > 0
-            ? "0 critical"
+          failedCriteriaCount > 0
+            ? `${failedCriteriaCount} below threshold`
+            : structuredCriteria.length > 0
+              ? "0 below threshold"
+              : warningCount > 0
+                ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
+                : null,
+          executionLoopSummary?.deltaLabel || null,
+          durationLabel,
+          costLabel,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .slice(0, 5)
+      : [
+          formatScore(scoreValue),
+          criticalCount > 0
+            ? `${criticalCount} critical`
+            : scoreValue != null || warningCount > 0
+              ? "0 critical"
+              : null,
+          warningCount > 0
+            ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
+            : scoreValue != null || criticalCount > 0
+              ? "0 warnings"
+              : null,
+          durationLabel,
+          costLabel,
+          executionLoopSummary?.attempt && executionLoopSummary.attempt > 1
+            ? `Attempt ${executionLoopSummary.attempt}/${executionLoopSummary.maxAttempts}`
             : null,
-        warningCount > 0
-          ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
-          : scoreValue != null || criticalCount > 0
-            ? "0 warnings"
-            : null,
-        durationLabel,
-        costLabel,
-        executionLoopSummary?.attempt && executionLoopSummary.attempt > 1
-          ? `Attempt ${executionLoopSummary.attempt}/${executionLoopSummary.maxAttempts}`
-          : null,
-      ]
-        .filter((value): value is string => Boolean(value))
-        .slice(0, 5)
+        ]
+          .filter((value): value is string => Boolean(value))
+          .slice(0, 5)
 
-  const loopEvidencePanelItems =
-    executionLoopSummary?.criteriaBreakdown?.map((criterion) => {
-      const valueLabel = `${criterion.score}/10`
-      const detail = executionLoopSummary.threshold
-        ? `threshold ${executionLoopSummary.threshold}/10`
-        : "structured check"
-      const tone: VerdictTone =
-        criterion.score < (executionLoopSummary.threshold || 0)
-          ? criterion.score <=
-            Math.max(1, (executionLoopSummary.threshold || 0) - 3)
-            ? "danger"
-            : "warning"
-          : "neutral"
-      return {
-        id: criterion.id,
-        title: criterion.id,
-        valueLabel,
-        detail,
-        tone,
-      }
-    }) || []
   const diagnosticEvidencePanel =
     buildDiagnosticEvidencePanel(diagnosticSummary)
-  const evidencePanelItems =
-    loopEvidencePanelItems.length > 0
-      ? loopEvidencePanelItems
-      : diagnosticEvidencePanel.items
+  const evidencePanelItems = diagnosticEvidencePanel.items
 
   const preservedText =
     terminalVariant === "failed"
@@ -555,12 +536,9 @@ export function deriveVerdictData({
     headline,
     provenanceLabel,
     evidenceItems,
+    evidencePanelKind: evidencePanelItems.length > 0 ? "diagnostic" : null,
     evidencePanelTitle:
-      evidencePanelItems.length > 0
-        ? loopEvidencePanelItems.length > 0
-          ? executionLoopSummary?.loopLabel || "Checks"
-          : diagnosticEvidencePanel.title
-        : null,
+      evidencePanelItems.length > 0 ? diagnosticEvidencePanel.title : null,
     evidencePanelItems,
     followUpLabel,
     preservedText,

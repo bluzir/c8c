@@ -282,7 +282,12 @@ export function WorkflowIdleStageContract({
             </div>
           )}
           {flowRules.length > 0 && (
-            <FlowRulesPreview rules={flowRules} surface="flat" />
+            <FlowRulesPreview
+              rules={flowRules}
+              surface="flat"
+              collapsible
+              defaultOpen={false}
+            />
           )}
           {onPrimaryAction && primaryActionLabel && (
             <div className="flex flex-wrap items-center gap-2">
@@ -414,7 +419,12 @@ export function WorkflowResumeHeader({
           </div>
 
           {flowRules.length > 0 && (
-            <FlowRulesPreview rules={flowRules} surface="flat" />
+            <FlowRulesPreview
+              rules={flowRules}
+              surface="flat"
+              collapsible
+              defaultOpen={false}
+            />
           )}
 
           <div className="flex flex-wrap items-center gap-2">

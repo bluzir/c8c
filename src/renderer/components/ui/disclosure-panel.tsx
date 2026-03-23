@@ -10,6 +10,7 @@ export function DisclosurePanel({
   contentClassName,
   defaultOpen = false,
   surface = "card",
+  unmountWhenClosed = false,
 }: {
   summary: ReactNode
   children: ReactNode
@@ -18,6 +19,7 @@ export function DisclosurePanel({
   contentClassName?: string
   defaultOpen?: boolean
   surface?: "card" | "flat" | "plain"
+  unmountWhenClosed?: boolean
 }) {
   const [open, setOpen] = useState(defaultOpen)
 
@@ -63,11 +65,13 @@ export function DisclosurePanel({
         />
       </button>
       <div data-open={open ? "true" : "false"} className="ui-collapsible">
-        <div className="ui-collapsible-inner">
-          <div className={cn(contentBaseClassName, contentClassName)}>
-            {children}
+        {(open || !unmountWhenClosed) && (
+          <div className="ui-collapsible-inner">
+            <div className={cn(contentBaseClassName, contentClassName)}>
+              {children}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

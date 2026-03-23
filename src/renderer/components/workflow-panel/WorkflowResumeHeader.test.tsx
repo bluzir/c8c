@@ -23,7 +23,7 @@ const baseEntry = {
 }
 
 describe("WorkflowResumeHeader", () => {
-  it("renders resume copy for ready saved work and fires the primary action", async () => {
+  it("renders resume copy for ready saved work and keeps rules secondary", async () => {
     const user = userEvent.setup()
     const onPrimaryAction = vi.fn()
 
@@ -65,8 +65,11 @@ describe("WorkflowResumeHeader", () => {
       screen.getByText("Status: No blocking checks or approvals."),
     ).toBeTruthy()
     expect(screen.getByText("Active rules")).toBeTruthy()
-    expect(screen.getByText("Check evidence before continuing")).toBeTruthy()
+    expect(screen.queryByText("Check evidence before continuing")).toBeNull()
     expect(screen.queryByText(/Agent picked this start/i)).toBeNull()
+
+    await user.click(screen.getByText("Active rules"))
+    expect(screen.getByText("Check evidence before continuing")).toBeTruthy()
 
     await user.click(screen.getByRole("button", { name: "Continue" }))
     expect(onPrimaryAction).toHaveBeenCalledTimes(1)

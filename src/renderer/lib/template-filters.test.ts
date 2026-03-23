@@ -39,6 +39,7 @@ describe("template-filters", () => {
     const template = createTemplate({
       id: "delivery-map-codebase",
       stage: "strategy",
+      stageFamily: "understand",
       pack: {
         id: "delivery-foundation",
         label: "Delivery Factory",
@@ -48,7 +49,7 @@ describe("template-filters", () => {
 
     expect(isProductTemplate(template)).toBe(true)
     expect(templateMatchesCategory(template, "product")).toBe(true)
-    expect(templateMatchesLibraryFilter(template, "strategy")).toBe(true)
+    expect(templateMatchesLibraryFilter(template, "understand")).toBe(true)
   })
 
   it("keeps segment research discoverable in marketing", () => {
@@ -86,6 +87,7 @@ describe("template-filters", () => {
     const template = createTemplate({
       id: "ux-ui-polish-audit",
       stage: "code",
+      stageFamily: "evaluate",
       name: "UX/UI Polish Audit",
       description: "Audit UX and UI quality across a project.",
       headline: "Audit UX/UI polish across the whole project",
@@ -111,7 +113,7 @@ describe("template-filters", () => {
     expect(isMarketingTemplate(template)).toBe(true)
     expect(templateMatchesCategory(template, "product")).toBe(true)
     expect(templateMatchesCategory(template, "marketing")).toBe(true)
-    expect(templateMatchesLibraryFilter(template, "code")).toBe(true)
+    expect(templateMatchesLibraryFilter(template, "evaluate")).toBe(true)
   })
 
   it("treats course workflows as content", () => {

@@ -148,7 +148,8 @@ describe("ResultTab", () => {
     expect(onRerunSelectedStage).toHaveBeenCalledTimes(1)
   })
 
-  it("shows explicit loop counters and active rules for quality loops", () => {
+  it("keeps loop diagnostics behind disclosure on quality loops", async () => {
+    const user = userEvent.setup()
     const props = createBaseProps()
     props.showArtifactContinuation = true
     props.executionLoopSummary = {
@@ -178,8 +179,17 @@ describe("ResultTab", () => {
 
     expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
     expect(screen.getByText("UI polish gate")).toBeTruthy()
-    expect(screen.getByText("Loop 2/3")).toBeTruthy()
     expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(screen.queryByText("Loop 2/3")).toBeNull()
+    expect(
+      screen.queryByText("Return to fix when checks stay below the threshold"),
+    ).toBeNull()
+    expect(screen.queryByText("Escalate after 3 loop attempts")).toBeNull()
+
+    await user.click(screen.getByText("Technical details"))
+    expect(screen.getByText("Attempt 2/3")).toBeTruthy()
+
+    await user.click(screen.getByText("Active rules"))
     expect(
       screen.getByText("Return to fix when checks stay below the threshold"),
     ).toBeTruthy()

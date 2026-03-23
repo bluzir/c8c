@@ -104,7 +104,9 @@ describe("SelectedTaskPanel", () => {
     expect(onReject).toHaveBeenCalledTimes(1)
   })
 
-  it("shows loop counters and active rules when blocked by a quality loop", () => {
+  it("keeps loop diagnostics behind disclosure when blocked by a quality loop", async () => {
+    const user = userEvent.setup()
+
     render(
       <SelectedTaskPanel
         selectedTask={createSelectedTask()}
@@ -161,8 +163,16 @@ describe("SelectedTaskPanel", () => {
     )
 
     expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
-    expect(screen.getByText("Loop 2/3")).toBeTruthy()
     expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(screen.queryByText("Loop 2/3")).toBeNull()
+    expect(
+      screen.queryByText("Ask for human approval when the loop cannot decide"),
+    ).toBeNull()
+
+    await user.click(screen.getByText("Technical details"))
+    expect(screen.getByText("Attempt 2/3")).toBeTruthy()
+
+    await user.click(screen.getByText("Active rules"))
     expect(
       screen.getByText("Ask for human approval when the loop cannot decide"),
     ).toBeTruthy()

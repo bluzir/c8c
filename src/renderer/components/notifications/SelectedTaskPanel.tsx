@@ -280,11 +280,14 @@ export function SelectedTaskPanel({
                   summary={blockedSummary.executionLoopSummary}
                   compact
                   surface="flat"
-                  detailSummary="Loop details"
+                  detailSummary="Technical details"
+                  showTechnicalBadges={false}
                 />
                 <FlowRulesPreview
                   rules={blockedSummary.flowRules || []}
                   surface="flat"
+                  collapsible
+                  defaultOpen={false}
                 />
               </div>
             ) : null}
