@@ -10,10 +10,21 @@ import type {
   EvaluationResult,
 } from "@shared/types"
 
+/**
+ * Minimal node shape used for display. Full `WorkflowNode` instances satisfy
+ * this, but runtime-expanded branch nodes (which lack `position`/`config`)
+ * are also accepted.
+ */
+export interface DisplayNode {
+  id: string
+  label?: string
+  type: string
+}
+
 type StepStatus = "pending" | "running" | "done" | "failed" | "blocked"
 
 interface StepsListProps {
-  nodes: WorkflowNode[]
+  nodes: DisplayNode[]
   nodeStates: Record<string, NodeState>
   evalResults?: Record<string, EvaluationResult[]>
   activeNodeId?: string | null
@@ -47,8 +58,12 @@ function deriveCost(nodeState: NodeState | undefined): string | undefined {
   return undefined
 }
 
+function isFullWorkflowNode(node: DisplayNode): node is WorkflowNode {
+  return "position" in node && "config" in node
+}
+
 function deriveFanOutProgress(
-  node: WorkflowNode,
+  node: DisplayNode,
   nodeStates: Record<string, NodeState>,
   runtimeMeta?: WorkflowRuntimeMeta,
 ): string | undefined {
@@ -105,14 +120,27 @@ export function StepsList({
           runtimeMeta,
         )
         const expanded = expandedStepId === node.id
-        const label = getRuntimeNodeLabel(node, { fallbackId: node.id })
+        const label = isFullWorkflowNode(node)
+          ? getRuntimeNodeLabel(node, { fallbackId: node.id })
+          : node.label || node.id
 
         return (
           <StepRow
             key={node.id}
             name={label}
             status={status}
-            nodeType={node.type === "human" ? "approval" : node.type}
+            nodeType={
+              node.type === "human"
+                ? "approval"
+                : (node.type as
+                    | "skill"
+                    | "evaluator"
+                    | "splitter"
+                    | "merger"
+                    | "approval"
+                    | "input"
+                    | "output")
+            }
             duration={duration}
             cost={cost}
             expanded={expanded}
