@@ -27,7 +27,7 @@ describe("RouteClarificationDialog", () => {
         jobRouteMetaByTemplateId={{
           "full-stack-code-audit": {
             helpModeLabel: "Review it",
-            stageLabel: "Starts in Review",
+            stageLabel: "First step: Review",
           },
         }}
         onClose={vi.fn()}
@@ -36,7 +36,7 @@ describe("RouteClarificationDialog", () => {
     )
 
     expect(screen.getByText("Choose the audit path")).toBeTruthy()
-    expect(screen.getByText("Review it · Starts in Review")).toBeTruthy()
+    expect(screen.getByText("Review it · First step: Review")).toBeTruthy()
     expect(
       screen.getByText("Look for codebase risks and quality gaps."),
     ).toBeTruthy()
@@ -90,7 +90,8 @@ describe("WorkflowCreatePendingTemplateDialog", () => {
     )
 
     expect(screen.getByText("Review it")).toBeTruthy()
-    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("Path")).toBeTruthy()
+    expect(screen.getByText("First step")).toBeTruthy()
     expect(screen.getAllByText("Review").length).toBeGreaterThan(0)
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(screen.getByText("Understand")).toBeTruthy()

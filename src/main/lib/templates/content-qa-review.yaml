@@ -24,6 +24,7 @@ contract_in:
     title: Draft Post
     description: The draft that should be reviewed before publishing or bundling.
     required: true
+suggested_tools: []
 contract_out:
   - kind: qa_report
     title: QA Report

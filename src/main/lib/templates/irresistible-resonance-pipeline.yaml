@@ -16,6 +16,7 @@ steps:
   - Map audience awareness levels
   - Sharpen messaging for each level
   - Generate and amplify awareness-matched headlines
+suggested_tools: []
 contract_out:
   - kind: messaging_framework
     title: Messaging Framework

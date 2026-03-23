@@ -10,10 +10,12 @@ import {
   skillPickerOpenAtom,
   skillPickerRequestAtom,
   type InboxNotification,
+  selectedWorkflowSavedRunReviewRequestedAtom,
   workflowEntryStateAtom,
   workflowDirtyAtom,
   workflowRequestedResultsAtom,
   workflowSavedSnapshotAtom,
+  workflowSavedRunReviewRequestedByKeyAtom,
   workflowTemplateContextsAtom,
 } from "./store"
 import { workflowSnapshot } from "./workflow-snapshot"
@@ -233,6 +235,43 @@ describe("workflowDirtyAtom", () => {
 
     store.set(currentWorkflowAtom, savedWorkflow)
     expect(store.get(workflowDirtyAtom)).toBe(false)
+  })
+})
+
+describe("selectedWorkflowSavedRunReviewRequestedAtom", () => {
+  it("stores saved-run review bookmarks per workflow key", () => {
+    const store = createStore()
+
+    store.set(selectedWorkflowPathAtom, "/tmp/alpha.chain")
+    store.set(selectedWorkflowSavedRunReviewRequestedAtom, true)
+
+    expect(store.get(selectedWorkflowSavedRunReviewRequestedAtom)).toBe(true)
+    expect(store.get(workflowSavedRunReviewRequestedByKeyAtom)).toEqual({
+      "/tmp/alpha.chain": true,
+    })
+
+    store.set(selectedWorkflowPathAtom, "/tmp/beta.chain")
+    expect(store.get(selectedWorkflowSavedRunReviewRequestedAtom)).toBe(false)
+
+    store.set(selectedWorkflowSavedRunReviewRequestedAtom, true)
+    expect(store.get(workflowSavedRunReviewRequestedByKeyAtom)).toEqual({
+      "/tmp/alpha.chain": true,
+      "/tmp/beta.chain": true,
+    })
+
+    store.set(selectedWorkflowPathAtom, "/tmp/alpha.chain")
+    expect(store.get(selectedWorkflowSavedRunReviewRequestedAtom)).toBe(true)
+  })
+
+  it("removes the bookmark for the selected workflow when cleared", () => {
+    const store = createStore()
+
+    store.set(selectedWorkflowPathAtom, "/tmp/alpha.chain")
+    store.set(selectedWorkflowSavedRunReviewRequestedAtom, true)
+    store.set(selectedWorkflowSavedRunReviewRequestedAtom, false)
+
+    expect(store.get(selectedWorkflowSavedRunReviewRequestedAtom)).toBe(false)
+    expect(store.get(workflowSavedRunReviewRequestedByKeyAtom)).toEqual({})
   })
 })
 

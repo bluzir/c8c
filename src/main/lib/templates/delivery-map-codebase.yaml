@@ -20,6 +20,7 @@ pack:
   entrypoint: true
   recommended_next:
     - delivery-shape-project
+suggested_tools: []
 contract_out:
   - kind: codebase_map
     title: Codebase Map

@@ -15,6 +15,7 @@ steps:
   - Fan out repo-wide audit tracks by engineering lens
   - Review each lens in parallel against the full codebase
   - Synthesize findings into a prioritized audit report
+suggested_tools: []
 contract_out:
   - kind: audit_report
     title: Audit Report

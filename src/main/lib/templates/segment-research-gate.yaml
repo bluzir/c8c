@@ -16,6 +16,8 @@ steps:
   - Generate grounded segment hypotheses based on context analysis
   - Research each segment in parallel with signal grounding
   - Score and filter segments through a quality check
+suggested_tools:
+  - web_search
 contract_out:
   - kind: research_pack
     title: Segment Research Pack

@@ -15,6 +15,8 @@ steps:
   - Build a candidate account universe and reject vague search angles before enrichment.
   - Add only the research columns needed to prove fit, timing, and hook quality.
   - Tier every account and explain why it belongs in this campaign or why it should wait.
+suggested_tools:
+  - web_search
 contract_out:
   - kind: research_pack
     title: Target Account Pack

@@ -18,6 +18,7 @@ steps:
   - Evaluate JTBD alignment and copy quality
   - Founder approval before finalizing
   - Output rewritten landing page
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Rewritten Landing Page

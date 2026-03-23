@@ -9,7 +9,6 @@ import {
   deriveTemplateContinuationLabel,
   deriveTemplateDisplayLabel,
   deriveTemplateExecutionDisciplineLabels,
-  deriveTemplateJourneyStageLabel,
   deriveTemplatePackStagePath,
   formatArtifactContractLabel,
   getTemplateRecommendedNext,
@@ -85,7 +84,6 @@ function matchesTemplateNextStepLabel(
   return [
     deriveTemplateContinuationLabel(template),
     deriveTemplateDisplayLabel(template),
-    deriveTemplateJourneyStageLabel(template),
     template.name,
   ].some((value) => normalizeTemplateMatchLabel(value) === normalizedTarget)
 }
@@ -460,7 +458,7 @@ export function useFactoryData({
               .filter((template) => templateHasStrategistCheckpoint(template))
               .map(
                 (template) =>
-                  deriveTemplateJourneyStageLabel(template) || template.name,
+                  deriveTemplateDisplayLabel(template) || template.name,
               ),
           ),
           caseRule: entrypointTemplate
@@ -628,7 +626,7 @@ export function useFactoryData({
             .filter((template) => templateHasStrategistCheckpoint(template))
             .map(
               (template) =>
-                deriveTemplateJourneyStageLabel(template) || template.name,
+                deriveTemplateDisplayLabel(template) || template.name,
             ),
         ),
         caseRule: entrypointTemplate

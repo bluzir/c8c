@@ -63,6 +63,12 @@ export interface WorkflowTemplateRunContext {
   executionPolicy?: WorkflowExecutionPolicyProfile
 }
 
+export function hasSavedWorkContinuationContext(
+  context: WorkflowTemplateRunContext | null | undefined,
+) {
+  return Boolean(context?.sourceArtifactIds?.some((artifactId) => artifactId))
+}
+
 export interface WorkflowTemplateCaseOverride {
   caseId: string
   caseLabel?: string
@@ -401,8 +407,9 @@ export function deriveTemplateDisplayLabel(
 ) {
   if (!template) return null
   return (
-    TEMPLATE_STAGE_LABELS[template.id] ||
+    TEMPLATE_JOB_LABELS[template.id] ||
     stripPackPrefix(template.name, template.pack?.label) ||
+    TEMPLATE_STAGE_LABELS[template.id] ||
     deriveTemplateJourneyStageLabel(template as WorkflowTemplate)
   )
 }
@@ -458,8 +465,9 @@ export function deriveTemplateContextDisplayLabel(
 ) {
   if (!context) return null
   return (
-    TEMPLATE_STAGE_LABELS[context.templateId] ||
+    TEMPLATE_JOB_LABELS[context.templateId] ||
     stripPackPrefix(context.templateName, context.pack?.label) ||
+    TEMPLATE_STAGE_LABELS[context.templateId] ||
     deriveTemplateContextJourneyStageLabel(context)
   )
 }

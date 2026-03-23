@@ -25,6 +25,7 @@ contract_in:
     title: Audience & Offer Brief
     description: Audience definition and transformation promise for the course.
     required: true
+suggested_tools: []
 contract_out:
   - kind: curriculum_map
     title: Curriculum Map

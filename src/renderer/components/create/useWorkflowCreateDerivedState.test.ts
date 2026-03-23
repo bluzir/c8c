@@ -65,14 +65,14 @@ describe("resolveWorkflowCreateFigureOwner", () => {
         helpModeLabel: "Review it",
         stageLabel: "Review",
       }),
-    ).toBe("Review it · Starts in Review")
+    ).toBe("Review it · First step: Review")
 
     expect(
       formatStartingPointMeta({
         helpModeLabel: null,
         stageLabel: "Understand",
       }),
-    ).toBe("Starts in Understand")
+    ).toBe("First step: Understand")
 
     expect(
       formatStartingPointMeta({

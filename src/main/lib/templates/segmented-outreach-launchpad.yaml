@@ -16,6 +16,7 @@ steps:
   - Generate follow-up sequences for each branch so the first touch is not the only touch.
   - Merge the best copy, run a quality check, and prep provider upload without activating anything.
   - Founder approves the final outreach pack before sequencer handoff.
+suggested_tools: []
 contract_out:
   - kind: distribution_bundle
     title: Outreach Launch Pack

@@ -8,8 +8,8 @@ import { cn } from "@/lib/cn"
 import { DEFAULT_MARKDOWN_PROPS } from "@/lib/markdown"
 import { deriveArtifactInspectSummary } from "@/lib/artifact-inspect"
 import {
+  deriveTemplateDisplayLabel,
   deriveTemplateExecutionDisciplineLabels,
-  deriveTemplateJourneyStageLabel,
   formatArtifactContractLabel,
 } from "@/lib/workflow-entry"
 import type {
@@ -148,7 +148,7 @@ export function ArtifactInspectPanel({
           </div>
           <div className="ui-slab space-y-0">
             {matchingTemplates.slice(0, 3).map((template, index) => {
-              const stageLabel = deriveTemplateJourneyStageLabel(template)
+              const stageLabel = deriveTemplateDisplayLabel(template)
               const disciplineLabels =
                 deriveTemplateExecutionDisciplineLabels(template)
               const isLaunching = launchingTemplateId === template.id

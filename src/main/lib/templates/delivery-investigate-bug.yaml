@@ -23,6 +23,7 @@ pack:
   entrypoint: true
   recommended_next:
     - delivery-review-phase
+suggested_tools: []
 contract_out:
   - kind: root_cause_analysis
     title: Root Cause Analysis

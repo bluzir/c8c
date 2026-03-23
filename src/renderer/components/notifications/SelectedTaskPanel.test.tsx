@@ -162,17 +162,21 @@ describe("SelectedTaskPanel", () => {
       />,
     )
 
-    expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
-    expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(screen.getByText("Decision details")).toBeTruthy()
+    expect(screen.queryByText("Review loop")).toBeNull()
+    expect(screen.queryByText("Active rules")).toBeNull()
     expect(screen.queryByText("Loop 2/3")).toBeNull()
     expect(
       screen.queryByText("Ask for human approval when the loop cannot decide"),
     ).toBeNull()
 
+    await user.click(screen.getByText("Decision details"))
+    expect(screen.getAllByText("Review loop").length).toBeGreaterThan(0)
+    expect(screen.getByText("Active rules")).toBeTruthy()
+
     await user.click(screen.getByText("Technical details"))
     expect(screen.getByText("Attempt 2/3")).toBeTruthy()
 
-    await user.click(screen.getByText("Active rules"))
     expect(
       screen.getByText("Ask for human approval when the loop cannot decide"),
     ).toBeTruthy()

@@ -27,6 +27,8 @@ contract_in:
     title: Editorial Calendar
     description: Useful sequencing context for which SEO asset to prioritize first.
     required: false
+suggested_tools:
+  - web_search
 contract_out:
   - kind: content_brief
     title: SEO Brief Pack

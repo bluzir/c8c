@@ -15,6 +15,7 @@ steps:
   - Generate personalized emails and follow-up sequences
   - Simulate buyer response and evaluate email quality
   - Founder approves final outreach before sending
+suggested_tools: []
 contract_out:
   - kind: distribution_bundle
     title: Cold Outreach Pack

@@ -15,6 +15,7 @@ export function useWorkflowPanelEntryActions({
   setFlowSurfaceMode,
   setPrepareNewRun,
   setSelectedInboxTaskKey,
+  setWorkflowContinuationEntryState,
   setWorkflowEntryState,
 }: {
   effectiveEntryStageLabel: string | null
@@ -37,6 +38,9 @@ export function useWorkflowPanelEntryActions({
   setFlowSurfaceMode: (value: "outline" | "edit") => void
   setPrepareNewRun: (value: boolean) => void
   setSelectedInboxTaskKey: (value: string | null) => void
+  setWorkflowContinuationEntryState: (
+    value: import("@/lib/workflow-entry").WorkflowEntryState | null,
+  ) => void
   setWorkflowEntryState: (
     value: import("@/lib/workflow-entry").WorkflowEntryState | null,
   ) => void
@@ -96,11 +100,13 @@ export function useWorkflowPanelEntryActions({
       setSelectedInboxTaskKey(null)
       return
     }
+    setWorkflowContinuationEntryState(null)
     setWorkflowEntryState(null)
   }, [
     blockedResumeSummary,
     setPrepareNewRun,
     setSelectedInboxTaskKey,
+    setWorkflowContinuationEntryState,
     setWorkflowEntryState,
   ])
 

@@ -30,6 +30,7 @@ contract_in:
     title: Existing Codebase Map
     description: Helpful context when shaping work in an existing repository.
     required: false
+suggested_tools: []
 contract_out:
   - kind: project_brief
     title: Project Brief

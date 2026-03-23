@@ -14,6 +14,7 @@ steps:
   - Prioritize and plan each action item in parallel
   - Compile into a project planning document
   - Evaluate completeness, deduplication, and owner assignment quality
+suggested_tools: []
 contract_out:
   - kind: phase_plan
     title: Action Plan

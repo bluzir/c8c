@@ -32,8 +32,8 @@ import {
 } from "@/lib/workflow-blocked-copy"
 import { formatElapsedTime } from "@/lib/run-progress"
 import {
+  deriveTemplateDisplayLabel,
   deriveTemplateExecutionDisciplineLabels,
-  deriveTemplateJourneyStageLabel,
   deriveTemplateUseWhen,
   formatArtifactContractLabel,
 } from "@/lib/workflow-entry"
@@ -170,12 +170,12 @@ export function FactoryOperationsView({
           tone={scopedHumanTasks.length > 0 ? "warning" : "default"}
         />
         <StatCard
-          label="Saved artifacts"
+          label="Saved results"
           value={String(scopedArtifacts.length)}
           hint={
             scopedArtifacts.length > 0
-              ? "Reusable artifacts available for downstream steps."
-              : "Run a step to create reusable artifacts."
+              ? "Saved results are ready for follow-up steps."
+              : "Run a step to save results for follow-up work."
           }
         />
         <StatCard
@@ -225,7 +225,7 @@ export function FactoryOperationsView({
             className={cn(!libraryOwnsSurface && FACTORY_GROUPED_REGION_CLASS)}
           >
             {availableEntrypointTemplates.map((template, index) => {
-              const stageLabel = deriveTemplateJourneyStageLabel(template)
+              const stageLabel = deriveTemplateDisplayLabel(template)
               const disciplineLabels =
                 deriveTemplateExecutionDisciplineLabels(template)
               const isLaunching = launchingTemplateId === template.id
@@ -477,7 +477,7 @@ export function FactoryOperationsView({
                   ? deriveTemplateExecutionDisciplineLabels(action.template)
                   : []
                 const stageLabel = action.template
-                  ? deriveTemplateJourneyStageLabel(action.template)
+                  ? deriveTemplateDisplayLabel(action.template)
                   : null
                 const isLaunching = action.template
                   ? launchingTemplateId === action.template.id
@@ -964,7 +964,7 @@ export function FactoryOperationsView({
             ) : (
               <div className="space-y-2">
                 {scopedReadyTemplates.map((template) => {
-                  const stageLabel = deriveTemplateJourneyStageLabel(template)
+                  const stageLabel = deriveTemplateDisplayLabel(template)
                   const disciplineLabels =
                     deriveTemplateExecutionDisciplineLabels(template)
                   const isLaunching = launchingTemplateId === template.id

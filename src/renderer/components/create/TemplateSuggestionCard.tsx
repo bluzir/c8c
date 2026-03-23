@@ -75,13 +75,13 @@ export function PendingTemplateDetails({
       <div className="flex flex-wrap gap-3">
         {intentLabel ? (
           <div className="space-y-1">
-            <p className="ui-meta-text text-muted-foreground">Intent</p>
+            <p className="ui-meta-text text-muted-foreground">Path</p>
             <p className="text-body-sm text-foreground">{intentLabel}</p>
           </div>
         ) : null}
         {startStageLabel ? (
           <div className="space-y-1">
-            <p className="ui-meta-text text-muted-foreground">Starts in</p>
+            <p className="ui-meta-text text-muted-foreground">First step</p>
             <p className="text-body-sm text-foreground">{startStageLabel}</p>
           </div>
         ) : null}

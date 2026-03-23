@@ -21,6 +21,7 @@ pack:
   entrypoint: true
   recommended_next:
     - courses-curriculum-map
+suggested_tools: []
 contract_out:
   - kind: audience_offer_brief
     title: Audience & Offer Brief

@@ -16,6 +16,8 @@ steps:
   - Find the right people and verify emails before writing outreach.
   - Generate emails and follow-up sequences, stress-test the copy.
   - Founder approves the final outreach pack before sequencer handoff.
+suggested_tools:
+  - web_search
 contract_out:
   - kind: distribution_bundle
     title: Live Campaign Pack

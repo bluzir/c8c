@@ -21,6 +21,7 @@ contract_in:
     title: Audit Report
     description: Findings and system risks that the spec should resolve explicitly.
     required: false
+suggested_tools: []
 contract_out:
   - kind: project_brief
     title: Project Brief

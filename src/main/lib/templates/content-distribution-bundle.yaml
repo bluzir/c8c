@@ -28,6 +28,7 @@ contract_in:
     title: QA Report
     description: The review context that should influence the final bundle.
     required: true
+suggested_tools: []
 contract_out:
   - kind: distribution_bundle
     title: Distribution Bundle

@@ -59,7 +59,7 @@ export function ProcessSpine({
   if (stages.length === 0) return null
 
   return (
-    <section aria-label="Process stages" className={cn("px-0 py-0", className)}>
+    <section aria-label="Flow steps" className={cn("px-0 py-0", className)}>
       <div className="overflow-x-auto ui-scrollbar-hidden">
         <div className="flex min-w-max items-center gap-1.5">
           {stages.map((stage, index) => (

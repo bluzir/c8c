@@ -57,7 +57,8 @@ describe("PendingTemplateDialog", () => {
     )
 
     expect(screen.getByText("Start Change the current app")).toBeTruthy()
-    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("Path")).toBeTruthy()
+    expect(screen.getByText("First step")).toBeTruthy()
     expect(screen.getByText("Steps")).toBeTruthy()
   })
 })

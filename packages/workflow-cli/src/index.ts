@@ -3,6 +3,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join, resolve } from "node:path"
+import { setTimeout as delay } from "node:timers/promises"
 import { pathToFileURL } from "node:url"
 import YAML from "yaml"
 import {
@@ -32,6 +33,13 @@ import {
   createNodeWorkflowRunner,
   validateWorkflowExtended,
 } from "@c8c/workflow-runner/node"
+import {
+  createTelegramApiClient,
+  loadTelegramBridgeConfig,
+  loadTelegramBridgeState,
+  runTelegramBridgeIteration,
+  saveTelegramBridgeState,
+} from "./telegram-bridge.js"
 
 type Command =
   | "run"
@@ -103,6 +111,7 @@ interface CliFlags {
   comment?: string
   idempotencyKey?: string
   editedContent?: string
+  config?: string
 }
 
 interface OpenClawRunArgsJson {
@@ -179,6 +188,7 @@ function printUsage(): void {
   c8c-workflow hil respond --task <taskToken> --data-json '{"approved":true}' [--comment TEXT] [--idempotency-key KEY] [--json]
   c8c-workflow hil approve --task <taskToken> [--comment TEXT] [--edited-content TEXT] [--idempotency-key KEY] [--json]
   c8c-workflow hil reject --task <taskToken> [--comment TEXT] [--idempotency-key KEY] [--json]
+  c8c-workflow hil telegram serve --config /abs/path/hil-telegram.json [--project PATH]
   c8c-workflow validate <workflow.chain> [--project PATH] [--json]
   c8c-workflow doctor [--provider claude|codex] [--json]
   c8c-workflow --version`)
@@ -267,6 +277,10 @@ function parseFlags(args: string[]): { positional: string[]; flags: CliFlags } {
         break
       case "--edited-content":
         flags.editedContent = next || ""
+        index++
+        break
+      case "--config":
+        flags.config = next || ""
         index++
         break
     }
@@ -562,9 +576,11 @@ async function readJsonMaybe<T>(filePath: string): Promise<T | null> {
   }
 }
 
-async function loadWorkflowFromWorkspace(
-  workspacePath: string,
-): Promise<{ workflow: Workflow; workflowPath?: string }> {
+async function loadWorkflowFromWorkspace(workspacePath: string): Promise<{
+  workflow: Workflow
+  workflowPath?: string
+  provider?: ProviderId
+}> {
   const workspace = resolve(workspacePath)
   const manifest = await readJsonMaybe<PersistedRunManifest>(
     join(workspace, "manifest.json"),
@@ -591,6 +607,7 @@ async function loadWorkflowFromWorkspace(
     return {
       workflow: context.workflow,
       workflowPath: resolve(context.workflowPath),
+      provider: context.provider,
     }
   }
 
@@ -890,6 +907,18 @@ async function collectToolRunResult(handle: WorkflowRunHandle): Promise<{
   await eventPromise
 
   return { summary, approvalEvent }
+}
+
+async function collectRunSummary(handle: WorkflowRunHandle) {
+  const eventPromise = (async () => {
+    for await (const _event of handle.events) {
+      // Drain event stream so resumed headless runs can complete cleanly.
+    }
+  })()
+
+  const summary = await handle.result
+  await eventPromise
+  return summary
 }
 
 function buildToolRunSummary(
@@ -1287,8 +1316,111 @@ async function respondOpenClawToolMode(flags: CliFlags): Promise<number> {
   })
 }
 
+async function runHilTelegramServe(flags: CliFlags): Promise<number> {
+  if (!flags.config) {
+    throw new Error("hil telegram serve requires --config")
+  }
+
+  const config = await loadTelegramBridgeConfig(flags.config)
+  const botToken = process.env[config.botTokenEnv]
+  if (!botToken?.trim()) {
+    throw new Error(
+      `Telegram bot token is missing. Set ${config.botTokenEnv} before starting the bridge.`,
+    )
+  }
+
+  const projectRoots = [
+    ...new Set(
+      [
+        ...config.projectPaths,
+        ...(flags.project ? [resolve(flags.project)] : []),
+      ].map((projectPath) => join(projectPath, ".c8c", "runs")),
+    ),
+  ]
+  const roots =
+    projectRoots.length > 0
+      ? projectRoots
+      : await resolveHilRoots(flags.project)
+  if (roots.length === 0) {
+    throw new Error(
+      "Telegram bridge could not resolve any .c8c/runs roots. Add projects to ~/.c8c/config.json or set projectPaths in the bridge config.",
+    )
+  }
+
+  let state = config.statePath
+    ? await loadTelegramBridgeState(config.statePath)
+    : {
+        version: 1 as const,
+        lastUpdateId: 0,
+        deliveredTasks: {},
+        updatedAt: 0,
+      }
+  const api = createTelegramApiClient(botToken.trim())
+  let stopped = false
+  const stop = () => {
+    stopped = true
+  }
+
+  process.once("SIGINT", stop)
+  process.once("SIGTERM", stop)
+
+  while (!stopped) {
+    try {
+      state = await runTelegramBridgeIteration(config, state, {
+        api,
+        listTasks: () => listWorkflowHilTasks(roots),
+        getTaskByRef: getWorkflowHilTaskByRef,
+        resolveTask: (taskRef, request) =>
+          resolveWorkflowHilTaskByRef(taskRef, request),
+        continueWorkspace: async (workspace) => {
+          const workflowContext = await loadWorkflowFromWorkspace(workspace)
+          const runner = createRunner(
+            flags.provider || workflowContext.provider,
+          )
+          const summary = await collectRunSummary(
+            await runner.resumeRun({
+              workflow: workflowContext.workflow,
+              workspace: resolve(workspace),
+              projectPath: flags.project ? resolve(flags.project) : undefined,
+              workflowPath: workflowContext.workflowPath,
+            }),
+          )
+          return { status: summary.status }
+        },
+        now: Date.now,
+      })
+    } catch (error) {
+      process.stderr.write(`${normalizeJsonError(error)}\n`)
+      if (stopped) break
+      await delay(config.pollIntervalSec * 1000)
+      continue
+    }
+
+    if (config.statePath) {
+      await saveTelegramBridgeState(config.statePath, state)
+    }
+  }
+
+  if (config.statePath) {
+    await saveTelegramBridgeState(config.statePath, state)
+  }
+
+  process.removeListener("SIGINT", stop)
+  process.removeListener("SIGTERM", stop)
+
+  return 0
+}
+
 async function runHilCommand(args: string[], flags: CliFlags): Promise<number> {
   const [subcommand = "list"] = args
+
+  if (subcommand === "telegram") {
+    const nestedSubcommand = args[1] || "serve"
+    if (nestedSubcommand !== "serve") {
+      throw new Error(`Unknown hil telegram subcommand: ${nestedSubcommand}`)
+    }
+    return runHilTelegramServe(flags)
+  }
 
   if (subcommand === "list") {
     const tasks = await listWorkflowHilTasks(

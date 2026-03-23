@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
 import {
+  formatTemplateToolingRecommendationNote,
   hasWorkflowReviewHistory,
   resolveActiveWorkflowEntryState,
+  resolveStageStartPolicyNotes,
   resolveShowResumeHeader,
 } from "./useWorkflowPanelEntryState"
 
@@ -60,6 +62,23 @@ describe("resolveActiveWorkflowEntryState", () => {
         workflowName: "Draft flow",
       }),
     ).toBeNull()
+  })
+
+  it("falls back to the persisted continuation bookmark when the active entry state is empty", () => {
+    const entryState = createEntryState({
+      workflowPath: "/tmp/project/continue.chain",
+      workflowName: "Continue flow",
+      source: "template",
+    })
+
+    expect(
+      resolveActiveWorkflowEntryState({
+        workflowEntryState: null,
+        workflowContinuationEntryState: entryState,
+        selectedWorkflowPath: "/tmp/project/continue.chain",
+        workflowName: "Continue flow",
+      }),
+    ).toEqual(entryState)
   })
 })
 
@@ -139,5 +158,49 @@ describe("resolveShowResumeHeader", () => {
         prepareNewRun: true,
       }),
     ).toBe(false)
+  })
+})
+
+describe("resolveStageStartPolicyNotes", () => {
+  it("prioritizes MCP tooling guidance ahead of lower-priority policy notes", () => {
+    const recommendation = {
+      level: "warning" as const,
+      title: "This flow recommends web search",
+      description:
+        "Switch to Exa so MCP-backed search is available during execution.",
+      actionLabel: "Use Exa",
+      action: "switch_to_exa" as const,
+    }
+
+    expect(
+      resolveStageStartPolicyNotes({
+        notes: [
+          "Prefer concrete signals over vague takes.",
+          "Make the evidence base reusable downstream.",
+          '"Target operator: solo founder with AI agents, no employees."',
+          "Keep the final answer concise.",
+        ],
+        templateToolingRecommendation: recommendation,
+      }),
+    ).toEqual([
+      formatTemplateToolingRecommendationNote(recommendation),
+      "Prefer concrete signals over vague takes.",
+      "Make the evidence base reusable downstream.",
+    ])
+  })
+
+  it("keeps ordinary policy notes unchanged when no tooling recommendation exists", () => {
+    expect(
+      resolveStageStartPolicyNotes({
+        notes: [
+          "Ground the map in the repository, not assumptions.",
+          '"Target operator: solo founder with AI agents, no employees."',
+          "Call out hotspots early.",
+        ],
+      }),
+    ).toEqual([
+      "Ground the map in the repository, not assumptions.",
+      "Call out hotspots early.",
+    ])
   })
 })

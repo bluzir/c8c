@@ -27,6 +27,7 @@ contract_in:
     title: Editorial Calendar
     description: Helpful sequencing context for the X queue.
     required: false
+suggested_tools: []
 contract_out:
   - kind: draft
     title: X Posting Queue

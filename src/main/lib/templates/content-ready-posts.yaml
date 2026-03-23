@@ -1,7 +1,8 @@
 id: content-ready-posts
 stage: content
 stage_family: execute
-recommended_next: []
+recommended_next:
+  - content-qa-review
 emoji: "\U0001F4DD"
 headline: Turn a post calendar into ready-to-publish posts
 how: Draft the posts from the plan, apply voice/quality discipline, and hand back publish-ready copy.
@@ -22,6 +23,7 @@ contract_in:
     title: Post Calendar
     description: Concrete post slots that should be turned into ready-to-publish copy.
     required: true
+suggested_tools: []
 contract_out:
   - kind: distribution_bundle
     title: Ready Posts

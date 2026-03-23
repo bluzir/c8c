@@ -51,9 +51,9 @@ export function resolveTemplateToolingRecommendation({
 
   return {
     level: "warning",
-    title: "Recommended: Exa web search",
+    title: "This flow recommends web search",
     description:
-      "This flow relies on live web research. Switch the web-search backend to Exa so MCP-backed search is available during execution.",
+      "Switch to Exa so MCP-backed search is available during execution.",
     actionLabel: "Use Exa",
     action: "switch_to_exa",
   }

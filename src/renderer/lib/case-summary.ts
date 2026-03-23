@@ -7,8 +7,8 @@ import type {
 } from "@shared/types"
 import {
   deriveArtifactCaseKey,
-  deriveTemplateContextJourneyStageLabel,
-  deriveTemplateJourneyStageLabel,
+  deriveTemplateContextDisplayLabel,
+  deriveTemplateDisplayLabel,
   type WorkflowTemplateRunContext,
 } from "./workflow-entry"
 
@@ -198,7 +198,7 @@ export function buildProjectCaseIndex({
       : undefined
     pushUnique(
       entry.lineageLabels,
-      template ? deriveTemplateJourneyStageLabel(template) : null,
+      template ? deriveTemplateDisplayLabel(template) : null,
     )
   }
 
@@ -229,10 +229,7 @@ export function buildProjectCaseIndex({
     if (!entry.factoryLabel && (context.factoryLabel || context.pack?.label)) {
       entry.factoryLabel = context.factoryLabel || context.pack?.label || null
     }
-    pushUnique(
-      entry.lineageLabels,
-      deriveTemplateContextJourneyStageLabel(context),
-    )
+    pushUnique(entry.lineageLabels, deriveTemplateContextDisplayLabel(context))
   }
 
   const cases = Array.from(entries.values())

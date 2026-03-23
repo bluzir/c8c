@@ -17,6 +17,7 @@ steps:
   - Generate comprehensive strategy report
   - Create marketing results from the strategy
   - Evaluate quality and iterate if needed
+suggested_tools: []
 contract_out:
   - kind: direction_set
     title: Strategy Direction

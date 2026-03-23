@@ -20,6 +20,8 @@ import {
   workflowQueuedAutoRunPathAtom,
   setWorkflowRequestedResultForKeyAtom,
   workflowSavedSnapshotAtom,
+  selectedWorkflowContinuationEntryStateAtom,
+  selectedWorkflowSavedRunReviewRequestedAtom,
   chatPanelWidthAtom,
   workflowReviewModeAtom,
   workflowRunBlockReasonAtom,
@@ -128,7 +130,7 @@ export function WorkflowPanel() {
   const [workflowDirty] = useAtom(workflowDirtyAtom)
   const [, setWorkflows] = useAtom(workflowsAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
-  const [webSearchBackend] = useAtom(webSearchBackendAtom)
+  const [webSearchBackend, setWebSearchBackend] = useAtom(webSearchBackendAtom)
   const [selectedWorkflowTemplateContext] = useAtom(
     selectedWorkflowTemplateContextAtom,
   )
@@ -154,6 +156,8 @@ export function WorkflowPanel() {
   const [workflowEntryState, setWorkflowEntryState] = useAtom(
     workflowEntryStateAtom,
   )
+  const [workflowContinuationEntryState, setWorkflowContinuationEntryState] =
+    useAtom(selectedWorkflowContinuationEntryStateAtom)
   const [queuedAutoRunPath, setQueuedAutoRunPath] = useAtom(
     workflowQueuedAutoRunPathAtom,
   )
@@ -189,7 +193,9 @@ export function WorkflowPanel() {
     clearSelectedPastRun: true,
   })
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
-  const [showSavedRunReview, setShowSavedRunReview] = useState(false)
+  const [showSavedRunReview, setShowSavedRunReview] = useAtom(
+    selectedWorkflowSavedRunReviewRequestedAtom,
+  )
   const [routeAlternativesOpen, setRouteAlternativesOpen] = useState(false)
   const [
     pendingRouteAlternativeTemplateId,
@@ -242,6 +248,7 @@ export function WorkflowPanel() {
     setFlowSurfaceMode,
     setPrepareNewRun,
     setShowSavedRunReview,
+    setWorkflowContinuationEntryState,
     setOutputTabRequest,
     idleReviewAutoScrollKeyRef,
   })
@@ -275,6 +282,7 @@ export function WorkflowPanel() {
     entryNextStepLabel,
     stageStartInputLabels,
     stageStartPolicyNotes,
+    templateToolingRecommendation,
     stageStartTitle,
     stageStartFlowName,
     stageStartDescription,
@@ -289,6 +297,7 @@ export function WorkflowPanel() {
     workflow,
     selectedWorkflowPath,
     workflowEntryState,
+    workflowContinuationEntryState,
     inputValue,
     inputAttachments,
     artifactRecords,
@@ -297,6 +306,7 @@ export function WorkflowPanel() {
     selectedWorkflowTemplateContext,
     packTemplates,
     runStatus,
+    webSearchBackend,
     viewMode,
     pendingCreateMessage,
     chatStatus,
@@ -571,6 +581,7 @@ export function WorkflowPanel() {
     setWorkflowSavedSnapshot,
     setInputValue,
     setWorkflowEntryState,
+    setWorkflowContinuationEntryState,
     setWorkflowRequestedResultForKey,
     setWorkflowTemplateContextForKey,
     setSelectedInboxTaskKey,
@@ -637,6 +648,7 @@ export function WorkflowPanel() {
     setFlowSurfaceMode,
     setPrepareNewRun,
     setSelectedInboxTaskKey,
+    setWorkflowContinuationEntryState,
     setWorkflowEntryState,
   })
   const routeAlternativeOptions = useMemo(() => {
@@ -760,6 +772,11 @@ export function WorkflowPanel() {
         setInputValue(launch.templateStartState.initialInputValue)
         setInputAttachments(launch.templateStartState.initialAttachments)
         setWorkflowEntryState(launch.templateStartState.entryState)
+        setWorkflowContinuationEntryState(
+          launch.templateStartState.templateContext?.sourceArtifactIds?.length
+            ? launch.templateStartState.entryState
+            : null,
+        )
         setWorkflowRequestedResultForKey({
           key: toWorkflowExecutionKey(launch.filePath),
           value:
@@ -813,6 +830,7 @@ export function WorkflowPanel() {
       setViewMode,
       setWorkflowDirect,
       setWorkflowEntryState,
+      setWorkflowContinuationEntryState,
       setWorkflowRequestedResultForKey,
       setWorkflowReviewMode,
       setWorkflowSavedSnapshot,
@@ -866,10 +884,6 @@ export function WorkflowPanel() {
   const crossFlowTitle =
     primaryScreenState === "cross_flow_handoff"
       ? stageStartFlowName || workflow.name || null
-      : null
-  const crossFlowProvenanceLabel =
-    primaryScreenState === "cross_flow_handoff"
-      ? stageStartContextLine || null
       : null
 
   useEffect(() => {
@@ -961,14 +975,6 @@ export function WorkflowPanel() {
               />
             )}
 
-            {crossFlowProvenanceLabel && (
-              <div className="border-b border-hairline px-[var(--content-gutter)] py-1.5">
-                <span className="ui-meta-text text-muted-foreground">
-                  {crossFlowProvenanceLabel}
-                </span>
-              </div>
-            )}
-
             <Tabs
               value={viewMode}
               onValueChange={(next) => setViewMode(next as "list" | "settings")}
@@ -1011,6 +1017,12 @@ export function WorkflowPanel() {
                 entryNextStepLabel={entryNextStepLabel}
                 stageStartInputLabels={stageStartInputLabels}
                 entryFlowRules={entryFlowRules}
+                templateToolingRecommendation={templateToolingRecommendation}
+                onTemplateToolingAction={
+                  templateToolingRecommendation?.action === "switch_to_exa"
+                    ? () => setWebSearchBackend("exa")
+                    : null
+                }
                 onPrimaryEntryAction={() => {
                   if (blockedResumeSummary) {
                     focusBlockedTaskPanel()

@@ -36,6 +36,7 @@ contract_in:
     title: Codebase Map
     description: Helpful technical context when the work targets an existing repository.
     required: false
+suggested_tools: []
 contract_out:
   - kind: research_pack
     title: Research Pack

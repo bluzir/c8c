@@ -430,7 +430,7 @@ export function FactoryPage() {
         <PageShell>
           <PageHeader
             title="Lab"
-            subtitle="Choose a project in the sidebar to see live work, approvals, reusable artifacts, and next steps."
+            subtitle="Choose a project in the sidebar to see live work, approvals, saved results, and next steps."
             actions={
               <Button
                 variant="outline"

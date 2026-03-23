@@ -522,7 +522,7 @@ function StepUnderstandWorkflow({
     "Build a flow that reviews this codebase for risky files, then summarizes what to fix first."
   const flowSteps = [
     "Describe the result you want in plain language.",
-    "The system picks the best starting path and runs the early stages.",
+    "The system picks the best starting path and runs the first steps.",
     "Review the first result, then refine if needed.",
   ]
 

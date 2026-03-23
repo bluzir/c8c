@@ -239,6 +239,8 @@ export function OutputPanel({
     selectedStageBranchDetail,
     selectedStageBranchSummary,
     selectedStageScopeLabel,
+    selectedStageResourceLabel,
+    selectedStageResourceItems,
     workflowStepCount,
     completedStageCount,
     runningStageCount,
@@ -674,6 +676,8 @@ export function OutputPanel({
                 }
                 onViewResult={showResultSurface ? activateResultSurface : null}
                 selectedStageBranchSummary={selectedStageBranchSummary}
+                selectedStageResourceLabel={selectedStageResourceLabel}
+                selectedStageResourceItems={selectedStageResourceItems}
                 onOpenBranchLog={
                   canInspectLog
                     ? (nodeId: string) => {

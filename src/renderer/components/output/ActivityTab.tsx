@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { SelectedStepSummaryPanel } from "@/components/output/SelectedStepSummaryPanel"
 import { cn } from "@/lib/cn"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
@@ -128,6 +129,8 @@ export function ActivityTab({
   resultReadyLabel,
   onViewResult,
   selectedStageBranchSummary,
+  selectedStageResourceLabel,
+  selectedStageResourceItems = [],
   onOpenBranchLog,
   budgetWarning,
   budgetWarningClassName,
@@ -145,6 +148,8 @@ export function ActivityTab({
   resultReadyLabel?: string | null
   onViewResult?: (() => void) | null
   selectedStageBranchSummary?: SummaryBranchAggregate | null
+  selectedStageResourceLabel?: string | null
+  selectedStageResourceItems?: string[]
   onOpenBranchLog?: ((nodeId: string) => void) | null
   budgetWarning?: string | null
   budgetWarningClassName: string
@@ -215,6 +220,34 @@ export function ActivityTab({
         />
       )}
 
+      {selectedStageResourceLabel ? (
+        <SummaryRow
+          kicker="Resource footprint"
+          headline={selectedStageResourceLabel}
+          detail="Secondary execution detail for this step. Keep verdict and action in the primary surface."
+        >
+          <div className="w-full">
+            <DisclosurePanel
+              summary="Show token and runtime details"
+              surface="plain"
+              contentClassName="px-0 py-2"
+              unmountWhenClosed
+            >
+              <div className="flex flex-wrap gap-2">
+                {selectedStageResourceItems.map((item) => (
+                  <span
+                    key={item}
+                    className="ui-status-badge border border-hairline bg-surface-1 text-muted-foreground"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </DisclosurePanel>
+          </div>
+        </SummaryRow>
+      ) : null}
+
       {runProgressItems.length > 0 || budgetWarning ? (
         <SummaryRow
           kicker="Run progress"
@@ -230,7 +263,7 @@ export function ActivityTab({
         headline={resultReadyLabel ? "Ready to inspect" : "No result yet"}
         detail={
           resultReadyLabel
-            ? `${resultReadyLabel}. Open the result surface to inspect or copy the latest artifact.`
+            ? `${resultReadyLabel}. Open the result surface to inspect or copy the latest result.`
             : "A result link will appear here as soon as the run produces one."
         }
         action={

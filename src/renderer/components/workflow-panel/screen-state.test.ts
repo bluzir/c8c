@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  shouldShowInlineInputPanel,
   resolveWorkflowListSurfaceIntent,
   resolveWorkflowPrimaryScreenState,
-  shouldShowResumeInputPanel,
   shouldShowLiveOutputPanel,
   shouldShowProcessSpine,
 } from "./screen-state"
@@ -123,7 +123,14 @@ describe("resolveWorkflowPrimaryScreenState", () => {
         showResumeHeader: false,
         readyToRun: false,
       }),
-    ).toBe("start_contract")
+    ).toBe("start_needs_input")
+    expect(
+      resolveWorkflowListSurfaceIntent({
+        primaryScreenState: "cross_flow_handoff",
+        showResumeHeader: false,
+        readyToRun: true,
+      }),
+    ).toBe("start_ready")
     expect(
       resolveWorkflowListSurfaceIntent({
         primaryScreenState: "blocked_decision",
@@ -161,8 +168,10 @@ describe("resolveWorkflowPrimaryScreenState", () => {
     ).toBe("resume_needs_input")
   })
 
-  it("shows resume input only when the question is about missing input", () => {
-    expect(shouldShowResumeInputPanel("resume_needs_input")).toBe(true)
-    expect(shouldShowResumeInputPanel("resume_ready")).toBe(false)
+  it("shows inline input only when the current question is about missing input", () => {
+    expect(shouldShowInlineInputPanel("resume_needs_input")).toBe(true)
+    expect(shouldShowInlineInputPanel("start_needs_input")).toBe(true)
+    expect(shouldShowInlineInputPanel("resume_ready")).toBe(false)
+    expect(shouldShowInlineInputPanel("start_ready")).toBe(false)
   })
 })

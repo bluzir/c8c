@@ -21,6 +21,8 @@ pack:
   entrypoint: true
   recommended_next:
     - content-post-calendar
+suggested_tools:
+  - web_search
 contract_out:
   - kind: trend_digest
     title: Trend Digest

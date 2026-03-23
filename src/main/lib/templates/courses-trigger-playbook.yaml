@@ -20,6 +20,7 @@ pack:
   journey_stage: execute
   recommended_next:
     - courses-launch-assets
+suggested_tools: []
 contract_out:
   - kind: trigger_playbook
     title: Course Trigger Playbook

@@ -13,6 +13,7 @@ steps:
   - Analyze source content for key themes and hooks
   - Fan out into platform-specific rewrites in parallel
   - Compile all versions and evaluate quality
+suggested_tools: []
 contract_out:
   - kind: distribution_bundle
     title: Content Repurposing Bundle

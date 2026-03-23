@@ -15,6 +15,7 @@ steps:
   - Split the plan into self-contained browser scenarios
   - Run each scenario end-to-end and capture visual QA evidence
   - Merge findings into one prioritized audit and quality-check it
+suggested_tools: []
 contract_out:
   - kind: visual_qa_report
     title: Visual QA Report

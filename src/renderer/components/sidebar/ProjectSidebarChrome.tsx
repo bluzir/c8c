@@ -116,7 +116,7 @@ export function ProjectSidebarChrome({
         />
         <SidebarNavItem
           icon={FileStack}
-          label="Artifacts"
+          label="Results"
           active={mainView === "artifacts"}
           onClick={onOpenArtifacts}
         />

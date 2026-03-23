@@ -23,6 +23,7 @@ contract_in:
     title: Angle Map
     description: Helpful positioning and proof hooks from the AI CMO planning pass.
     required: false
+suggested_tools: []
 contract_out:
   - kind: content_brief
     title: GEO Answer Brief

@@ -23,6 +23,7 @@ contract_in:
     title: Angle Map
     description: Helpful positioning and proof hooks from the planning pass.
     required: false
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Hacker News Launch Pack

@@ -17,6 +17,7 @@ steps:
   - Distill to core job, segment, and value delta
   - Founder approves the chosen segment and strategic focus before sharpening
   - Sharpen positioning and clarify messaging
+suggested_tools: []
 contract_out:
   - kind: positioning_document
     title: Positioning Document

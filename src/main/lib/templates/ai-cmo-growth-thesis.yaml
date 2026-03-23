@@ -30,6 +30,8 @@ pack:
     - ai-cmo-x-engine
     - ai-cmo-reddit-engine
     - ai-cmo-hacker-news-engine
+suggested_tools:
+  - web_search
 contract_out:
   - kind: trend_digest
     title: Channel Opportunity Map

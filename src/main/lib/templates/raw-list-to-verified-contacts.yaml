@@ -15,6 +15,7 @@ steps:
   - Add the smallest useful set of fit and personalization columns, then tier the companies.
   - Find the right people only for the accounts worth pursuing.
   - Verify emails, measure coverage, and surface the gaps before anyone starts sending.
+suggested_tools: []
 contract_out:
   - kind: handoff_pack
     title: Verified Contacts Pack

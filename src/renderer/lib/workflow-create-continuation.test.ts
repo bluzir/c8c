@@ -152,10 +152,10 @@ describe("workflow-create-continuation", () => {
       title: "Seller photo upload",
       status: "ready",
       readinessText: "Ready to continue to Plan the change.",
-      supportText: "Using saved Feature Spec from Understand.",
+      supportText: "Using saved Feature Spec from Build from brief.",
       lastGateText: "Approval recorded. Plan can continue.",
       latestResultLabel: "Feature Spec",
-      latestStepLabel: "Understand",
+      latestStepLabel: "Build from brief",
       nextStepLabel: "Plan the change",
     })
     expect(candidates[0]?.action.kind).toBe("launch_next_step")

@@ -14,6 +14,7 @@ steps:
   - Generate frontend component from specification
   - Review code quality against standards
   - Write tests and validate coverage
+suggested_tools: []
 contract_out:
   - kind: implementation_report
     title: Component Delivery Report

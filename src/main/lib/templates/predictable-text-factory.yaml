@@ -15,6 +15,7 @@ steps:
   - Write each section independently in parallel
   - Run section-level quality checks
   - Run the final document-wide quality check
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Long-form Draft

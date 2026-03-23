@@ -16,7 +16,8 @@ import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume
 import type { FlowRulePreview } from "@/lib/flow-rules"
 import type { WorkflowResumeEntrySummary } from "@/lib/workflow-resume-entry"
 import type { WorkflowListSurfaceIntent } from "@/components/workflow-panel/screen-state"
-import { shouldShowResumeInputPanel } from "@/components/workflow-panel/screen-state"
+import { shouldShowInlineInputPanel } from "@/components/workflow-panel/screen-state"
+import type { TemplateToolingRecommendation } from "@/lib/web-search-backend"
 import type { ArtifactContract, ArtifactRecord } from "@shared/types"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
 import type { ExecutionSurfaceNotice } from "@/lib/workflow-execution"
@@ -67,6 +68,8 @@ interface WorkflowListTabProps {
   entryNextStepLabel: string
   stageStartInputLabels: string[]
   entryFlowRules: FlowRulePreview[]
+  templateToolingRecommendation?: TemplateToolingRecommendation | null
+  onTemplateToolingAction?: (() => void) | null
   onPrimaryEntryAction: () => void
   onSecondaryEntryAction?: (() => void) | null
   secondaryEntryActionLabel?: string | null
@@ -113,6 +116,8 @@ export function WorkflowListTab({
   entryNextStepLabel,
   stageStartInputLabels,
   entryFlowRules,
+  templateToolingRecommendation = null,
+  onTemplateToolingAction = null,
   onPrimaryEntryAction,
   onSecondaryEntryAction = null,
   secondaryEntryActionLabel = null,
@@ -140,7 +145,18 @@ export function WorkflowListTab({
     "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col",
     !terminalResultOwnsLayout && "flex-1",
   )
-  const showResumeInput = shouldShowResumeInputPanel(listSurfaceIntent)
+  const showPrimaryInputPanel = shouldShowInlineInputPanel(listSurfaceIntent)
+  const templateToolingNotice = templateToolingRecommendation
+    ? {
+        level: templateToolingRecommendation.level,
+        title: templateToolingRecommendation.title,
+        description: templateToolingRecommendation.description,
+        actionLabel: templateToolingRecommendation.actionLabel,
+        actionTarget: "result" as const,
+      }
+    : null
+  const showTemplateToolingNotice =
+    templateToolingNotice !== null && !showReviewOutputMode
 
   return (
     <TabsContent
@@ -179,7 +195,7 @@ export function WorkflowListTab({
                   onSecondaryAction={onSecondaryEntryAction}
                   secondaryActionLabel={secondaryEntryActionLabel}
                 />
-                {showResumeInput ? (
+                {showPrimaryInputPanel ? (
                   <StageInputSection
                     inputPanelRef={inputPanelRef}
                     showTemplateContext={false}
@@ -212,6 +228,12 @@ export function WorkflowListTab({
               </>
             )}
             {blockedTaskPanel}
+            {showTemplateToolingNotice && templateToolingNotice && (
+              <ExecutionSurfaceNoticeBanner
+                notice={templateToolingNotice}
+                onAction={onTemplateToolingAction}
+              />
+            )}
             {showIdleStageContract &&
               !terminalResultOwnsLayout &&
               idleStageContract && (
@@ -235,18 +257,38 @@ export function WorkflowListTab({
                   secondaryActionLabel={secondaryEntryActionLabel}
                 />
               )}
-            {showIdleInputPanel && !terminalResultOwnsLayout && (
-              <StageInputSection
-                inputPanelRef={inputPanelRef}
-                showTemplateContext={false}
-                showProjectArtifactsPanel={showProjectArtifactsPanel}
-                artifacts={combinedArtifactRecords}
-                loading={projectArtifactsLoading}
-                error={projectArtifactsError}
-                requiredContracts={requiredContracts}
-                onOpenArtifact={onOpenArtifact}
-              />
-            )}
+            {showIdleInputPanel &&
+              !terminalResultOwnsLayout &&
+              (showPrimaryInputPanel ? (
+                <StageInputSection
+                  inputPanelRef={inputPanelRef}
+                  showTemplateContext={false}
+                  showProjectArtifactsPanel={showProjectArtifactsPanel}
+                  artifacts={combinedArtifactRecords}
+                  loading={projectArtifactsLoading}
+                  error={projectArtifactsError}
+                  requiredContracts={requiredContracts}
+                  onOpenArtifact={onOpenArtifact}
+                />
+              ) : (
+                <DisclosurePanel
+                  summary="Adjust step input"
+                  surface="plain"
+                  unmountWhenClosed
+                  contentClassName="px-0 py-2"
+                >
+                  <StageInputSection
+                    inputPanelRef={inputPanelRef}
+                    showTemplateContext={false}
+                    showProjectArtifactsPanel={showProjectArtifactsPanel}
+                    artifacts={combinedArtifactRecords}
+                    loading={projectArtifactsLoading}
+                    error={projectArtifactsError}
+                    requiredContracts={requiredContracts}
+                    onOpenArtifact={onOpenArtifact}
+                  />
+                </DisclosurePanel>
+              ))}
             {showReviewOutputMode && showReviewOutputPanel && (
               <div
                 ref={outputPanelRef}

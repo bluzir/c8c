@@ -29,7 +29,7 @@ describe("WorkflowIdleStageContract", () => {
       />,
     )
 
-    expect(screen.getByText("Stage contract")).toBeTruthy()
+    expect(screen.getByText("Next step")).toBeTruthy()
     expect(screen.getByText("Active rules")).toBeTruthy()
     expect(
       screen.queryByText("Keep implementation anchored to the agreed scope"),

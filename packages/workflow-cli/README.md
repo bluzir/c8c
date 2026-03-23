@@ -47,6 +47,13 @@ c8c-workflow hil list --project /abs/path/to/project
 c8c-workflow hil approve --task '<task-ref>'
 ```
 
+Run the optional Telegram bridge for remote approvals:
+
+```bash
+export C8C_TELEGRAM_BOT_TOKEN=...
+c8c-workflow hil telegram serve --config /abs/path/to/hil-telegram.json
+```
+
 ## Commands
 
 ```bash
@@ -60,6 +67,7 @@ c8c-workflow hil show --task <task-ref>
 c8c-workflow hil respond --task <task-ref> --data-json '{"field":"value"}'
 c8c-workflow hil approve --task <task-ref>
 c8c-workflow hil reject --task <task-ref>
+c8c-workflow hil telegram serve --config /abs/path/to/hil-telegram.json
 c8c-workflow validate <workflow-path>
 c8c-workflow doctor
 c8c-workflow --version
@@ -76,6 +84,35 @@ Tool mode for external orchestrators stays available:
 ```bash
 c8c-workflow run --mode tool /abs/path/workflow.yaml --args-json '{"input":"draft","projectPath":"/abs/path/project"}'
 ```
+
+## Telegram bridge
+
+`hil telegram serve` is a local convenience adapter on top of the same durable HIL task store used by the desktop app and CLI. It does not become the source of truth.
+
+Minimal config:
+
+```json
+{
+  "botTokenEnv": "C8C_TELEGRAM_BOT_TOKEN",
+  "chatId": "123456789",
+  "allowedUserIds": ["123456789"],
+  "pollIntervalSec": 10
+}
+```
+
+Optional fields:
+
+- `projectPaths`: explicit project roots to scan for `.c8c/runs`
+- `statePath`: custom path for bridge polling state
+
+Supported interactions:
+
+- inline approve/reject buttons for approval tasks
+- `/tasks`
+- `/show <taskId>`
+- `/approve <taskId>`
+- `/reject <taskId>`
+- `/respond <taskId> {"answers":{"field":"value"}}`
 
 ## OpenClaw compatibility
 

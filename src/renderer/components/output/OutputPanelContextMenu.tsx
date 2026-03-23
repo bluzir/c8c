@@ -90,7 +90,7 @@ export function OutputPanelContextMenu({
                   closeMenu()
                 }}
               >
-                Open in artifacts
+                Open in results
               </DropdownMenuItem>
             </>
           ) : null}
@@ -123,7 +123,7 @@ export function OutputPanelContextMenu({
               closeMenu()
             }}
           >
-            Open in artifacts
+            Open in results
           </DropdownMenuItem>
         </>
       )}

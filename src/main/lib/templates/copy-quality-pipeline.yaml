@@ -16,6 +16,7 @@ steps:
   - Apply infostyle rules — remove buzzwords, enforce positive rules
   - Polish for consistency, number deduplication, and flow
   - Run a quality-check retry loop
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Polished Copy

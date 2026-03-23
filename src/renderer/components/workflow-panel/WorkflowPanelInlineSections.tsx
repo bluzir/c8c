@@ -272,7 +272,7 @@ export function WorkflowIdleStageContract({
       <div className="surface-figure px-4 py-4">
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <p className="section-kicker">Stage contract</p>
+            <p className="section-kicker">Next step</p>
             <h2 className="text-title-lg text-foreground">{title}</h2>
             <p className="text-body-sm text-muted-foreground">{summary}</p>
           </div>
@@ -492,6 +492,8 @@ export function StageStartApprovalDialog({
   onApprove: () => Promise<void> | void
   onCancel: () => void
 }) {
+  const hasDecisionDetails = flowRules.length > 0 || notes.length > 0
+
   useEffect(() => {
     if (!open) return
 
@@ -549,22 +551,39 @@ export function StageStartApprovalDialog({
             }
           />
 
-          <FlowRulesPreview rules={flowRules} collapsible defaultOpen={false} />
+          {hasDecisionDetails ? (
+            <DisclosurePanel
+              summary="Decision details"
+              surface="plain"
+              summaryClassName="px-0 py-1.5"
+              contentClassName="space-y-3 pt-2"
+              unmountWhenClosed
+            >
+              <FlowRulesPreview
+                rules={flowRules}
+                collapsible
+                defaultOpen={false}
+              />
 
-          {notes.length > 0 && (
-            <DisclosurePanel summary="Approval notes">
-              <div className="space-y-2">
-                {notes.map((note, index) => (
-                  <p
-                    key={`${note}-${index}`}
-                    className="text-body-sm text-foreground"
-                  >
-                    {note}
+              {notes.length > 0 ? (
+                <section className="space-y-2">
+                  <p className="ui-meta-label text-muted-foreground">
+                    Approval notes
                   </p>
-                ))}
-              </div>
+                  <div className="space-y-2">
+                    {notes.map((note, index) => (
+                      <p
+                        key={`${note}-${index}`}
+                        className="text-body-sm text-foreground"
+                      >
+                        {note}
+                      </p>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </DisclosurePanel>
-          )}
+          ) : null}
         </CanvasDialogBody>
 
         <CanvasDialogFooter>

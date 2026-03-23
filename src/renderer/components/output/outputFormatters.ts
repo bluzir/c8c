@@ -4,6 +4,38 @@ export function formatTokens(n: number): string {
   return String(n)
 }
 
+function trimTrailingZero(value: string): string {
+  return value.replace(/\.0$/, "")
+}
+
+export function formatTokenFootprint(tokens: number): string {
+  if (!Number.isFinite(tokens) || tokens <= 0) return "0 tokens"
+
+  if (tokens >= 1_000_000) {
+    const millions = tokens / 1_000_000
+    const compact =
+      millions >= 10
+        ? String(Math.round(millions))
+        : trimTrailingZero(millions.toFixed(1))
+    return `~${compact}M tokens`
+  }
+
+  if (tokens >= 1_000) {
+    const thousands = tokens / 1_000
+    const compact =
+      thousands >= 10
+        ? String(Math.round(thousands))
+        : trimTrailingZero(thousands.toFixed(1))
+    return `~${compact}K tokens`
+  }
+
+  if (tokens >= 100) {
+    return `~${Math.round(tokens / 10) * 10} tokens`
+  }
+
+  return `${Math.round(tokens)} tokens`
+}
+
 export function formatCost(usd: number): string {
   if (usd < 0.001) return "<$0.001"
   if (usd < 0.01) return `$${usd.toFixed(3)}`

@@ -37,6 +37,7 @@ contract_in:
     title: Research Pack
     description: Helpful evidence and risks that should stay in view during review.
     required: false
+suggested_tools: []
 contract_out:
   - kind: review_notes
     title: Review Notes

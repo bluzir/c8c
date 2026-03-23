@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { CursorMenu } from "@/components/ui/cursor-menu"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -21,7 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DebugDetailsPanel } from "@/components/output/DebugDetailsPanel"
 import { LogEntryCard } from "@/components/output/LogEntryCard"
-import { formatCost, formatTokens } from "@/components/output/outputFormatters"
+import {
+  formatDuration,
+  formatTokenFootprint,
+  formatTokens,
+} from "@/components/output/outputFormatters"
 
 const PREVIEW_MAX_W = "max-w-52" as const
 
@@ -171,14 +176,13 @@ export function NodesTab({
             (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0)
           ) {
             metaBits.push(
-              `${formatTokens(state.metrics.tokens_in + state.metrics.tokens_out)}t`,
+              formatTokenFootprint(
+                state.metrics.tokens_in + state.metrics.tokens_out,
+              ),
             )
           }
-          if (state?.metrics && state.metrics.cost_usd > 0) {
-            metaBits.push(formatCost(state.metrics.cost_usd))
-          }
           if (durationMs != null) {
-            metaBits.push(`${(durationMs / 1000).toFixed(1)}s`)
+            metaBits.push(formatDuration(durationMs))
           }
           if (splitterTruncated) {
             metaBits.push(
@@ -636,30 +640,42 @@ export function LogTab({
       >
         {state?.metrics &&
           (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0) && (
-            <div className="mb-3 flex flex-wrap items-center gap-3 border-b border-hairline/70 pb-3 ui-meta-text font-mono text-muted-foreground">
-              <span title="Input tokens">
-                In: {formatTokens(state.metrics.tokens_in)}
-              </span>
-              <span title="Output tokens">
-                Out: {formatTokens(state.metrics.tokens_out)}
-              </span>
-              {state.metrics.cost_usd > 0 && (
-                <span title="Estimated cost">
-                  {formatCost(state.metrics.cost_usd)}
+            <DisclosurePanel
+              summary={`Resource footprint · ${formatTokenFootprint(state.metrics.tokens_in + state.metrics.tokens_out)}`}
+              surface="plain"
+              className="mb-3 border-b border-hairline/70 pb-2"
+              contentClassName="px-0 py-2"
+              unmountWhenClosed
+            >
+              <div className="flex flex-wrap items-center gap-2 ui-meta-text text-muted-foreground">
+                <span
+                  className="ui-status-badge border border-hairline bg-surface-1"
+                  title="Input tokens"
+                >
+                  {formatTokens(state.metrics.tokens_in)} input
                 </span>
-              )}
-              {Number.isFinite(state.metrics.latency_ms) &&
-                state.metrics.latency_ms >= 0 && (
-                  <span title="Latency">
-                    {(state.metrics.latency_ms / 1000).toFixed(1)}s
+                <span
+                  className="ui-status-badge border border-hairline bg-surface-1"
+                  title="Output tokens"
+                >
+                  {formatTokens(state.metrics.tokens_out)} output
+                </span>
+                {Number.isFinite(state.metrics.latency_ms) &&
+                  state.metrics.latency_ms >= 0 && (
+                    <span
+                      className="ui-status-badge border border-hairline bg-surface-1"
+                      title="Latency"
+                    >
+                      {formatDuration(state.metrics.latency_ms)}
+                    </span>
+                  )}
+                {state.meta?.model_id && (
+                  <span className="ui-status-badge border border-hairline bg-surface-1 text-muted-foreground/80">
+                    {state.meta.model_id}
                   </span>
                 )}
-              {state.meta?.model_id && (
-                <span className="text-muted-foreground/60">
-                  {state.meta.model_id}
-                </span>
-              )}
-            </div>
+              </div>
+            </DisclosurePanel>
           )}
         {state?.error && (
           <div className="mb-3 rounded-md surface-danger-soft px-3 py-2 ui-meta-text text-status-danger">

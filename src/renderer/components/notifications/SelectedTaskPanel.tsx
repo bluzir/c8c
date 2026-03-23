@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ExecutionLoopCard } from "@/components/ui/execution-loop-card"
 import { FlowRulesPreview } from "@/components/ui/flow-rules-preview"
 import { Input } from "@/components/ui/input"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import {
   Select,
   SelectContent,
@@ -168,6 +169,10 @@ export function SelectedTaskPanel({
       : "Submit the requested input and continue the flow.")
   const rejectOutcomeText =
     blockedSummary?.rejectText || "Stop the flow and keep the current results."
+  const hasDecisionDetails = Boolean(
+    blockedSummary?.executionLoopSummary ||
+    (blockedSummary?.flowRules?.length ?? 0) > 0,
+  )
   const visibleMissingLabels = missingRequiredLabels.slice(0, 3)
   const hiddenMissingCount = Math.max(
     0,
@@ -274,22 +279,29 @@ export function SelectedTaskPanel({
               </div>
             )}
 
-            {blockedSummary?.executionLoopSummary ? (
-              <div className="space-y-3 border-t border-hairline pt-2">
-                <ExecutionLoopCard
-                  summary={blockedSummary.executionLoopSummary}
-                  compact
-                  surface="flat"
-                  detailSummary="Technical details"
-                  showTechnicalBadges={false}
-                />
-                <FlowRulesPreview
-                  rules={blockedSummary.flowRules || []}
-                  surface="flat"
-                  collapsible
-                  defaultOpen={false}
-                />
-              </div>
+            {hasDecisionDetails ? (
+              <DisclosurePanel
+                summary="Decision details"
+                surface="plain"
+                unmountWhenClosed
+                contentClassName="space-y-3 px-0 py-2.5"
+              >
+                {blockedSummary?.executionLoopSummary ? (
+                  <ExecutionLoopCard
+                    summary={blockedSummary.executionLoopSummary}
+                    compact
+                    surface="flat"
+                    detailSummary="Technical details"
+                    showTechnicalBadges={false}
+                  />
+                ) : null}
+                {(blockedSummary?.flowRules?.length ?? 0) > 0 ? (
+                  <FlowRulesPreview
+                    rules={blockedSummary?.flowRules || []}
+                    surface="flat"
+                  />
+                ) : null}
+              </DisclosurePanel>
             ) : null}
 
             {(blockedSummary?.inputText ||

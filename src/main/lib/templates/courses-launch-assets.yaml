@@ -22,6 +22,7 @@ contract_in:
     title: Lesson System
     description: Lesson structure and learning progression ready for launch packaging.
     required: true
+suggested_tools: []
 contract_out:
   - kind: launch_asset_bundle
     title: Launch Assets

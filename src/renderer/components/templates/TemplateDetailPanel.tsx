@@ -114,7 +114,7 @@ export function TemplateDetailPanel({
         !showsRoutingPreview ? (
           <div>
             <span className="ui-meta-label text-muted-foreground">
-              Stage path
+              Flow path
             </span>
             <p className="mt-1 text-body-sm">{entry.stagePathLabel}</p>
           </div>
@@ -133,7 +133,7 @@ export function TemplateDetailPanel({
                 {routingPreview?.helpModeLabel ? (
                   <div>
                     <span className="ui-meta-label text-muted-foreground">
-                      Intent
+                      Path
                     </span>
                     <p className="mt-1 text-body-sm text-foreground">
                       {routingPreview.helpModeLabel}
@@ -143,7 +143,7 @@ export function TemplateDetailPanel({
                 {routingPreview?.stageLabel ? (
                   <div>
                     <span className="ui-meta-label text-muted-foreground">
-                      Starts in
+                      First step
                     </span>
                     <p className="mt-1 text-body-sm text-foreground">
                       {routingPreview.stageLabel}

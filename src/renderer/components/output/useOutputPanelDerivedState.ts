@@ -17,7 +17,11 @@ import {
   templateAutoRunsOnContinue,
   templateRequiresStartApproval,
 } from "@/lib/stage-run-policy"
-import { formatCost } from "@/components/output/outputFormatters"
+import {
+  formatCost,
+  formatTokenFootprint,
+  formatTokens,
+} from "@/components/output/outputFormatters"
 import type {
   ArtifactRecord,
   EvaluationResult,
@@ -30,10 +34,47 @@ import type {
   WorkflowTemplate,
 } from "@shared/types"
 
-function formatTokenCount(tokens: number): string {
-  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`
-  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`
-  return String(tokens)
+function aggregateStageMetrics(
+  nodeIds: string[],
+  nodeStates: Record<string, NodeState>,
+) {
+  let tokensIn = 0
+  let tokensOut = 0
+  let latencyMs = 0
+  let metricNodeCount = 0
+  const modelCounts = new Map<string, number>()
+
+  for (const nodeId of nodeIds) {
+    const state = nodeStates[nodeId]
+    const metrics = state?.metrics
+    if (!metrics) continue
+
+    tokensIn += metrics.tokens_in || 0
+    tokensOut += metrics.tokens_out || 0
+    if (Number.isFinite(metrics.latency_ms) && metrics.latency_ms >= 0) {
+      latencyMs += metrics.latency_ms
+    }
+    metricNodeCount += 1
+
+    const modelId = state.meta?.model_id
+    if (modelId) {
+      modelCounts.set(modelId, (modelCounts.get(modelId) || 0) + 1)
+    }
+  }
+
+  const primaryModel =
+    [...modelCounts.entries()].sort(
+      (left, right) => right[1] - left[1],
+    )[0]?.[0] || null
+
+  return {
+    tokensIn,
+    tokensOut,
+    totalTokens: tokensIn + tokensOut,
+    latencyMs,
+    metricNodeCount,
+    primaryModel,
+  }
 }
 
 const OUTPUT_STATUS_LABELS: Record<string, string> = {
@@ -584,10 +625,10 @@ export function useOutputPanelDerivedState({
   const selectedResultMetricItems = selectedResultMetrics
     ? ([
         selectedResultMetrics.tokens_in > 0
-          ? `${formatTokenCount(selectedResultMetrics.tokens_in)} in`
+          ? `${formatTokens(selectedResultMetrics.tokens_in)} in`
           : null,
         selectedResultMetrics.tokens_out > 0
-          ? `${formatTokenCount(selectedResultMetrics.tokens_out)} out`
+          ? `${formatTokens(selectedResultMetrics.tokens_out)} out`
           : null,
         selectedResultMetrics.cost_usd > 0
           ? formatCost(selectedResultMetrics.cost_usd)
@@ -820,6 +861,40 @@ export function useOutputPanelDerivedState({
           ? `${completedStageCount}/${workflowStepCount} done`
           : null,
       ])
+  const selectedStageMetricNodeIds =
+    selectedStageBranchLabel && selectedStageId
+      ? [selectedStageId]
+      : selectedStageBranchIds.length > 0
+        ? selectedStageBranchIds
+        : selectedStageId
+          ? [selectedStageId]
+          : []
+  const selectedStageMetrics = aggregateStageMetrics(
+    selectedStageMetricNodeIds,
+    displayNodeStates,
+  )
+  const selectedStageResourceLabel =
+    selectedStageMetrics.totalTokens > 0
+      ? formatTokenFootprint(selectedStageMetrics.totalTokens)
+      : null
+  const selectedStageResourceItems =
+    selectedStageMetrics.totalTokens > 0
+      ? ([
+          selectedStageMetrics.tokensIn > 0
+            ? `${formatTokens(selectedStageMetrics.tokensIn)} input`
+            : null,
+          selectedStageMetrics.tokensOut > 0
+            ? `${formatTokens(selectedStageMetrics.tokensOut)} output`
+            : null,
+          selectedStageMetrics.metricNodeCount === 1 &&
+          selectedStageMetrics.latencyMs > 0
+            ? formatDurationMs(selectedStageMetrics.latencyMs)
+            : selectedStageMetrics.metricNodeCount > 1
+              ? `${selectedStageMetrics.metricNodeCount} branch runs`
+              : null,
+          selectedStageMetrics.primaryModel,
+        ].filter(Boolean) as string[])
+      : []
   const selectedResultScopeLabel = selectedResultPresentation
     ? selectedResultBranchLabel
       ? compactLine([
@@ -1027,6 +1102,8 @@ export function useOutputPanelDerivedState({
     selectedStageBranchDetail,
     selectedStageBranchSummary,
     selectedStageScopeLabel,
+    selectedStageResourceLabel,
+    selectedStageResourceItems,
     selectedStageStatus,
     selectedStageIndex,
     workflowStepCount,

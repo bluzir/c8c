@@ -14,6 +14,7 @@ steps:
   - Extract structured data from each invoice
   - Create expense spreadsheet and detect anomalies
   - Evaluate data completeness
+suggested_tools: []
 contract_out:
   - kind: handoff_pack
     title: Expense Data Pack

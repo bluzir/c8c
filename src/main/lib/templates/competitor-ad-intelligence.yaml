@@ -16,6 +16,8 @@ steps:
   - Synthesize competitive landscape and identify gaps
   - Evaluate evidence quality and budget-appropriateness
   - Build counter-positioning strategy with ready-to-test ad concepts
+suggested_tools:
+  - web_search
 contract_out:
   - kind: research_pack
     title: Competitive Ad Landscape

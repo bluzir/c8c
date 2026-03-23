@@ -393,7 +393,7 @@ describe("workflow-entry factory helpers", () => {
           },
         }),
       ),
-    ).toBe("Plan")
+    ).toBe("Prepare the implementation plan")
 
     expect(
       deriveTemplateContextDisplayLabel({
@@ -405,7 +405,7 @@ describe("workflow-entry factory helpers", () => {
           journeyStage: "verify",
         },
       }),
-    ).toBe("Check")
+    ).toBe("Verify completion")
 
     expect(
       deriveTemplateJobLabel(

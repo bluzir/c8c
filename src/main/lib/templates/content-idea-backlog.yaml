@@ -25,6 +25,7 @@ contract_in:
     title: Trend Digest
     description: The trend evidence base that should drive idea generation.
     required: true
+suggested_tools: []
 contract_out:
   - kind: idea_backlog
     title: Idea Backlog

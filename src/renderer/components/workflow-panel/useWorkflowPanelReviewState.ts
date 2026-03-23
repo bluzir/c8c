@@ -96,7 +96,7 @@ export function useWorkflowPanelReviewState({
       completionSurfaceRef.current = null
       return
     }
-    setShowSavedRunReview(false)
+    setShowSavedRunReview(true)
     const completionKey = `${selectedWorkflowPath ?? "__draft__"}:${runId || runOutcome || runStatus}`
     if (completionSurfaceRef.current === completionKey) return
     completionSurfaceRef.current = completionKey

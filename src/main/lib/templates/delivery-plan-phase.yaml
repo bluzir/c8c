@@ -36,6 +36,7 @@ contract_in:
     title: Roadmap
     description: Useful sequencing context for the next change.
     required: false
+suggested_tools: []
 contract_out:
   - kind: phase_plan
     title: Change Plan

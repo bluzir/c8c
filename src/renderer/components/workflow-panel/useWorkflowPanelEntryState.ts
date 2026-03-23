@@ -10,6 +10,7 @@ import {
   areTemplateContractsSatisfied,
   buildContinuationArtifactPool,
   deriveTemplateContinuationDescription,
+  deriveTemplateContextDisplayLabel,
   deriveTemplateContextJobLabel,
   deriveTemplateContextJourneyStageLabel,
   formatArtifactContractLabel,
@@ -122,25 +123,32 @@ export function resolveShowResumeHeader({
 
 export function resolveActiveWorkflowEntryState({
   workflowEntryState,
+  workflowContinuationEntryState,
   selectedWorkflowPath,
   workflowName,
 }: {
   workflowEntryState: WorkflowEntryState | null
+  workflowContinuationEntryState?: WorkflowEntryState | null
   selectedWorkflowPath: string | null
   workflowName: string
 }): WorkflowEntryState | null {
-  if (!workflowEntryState) return null
-  if (workflowEntryState.workflowPath) {
-    return workflowEntryState.workflowPath === selectedWorkflowPath
-      ? workflowEntryState
-      : null
+  const resolveMatchingEntryState = (entryState: WorkflowEntryState | null) => {
+    if (!entryState) return null
+    if (entryState.workflowPath) {
+      return entryState.workflowPath === selectedWorkflowPath
+        ? entryState
+        : null
+    }
+    if (selectedWorkflowPath !== null) {
+      return null
+    }
+    return entryState.workflowName === workflowName ? entryState : null
   }
-  if (selectedWorkflowPath !== null) {
-    return null
-  }
-  return workflowEntryState.workflowName === workflowName
-    ? workflowEntryState
-    : null
+
+  return (
+    resolveMatchingEntryState(workflowEntryState) ||
+    resolveMatchingEntryState(workflowContinuationEntryState || null)
+  )
 }
 
 export function useWorkflowPanelEntryState({
@@ -273,6 +281,8 @@ export function useWorkflowPanelEntryState({
   )
   const entryStageLabel = useMemo(
     () =>
+      deriveTemplateContextDisplayLabel(selectedWorkflowTemplateContext) ||
+      deriveTemplateContextJobLabel(selectedWorkflowTemplateContext) ||
       deriveTemplateContextJourneyStageLabel(selectedWorkflowTemplateContext),
     [selectedWorkflowTemplateContext],
   )

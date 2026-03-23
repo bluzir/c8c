@@ -40,7 +40,8 @@ describe("DeepLinkTemplateDialog", () => {
     )
 
     expect(screen.getByText("Start Review before ship")).toBeTruthy()
-    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("Path")).toBeTruthy()
+    expect(screen.getByText("First step")).toBeTruthy()
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(screen.getAllByText("Review it").length).toBeGreaterThan(0)
   })

@@ -14,6 +14,7 @@ steps:
   - Define page structure and key blocks
   - Generate copy for each block with quality loops
   - Assemble and run cross-block quality check
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Landing Page Draft

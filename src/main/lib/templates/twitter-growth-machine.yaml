@@ -14,6 +14,7 @@ steps:
   - Generate multiple tweet angles in parallel
   - Optimize each for the algorithm and select the best
   - Founder approves the final tweet batch before posting
+suggested_tools: []
 contract_out:
   - kind: distribution_bundle
     title: Tweet Queue

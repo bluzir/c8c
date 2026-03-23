@@ -32,6 +32,7 @@ contract_in:
     title: Research Pack
     description: Helpful evidence, constraints, and open questions gathered before implementation.
     required: false
+suggested_tools: []
 contract_out:
   - kind: implementation_report
     title: Implementation Report

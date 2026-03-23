@@ -24,6 +24,7 @@ credits:
   - label: gstack
     href: https://github.com/garrytan/gstack
     note: Built around Garry Tan's gstack skill pack.
+suggested_tools: []
 contract_out:
   - kind: qa_report
     title: Web QA Report

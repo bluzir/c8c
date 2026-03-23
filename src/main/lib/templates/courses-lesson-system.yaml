@@ -25,6 +25,7 @@ contract_in:
     title: Curriculum Map
     description: The approved course modules and progression.
     required: true
+suggested_tools: []
 contract_out:
   - kind: lesson_system
     title: Lesson System

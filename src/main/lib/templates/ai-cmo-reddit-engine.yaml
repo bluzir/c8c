@@ -27,6 +27,8 @@ contract_in:
     title: Editorial Calendar
     description: Helpful sequencing context for community distribution.
     required: false
+suggested_tools:
+  - web_search
 contract_out:
   - kind: draft
     title: Reddit Post and Comment Kit

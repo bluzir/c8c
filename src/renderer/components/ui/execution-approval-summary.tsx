@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { cn } from "@/lib/cn"
 
 interface ExecutionApprovalSummaryProps {
@@ -41,6 +42,7 @@ export function ExecutionApprovalSummary({
   const compactDescription = collapseText(stepDescription)
   const previewText = inputPreview?.trim() || null
   const hasTopBadges = Boolean(topBadges)
+  const hasRunContext = inputLabels.length > 0 || Boolean(previewText)
 
   return (
     <section className={cn("space-y-3", className)}>
@@ -78,6 +80,14 @@ export function ExecutionApprovalSummary({
           ) : null}
         </div>
         <div className="space-y-1">
+          <div className="ui-meta-label text-status-success">
+            {approveLabel}
+          </div>
+          <div className="text-body-sm font-medium text-foreground">
+            {approveConsequence}
+          </div>
+        </div>
+        <div className="space-y-1">
           <div className="ui-meta-label text-muted-foreground">
             Expected result
           </div>
@@ -85,45 +95,49 @@ export function ExecutionApprovalSummary({
             {expectedResult}
           </div>
         </div>
-        <div className="space-y-1">
-          <div className="ui-meta-label text-muted-foreground">Runs with</div>
-          {inputLabels.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {inputLabels.map((label) => (
-                <Badge
-                  key={label}
-                  variant="outline"
-                  className="ui-meta-text px-2 py-0"
-                >
-                  {label}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <div className="ui-meta-text text-muted-foreground">
-              Current input
-            </div>
-          )}
-        </div>
       </div>
 
-      {previewText ? (
-        <div className="space-y-1 ui-section-divider">
-          <div className="ui-meta-label text-muted-foreground">
-            Input preview
+      {hasRunContext ? (
+        <DisclosurePanel
+          summary="What will run"
+          surface="plain"
+          summaryClassName="px-0 py-1.5"
+          contentClassName="space-y-3 pt-2"
+          unmountWhenClosed
+        >
+          <div className="space-y-1">
+            <div className="ui-meta-label text-muted-foreground">Runs with</div>
+            {inputLabels.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {inputLabels.map((label) => (
+                  <Badge
+                    key={label}
+                    variant="outline"
+                    className="ui-meta-text px-2 py-0"
+                  >
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <div className="ui-meta-text text-muted-foreground">
+                Current input
+              </div>
+            )}
           </div>
-          <div className="line-clamp-4 whitespace-pre-wrap text-body-sm text-foreground">
-            {previewText}
-          </div>
-        </div>
+
+          {previewText ? (
+            <div className="space-y-1">
+              <div className="ui-meta-label text-muted-foreground">
+                Input preview
+              </div>
+              <div className="line-clamp-4 whitespace-pre-wrap text-body-sm text-foreground">
+                {previewText}
+              </div>
+            </div>
+          ) : null}
+        </DisclosurePanel>
       ) : null}
-
-      <div className="space-y-1 ui-section-divider">
-        <div className="ui-meta-label text-status-success">{approveLabel}</div>
-        <div className="text-body-sm font-medium text-foreground">
-          {approveConsequence}
-        </div>
-      </div>
 
       <details className="group text-body-sm">
         <summary className="cursor-pointer select-none ui-meta-label text-muted-foreground hover:text-foreground ui-transition-colors ui-motion-fast">

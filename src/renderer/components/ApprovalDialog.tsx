@@ -177,6 +177,7 @@ export function ApprovalDialog() {
   const gateDescription =
     request?.message || "Review this exact step before the flow continues."
   const dialogOpen = Boolean(request && requestKey !== dismissedRequestKey)
+  const hasDecisionDetails = flowRules.length > 0 || evaluatorSummary !== null
 
   useEffect(() => {
     mountedRef.current = true
@@ -333,29 +334,50 @@ export function ApprovalDialog() {
           />
         )}
 
-        <FlowRulesPreview rules={flowRules} collapsible defaultOpen={false} />
+        {hasDecisionDetails ? (
+          <DisclosurePanel
+            summary="Decision details"
+            surface="plain"
+            className="ui-section-divider"
+            summaryClassName="px-0 py-1.5"
+            contentClassName="space-y-3 pt-2"
+            unmountWhenClosed
+          >
+            <FlowRulesPreview
+              rules={flowRules}
+              collapsible
+              defaultOpen={false}
+            />
 
-        {evaluatorSummary && (
-          <ExecutionLoopCard
-            summary={evaluatorSummary}
-            compact
-            detailSummary="Technical details"
-            surface="flat"
-            showTechnicalBadges={false}
-          />
-        )}
+            {evaluatorSummary ? (
+              <ExecutionLoopCard
+                summary={evaluatorSummary}
+                compact
+                detailSummary="Technical details"
+                surface="flat"
+                showTechnicalBadges={false}
+              />
+            ) : null}
+          </DisclosurePanel>
+        ) : null}
 
         {request.content &&
           (request.allowEdit ? (
-            <section className="space-y-2 ui-section-divider">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="ui-meta-label text-muted-foreground">
-                  Edit input before continue
-                </p>
-                <Badge variant="outline" size="compact">
-                  Editable
-                </Badge>
-              </div>
+            <DisclosurePanel
+              summary={
+                <span className="flex items-center gap-2">
+                  <span>Review and edit input</span>
+                  <Badge variant="outline" size="compact">
+                    Editable
+                  </Badge>
+                </span>
+              }
+              surface="plain"
+              className="ui-section-divider"
+              summaryClassName="px-0 py-1.5"
+              contentClassName="space-y-2 pt-2"
+              unmountWhenClosed
+            >
               <Textarea
                 value={editedContent}
                 onChange={(e) => setEditedContent(e.target.value)}
@@ -367,13 +389,15 @@ export function ApprovalDialog() {
               <p className="ui-meta-text text-muted-foreground">
                 Your edits will be used as the step output when approved.
               </p>
-            </section>
+            </DisclosurePanel>
           ) : (
             <DisclosurePanel
               summary="Show full input"
               surface="plain"
-              className="mt-1"
+              className="ui-section-divider"
               summaryClassName="px-0 py-1.5"
+              contentClassName="pt-2"
+              unmountWhenClosed
             >
               <div className="max-h-64 overflow-y-auto border-l border-hairline pl-3 ui-scroll-region">
                 <pre className="text-body-sm text-foreground-subtle whitespace-pre-wrap">
@@ -414,7 +438,7 @@ export function ApprovalDialog() {
             onClick={handleApprove}
             disabled={pendingAction !== null}
             isLoading={pendingAction === "approve"}
-            autoFocus={!request.allowEdit}
+            autoFocus
           >
             {pendingAction !== "approve" && <Check size={14} />}
             Approve & continue

@@ -15,7 +15,8 @@ export type WorkflowPrimaryScreenState =
 // Internal screen-composition contract only. These ids drive ownership and
 // layout decisions; they must not leak into user-facing copy.
 export type WorkflowListSurfaceIntent =
-  | "start_contract"
+  | "start_ready"
+  | "start_needs_input"
   | "resume_ready"
   | "resume_needs_input"
   | "blocked_decision"
@@ -120,12 +121,12 @@ export function resolveWorkflowListSurfaceIntent({
     case "fresh_start":
     case "cross_flow_handoff":
     default:
-      return "start_contract"
+      return readyToRun ? "start_ready" : "start_needs_input"
   }
 }
 
-export function shouldShowResumeInputPanel(intent: WorkflowListSurfaceIntent) {
-  return intent === "resume_needs_input"
+export function shouldShowInlineInputPanel(intent: WorkflowListSurfaceIntent) {
+  return intent === "resume_needs_input" || intent === "start_needs_input"
 }
 
 export function shouldShowLiveOutputPanel(state: WorkflowPrimaryScreenState) {

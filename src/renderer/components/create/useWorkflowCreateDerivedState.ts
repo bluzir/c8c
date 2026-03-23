@@ -62,7 +62,7 @@ export function formatStartingPointMeta({
 }) {
   const parts = [
     helpModeLabel?.trim() || null,
-    stageLabel?.trim() ? `Starts in ${stageLabel.trim()}` : null,
+    stageLabel?.trim() ? `First step: ${stageLabel.trim()}` : null,
   ].filter(Boolean)
 
   if (parts.length > 0) return parts.join(" · ")

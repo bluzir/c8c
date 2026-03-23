@@ -15,6 +15,7 @@ steps:
   - Fan out repo-wide UX/UI audit tracks by lens
   - Merge findings into one prioritized polish report
   - Run a report quality check before output
+suggested_tools: []
 contract_out:
   - kind: ux_audit_report
     title: UX Audit Report

@@ -138,7 +138,7 @@ function WorkflowCreateRoutingState({
   const routingMeta = [
     routingPreview?.helpModeLabel,
     routingPreview?.stageLabel
-      ? `Starts in ${routingPreview.stageLabel}`
+      ? `First step: ${routingPreview.stageLabel}`
       : null,
   ]
     .filter(Boolean)
@@ -488,7 +488,7 @@ export function WorkflowCreatePage() {
           {
             helpModeLabel: preview?.helpModeLabel ?? null,
             stageLabel: preview?.stageLabel
-              ? `Starts in ${preview.stageLabel}`
+              ? `First step: ${preview.stageLabel}`
               : null,
           },
         ]

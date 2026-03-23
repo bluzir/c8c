@@ -359,6 +359,32 @@ export const viewModeAtom = atom(
 export type FlowSurfaceMode = "outline" | "edit"
 export const flowSurfaceModeAtom = atom<FlowSurfaceMode>("outline")
 export const workflowReviewModeAtom = atom(false)
+export const workflowSavedRunReviewRequestedByKeyAtom = atomWithStorage<
+  Record<string, boolean>
+>("c8c:workflow-saved-run-review", {})
+export const selectedWorkflowSavedRunReviewRequestedAtom = atom(
+  (get) =>
+    Boolean(
+      get(workflowSavedRunReviewRequestedByKeyAtom)[
+        toWorkflowExecutionKey(get(selectedWorkflowPathAtom))
+      ],
+    ),
+  (get, set, requested: boolean) => {
+    const key = toWorkflowExecutionKey(get(selectedWorkflowPathAtom))
+    const stored = get(workflowSavedRunReviewRequestedByKeyAtom)
+    if (!requested) {
+      if (!(key in stored)) return
+      const next = { ...stored }
+      delete next[key]
+      set(workflowSavedRunReviewRequestedByKeyAtom, next)
+      return
+    }
+    set(workflowSavedRunReviewRequestedByKeyAtom, {
+      ...stored,
+      [key]: true,
+    })
+  },
+)
 export const workflowRunBlockReasonAtom = atom<string | null>(null)
 export type WorkflowOpenStatus = "idle" | "loading" | "error"
 export interface WorkflowOpenState {
@@ -637,6 +663,79 @@ export const workflowCreatePendingEntryAtom = atom<Record<string, string>>({})
 export const workflowQueuedAutoRunPathAtom = atom<string | null>(null)
 export const workflowEntryStateAtom =
   atomWithStorage<WorkflowEntryState | null>("c8c:workflow-entry-state", null)
+export const workflowContinuationEntryStatesAtom = atomWithStorage<
+  Record<string, WorkflowEntryState>
+>("c8c:workflow-continuation-entry-states", {})
+export const selectedWorkflowContinuationEntryStateAtom = atom(
+  (get) =>
+    get(workflowContinuationEntryStatesAtom)[
+      toWorkflowExecutionKey(get(selectedWorkflowPathAtom))
+    ] ?? null,
+  (get, set, entryState: WorkflowEntryState | null) => {
+    const key = toWorkflowExecutionKey(get(selectedWorkflowPathAtom))
+    const existing = get(workflowContinuationEntryStatesAtom)
+    if (!entryState) {
+      if (!(key in existing)) return
+      const next = { ...existing }
+      delete next[key]
+      set(workflowContinuationEntryStatesAtom, next)
+      return
+    }
+    set(workflowContinuationEntryStatesAtom, {
+      ...existing,
+      [key]: entryState,
+    })
+  },
+)
+export const setWorkflowContinuationEntryStateForKeyAtom = atom(
+  null,
+  (
+    get,
+    set,
+    { key, entryState }: { key: string; entryState: WorkflowEntryState | null },
+  ) => {
+    const existing = get(workflowContinuationEntryStatesAtom)
+    if (!entryState) {
+      if (!(key in existing)) return
+      const next = { ...existing }
+      delete next[key]
+      set(workflowContinuationEntryStatesAtom, next)
+      return
+    }
+    set(workflowContinuationEntryStatesAtom, {
+      ...existing,
+      [key]: entryState,
+    })
+  },
+)
+export const moveWorkflowContinuationEntryStateAtom = atom(
+  null,
+  (get, set, { fromKey, toKey }: { fromKey: string; toKey: string }) => {
+    if (fromKey === toKey) return
+    const existing = get(workflowContinuationEntryStatesAtom)
+    const source = existing[fromKey]
+    if (!source) return
+    const next = {
+      ...existing,
+      [toKey]: {
+        ...source,
+        workflowPath: toKey === toWorkflowExecutionKey(null) ? null : toKey,
+      },
+    }
+    delete next[fromKey]
+    set(workflowContinuationEntryStatesAtom, next)
+  },
+)
+export const clearWorkflowContinuationEntryStateForKeyAtom = atom(
+  null,
+  (get, set, key: string) => {
+    const existing = get(workflowContinuationEntryStatesAtom)
+    if (!(key in existing)) return
+    const next = { ...existing }
+    delete next[key]
+    set(workflowContinuationEntryStatesAtom, next)
+  },
+)
 export const workflowRequestedResultsAtom = atomWithStorage<
   Record<string, string>
 >("c8c:workflow-requested-results", {})

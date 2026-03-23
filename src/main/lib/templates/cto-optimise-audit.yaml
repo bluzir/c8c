@@ -15,6 +15,7 @@ steps:
   - Fan out repo-wide CTO audit tracks by optimization lens
   - Merge findings into one prioritized optimization report
   - Run a report quality check before output
+suggested_tools: []
 contract_out:
   - kind: audit_report
     title: CTO Audit Report

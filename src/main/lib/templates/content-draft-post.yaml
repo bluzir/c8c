@@ -29,6 +29,7 @@ contract_in:
     title: Trend Digest
     description: Optional trend evidence that keeps the draft grounded in the campaign context.
     required: false
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Draft Post

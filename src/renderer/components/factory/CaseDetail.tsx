@@ -11,8 +11,8 @@ import {
   deriveBlockedTaskStatusText,
 } from "@/lib/workflow-blocked-copy"
 import {
+  deriveTemplateDisplayLabel,
   deriveTemplateExecutionDisciplineLabels,
-  deriveTemplateJourneyStageLabel,
   formatArtifactContractLabel,
 } from "@/lib/workflow-entry"
 import type {
@@ -489,7 +489,7 @@ export function CaseDetail({
             ) : (
               <div className="space-y-2">
                 {selectedCase.nextTemplates.map((template) => {
-                  const stageLabel = deriveTemplateJourneyStageLabel(template)
+                  const stageLabel = deriveTemplateDisplayLabel(template)
                   const disciplineLabels =
                     deriveTemplateExecutionDisciplineLabels(template)
                   const isLaunching = launchingTemplateId === template.id

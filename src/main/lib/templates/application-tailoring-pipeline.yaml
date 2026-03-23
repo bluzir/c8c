@@ -15,6 +15,7 @@ steps:
   - Tailor application to address each criterion with evidence
   - Evaluate completeness, authenticity, and differentiation
   - Output tailored application
+suggested_tools: []
 contract_out:
   - kind: draft
     title: Tailored Application

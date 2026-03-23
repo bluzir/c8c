@@ -25,6 +25,7 @@ export function useWorkflowPanelLifecycle({
   setFlowSurfaceMode,
   setPrepareNewRun,
   setShowSavedRunReview,
+  setWorkflowContinuationEntryState,
   setOutputTabRequest,
   idleReviewAutoScrollKeyRef,
 }: {
@@ -41,6 +42,7 @@ export function useWorkflowPanelLifecycle({
   setFlowSurfaceMode: (value: FlowSurfaceMode) => void
   setPrepareNewRun: (value: boolean) => void
   setShowSavedRunReview: (value: boolean) => void
+  setWorkflowContinuationEntryState: (value: WorkflowEntryState | null) => void
   setOutputTabRequest: (value: OutputTabRequest | null) => void
   idleReviewAutoScrollKeyRef: React.MutableRefObject<string | null>
 }) {
@@ -65,9 +67,16 @@ export function useWorkflowPanelLifecycle({
     }
     if (previousRunStatus === "idle" && runStatus !== "idle") {
       lastRunInputRef.current = inputValue
+      setShowSavedRunReview(false)
+      setWorkflowContinuationEntryState(null)
     }
     previousRunStatusRef.current = runStatus
-  }, [inputValue, runStatus])
+  }, [
+    inputValue,
+    runStatus,
+    setShowSavedRunReview,
+    setWorkflowContinuationEntryState,
+  ])
 
   const clearWorkflowOpenState = useCallback(() => {
     setWorkflowOpenState({
@@ -166,7 +175,6 @@ export function useWorkflowPanelLifecycle({
     setShowEntryEditor(false)
     setFlowSurfaceMode("outline")
     setPrepareNewRun(false)
-    setShowSavedRunReview(false)
     setOutputTabRequest(null)
     pendingListAutoScrollRef.current = false
     idleReviewAutoScrollKeyRef.current = null
@@ -178,7 +186,6 @@ export function useWorkflowPanelLifecycle({
     setOutputTabRequest,
     setPrepareNewRun,
     setShowEntryEditor,
-    setShowSavedRunReview,
   ])
 
   useEffect(() => {

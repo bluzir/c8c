@@ -25,6 +25,7 @@ contract_in:
     title: Idea Backlog
     description: The set of content ideas that should be turned into a production calendar.
     required: true
+suggested_tools: []
 contract_out:
   - kind: editorial_calendar
     title: Editorial Calendar

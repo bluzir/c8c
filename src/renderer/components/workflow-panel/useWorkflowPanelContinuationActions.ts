@@ -7,7 +7,10 @@ import type { MainView } from "@/lib/store"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { useWorkflowUseInNewFlow } from "./useWorkflowUseInNewFlow"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
-import { getRequestedResultFromEntryState } from "@/lib/workflow-entry"
+import {
+  getRequestedResultFromEntryState,
+  hasSavedWorkContinuationContext,
+} from "@/lib/workflow-entry"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
 import type {
   ArtifactRecord,
@@ -38,6 +41,7 @@ export function useWorkflowPanelContinuationActions({
   setWorkflowSavedSnapshot,
   setInputValue,
   setWorkflowEntryState,
+  setWorkflowContinuationEntryState,
   setWorkflowRequestedResultForKey,
   setWorkflowTemplateContextForKey,
   setSelectedInboxTaskKey,
@@ -89,6 +93,9 @@ export function useWorkflowPanelContinuationActions({
   setWorkflowEntryState: (
     value: import("@/lib/workflow-entry").WorkflowEntryState | null,
   ) => void
+  setWorkflowContinuationEntryState: (
+    value: import("@/lib/workflow-entry").WorkflowEntryState | null,
+  ) => void
   setWorkflowRequestedResultForKey: (value: {
     key: string
     value: string | null
@@ -121,6 +128,11 @@ export function useWorkflowPanelContinuationActions({
       setWorkflowSavedSnapshot(launch.savedSnapshot)
       setInputValue(launch.inputSeed)
       setWorkflowEntryState(launch.entryState)
+      setWorkflowContinuationEntryState(
+        hasSavedWorkContinuationContext(launch.templateContext)
+          ? launch.entryState
+          : null,
+      )
       setWorkflowRequestedResultForKey({
         key: toWorkflowExecutionKey(launch.filePath),
         value: getRequestedResultFromEntryState(launch.entryState) || null,
@@ -171,6 +183,7 @@ export function useWorkflowPanelContinuationActions({
       setSelectedPastRun,
       setSelectedWorkflowPath,
       setViewMode,
+      setWorkflowContinuationEntryState,
       setWorkflowDirect,
       setWorkflowEntryState,
       setWorkflowRequestedResultForKey,

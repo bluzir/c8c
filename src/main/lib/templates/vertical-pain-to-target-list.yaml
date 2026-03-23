@@ -15,6 +15,8 @@ steps:
   - Distill the pain into search angles that list-building can actually run.
   - Build and enrich a first-pass account universe instead of prospecting blind.
   - Tier the list and explain which accounts deserve outreach first and why now.
+suggested_tools:
+  - web_search
 contract_out:
   - kind: research_pack
     title: Vertical Target Pack

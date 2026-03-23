@@ -58,9 +58,9 @@ describe("TemplateDetailPanel", () => {
       />,
     )
 
-    expect(screen.getByText("Intent")).toBeTruthy()
+    expect(screen.getByText("Path")).toBeTruthy()
     expect(screen.getAllByText("Review it").length).toBeGreaterThan(0)
-    expect(screen.getByText("Starts in")).toBeTruthy()
+    expect(screen.getByText("First step")).toBeTruthy()
     expect(screen.getAllByText("Review").length).toBeGreaterThan(0)
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(screen.getByText("Understand")).toBeTruthy()
@@ -68,5 +68,47 @@ describe("TemplateDetailPanel", () => {
     expect(
       screen.getByRole("button", { name: "Start Review before ship" }),
     ).toBeTruthy()
+  })
+
+  it("uses flow language for the fallback path label", () => {
+    render(
+      <TemplateDetailPanel
+        entry={{
+          template: {
+            id: "delivery-review-phase",
+            name: "Delivery Factory: Review Phase",
+            description: "Review the current work before ship.",
+            stage: "operations",
+            emoji: "R",
+            headline: "Review before ship",
+            how: "Surface concrete gaps before final checks.",
+            input: "Current work",
+            output: "Review report",
+            steps: [],
+            workflow: {
+              version: 1,
+              name: "Delivery Factory: Review Phase",
+              nodes: [],
+              edges: [],
+            },
+          },
+          entryKind: "guided",
+          jobLabel: "Review before ship",
+          jobSummary: "Check the current work before verification.",
+          primaryActionLabel: "Start Review before ship",
+          useWhen: "The work needs a final review before shipping.",
+          youProvide: "Current work",
+          youGetFirst: "Review report",
+          stagePath: ["Understand", "Plan", "Build", "Review"],
+          stagePathLabel: "Understand -> Plan -> Build -> Review",
+          firstStageLabel: "Review",
+        }}
+        onUse={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText("Flow path")).toBeTruthy()
+    expect(screen.queryByText("Stage path")).toBeNull()
   })
 })

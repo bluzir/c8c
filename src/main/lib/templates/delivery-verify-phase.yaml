@@ -35,6 +35,7 @@ contract_in:
     title: Research Pack
     description: Helpful evidence and risks that verification should keep in view.
     required: false
+suggested_tools: []
 contract_out:
   - kind: verification_report
     title: Verification Report

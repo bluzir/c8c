@@ -24,6 +24,7 @@ contract_in:
     title: Visual QA Report
     description: Browser-backed issues and regressions that should be fixed in the polish pass.
     required: false
+suggested_tools: []
 contract_out:
   - kind: implementation_report
     title: UI Implementation Report
