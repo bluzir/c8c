@@ -38,6 +38,7 @@ export function OutputPanelHeader({
   selectedRunLabel = null,
   selectedReviewStatus = null,
   tabOptions = [],
+  onExitReview = null,
 }: {
   activeTab?: OutputTabValue
   hasResult?: boolean
