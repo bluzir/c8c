@@ -3,6 +3,7 @@ import type { WorkflowEntryState } from "@/lib/workflow-entry"
 import {
   hasWorkflowReviewHistory,
   resolveActiveWorkflowEntryState,
+  resolveShowResumeHeader,
 } from "./useWorkflowPanelEntryState"
 
 function createEntryState(
@@ -77,6 +78,65 @@ describe("hasWorkflowReviewHistory", () => {
       hasWorkflowReviewHistory({
         workflowPastRunsCount: 0,
         hasSelectedPastRun: false,
+      }),
+    ).toBe(false)
+  })
+})
+
+describe("resolveShowResumeHeader", () => {
+  it("shows the resume header only for idle saved-work entry states", () => {
+    expect(
+      resolveShowResumeHeader({
+        viewMode: "list",
+        runStatus: "idle",
+        activeEntryState: createEntryState(),
+        resumeEntrySummary: {
+          workLabel: "Verification",
+          currentStepLabel: "Verify",
+          readyBecauseText: "Ready because Verification Report is saved.",
+          checksText: "No blocking checks or approvals.",
+          attachText: "Verification Report",
+          latestResultText: "Latest result: Verification Report.",
+          continueLabel: "Continue to Verify",
+          primaryArtifact: null,
+        },
+        showCreateDraftSkeleton: false,
+        prepareNewRun: false,
+      }),
+    ).toBe(true)
+  })
+
+  it("keeps fresh starts on the stage contract surface", () => {
+    expect(
+      resolveShowResumeHeader({
+        viewMode: "list",
+        runStatus: "idle",
+        activeEntryState: createEntryState(),
+        resumeEntrySummary: null,
+        showCreateDraftSkeleton: false,
+        prepareNewRun: false,
+      }),
+    ).toBe(false)
+  })
+
+  it("suppresses resume header while a new run is being prepared", () => {
+    expect(
+      resolveShowResumeHeader({
+        viewMode: "list",
+        runStatus: "idle",
+        activeEntryState: createEntryState(),
+        resumeEntrySummary: {
+          workLabel: "Verification",
+          currentStepLabel: "Verify",
+          readyBecauseText: "Ready because Verification Report is saved.",
+          checksText: "No blocking checks or approvals.",
+          attachText: "Verification Report",
+          latestResultText: "Latest result: Verification Report.",
+          continueLabel: "Continue to Verify",
+          primaryArtifact: null,
+        },
+        showCreateDraftSkeleton: false,
+        prepareNewRun: true,
       }),
     ).toBe(false)
   })

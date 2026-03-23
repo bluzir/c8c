@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { resolveReviewShellState } from "./useWorkflowPanelShellDerivations"
+import {
+  resolveReviewShellState,
+  resolveShowIdleStageContract,
+} from "./useWorkflowPanelShellDerivations"
 
 describe("resolveReviewShellState", () => {
   it("maps saved run outcomes to terminal shell states", () => {
@@ -14,5 +17,33 @@ describe("resolveReviewShellState", () => {
     expect(resolveReviewShellState("running")).toBeNull()
     expect(resolveReviewShellState("paused")).toBeNull()
     expect(resolveReviewShellState(null)).toBeNull()
+  })
+})
+
+describe("resolveShowIdleStageContract", () => {
+  it("keeps the stage contract visible for fresh starts", () => {
+    expect(
+      resolveShowIdleStageContract({
+        viewMode: "list",
+        primaryScreenState: "fresh_start",
+        showCreateDraftSkeleton: false,
+        showAnyReviewMode: false,
+        idleStageContract: { title: "Stage contract" },
+        effectiveResumeHeader: false,
+      }),
+    ).toBe(true)
+  })
+
+  it("hides the stage contract when the resume header owns the state", () => {
+    expect(
+      resolveShowIdleStageContract({
+        viewMode: "list",
+        primaryScreenState: "cross_flow_handoff",
+        showCreateDraftSkeleton: false,
+        showAnyReviewMode: false,
+        idleStageContract: { title: "Stage contract" },
+        effectiveResumeHeader: true,
+      }),
+    ).toBe(false)
   })
 })

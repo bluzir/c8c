@@ -34,6 +34,32 @@ export function resolveReviewShellState(
   return null
 }
 
+export function resolveShowIdleStageContract({
+  viewMode,
+  primaryScreenState,
+  showCreateDraftSkeleton,
+  showAnyReviewMode,
+  idleStageContract,
+  effectiveResumeHeader,
+}: {
+  viewMode: ViewMode
+  primaryScreenState: WorkflowPrimaryScreenState
+  showCreateDraftSkeleton: boolean
+  showAnyReviewMode: boolean
+  idleStageContract: unknown
+  effectiveResumeHeader: boolean
+}) {
+  return (
+    viewMode === "list" &&
+    (primaryScreenState === "fresh_start" ||
+      primaryScreenState === "cross_flow_handoff") &&
+    !showCreateDraftSkeleton &&
+    !showAnyReviewMode &&
+    !effectiveResumeHeader &&
+    idleStageContract !== null
+  )
+}
+
 export function useWorkflowPanelShellDerivations({
   workflow,
   runtimeNodes,
@@ -347,13 +373,14 @@ export function useWorkflowPanelShellDerivations({
     resultSourceAttachments.length > 0,
   )
 
-  const showIdleStageContract =
-    viewMode === "list" &&
-    (primaryScreenState === "fresh_start" ||
-      primaryScreenState === "cross_flow_handoff") &&
-    !showCreateDraftSkeleton &&
-    !showAnyReviewMode &&
-    idleStageContract !== null
+  const showIdleStageContract = resolveShowIdleStageContract({
+    viewMode,
+    primaryScreenState,
+    showCreateDraftSkeleton,
+    showAnyReviewMode,
+    idleStageContract,
+    effectiveResumeHeader,
+  })
   const showFlowEditor =
     shellState === "running" ||
     shellState === "paused" ||

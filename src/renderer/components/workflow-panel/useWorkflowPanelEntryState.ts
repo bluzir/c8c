@@ -61,6 +61,31 @@ export function hasWorkflowReviewHistory({
   return workflowPastRunsCount > 0 || hasSelectedPastRun
 }
 
+export function resolveShowResumeHeader({
+  viewMode,
+  runStatus,
+  activeEntryState,
+  resumeEntrySummary,
+  showCreateDraftSkeleton,
+  prepareNewRun,
+}: {
+  viewMode: "list" | "settings"
+  runStatus: ExecutionRunStatus
+  activeEntryState: WorkflowEntryState | null
+  resumeEntrySummary: ReturnType<typeof deriveWorkflowResumeEntrySummary>
+  showCreateDraftSkeleton: boolean
+  prepareNewRun: boolean
+}) {
+  return (
+    viewMode === "list" &&
+    runStatus === "idle" &&
+    activeEntryState !== null &&
+    resumeEntrySummary !== null &&
+    !showCreateDraftSkeleton &&
+    !prepareNewRun
+  )
+}
+
 export function resolveActiveWorkflowEntryState({
   workflowEntryState,
   selectedWorkflowPath,
@@ -354,7 +379,14 @@ export function useWorkflowPanelEntryState({
     ) ||
       ((chatStatus === "thinking" || chatStatus === "streaming") &&
         !workflowHasGeneratedSteps))
-  const showResumeHeader = false
+  const showResumeHeader = resolveShowResumeHeader({
+    viewMode,
+    runStatus,
+    activeEntryState,
+    resumeEntrySummary,
+    showCreateDraftSkeleton,
+    prepareNewRun,
+  })
   const showIdleReviewMode =
     runStatus === "idle" &&
     activeEntryState === null &&
