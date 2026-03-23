@@ -189,6 +189,36 @@ const COURSES_STAGE_TOKENS = [
 const QUICK_STARTS_BY_MODE: Partial<
   Record<ResultModeId, WorkflowResultModeQuickStart[]>
 > = {
+  content: [
+    {
+      templateId: "content-trend-watch",
+      label: "Watch trends",
+      summary:
+        "Gather signals, themes, and launches in your space before planning content.",
+      intentLabel: "Plan it",
+    },
+    {
+      templateId: "content-draft-post",
+      label: "Draft a post",
+      summary:
+        "Turn a topic or calendar slot into a channel-ready draft with voice control.",
+      intentLabel: "Do it",
+    },
+    {
+      templateId: "content-qa-review",
+      label: "Review content quality",
+      summary:
+        "Check a draft for slop, tone consistency, and channel fit before publishing.",
+      intentLabel: "Review it",
+    },
+    {
+      templateId: "content-pipeline",
+      label: "Build content strategy",
+      summary:
+        "Turn a product brief into positioning, messaging, and content plan.",
+      intentLabel: "Do it",
+    },
+  ],
   development: [
     {
       templateId: "delivery-map-codebase",
