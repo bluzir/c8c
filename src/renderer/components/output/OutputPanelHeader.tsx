@@ -1,3 +1,6 @@
+import { TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { OutputTabValue } from "./outputPanelTypes"
+
 export interface OutputPanelTabOption {
   value: string
   label: string
@@ -25,19 +28,30 @@ function renderScopeLabel(scopeLabel: string) {
 }
 
 export function OutputPanelHeader({
+  activeTab,
+  hasResult,
+  resultReadyPulse,
   scopeLabel = null,
   reviewingRunHistory = false,
   selectedRunLabel = null,
   selectedReviewStatus = null,
+  tabOptions = [],
 }: {
+  activeTab?: OutputTabValue
+  hasResult?: boolean
+  resultReadyPulse?: boolean
   scopeLabel?: string | null
   reviewingRunHistory?: boolean
   selectedRunLabel?: string | null
   selectedReviewStatus?: string | null
+  tabOptions?: OutputPanelTabOption[]
 }) {
+  const showTabs = tabOptions.length > 1
+  const showResultPulse =
+    resultReadyPulse && activeTab !== "result" && hasResult
   const showReviewContext = reviewingRunHistory && Boolean(selectedRunLabel)
 
-  if (!showReviewContext && !scopeLabel) {
+  if (!showTabs && !showResultPulse && !showReviewContext && !scopeLabel) {
     return null
   }
 
@@ -52,17 +66,43 @@ export function OutputPanelHeader({
           )}
           {showReviewContext ? (
             <div className="min-w-0 flex flex-wrap items-center justify-end gap-x-2 gap-y-1 ui-meta-text text-muted-foreground">
-              <span className="ui-status-badge h-control-xs shrink-0 border border-hairline bg-surface-2/80 px-2 text-muted-foreground">
+              <span className="ui-status-badge h-control-xs shrink-0 border border-hairline px-2 text-muted-foreground">
                 Saved run
               </span>
               <div className="min-w-0 truncate text-body-sm font-medium text-foreground">
                 {selectedRunLabel}
               </div>
               {selectedReviewStatus ? (
-                <span>{selectedReviewStatus}</span>
+                <span className="ui-meta-text text-muted-foreground">
+                  {selectedReviewStatus}
+                </span>
               ) : null}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {showTabs ? (
+        <div className="flex items-center gap-3">
+          <TabsList variant="boxed">
+            {tabOptions.map((option) => (
+              <TabsTrigger key={option.value} value={option.value}>
+                {option.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {showResultPulse ? (
+            <span className="text-body-sm font-medium text-status-success ui-fade-slide-in">
+              Result ready
+            </span>
+          ) : null}
+        </div>
+      ) : showResultPulse ? (
+        <div className="px-1">
+          <span className="text-body-sm font-medium text-status-success ui-fade-slide-in">
+            Result ready
+          </span>
         </div>
       ) : null}
     </div>

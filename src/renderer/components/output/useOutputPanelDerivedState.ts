@@ -948,11 +948,14 @@ export function useOutputPanelDerivedState({
       artifactRecords.length > 0 ||
       Boolean(artifactPersistenceError) ||
       Boolean(nextStageTemplate))
-  const showResultSurface =
-    hasResult ||
-    (!reviewingRunHistory &&
-      (runStatus === "error" ||
-        (runStatus === "done" && effectiveRunOutcome !== "blocked")))
+  const runIsTerminal =
+    runStatus === "done" || runStatus === "error" || runStatus === "cancelled"
+  const showResultSurface = reviewingRunHistory
+    ? hasResult
+    : runIsTerminal &&
+      (hasResult ||
+        runStatus === "error" ||
+        (runStatus === "done" && effectiveRunOutcome !== "blocked"))
   const failedNodeErrors = Object.entries(displayNodeStates).filter(
     ([, state]) => state.status === "failed" && state.error,
   )

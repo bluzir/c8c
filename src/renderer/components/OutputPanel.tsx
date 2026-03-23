@@ -16,6 +16,7 @@ import {
 } from "@/components/output/OutputPanelContextMenu"
 import { OutputPanelHistoryContent } from "@/components/output/OutputPanelHistoryContent"
 import { OutputPanelLogContent } from "@/components/output/OutputPanelLogContent"
+import { StepsList } from "@/components/output/StepsList"
 import { ResultTab } from "@/components/output/ResultTab"
 import type {
   ArtifactRecord,
@@ -580,7 +581,7 @@ export function OutputPanel({
   const tabOptions = useMemo(() => {
     const options: Array<{ value: OutputTabValue; label: string }> = []
     if (canInspectActivity) {
-      options.push({ value: "nodes", label: "Summary" })
+      options.push({ value: "nodes", label: "Progress" })
     }
     if (showResultSurface) {
       options.push({ value: "result", label: "Result" })
@@ -652,50 +653,14 @@ export function OutputPanel({
           {savedRunErrorNotice}
           {savedRunSnapshotNotice}
           {(!reviewingRunHistory || canInspectSavedRun) && (
-            <div
-              className={cn(activityOwnsSurface && "surface-figure px-4 py-4")}
-            >
-              <ActivityTab
-                showIdleState={showIdleState}
-                isStartingState={runStatus === "starting"}
-                selectedStagePresentation={selectedStagePresentation}
-                selectedStageContextLabelClass={selectedStageContextLabelClass}
-                selectedStageContextLabel={selectedStageContextLabel}
-                selectedStageBranchLabel={selectedStageBranchLabel}
-                selectedStageBranchDetail={selectedStageBranchDetail}
-                runProgressItems={summaryProgressItems}
-                resultReadyLabel={
-                  hasResult
-                    ? selectedResultScopeLabel.replace(
-                        /^Result from:\s*/u,
-                        "",
-                      ) ||
-                      selectedResultPresentation?.artifactLabel ||
-                      "Result"
-                    : null
-                }
-                onViewResult={showResultSurface ? activateResultSurface : null}
-                selectedStageBranchSummary={selectedStageBranchSummary}
-                selectedStageResourceLabel={selectedStageResourceLabel}
-                selectedStageResourceItems={selectedStageResourceItems}
-                onOpenBranchLog={
-                  canInspectLog
-                    ? (nodeId: string) => {
-                        setInspectedNodeId(nodeId)
-                        setActiveTab("log")
-                      }
-                    : null
-                }
-                budgetWarning={budgetWarning}
-                budgetWarningClassName={budgetWarningClassName}
-                onViewStepLog={
-                  canInspectLog ? () => focusStageSurface("log") : null
-                }
-                runAttentionNotice={
-                  errorFigureOwnsSurface ? null : runAttentionBanner
-                }
-              />
-            </div>
+            <StepsList
+              nodes={allDisplayNodes}
+              nodeStates={displayNodeStates}
+              evalResults={displayEvalResults}
+              activeNodeId={displayActiveNodeId}
+              runtimeMeta={runtimeMeta}
+              onRerunFrom={onRerunFrom ? handleRerunFrom : undefined}
+            />
           )}
         </TabsContent>
 
