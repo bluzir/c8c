@@ -1,34 +1,19 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/cn"
 import {
-  ArrowDownToLine,
-  BoxSelect,
   CheckCircle2,
   Circle,
-  Clock,
-  Gauge,
-  GitBranch,
-  GitMerge,
-  ShieldCheck,
   XCircle,
-  Zap,
+  Clock,
+  ChevronRight,
 } from "lucide-react"
 
 type StepStatus = "pending" | "running" | "done" | "failed" | "blocked"
 
-type NodeType =
-  | "input"
-  | "skill"
-  | "evaluator"
-  | "splitter"
-  | "merger"
-  | "output"
-  | "approval"
-
 interface StepRowProps {
   name: string
   status: StepStatus
-  nodeType?: NodeType
+  nodeType?: string
   duration?: string
   cost?: string
   expanded: boolean
@@ -37,20 +22,9 @@ interface StepRowProps {
   children?: ReactNode
 }
 
-const NODE_TYPE_ICONS: Record<NodeType, typeof Zap> = {
-  skill: Zap,
-  evaluator: Gauge,
-  splitter: GitBranch,
-  merger: GitMerge,
-  approval: ShieldCheck,
-  output: BoxSelect,
-  input: ArrowDownToLine,
-}
-
 export function StepRow({
   name,
   status,
-  nodeType = "skill",
   duration,
   cost,
   expanded,
@@ -59,52 +33,68 @@ export function StepRow({
   children,
 }: StepRowProps) {
   const isPending = status === "pending"
-  const TypeIcon = NODE_TYPE_ICONS[nodeType]
+  const isRunning = status === "running"
 
   const metaParts: string[] = []
   if (duration) metaParts.push(duration)
   if (cost) metaParts.push(cost)
-  const metaText = metaParts.join(" · ")
+  if (fanOutProgress) metaParts.push(fanOutProgress)
 
   return (
-    <div className="border-b border-hairline last:border-b-0">
+    <div
+      className={cn(
+        "border-b border-hairline last:border-b-0",
+        isRunning && "bg-surface-1/40",
+      )}
+    >
       <button
         type="button"
         disabled={isPending}
         className={cn(
-          "flex w-full items-center gap-2.5 px-3 py-2.5 text-left",
-          "hover:bg-surface-3/80 ui-pressable",
-          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70",
-          isPending && "opacity-50 pointer-events-none",
+          "flex w-full items-center gap-3 px-4 py-2 text-left ui-motion-fast",
+          !isPending && "hover:bg-surface-2/30",
+          isPending && "opacity-40",
         )}
         onClick={onToggle}
         aria-expanded={expanded}
-        aria-label={`Step: ${name}`}
       >
-        <TypeIcon
-          size={14}
-          className="shrink-0 text-muted-foreground"
-          aria-hidden="true"
-        />
+        {/* Status dot — minimal, left-aligned */}
+        <StatusDot status={status} />
 
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-body-sm font-medium">{name}</div>
-          {metaText && (
-            <div className="ui-meta-text truncate text-muted-foreground">
-              {metaText}
-            </div>
+        {/* Name + meta in one line */}
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate text-body-sm",
+            isRunning && "font-medium text-foreground",
+            status === "done" && "text-foreground",
+            status === "failed" && "text-status-danger",
+            isPending && "text-muted-foreground",
+            status === "blocked" && "text-status-warning",
           )}
-        </div>
+        >
+          {name}
+        </span>
 
-        {fanOutProgress && (
-          <span className="ui-meta-text shrink-0 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-muted-foreground border-hairline">
-            {fanOutProgress}
+        {/* Meta: duration, cost, fan-out — right side, quiet */}
+        {metaParts.length > 0 && !isPending && (
+          <span className="shrink-0 ui-meta-text text-muted-foreground">
+            {metaParts.join(" · ")}
           </span>
         )}
 
-        <StatusIndicator status={status} />
+        {/* Expand chevron — only for non-pending */}
+        {!isPending && (
+          <ChevronRight
+            size={12}
+            className={cn(
+              "shrink-0 text-muted-foreground/50 ui-chevron",
+              expanded && "rotate-90",
+            )}
+          />
+        )}
       </button>
 
+      {/* Accordion content */}
       <div className="ui-collapsible" data-open={expanded ? "true" : "false"}>
         <div className="ui-collapsible-inner">{children}</div>
       </div>
@@ -112,54 +102,22 @@ export function StepRow({
   )
 }
 
-function StatusIndicator({ status }: { status: StepStatus }) {
+function StatusDot({ status }: { status: StepStatus }) {
   switch (status) {
     case "done":
-      return (
-        <CheckCircle2
-          size={14}
-          className="shrink-0 text-status-success"
-          data-testid="step-status-done"
-          aria-label="Done"
-        />
-      )
+      return <CheckCircle2 size={14} className="shrink-0 text-status-success" />
     case "running":
       return (
-        <span
-          className="ui-status-beacon shrink-0"
-          data-testid="step-status-beacon"
-          aria-label="Running"
-        >
+        <span className="ui-status-beacon shrink-0">
           <span className="ui-status-beacon-ring bg-status-info/35" />
           <span className="ui-status-beacon-core bg-status-info" />
         </span>
       )
     case "failed":
-      return (
-        <XCircle
-          size={14}
-          className="shrink-0 text-status-danger"
-          data-testid="step-status-failed"
-          aria-label="Failed"
-        />
-      )
+      return <XCircle size={14} className="shrink-0 text-status-danger" />
     case "blocked":
-      return (
-        <Clock
-          size={14}
-          className="shrink-0 text-status-warning"
-          data-testid="step-status-blocked"
-          aria-label="Blocked"
-        />
-      )
+      return <Clock size={14} className="shrink-0 text-status-warning" />
     case "pending":
-      return (
-        <Circle
-          size={14}
-          className="shrink-0 text-muted-foreground/40"
-          data-testid="step-status-pending"
-          aria-label="Pending"
-        />
-      )
+      return <Circle size={12} className="shrink-0 text-muted-foreground/30" />
   }
 }

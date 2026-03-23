@@ -351,16 +351,16 @@ function StepResultContent({
   if (duration) metaParts.push(duration)
   if (cost) metaParts.push(cost)
 
-  // Strip to first 3 lines for preview
+  // Strip to first 8 lines for preview
   const lines = result?.split("\n").filter(Boolean) || []
-  const isLong = lines.length > 3
-  const preview = isLong ? lines.slice(0, 3).join("\n") + "..." : result
+  const isLong = lines.length > 8
+  const preview = isLong ? lines.slice(0, 8).join("\n") : result
 
   return (
     <div className="space-y-2">
       {result ? (
         <>
-          <div className="prose-c8c text-body-sm line-clamp-4">
+          <div className="prose-c8c text-body-sm">
             <ReactMarkdown>{showFull ? result : preview || ""}</ReactMarkdown>
           </div>
           {isLong && (
