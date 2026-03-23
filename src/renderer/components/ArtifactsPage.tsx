@@ -39,6 +39,7 @@ import {
   selectedProjectAtom,
   selectedFactoryCaseIdAtom,
   selectedWorkflowPathAtom,
+  setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   workflowEntryStateAtom,
   workflowSavedSnapshotAtom,
@@ -49,6 +50,7 @@ import {
   areTemplateContractsSatisfied,
   deriveArtifactCaseKey,
   formatArtifactContractLabel,
+  hasSavedWorkContinuationContext,
   selectArtifactsForTemplateContracts,
 } from "@/lib/workflow-entry"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
@@ -94,6 +96,9 @@ export function ArtifactsPage() {
   const [, setInputValue] = useAtom(inputValueAtom)
   const [, setInputAttachments] = useAtom(inputAttachmentsAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
+  const setWorkflowContinuationEntryStateForKey = useSetAtom(
+    setWorkflowContinuationEntryStateForKeyAtom,
+  )
   const setWorkflowTemplateContextForKey = useSetAtom(
     setWorkflowTemplateContextForKeyAtom,
   )
@@ -536,6 +541,12 @@ export function ArtifactsPage() {
       setWorkflowSavedSnapshot(launch.savedSnapshot)
       setInputValue(launch.inputSeed)
       setWorkflowEntryState(launch.entryState)
+      setWorkflowContinuationEntryStateForKey({
+        key: toWorkflowExecutionKey(launch.filePath),
+        entryState: hasSavedWorkContinuationContext(launch.templateContext)
+          ? launch.entryState
+          : null,
+      })
       setWorkflowTemplateContextForKey({
         key: toWorkflowExecutionKey(launch.filePath),
         context: launch.templateContext,

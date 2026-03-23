@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { toastErrorFromCatch } from "@/lib/toast-error"
 import { errorToUserMessage } from "@/lib/error-message"
 import {
+  clearWorkflowContinuationEntryStateForKeyAtom,
   clearWorkflowTemplateContextForKeyAtom,
   currentWorkflowAtom,
   mainViewAtom,
@@ -11,6 +12,7 @@ import {
   selectedInboxTaskKeyAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
+  setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   viewModeAtom,
   workflowDirtyAtom,
@@ -51,8 +53,14 @@ export function useBlankWorkflowCreation({
   const clearWorkflowExecutionState = useSetAtom(
     clearWorkflowExecutionStateAtom,
   )
+  const clearWorkflowContinuationEntryStateForKey = useSetAtom(
+    clearWorkflowContinuationEntryStateForKeyAtom,
+  )
   const clearWorkflowTemplateContextForKey = useSetAtom(
     clearWorkflowTemplateContextForKeyAtom,
+  )
+  const setWorkflowContinuationEntryStateForKey = useSetAtom(
+    setWorkflowContinuationEntryStateForKeyAtom,
   )
   const setWorkflowTemplateContextForKey = useSetAtom(
     setWorkflowTemplateContextForKeyAtom,
@@ -107,7 +115,12 @@ export function useBlankWorkflowCreation({
         ])
 
         clearWorkflowExecutionState(toWorkflowExecutionKey(null))
+        clearWorkflowContinuationEntryStateForKey(toWorkflowExecutionKey(null))
         clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(null))
+        setWorkflowContinuationEntryStateForKey({
+          key: toWorkflowExecutionKey(filePath),
+          entryState: null,
+        })
         setWorkflowTemplateContextForKey({
           key: toWorkflowExecutionKey(filePath),
           context: null,
@@ -144,6 +157,7 @@ export function useBlankWorkflowCreation({
     },
     [
       clearWorkflowExecutionState,
+      clearWorkflowContinuationEntryStateForKey,
       clearWorkflowTemplateContextForKey,
       confirmDiscard,
       creatingBlankWorkflow,
@@ -159,6 +173,7 @@ export function useBlankWorkflowCreation({
       setViewMode,
       setWorkflowOpenState,
       setWorkflowSavedSnapshot,
+      setWorkflowContinuationEntryStateForKey,
       setWorkflowTemplateContextForKey,
       setWorkflows,
       workflowDirty,

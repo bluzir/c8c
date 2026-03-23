@@ -40,6 +40,7 @@ interface UseWorkflowPanelEntryStateParams {
   workflow: Workflow
   selectedWorkflowPath: string | null
   workflowEntryState: WorkflowEntryState | null
+  workflowContinuationEntryState: WorkflowEntryState | null
   inputValue: string
   inputAttachments: InputAttachment[]
   artifactRecords: ArtifactRecord[]
@@ -155,6 +156,7 @@ export function useWorkflowPanelEntryState({
   workflow,
   selectedWorkflowPath,
   workflowEntryState,
+  workflowContinuationEntryState,
   inputValue,
   inputAttachments,
   artifactRecords,
@@ -178,10 +180,16 @@ export function useWorkflowPanelEntryState({
     () =>
       resolveActiveWorkflowEntryState({
         workflowEntryState,
+        workflowContinuationEntryState,
         selectedWorkflowPath,
         workflowName: workflow.name,
       }),
-    [selectedWorkflowPath, workflow.name, workflowEntryState],
+    [
+      selectedWorkflowPath,
+      workflow.name,
+      workflowContinuationEntryState,
+      workflowEntryState,
+    ],
   )
 
   const inputNode = workflow.nodes.find((node) => node.type === "input")

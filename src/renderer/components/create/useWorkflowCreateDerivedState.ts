@@ -30,7 +30,6 @@ import {
   splitTemplatesForResultMode,
 } from "@/lib/result-modes"
 import { buildCreateRoutingPreview } from "@/lib/create-routing-preview"
-import { STAGE_FAMILY_META, STAGE_META } from "@/lib/template-stages"
 import {
   countWorkflowCreateScaffoldFields,
   hasWorkflowCreatePromptContent,
@@ -83,6 +82,16 @@ export function formatPendingStartActionLabel({
       : null)
 
   return resolvedLabel ? `Start ${resolvedLabel}` : "Start this starting point"
+}
+
+export function resolvePendingTemplateIntentLabel({
+  routingHelpModeLabel,
+  quickStartIntentLabel,
+}: {
+  routingHelpModeLabel?: string | null
+  quickStartIntentLabel?: string | null
+}) {
+  return routingHelpModeLabel?.trim() || quickStartIntentLabel?.trim() || null
 }
 
 export function resolveWorkflowCreateFigureOwner({
@@ -248,11 +257,6 @@ export function useWorkflowCreateDerivedState({
   const pendingTemplateDisciplineLabels = pendingTemplate
     ? deriveTemplateExecutionDisciplineLabels(pendingTemplate)
     : []
-  const pendingTemplateCategoryLabel = pendingTemplate
-    ? pendingTemplate.stageFamily
-      ? STAGE_FAMILY_META[pendingTemplate.stageFamily].label
-      : STAGE_META[pendingTemplate.stage].label
-    : null
   const pendingTemplateExecutionSummary = pendingTemplate
     ? pendingTemplate.executionPolicy?.summary?.trim() ||
       (pendingTemplateDisciplineLabels.length > 0
@@ -476,7 +480,6 @@ export function useWorkflowCreateDerivedState({
     selectedModeConfig,
     selectedModeConfigFields,
     selectedModeConfigFieldCount,
-    pendingTemplateCategoryLabel,
     pendingTemplateExecutionSummary,
     optionalDetailCount,
     canSubmitPrompt,

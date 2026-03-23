@@ -32,11 +32,21 @@ function hasSuggestedTool(
   return Boolean(suggestedTools?.includes(tool))
 }
 
+export function templateSuggestsWebSearch(
+  suggestedTools?: WorkflowTemplateSuggestedTool[],
+) {
+  return (
+    hasSuggestedTool(suggestedTools, "web_search") ||
+    hasSuggestedTool(suggestedTools, "exa") ||
+    hasSuggestedTool(suggestedTools, "serper")
+  )
+}
+
 export function templateNeedsWebSearch(
   stage: WorkflowTemplateStage,
   suggestedTools?: WorkflowTemplateSuggestedTool[],
 ) {
-  return stage === "research" || hasSuggestedTool(suggestedTools, "web_search")
+  return stage === "research" || templateSuggestsWebSearch(suggestedTools)
 }
 
 export function resolveTemplateToolingRecommendation({
@@ -46,7 +56,7 @@ export function resolveTemplateToolingRecommendation({
   suggestedTools?: WorkflowTemplateSuggestedTool[]
   backend: WebSearchBackend
 }): TemplateToolingRecommendation | null {
-  if (!hasSuggestedTool(suggestedTools, "web_search")) return null
+  if (!templateSuggestsWebSearch(suggestedTools)) return null
   if (backend === "exa") return null
 
   return {

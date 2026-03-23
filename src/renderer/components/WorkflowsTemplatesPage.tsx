@@ -19,7 +19,9 @@ import {
   selectedInboxTaskKeyAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
+  selectedWorkflowContinuationEntryStateAtom,
   selectedWorkflowTemplateContextAtom,
+  setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   templateLibraryContextAtom,
   workflowCreateDraftPromptAtom,
@@ -41,6 +43,8 @@ import { PageHeader, PageShell } from "@/components/ui/page-shell"
 import { CollectionToolbar } from "@/components/ui/collection-toolbar"
 import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
 import {
+  getTemplateLibraryFilterKey,
+  getTemplateLibraryFilterLabel,
   getTemplateSearchScore,
   templateMatchesCategory,
   templateMatchesLibraryFilter,
@@ -49,12 +53,6 @@ import {
 } from "@/lib/template-filters"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
-import {
-  STAGE_ORDER,
-  STAGE_META,
-  STAGE_FAMILY_ORDER,
-  STAGE_FAMILY_META,
-} from "@/lib/template-stages"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import {
   resolveProjectRequiredContract,
@@ -63,6 +61,7 @@ import {
 } from "@/lib/entry-state-contracts"
 import {
   deriveTemplateExecutionDisciplineLabels,
+  hasSavedWorkContinuationContext,
   mergeInputAttachments,
 } from "@/lib/workflow-entry"
 import {
@@ -124,6 +123,9 @@ export function WorkflowsTemplatesPage() {
   const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
     selectedInboxTaskKeyAtom,
   )
+  const [selectedWorkflowContinuationEntryState] = useAtom(
+    selectedWorkflowContinuationEntryStateAtom,
+  )
   const [selectedWorkflowTemplateContext] = useAtom(
     selectedWorkflowTemplateContextAtom,
   )
@@ -140,6 +142,9 @@ export function WorkflowsTemplatesPage() {
   const [sourceAttachments] = useAtom(workflowCreateSourceAttachmentsAtom)
   const setWorkflowTemplateContextForKey = useSetAtom(
     setWorkflowTemplateContextForKeyAtom,
+  )
+  const setWorkflowContinuationEntryStateForKey = useSetAtom(
+    setWorkflowContinuationEntryStateForKeyAtom,
   )
   const [, setMainView] = useAtom(mainViewAtom)
   const [runStatus] = useAtom(runStatusAtom)
@@ -227,14 +232,39 @@ export function WorkflowsTemplatesPage() {
     [activeCategory, searchFilteredTemplates],
   )
 
-  const availableStageFilters = useMemo(
+  const availableGoalFilters = useMemo(
     () =>
-      STAGE_FAMILY_ORDER.map((stage) => ({
-        stage,
-        count: categoryFilteredTemplates.filter(
-          (template) => template.stageFamily === stage,
-        ).length,
-      })).filter((entry) => entry.count > 0),
+      Array.from(
+        categoryFilteredTemplates.reduce(
+          (filters, template) => {
+            const key = getTemplateLibraryFilterKey(template)
+            const existing = filters.get(key)
+            if (existing) {
+              existing.count += 1
+              return filters
+            }
+            filters.set(key, {
+              key,
+              label: getTemplateLibraryFilterLabel(template),
+              count: 1,
+            })
+            return filters
+          },
+          new Map<
+            TemplateLibraryFilterKey,
+            {
+              key: TemplateLibraryFilterKey
+              label: string
+              count: number
+            }
+          >(),
+        ),
+      )
+        .map(([, entry]) => entry)
+        .sort(
+          (left, right) =>
+            right.count - left.count || left.label.localeCompare(right.label),
+        ),
     [categoryFilteredTemplates],
   )
 
@@ -391,10 +421,9 @@ export function WorkflowsTemplatesPage() {
 
   useEffect(() => {
     if (activeFilter === "all") return
-    if (availableStageFilters.some((entry) => entry.stage === activeFilter))
-      return
+    if (availableGoalFilters.some((entry) => entry.key === activeFilter)) return
     setActiveFilter("all")
-  }, [activeFilter, availableStageFilters])
+  }, [activeFilter, availableGoalFilters])
 
   useEffect(() => {
     if (!pendingTemplate) return
@@ -449,6 +478,7 @@ export function WorkflowsTemplatesPage() {
       inputValue,
       inputAttachments,
       workflowEntryState,
+      workflowContinuationEntryState: selectedWorkflowContinuationEntryState,
       templateContext: selectedWorkflowTemplateContext,
       selectedInboxTaskKey,
       selectedPastRun,
@@ -480,6 +510,14 @@ export function WorkflowsTemplatesPage() {
     setSelectedInboxTaskKey(null)
     setSelectedPastRun(null)
     setWorkflowEntryState(templateStartState.entryState)
+    setWorkflowContinuationEntryStateForKey({
+      key: workflowKey,
+      entryState: hasSavedWorkContinuationContext(
+        templateStartState.templateContext,
+      )
+        ? templateStartState.entryState
+        : null,
+    })
     setWorkflowTemplateContextForKey({
       key: workflowKey,
       context: templateStartState.templateContext,
@@ -498,6 +536,10 @@ export function WorkflowsTemplatesPage() {
             setSelectedInboxTaskKey(previousState.selectedInboxTaskKey)
             setSelectedPastRun(previousState.selectedPastRun)
             setWorkflowEntryState(previousState.workflowEntryState)
+            setWorkflowContinuationEntryStateForKey({
+              key: workflowKey,
+              entryState: previousState.workflowContinuationEntryState,
+            })
             setWorkflowTemplateContextForKey({
               key: workflowKey,
               context: previousState.templateContext,
@@ -554,6 +596,14 @@ export function WorkflowsTemplatesPage() {
       setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
       setSelectedPastRun(null)
       setWorkflowEntryState(templateStartState.entryState)
+      setWorkflowContinuationEntryStateForKey({
+        key: toWorkflowExecutionKey(filePath),
+        entryState: hasSavedWorkContinuationContext(
+          templateStartState.templateContext,
+        )
+          ? templateStartState.entryState
+          : null,
+      })
       setWorkflowTemplateContextForKey({
         key: toWorkflowExecutionKey(filePath),
         context: templateStartState.templateContext,
@@ -666,24 +716,26 @@ export function WorkflowsTemplatesPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select
-              value={activeFilter}
-              onValueChange={(value) =>
-                setActiveFilter(value as TemplateLibraryFilterKey)
-              }
-            >
-              <SelectTrigger className="h-control-sm min-w-[12rem]">
-                <SelectValue placeholder="Step" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All steps</SelectItem>
-                {availableStageFilters.map(({ stage }) => (
-                  <SelectItem key={stage} value={stage}>
-                    {STAGE_FAMILY_META[stage].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {availableGoalFilters.length > 1 ? (
+              <Select
+                value={activeFilter}
+                onValueChange={(value) =>
+                  setActiveFilter(value as TemplateLibraryFilterKey)
+                }
+              >
+                <SelectTrigger className="h-control-sm min-w-[12rem]">
+                  <SelectValue placeholder="Goal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All goals</SelectItem>
+                  {availableGoalFilters.map(({ key, label }) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             {hasActiveFilters && (
               <Button variant="ghost" size="xs" onClick={clearFilters}>
                 <X size={12} />

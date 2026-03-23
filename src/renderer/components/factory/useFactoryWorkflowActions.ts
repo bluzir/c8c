@@ -13,7 +13,10 @@ import {
 } from "@/components/notifications/task-ui"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
-import { selectArtifactsForTemplateContracts } from "@/lib/workflow-entry"
+import {
+  hasSavedWorkContinuationContext,
+  selectArtifactsForTemplateContracts,
+} from "@/lib/workflow-entry"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
@@ -57,6 +60,7 @@ export function useFactoryWorkflowActions({
   setSelectedPastRun,
   setSelectedInboxTaskKey,
   setSelectedCaseId,
+  setWorkflowContinuationEntryStateForKey,
   setWorkflowTemplateContextForKey,
 }: {
   selectedProject: string | null
@@ -87,6 +91,12 @@ export function useFactoryWorkflowActions({
   setSelectedPastRun: (value: RunResult | null) => void
   setSelectedInboxTaskKey: (value: string | null) => void
   setSelectedCaseId: (value: string | null) => void
+  setWorkflowContinuationEntryStateForKey: (value: {
+    key: string
+    entryState:
+      | Awaited<ReturnType<typeof prepareTemplateStageLaunch>>["entryState"]
+      | null
+  }) => void
   setWorkflowTemplateContextForKey: (
     value: WorkflowTemplateContextSetter,
   ) => void
@@ -144,6 +154,12 @@ export function useFactoryWorkflowActions({
       }
       setInputValue(launch.inputSeed)
       setWorkflowEntryState(launch.entryState)
+      setWorkflowContinuationEntryStateForKey({
+        key: toWorkflowExecutionKey(launch.filePath),
+        entryState: hasSavedWorkContinuationContext(launch.templateContext)
+          ? launch.entryState
+          : null,
+      })
       setWorkflowTemplateContextForKey({
         key: toWorkflowExecutionKey(launch.filePath),
         context: launch.templateContext,
@@ -163,6 +179,7 @@ export function useFactoryWorkflowActions({
       setSelectedPastRun,
       setSelectedWorkflowPath,
       setWorkflow,
+      setWorkflowContinuationEntryStateForKey,
       setWorkflowEntryState,
       setWorkflowSavedSnapshot,
       setWorkflowTemplateContextForKey,

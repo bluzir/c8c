@@ -26,6 +26,7 @@ import {
   modelLooksCompatible,
 } from "@shared/provider-metadata"
 import { Loader2, RefreshCw } from "lucide-react"
+import { McpIntegrationsSection } from "@/components/McpIntegrationsSection"
 import { McpServersSection } from "@/components/McpServersSection"
 import {
   getProviderInstallCommand,
@@ -446,6 +447,7 @@ export function SettingsPage() {
             onLogoutProvider={handleLogoutProvider}
           />
 
+          <McpIntegrationsSection />
           <McpServersSection provider={defaultProvider} />
         </SettingsChapterShell>
 

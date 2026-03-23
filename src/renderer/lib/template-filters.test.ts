@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { WorkflowTemplate } from "@shared/types"
 import {
+  getTemplateLibraryFilterKey,
   getTemplateSearchScore,
   isContentTemplate,
   isMarketingTemplate,
@@ -49,7 +50,12 @@ describe("template-filters", () => {
 
     expect(isProductTemplate(template)).toBe(true)
     expect(templateMatchesCategory(template, "product")).toBe(true)
-    expect(templateMatchesLibraryFilter(template, "understand")).toBe(true)
+    expect(
+      templateMatchesLibraryFilter(
+        template,
+        getTemplateLibraryFilterKey(template),
+      ),
+    ).toBe(true)
   })
 
   it("keeps segment research discoverable in marketing", () => {
@@ -113,7 +119,12 @@ describe("template-filters", () => {
     expect(isMarketingTemplate(template)).toBe(true)
     expect(templateMatchesCategory(template, "product")).toBe(true)
     expect(templateMatchesCategory(template, "marketing")).toBe(true)
-    expect(templateMatchesLibraryFilter(template, "evaluate")).toBe(true)
+    expect(
+      templateMatchesLibraryFilter(
+        template,
+        getTemplateLibraryFilterKey(template),
+      ),
+    ).toBe(true)
   })
 
   it("treats course workflows as content", () => {

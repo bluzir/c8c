@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
+  clearWorkflowContinuationEntryStateForKeyAtom,
   projectsAtom,
   selectedProjectAtom,
   expandedProjectsAtom,
@@ -12,6 +13,7 @@ import {
   mainViewAtom,
   clearWorkflowTemplateContextForKeyAtom,
   clearWorkflowRequestedResultForKeyAtom,
+  moveWorkflowContinuationEntryStateAtom,
   moveWorkflowTemplateContextAtom,
   moveWorkflowRequestedResultAtom,
   templateLibraryContextAtom,
@@ -110,11 +112,17 @@ export function ProjectSidebar({
   const moveWorkflowRequestedResult = useSetAtom(
     moveWorkflowRequestedResultAtom,
   )
+  const moveWorkflowContinuationEntryState = useSetAtom(
+    moveWorkflowContinuationEntryStateAtom,
+  )
   const clearWorkflowRequestedResult = useSetAtom(
     clearWorkflowRequestedResultForKeyAtom,
   )
   const moveWorkflowTemplateContext = useSetAtom(
     moveWorkflowTemplateContextAtom,
+  )
+  const clearWorkflowContinuationEntryState = useSetAtom(
+    clearWorkflowContinuationEntryStateForKeyAtom,
   )
   const clearWorkflowTemplateContext = useSetAtom(
     clearWorkflowTemplateContextForKeyAtom,
@@ -143,6 +151,7 @@ export function ProjectSidebar({
   const clearDraftExecutionState = () => {
     clearWorkflowExecutionState(toWorkflowExecutionKey(null))
     clearWorkflowRequestedResult(toWorkflowExecutionKey(null))
+    clearWorkflowContinuationEntryState(toWorkflowExecutionKey(null))
     clearWorkflowTemplateContext(toWorkflowExecutionKey(null))
     setWorkflowEntryState(null)
   }
@@ -250,6 +259,8 @@ export function ProjectSidebar({
     clearWorkflowExecutionState,
     moveWorkflowRequestedResult,
     clearWorkflowRequestedResult,
+    moveWorkflowContinuationEntryState,
+    clearWorkflowContinuationEntryState,
     moveWorkflowTemplateContext,
     clearWorkflowTemplateContext,
     resolveWorkflowReviewRun,

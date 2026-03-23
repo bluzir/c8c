@@ -31,6 +31,10 @@ interface UseWorkflowGenerationArgs {
   setSelectedPastRun: (next: RunResult | null) => void
   workflowEntryState: WorkflowEntryState | null
   setWorkflowEntryState: (next: WorkflowEntryState | null) => void
+  setWorkflowContinuationEntryStateForKey: (params: {
+    key: string
+    entryState: WorkflowEntryState | null
+  }) => void
   selectedWorkflowTemplateContext: WorkflowTemplateRunContext | null
   setWorkflowTemplateContextForKey: (params: {
     key: string
@@ -62,6 +66,7 @@ export function useWorkflowGeneration({
   setSelectedPastRun,
   workflowEntryState,
   setWorkflowEntryState,
+  setWorkflowContinuationEntryStateForKey,
   selectedWorkflowTemplateContext,
   setWorkflowTemplateContextForKey,
   skills,
@@ -191,6 +196,10 @@ export function useWorkflowGeneration({
         setSelectedInboxTaskKey(null)
         setSelectedPastRun(null)
         setWorkflowEntryState(null)
+        setWorkflowContinuationEntryStateForKey({
+          key: previousWorkflowKey,
+          entryState: null,
+        })
         setWorkflowTemplateContextForKey({
           key: previousWorkflowKey,
           context: null,
@@ -216,6 +225,10 @@ export function useWorkflowGeneration({
                   )
                   setSelectedPastRun(previousReviewState.selectedPastRun)
                   setWorkflowEntryState(previousEntryState)
+                  setWorkflowContinuationEntryStateForKey({
+                    key: previousWorkflowKey,
+                    entryState: previousEntryState,
+                  })
                   setWorkflowTemplateContextForKey({
                     key: previousWorkflowKey,
                     context: previousTemplateContext,

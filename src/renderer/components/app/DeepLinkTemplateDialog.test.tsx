@@ -44,5 +44,8 @@ describe("DeepLinkTemplateDialog", () => {
     expect(screen.getByText("First step")).toBeTruthy()
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(screen.getAllByText("Review it").length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole("button", { name: "Execution details" }),
+    ).toBeTruthy()
   })
 })

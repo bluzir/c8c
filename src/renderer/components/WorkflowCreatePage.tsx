@@ -26,6 +26,7 @@ import {
   workflowCreateSourceArtifactsAtom,
   workflowCreateSourceAttachmentsAtom,
   workflowEntryStateAtom,
+  setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowRequestedResultForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   workflowDirtyAtom,
@@ -67,6 +68,7 @@ import {
   buildGeneratedWorkflowEntryState,
   buildTemplateRunContext,
   getRequestedResultFromEntryState,
+  hasSavedWorkContinuationContext,
   mergeInputAttachments,
   type WorkflowEntryState,
 } from "@/lib/workflow-entry"
@@ -97,7 +99,10 @@ import { WorkflowCreateContinuationCard } from "@/components/create/WorkflowCrea
 import { WorkflowCreateSuggestionsSection } from "@/components/create/WorkflowCreateSuggestionsSection"
 import { WorkflowCreateComposerFooter } from "@/components/create/WorkflowCreateComposerFooter"
 import { useWorkflowCreateContinuation } from "@/components/create/useWorkflowCreateContinuation"
-import { useWorkflowCreateDerivedState } from "@/components/create/useWorkflowCreateDerivedState"
+import {
+  resolvePendingTemplateIntentLabel,
+  useWorkflowCreateDerivedState,
+} from "@/components/create/useWorkflowCreateDerivedState"
 import { useWorkflowCreateResources } from "@/components/create/useWorkflowCreateResources"
 import {
   taskSelectionKey,
@@ -289,6 +294,9 @@ export function WorkflowCreatePage() {
   const [, setPendingCreateMessage] = useAtom(workflowCreatePendingMessageAtom)
   const [, setQueuedAutoRunPath] = useAtom(workflowQueuedAutoRunPathAtom)
   const [, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
+  const setWorkflowContinuationEntryStateForKey = useSetAtom(
+    setWorkflowContinuationEntryStateForKeyAtom,
+  )
   const setWorkflowRequestedResultForKey = useSetAtom(
     setWorkflowRequestedResultForKeyAtom,
   )
@@ -445,7 +453,6 @@ export function WorkflowCreatePage() {
     suggestedTemplatesTitle,
     pendingQuickStart,
     pendingPrimaryActionLabel,
-    pendingTemplateCategoryLabel,
     pendingTemplateExecutionSummary,
     showComposer,
     figureOwner,
@@ -577,6 +584,14 @@ export function WorkflowCreatePage() {
         : prev,
     )
     setWorkflowEntryState(nextEntryState)
+    setWorkflowContinuationEntryStateForKey({
+      key: toWorkflowExecutionKey(filePath),
+      entryState:
+        nextEntryState &&
+        hasSavedWorkContinuationContext(options?.templateContext)
+          ? nextEntryState
+          : null,
+    })
     setWorkflowRequestedResultForKey({
       key: toWorkflowExecutionKey(filePath),
       value: getRequestedResultFromEntryState(nextEntryState) || null,
@@ -990,14 +1005,10 @@ export function WorkflowCreatePage() {
             routeOptions,
           }),
         )
-        const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
-        const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
-          resolvedStartTemplate,
-        )
         if (routeResult) {
           const launch = await prepareRoutedTemplateLaunch({
             projectPath: ensuredProjectPath,
-            template: templateForWorkflowUse,
+            template: startTemplate,
             webSearchBackend,
             routeResult,
             requestedResult: message,
@@ -1014,12 +1025,16 @@ export function WorkflowCreatePage() {
             ),
             autoRunIfAllowed: shouldAutoRunCreateStart(
               routeResult,
-              templateForWorkflowUse,
+              startTemplate,
             ),
           })
           return
         }
 
+        const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
+        const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
+          resolvedStartTemplate,
+        )
         const nextWorkflow = resolveTemplateWorkflow(
           templateForWorkflowUse,
           webSearchBackend,
@@ -1356,11 +1371,10 @@ export function WorkflowCreatePage() {
         pendingQuickStartLabel={pendingQuickStart?.label || null}
         targetProjectPath={targetProjectPath}
         targetProjectName={targetProjectName}
-        pendingTemplateIntentLabel={
-          pendingTemplateRoutingPreview?.helpModeLabel ||
-          pendingQuickStart?.intentLabel ||
-          pendingTemplateCategoryLabel
-        }
+        pendingTemplateIntentLabel={resolvePendingTemplateIntentLabel({
+          routingHelpModeLabel: pendingTemplateRoutingPreview?.helpModeLabel,
+          quickStartIntentLabel: pendingQuickStart?.intentLabel,
+        })}
         pendingTemplateStartStageLabel={
           pendingTemplateRoutingPreview?.stageLabel || null
         }

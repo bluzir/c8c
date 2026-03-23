@@ -8,6 +8,7 @@ import type {
   BatchEvent,
   TelemetryUiEvent,
   ChatEvent,
+  ConfigureMcpIntegrationInput,
   DesktopRuntimeInfo,
   DiscoveredSkill,
   GenerationProgress,
@@ -558,6 +559,34 @@ const api: C8cApi = {
     invokeIpc<C8cApi["mcpListAllServers"]>("mcp:list-all-servers", provider),
   mcpListPluginServers: () =>
     invokeIpc<C8cApi["mcpListPluginServers"]>("mcp:list-plugin-servers"),
+  listMcpIntegrations: (projectPath?: string) =>
+    invokeIpc<C8cApi["listMcpIntegrations"]>(
+      "mcp:list-integrations",
+      projectPath,
+    ),
+  getMcpIntegrationStatuses: (toolIds: string[], projectPath?: string) =>
+    invokeIpc<C8cApi["getMcpIntegrationStatuses"]>(
+      "mcp:get-integration-statuses",
+      toolIds,
+      projectPath,
+    ),
+  configureMcpIntegration: (
+    integrationId: string,
+    input: ConfigureMcpIntegrationInput,
+    projectPath?: string,
+  ) =>
+    invokeIpc<C8cApi["configureMcpIntegration"]>(
+      "mcp:configure-integration",
+      integrationId,
+      input,
+      projectPath,
+    ),
+  testMcpIntegration: (integrationId: string, projectPath?: string) =>
+    invokeIpc<C8cApi["testMcpIntegration"]>(
+      "mcp:test-integration",
+      integrationId,
+      projectPath,
+    ),
   mcpAddServer: (
     provider: ProviderId,
     server: McpServerInfo,

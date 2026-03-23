@@ -6,6 +6,12 @@ import {
   validateMcpServerName,
   validateMcpServerScope,
 } from "../lib/mcp-validation"
+import {
+  configureMcpIntegration,
+  getMcpIntegrationStatuses,
+  listMcpIntegrations,
+  testMcpIntegration,
+} from "../lib/mcp-integrations"
 import { listPluginMcpServers } from "../lib/plugin-mcp"
 import { setPluginMcpServerApproved } from "../lib/plugins"
 import { resolveMcpProvider } from "../lib/providers"
@@ -92,6 +98,61 @@ export function registerMcpHandlers() {
   ipcMain.handle("mcp:list-plugin-servers", async () => {
     return listPluginMcpServers()
   })
+
+  ipcMain.handle(
+    "mcp:list-integrations",
+    async (_event, projectPath?: string) => {
+      const safeProjectPath = await resolveOptionalProjectPath(
+        projectPath,
+        "mcp:list-integrations",
+      )
+      return listMcpIntegrations(safeProjectPath)
+    },
+  )
+
+  ipcMain.handle(
+    "mcp:get-integration-statuses",
+    async (_event, toolIds: string[], projectPath?: string) => {
+      const safeProjectPath = await resolveOptionalProjectPath(
+        projectPath,
+        "mcp:get-integration-statuses",
+      )
+      return getMcpIntegrationStatuses(toolIds, safeProjectPath)
+    },
+  )
+
+  ipcMain.handle(
+    "mcp:configure-integration",
+    async (
+      _event,
+      integrationId: string,
+      input: { values?: Record<string, string> },
+      projectPath?: string,
+    ) => {
+      const safeProjectPath = await resolveOptionalProjectPath(
+        projectPath,
+        "mcp:configure-integration",
+      )
+      return configureMcpIntegration(
+        integrationId,
+        {
+          values: input?.values ?? {},
+        },
+        safeProjectPath,
+      )
+    },
+  )
+
+  ipcMain.handle(
+    "mcp:test-integration",
+    async (_event, integrationId: string, projectPath?: string) => {
+      const safeProjectPath = await resolveOptionalProjectPath(
+        projectPath,
+        "mcp:test-integration",
+      )
+      return testMcpIntegration(integrationId, safeProjectPath)
+    },
+  )
 
   ipcMain.handle(
     "mcp:add-server",

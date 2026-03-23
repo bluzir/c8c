@@ -42,6 +42,11 @@ interface UseWorkflowCrudParams {
     toKey: string
   }) => void
   clearWorkflowRequestedResult: (workflowKey: string) => void
+  moveWorkflowContinuationEntryState: (params: {
+    fromKey: string
+    toKey: string
+  }) => void
+  clearWorkflowContinuationEntryState: (workflowKey: string) => void
   moveWorkflowTemplateContext: (params: {
     fromKey: string
     toKey: string
@@ -137,6 +142,8 @@ export function useWorkflowCrud({
   clearWorkflowExecutionState,
   moveWorkflowRequestedResult,
   clearWorkflowRequestedResult,
+  moveWorkflowContinuationEntryState,
+  clearWorkflowContinuationEntryState,
   moveWorkflowTemplateContext,
   clearWorkflowTemplateContext,
   resolveWorkflowReviewRun,
@@ -439,6 +446,10 @@ export function useWorkflowCrud({
         fromKey: toWorkflowExecutionKey(workflow.path),
         toKey: toWorkflowExecutionKey(renamedPath),
       })
+      moveWorkflowContinuationEntryState({
+        fromKey: toWorkflowExecutionKey(workflow.path),
+        toKey: toWorkflowExecutionKey(renamedPath),
+      })
       moveWorkflowTemplateContext({
         fromKey: toWorkflowExecutionKey(workflow.path),
         toKey: toWorkflowExecutionKey(renamedPath),
@@ -489,6 +500,7 @@ export function useWorkflowCrud({
       await window.api.deleteWorkflow(workflow.path)
       clearWorkflowExecutionState(toWorkflowExecutionKey(workflow.path))
       clearWorkflowRequestedResult(toWorkflowExecutionKey(workflow.path))
+      clearWorkflowContinuationEntryState(toWorkflowExecutionKey(workflow.path))
       clearWorkflowTemplateContext(toWorkflowExecutionKey(workflow.path))
 
       setWorkflows((previous) =>

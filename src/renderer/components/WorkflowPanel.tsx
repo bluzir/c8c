@@ -73,6 +73,7 @@ import { useUndoRedo } from "@/hooks/useUndoRedo"
 import { useChainExecution } from "@/hooks/useChainExecution"
 import { useSelectedRunReview } from "@/hooks/useSelectedRunReview"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
+import { useMcpIntegrationSetup } from "@/hooks/useMcpIntegrationSetup"
 import { buildTemplateRoutingPreview } from "@/lib/create-routing-preview"
 import {
   buildProcessSpine,
@@ -239,6 +240,24 @@ export function WorkflowPanel() {
     void cancel()
   }, [cancel])
   const {
+    ensureSuggestedToolsReady,
+    integrationSetupOpen,
+    onIntegrationSetupOpenChange,
+    integrationSetupStatus,
+    integrationSetupValues,
+    onIntegrationSetupValueChange,
+    integrationSetupSaving,
+    onConfirmIntegrationSetup,
+    pendingRunMode: pendingIntegrationRunMode,
+    resumeBlocked: integrationResumeBlocked,
+    consumePendingRunMode,
+  } = useMcpIntegrationSetup({
+    projectPath: selectedProject,
+    selectedWorkflowTemplateContext,
+    webSearchBackend,
+    onWebSearchBackendChange: setWebSearchBackend,
+  })
+  const {
     listScrollRegionRef,
     outputPanelRef,
     chatPanelShellRef,
@@ -357,7 +376,19 @@ export function WorkflowPanel() {
     selectedWorkflowPath,
     queuedAutoRunPath,
     setQueuedAutoRunPath,
+    beforeRun: ensureSuggestedToolsReady,
   })
+  useEffect(() => {
+    if (pendingIntegrationRunMode === null || integrationResumeBlocked) return
+    const mode = consumePendingRunMode()
+    if (!mode) return
+    void handleRunRequest(mode)
+  }, [
+    consumePendingRunMode,
+    handleRunRequest,
+    integrationResumeBlocked,
+    pendingIntegrationRunMode,
+  ])
   const {
     selectedResumeTask,
     resumeTaskAnswers,
@@ -1217,6 +1248,15 @@ export function WorkflowPanel() {
           pendingRouteAlternativeTemplateId={pendingRouteAlternativeTemplateId}
           onSelectRouteAlternative={(templateId) => {
             void handleSelectRouteAlternative(templateId)
+          }}
+          integrationSetupOpen={integrationSetupOpen}
+          onIntegrationSetupOpenChange={onIntegrationSetupOpenChange}
+          integrationSetupStatus={integrationSetupStatus}
+          integrationSetupValues={integrationSetupValues}
+          onIntegrationSetupValueChange={onIntegrationSetupValueChange}
+          integrationSetupSaving={integrationSetupSaving}
+          onConfirmIntegrationSetup={() => {
+            void onConfirmIntegrationSetup()
           }}
         />
       </div>

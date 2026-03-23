@@ -11,6 +11,7 @@ import { errorToUserMessage } from "@/lib/error-message"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import {
+  clearWorkflowContinuationEntryStateForKeyAtom,
   clearWorkflowTemplateContextForKeyAtom,
   projectLatestRunsCacheAtom,
   projectWorkflowsCacheAtom,
@@ -65,6 +66,9 @@ export function useProjectSidebarData({
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const clearWorkflowTemplateContextForKey = useSetAtom(
     clearWorkflowTemplateContextForKeyAtom,
+  )
+  const clearWorkflowContinuationEntryStateForKey = useSetAtom(
+    clearWorkflowContinuationEntryStateForKeyAtom,
   )
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
@@ -256,6 +260,7 @@ export function useProjectSidebarData({
         setSelectedWorkflowPath(null)
         setSelectedInboxTaskKey(null)
         setSelectedPastRun(null)
+        clearWorkflowContinuationEntryStateForKey(toWorkflowExecutionKey(null))
         clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(null))
         setWorkflowEntryState(null)
         const emptyWorkflow = createEmptyWorkflow()
@@ -272,6 +277,7 @@ export function useProjectSidebarData({
     }
   }, [
     currentWorkflow,
+    clearWorkflowContinuationEntryStateForKey,
     selectedWorkflowPath,
     setCurrentWorkflow,
     clearWorkflowTemplateContextForKey,

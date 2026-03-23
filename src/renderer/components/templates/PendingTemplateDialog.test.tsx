@@ -60,5 +60,8 @@ describe("PendingTemplateDialog", () => {
     expect(screen.getByText("Path")).toBeTruthy()
     expect(screen.getByText("First step")).toBeTruthy()
     expect(screen.getByText("Steps")).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: "Execution details" }),
+    ).toBeTruthy()
   })
 })

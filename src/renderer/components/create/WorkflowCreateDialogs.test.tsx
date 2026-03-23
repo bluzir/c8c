@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import {
   RouteClarificationDialog,
@@ -96,6 +96,14 @@ describe("WorkflowCreatePendingTemplateDialog", () => {
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(screen.getByText("Understand")).toBeTruthy()
     expect(screen.getByText("Check")).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: "Execution details" }),
+    ).toBeTruthy()
+    expect(screen.queryByText("Evidence-first, review checks")).toBeNull()
+
+    fireEvent.click(screen.getByRole("button", { name: "Execution details" }))
+
+    expect(screen.getByText("Evidence-first, review checks")).toBeTruthy()
   })
 
   it("falls back to the template job for the dialog title", () => {

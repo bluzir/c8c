@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import type { WorkflowTemplate } from "@shared/types"
 import { ProcessSpine } from "@/components/ui/process-spine"
 import type { ProcessSpineStage } from "@/lib/process-spine"
@@ -70,33 +71,44 @@ export function PendingTemplateDetails({
     return null
   }
 
+  const hasPrimaryMetadata = Boolean(intentLabel || startStageLabel)
+
   return (
     <div className="space-y-3 ui-section-divider pt-4">
-      <div className="flex flex-wrap gap-3">
-        {intentLabel ? (
-          <div className="space-y-1">
-            <p className="ui-meta-text text-muted-foreground">Path</p>
-            <p className="text-body-sm text-foreground">{intentLabel}</p>
-          </div>
-        ) : null}
-        {startStageLabel ? (
-          <div className="space-y-1">
-            <p className="ui-meta-text text-muted-foreground">First step</p>
-            <p className="text-body-sm text-foreground">{startStageLabel}</p>
-          </div>
-        ) : null}
-        {executionSummary ? (
-          <div className="space-y-1">
-            <p className="ui-meta-text text-muted-foreground">Flow rules</p>
-            <p className="text-body-sm text-foreground">{executionSummary}</p>
-          </div>
-        ) : null}
-      </div>
+      {hasPrimaryMetadata ? (
+        <div className="flex flex-wrap gap-3">
+          {intentLabel ? (
+            <div className="space-y-1">
+              <p className="ui-meta-text text-muted-foreground">Path</p>
+              <p className="text-body-sm text-foreground">{intentLabel}</p>
+            </div>
+          ) : null}
+          {startStageLabel ? (
+            <div className="space-y-1">
+              <p className="ui-meta-text text-muted-foreground">First step</p>
+              <p className="text-body-sm text-foreground">{startStageLabel}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {processStages && processStages.length > 0 ? (
         <div className="space-y-1">
           <p className="ui-meta-text text-muted-foreground">Steps</p>
           <ProcessSpine stages={processStages} />
         </div>
+      ) : null}
+      {executionSummary ? (
+        <DisclosurePanel
+          summary="Execution details"
+          surface="plain"
+          summaryClassName="px-0 py-1"
+          contentClassName="pt-2"
+          unmountWhenClosed
+        >
+          <p className="text-body-sm text-muted-foreground">
+            {executionSummary}
+          </p>
+        </DisclosurePanel>
       ) : null}
     </div>
   )

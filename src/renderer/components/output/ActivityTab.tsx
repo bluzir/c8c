@@ -217,36 +217,30 @@ export function ActivityTab({
               </Button>
             ) : null
           }
+          secondaryContent={
+            selectedStageResourceLabel ? (
+              <DisclosurePanel
+                summary={`Technical details · ${selectedStageResourceLabel}`}
+                surface="plain"
+                summaryClassName="px-0 py-0 text-muted-foreground"
+                contentClassName="px-0 py-2"
+                unmountWhenClosed
+              >
+                <div className="flex flex-wrap gap-2">
+                  {selectedStageResourceItems.map((item) => (
+                    <span
+                      key={item}
+                      className="ui-status-badge border border-hairline bg-surface-1 text-muted-foreground"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </DisclosurePanel>
+            ) : null
+          }
         />
       )}
-
-      {selectedStageResourceLabel ? (
-        <SummaryRow
-          kicker="Resource footprint"
-          headline={selectedStageResourceLabel}
-          detail="Secondary execution detail for this step. Keep verdict and action in the primary surface."
-        >
-          <div className="w-full">
-            <DisclosurePanel
-              summary="Show token and runtime details"
-              surface="plain"
-              contentClassName="px-0 py-2"
-              unmountWhenClosed
-            >
-              <div className="flex flex-wrap gap-2">
-                {selectedStageResourceItems.map((item) => (
-                  <span
-                    key={item}
-                    className="ui-status-badge border border-hairline bg-surface-1 text-muted-foreground"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </DisclosurePanel>
-          </div>
-        </SummaryRow>
-      ) : null}
 
       {runProgressItems.length > 0 || budgetWarning ? (
         <SummaryRow

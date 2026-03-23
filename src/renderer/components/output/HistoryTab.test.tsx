@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { HistoryTab } from "./HistoryTab"
 
 describe("HistoryTab", () => {
-  it("shows learned recommendations above the run list", () => {
+  it("keeps learned recommendations collapsed until requested", async () => {
+    const user = userEvent.setup()
+
     render(
       <HistoryTab
         pastRuns={[
@@ -52,7 +55,21 @@ describe("HistoryTab", () => {
       />,
     )
 
-    expect(screen.getByText("Learned from recent runs")).toBeTruthy()
+    expect(
+      screen.getByRole("button", {
+        name: /learned from recent runs \(1\)/i,
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.queryByText("Writer has a stronger variant in recent runs."),
+    ).toBeNull()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /learned from recent runs \(1\)/i,
+      }),
+    )
+
     expect(
       screen.getByText("Writer has a stronger variant in recent runs."),
     ).toBeTruthy()

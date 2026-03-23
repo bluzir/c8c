@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { cn } from "@/lib/cn"
 import { Button } from "@/components/ui/button"
+import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { Copy } from "lucide-react"
 import {
   DropdownMenuItem,
@@ -298,24 +299,26 @@ export function HistoryTab({
 
         {improvementRecommendations.length > 0 && (
           <div className="px-1">
-            <div className="border-b border-hairline pb-2">
-              <div className="ui-meta-label text-muted-foreground">
-                Learned from recent runs
-              </div>
-              <div className="mt-2 space-y-2">
-                {improvementRecommendations.map((recommendation) => (
-                  <div
-                    key={recommendation.id}
-                    className="py-1 text-left text-body-sm text-foreground"
-                  >
-                    <div className="font-medium">{recommendation.summary}</div>
-                    <div className="mt-0.5 ui-meta-text text-muted-foreground">
-                      {recommendation.evidence}
-                    </div>
+            <DisclosurePanel
+              summary={`Learned from recent runs (${improvementRecommendations.length})`}
+              surface="plain"
+              className="border-b border-hairline"
+              summaryClassName="px-0 py-2"
+              contentClassName="space-y-2 px-0 py-2"
+              unmountWhenClosed
+            >
+              {improvementRecommendations.map((recommendation) => (
+                <div
+                  key={recommendation.id}
+                  className="py-1 text-left text-body-sm text-foreground"
+                >
+                  <div className="font-medium">{recommendation.summary}</div>
+                  <div className="mt-0.5 ui-meta-text text-muted-foreground">
+                    {recommendation.evidence}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              ))}
+            </DisclosurePanel>
           </div>
         )}
 

@@ -40,6 +40,7 @@ export function useWorkflowStageLaunch({
   selectedWorkflowPath,
   queuedAutoRunPath,
   setQueuedAutoRunPath,
+  beforeRun,
 }: {
   run: (mode?: PermissionMode) => Promise<void>
   startApprovalRequired: boolean
@@ -52,6 +53,7 @@ export function useWorkflowStageLaunch({
   selectedWorkflowPath: string | null
   queuedAutoRunPath: string | null
   setQueuedAutoRunPath: (value: string | null) => void
+  beforeRun?: (mode: PermissionMode) => Promise<boolean> | boolean
 }) {
   const [stageStartGateOpen, setStageStartGateOpen] = useState(false)
   const [pendingRunMode, setPendingRunMode] = useState<PermissionMode>("edit")
@@ -64,6 +66,9 @@ export function useWorkflowStageLaunch({
   const handleRunRequest = useCallback(
     async (mode: PermissionMode = "edit") => {
       if (runLaunchPending) return
+      if (beforeRun && !(await beforeRun(mode))) {
+        return
+      }
       if (startApprovalRequired) {
         setPendingRunMode(mode)
         setStageStartGateOpen(true)
@@ -76,7 +81,7 @@ export function useWorkflowStageLaunch({
         setRunLaunchPending(false)
       }
     },
-    [run, runLaunchPending, startApprovalRequired],
+    [beforeRun, run, runLaunchPending, startApprovalRequired],
   )
 
   const handleApproveStageStart = useCallback(async () => {
@@ -85,11 +90,14 @@ export function useWorkflowStageLaunch({
     setStageStartGateOpen(false)
     setRunLaunchPending(true)
     try {
+      if (beforeRun && !(await beforeRun(mode))) {
+        return
+      }
       await run(mode)
     } finally {
       setRunLaunchPending(false)
     }
-  }, [pendingRunMode, run, runLaunchPending])
+  }, [beforeRun, pendingRunMode, run, runLaunchPending])
 
   const handleCancelStageStart = useCallback(() => {
     setStageStartGateOpen(false)

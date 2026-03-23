@@ -56,12 +56,13 @@ describe("ActivityTab", () => {
       />,
     )
 
-    expect(screen.getByText("Resource footprint")).toBeTruthy()
-    expect(screen.getByText("~52K tokens")).toBeTruthy()
+    expect(
+      screen.getByRole("button", { name: /technical details · ~52k tokens/i }),
+    ).toBeTruthy()
     expect(screen.queryByText("1.2k input")).toBeNull()
 
     await user.click(
-      screen.getByRole("button", { name: /show token and runtime details/i }),
+      screen.getByRole("button", { name: /technical details · ~52k tokens/i }),
     )
 
     expect(screen.getByText("1.2k input")).toBeTruthy()

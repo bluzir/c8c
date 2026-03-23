@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "node:fs"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
-import { dirname, join, resolve } from "node:path"
+import { join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 import type { ProviderId } from "@shared/types"
 import { writeFileAtomic } from "./atomic-write"
+import { buildConfiguredMcpIntegrationServerEntries } from "./mcp-integration-registry"
 import {
   normalizeMcpConfigEntry,
   type NormalizedMcpServerEntry,
@@ -40,10 +41,6 @@ export type ClaudeSdkMcpServerConfig =
       url: string
       headers?: Record<string, string>
     }
-
-function getProcessResourcesPath(): string | undefined {
-  return (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
-}
 
 export interface PreparedMcpConfigHandle {
   path?: string
@@ -116,95 +113,6 @@ export function invalidateMcpConfigCache(filePath?: string): void {
     return
   }
   mcpConfigCache.clear()
-}
-
-function findUpwards(
-  startDir: string,
-  relativePath: string,
-): string | undefined {
-  let dir = resolve(startDir)
-  while (true) {
-    const candidate = join(dir, relativePath)
-    if (existsSync(candidate)) return candidate
-    const parent = dirname(dir)
-    if (parent === dir) return undefined
-    dir = parent
-  }
-}
-
-function resolveExaProxyScriptPath(): string | undefined {
-  const resourcesPath = getProcessResourcesPath()
-  const candidates = [
-    resolve(
-      process.cwd(),
-      "node_modules/@claude-tools/mcp-search-proxy/dist/exa.js",
-    ),
-    resolve(
-      process.cwd(),
-      "packages/shared-claude-tools/packages/mcp-search-proxy/dist/exa.js",
-    ),
-    resolve(
-      resourcesPath || "",
-      "app.asar.unpacked/node_modules/@claude-tools/mcp-search-proxy/dist/exa.js",
-    ),
-  ]
-
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) return candidate
-  }
-  return undefined
-}
-
-function resolveMcpKeyringPath(projectPath?: string): string | undefined {
-  const fromEnv = process.env.MCP_KEYRING_PATH?.trim()
-  if (fromEnv && existsSync(fromEnv)) return fromEnv
-
-  const candidates: Array<string | undefined> = [
-    projectPath
-      ? findUpwards(projectPath, "data/config/mcp-keyring.json")
-      : undefined,
-    projectPath ? findUpwards(projectPath, "data/mcp-keyring.json") : undefined,
-    findUpwards(process.cwd(), "data/config/mcp-keyring.json"),
-    findUpwards(process.cwd(), "data/mcp-keyring.json"),
-    resolve(process.cwd(), "../agents-os/data/config/mcp-keyring.json"),
-    resolve(process.cwd(), "../agent-os/data/config/mcp-keyring.json"),
-  ]
-
-  for (const candidate of candidates) {
-    if (candidate && existsSync(candidate)) return candidate
-  }
-  return undefined
-}
-
-function withExaServer(config: McpConfig, projectPath?: string): McpConfig {
-  const exaProxyPath = resolveExaProxyScriptPath()
-  if (!exaProxyPath) return config
-
-  const existing = config.mcpServers.exa
-  const existingEnv = isObject(existing?.env)
-    ? (existing?.env as Record<string, string>)
-    : {}
-  const keyringPath = resolveMcpKeyringPath(projectPath)
-  const runtimeEnv: Record<string, string> = {
-    ...existingEnv,
-  }
-  // In Electron main process, process.execPath points to the app binary.
-  // Force Node mode so MCP proxy starts as a headless script process, not a GUI instance.
-  runtimeEnv.ELECTRON_RUN_AS_NODE = "1"
-  if (keyringPath) {
-    runtimeEnv.MCP_KEYRING_PATH = keyringPath
-  }
-
-  config.mcpServers.exa = {
-    type: "stdio",
-    disabled: existing?.disabled,
-    autoApprove: existing?.autoApprove,
-    command: process.execPath,
-    args: [exaProxyPath],
-    env: runtimeEnv,
-  }
-
-  return config
 }
 
 function escapeTomlString(value: string): string {
@@ -403,8 +311,25 @@ async function buildRuntimeMcpConfig(
     }
   }
 
-  if (backend === "exa") {
-    config = withExaServer(config ?? { mcpServers: {} }, projectPath)
+  const registryServers = await buildConfiguredMcpIntegrationServerEntries(
+    projectPath,
+    backend,
+  )
+  if (Object.keys(registryServers.entries).length > 0) {
+    config = config ?? { mcpServers: {} }
+    for (const [name, entry] of Object.entries(registryServers.entries)) {
+      if (config.mcpServers[name]) continue
+      const normalizedEntry = normalizeMcpConfigEntry(name, entry)
+      if (!normalizedEntry.ok) {
+        logWarn("mcp-config", "invalid_registry_mcp_server_entry", {
+          serverName: name,
+          error: normalizedEntry.error,
+        })
+        continue
+      }
+      config.mcpServers[normalizedEntry.value.name] =
+        normalizedEntry.value.entry
+    }
   }
 
   if (!config || Object.keys(config.mcpServers).length === 0) {

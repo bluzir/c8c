@@ -48,6 +48,12 @@ describe("buildProviderExtraArgs", () => {
     const workspace = join(root, "workspace")
     await mkdir(project, { recursive: true })
     await mkdir(workspace, { recursive: true })
+    process.env.MCP_KEYRING_PATH = join(
+      root,
+      ".c8c",
+      "integrations",
+      "keyring.json",
+    )
 
     await writeFile(
       join(project, ".mcp.json"),
@@ -110,8 +116,13 @@ describe("buildProviderExtraArgs", () => {
 })
 
 describe("prepareWorkspaceMcpConfig", () => {
+  const originalHome = process.env.HOME
+  const originalKeyringPath = process.env.MCP_KEYRING_PATH
+
   beforeEach(() => {
     listApprovedPluginMcpServersMock.mockResolvedValue([])
+    process.env.HOME = originalHome
+    process.env.MCP_KEYRING_PATH = originalKeyringPath
   })
 
   it("copies project mcp config into workspace for builtin backend", async () => {
@@ -120,6 +131,12 @@ describe("prepareWorkspaceMcpConfig", () => {
     const workspace = join(root, "workspace")
     await mkdir(project, { recursive: true })
     await mkdir(workspace, { recursive: true })
+    process.env.MCP_KEYRING_PATH = join(
+      root,
+      ".c8c",
+      "integrations",
+      "keyring.json",
+    )
 
     await writeFile(
       join(project, ".mcp.json"),
@@ -142,10 +159,23 @@ describe("prepareWorkspaceMcpConfig", () => {
     expect(parsed.mcpServers.local?.command).toBe("node")
   })
 
-  it("injects exa proxy server for exa backend", async () => {
+  it("injects registry-backed Exa proxy when the integration is configured", async () => {
     const root = await mkdtemp(join(tmpdir(), "mcp-config-test-"))
     const workspace = join(root, "workspace")
+    const keyringDir = join(root, ".c8c", "integrations")
     await mkdir(workspace, { recursive: true })
+    await mkdir(keyringDir, { recursive: true })
+    process.env.HOME = root
+    process.env.MCP_KEYRING_PATH = join(keyringDir, "keyring.json")
+    await writeFile(
+      join(keyringDir, "keyring.json"),
+      JSON.stringify({
+        exa: {
+          keys: ["exa-live-key"],
+        },
+      }),
+      "utf-8",
+    )
 
     const path = await prepareWorkspaceMcpConfig(workspace, undefined, "exa")
     expect(path).toBe(join(workspace, ".mcp.json"))
@@ -159,14 +189,30 @@ describe("prepareWorkspaceMcpConfig", () => {
     expect(parsed.mcpServers.exa.command).toBe(process.execPath)
     expect(parsed.mcpServers.exa.args?.[0]).toContain("mcp-search-proxy")
     expect(parsed.mcpServers.exa.env?.ELECTRON_RUN_AS_NODE).toBe("1")
+    expect(parsed.mcpServers.exa.env?.MCP_KEYRING_PATH).toContain(
+      ".c8c/integrations/keyring.json",
+    )
   })
 
-  it("replaces any remote exa entry instead of producing a mixed transport shape", async () => {
+  it("keeps an explicit project exa server instead of overriding it with the registry entry", async () => {
     const root = await mkdtemp(join(tmpdir(), "mcp-config-test-"))
     const project = join(root, "project")
     const workspace = join(root, "workspace")
+    const keyringDir = join(root, ".c8c", "integrations")
     await mkdir(project, { recursive: true })
     await mkdir(workspace, { recursive: true })
+    await mkdir(keyringDir, { recursive: true })
+    process.env.HOME = root
+    process.env.MCP_KEYRING_PATH = join(keyringDir, "keyring.json")
+    await writeFile(
+      join(keyringDir, "keyring.json"),
+      JSON.stringify({
+        exa: {
+          keys: ["exa-live-key"],
+        },
+      }),
+      "utf-8",
+    )
 
     await writeFile(
       join(project, ".mcp.json"),
@@ -197,10 +243,48 @@ describe("prepareWorkspaceMcpConfig", () => {
       >
     }
 
-    expect(parsed.mcpServers.exa.type).toBe("stdio")
-    expect(parsed.mcpServers.exa.command).toBe(process.execPath)
-    expect(parsed.mcpServers.exa.url).toBeUndefined()
-    expect(parsed.mcpServers.exa.headers).toBeUndefined()
+    expect(parsed.mcpServers.exa.type).toBe("http")
+    expect(parsed.mcpServers.exa.url).toBe("https://example.com/mcp")
+    expect(parsed.mcpServers.exa.command).toBeUndefined()
+    expect(parsed.mcpServers.exa.headers).toEqual({
+      Authorization: "Bearer token",
+    })
+  })
+
+  it("injects registry-backed Serper proxy when configured", async () => {
+    const root = await mkdtemp(join(tmpdir(), "mcp-config-test-"))
+    const workspace = join(root, "workspace")
+    const keyringDir = join(root, ".c8c", "integrations")
+    await mkdir(workspace, { recursive: true })
+    await mkdir(keyringDir, { recursive: true })
+    process.env.HOME = root
+    process.env.MCP_KEYRING_PATH = join(keyringDir, "keyring.json")
+    await writeFile(
+      join(keyringDir, "keyring.json"),
+      JSON.stringify({
+        serper: {
+          keys: ["serper-live-key"],
+        },
+      }),
+      "utf-8",
+    )
+
+    const path = await prepareWorkspaceMcpConfig(
+      workspace,
+      undefined,
+      "builtin",
+    )
+    expect(path).toBe(join(workspace, ".mcp.json"))
+    const parsed = JSON.parse(await readFile(path!, "utf-8")) as {
+      mcpServers: Record<
+        string,
+        { command: string; args?: string[]; env?: Record<string, string> }
+      >
+    }
+
+    expect(parsed.mcpServers.serper).toBeDefined()
+    expect(parsed.mcpServers.serper.command).toBe(process.execPath)
+    expect(parsed.mcpServers.serper.args?.[0]).toContain("mcp-search-proxy")
   })
 
   it("merges approved plugin MCP servers without overriding project config", async () => {

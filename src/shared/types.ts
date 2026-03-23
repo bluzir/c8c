@@ -1570,6 +1570,51 @@ export interface PluginMcpServerInfo {
   marketplaceName: string
 }
 
+export type McpIntegrationFieldKind = "text" | "secret"
+
+export interface McpIntegrationField {
+  id: string
+  label: string
+  kind: McpIntegrationFieldKind
+  placeholder?: string
+  description?: string
+}
+
+export interface McpIntegrationPostConfigureAction {
+  webSearchBackend?: "builtin" | "exa"
+}
+
+export interface McpIntegrationInfo {
+  id: string
+  label: string
+  description: string
+  toolIds: string[]
+  fields: McpIntegrationField[]
+  setupTitle?: string
+  setupDescription?: string
+  postConfigure?: McpIntegrationPostConfigureAction
+}
+
+export type McpIntegrationConfigSource = "none" | "env" | "keyring" | "server"
+
+export interface McpIntegrationStatus {
+  integration: McpIntegrationInfo
+  configured: boolean
+  source: McpIntegrationConfigSource
+  keyCount: number
+  keyringPath: string
+  requestedToolIds: string[]
+}
+
+export interface ConfigureMcpIntegrationInput {
+  values: Record<string, string>
+}
+
+export interface McpIntegrationTestResult {
+  healthy: boolean
+  error?: string
+}
+
 export interface McpToolInfo {
   name: string
   serverName: string

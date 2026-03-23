@@ -1,5 +1,6 @@
-import type { WorkflowTemplate } from "@shared/types"
+import type { McpIntegrationStatus, WorkflowTemplate } from "@shared/types"
 import { SkillPicker } from "@/components/SkillPicker"
+import { McpIntegrationSetupDialog } from "@/components/integrations/McpIntegrationSetupDialog"
 import { UseInNewFlowDialog } from "@/components/output/UseInNewFlowDialog"
 import { CancelFlowConfirmDialog } from "@/components/workflow-panel/CancelFlowConfirmDialog"
 import { WorkflowGraphDialog } from "@/components/workflow-panel/WorkflowGraphDialog"
@@ -50,6 +51,13 @@ interface WorkflowPanelDialogsProps {
   routeAlternativeOptions: WorkflowRouteAlternativeOption[]
   pendingRouteAlternativeTemplateId?: string | null
   onSelectRouteAlternative: (templateId: string) => void
+  integrationSetupOpen: boolean
+  onIntegrationSetupOpenChange: (open: boolean) => void
+  integrationSetupStatus: McpIntegrationStatus | null
+  integrationSetupValues: Record<string, string>
+  onIntegrationSetupValueChange: (fieldId: string, value: string) => void
+  integrationSetupSaving: boolean
+  onConfirmIntegrationSetup: () => void | Promise<void>
 }
 
 export function WorkflowPanelDialogs({
@@ -92,6 +100,13 @@ export function WorkflowPanelDialogs({
   routeAlternativeOptions,
   pendingRouteAlternativeTemplateId,
   onSelectRouteAlternative,
+  integrationSetupOpen,
+  onIntegrationSetupOpenChange,
+  integrationSetupStatus,
+  integrationSetupValues,
+  onIntegrationSetupValueChange,
+  integrationSetupSaving,
+  onConfirmIntegrationSetup,
 }: WorkflowPanelDialogsProps) {
   return (
     <>
@@ -151,6 +166,16 @@ export function WorkflowPanelDialogs({
         pendingTemplateId={pendingRouteAlternativeTemplateId}
         onOpenChange={onRouteAlternativesOpenChange}
         onSelect={onSelectRouteAlternative}
+      />
+
+      <McpIntegrationSetupDialog
+        open={integrationSetupOpen}
+        onOpenChange={onIntegrationSetupOpenChange}
+        integrationStatus={integrationSetupStatus}
+        values={integrationSetupValues}
+        onValueChange={onIntegrationSetupValueChange}
+        saving={integrationSetupSaving}
+        onConfirm={onConfirmIntegrationSetup}
       />
     </>
   )

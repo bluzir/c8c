@@ -5,8 +5,10 @@ import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError } from "@/lib/toast-error"
 import {
+  clearWorkflowContinuationEntryStateForKeyAtom,
   clearWorkflowTemplateContextForKeyAtom,
   clearWorkflowRequestedResultForKeyAtom,
+  moveWorkflowContinuationEntryStateAtom,
   moveWorkflowRequestedResultAtom,
   moveWorkflowTemplateContextAtom,
   selectedInboxTaskKeyAtom,
@@ -52,8 +54,14 @@ export function useToolbarActions({
   const moveWorkflowTemplateContext = useSetAtom(
     moveWorkflowTemplateContextAtom,
   )
+  const moveWorkflowContinuationEntryState = useSetAtom(
+    moveWorkflowContinuationEntryStateAtom,
+  )
   const clearWorkflowTemplateContextForKey = useSetAtom(
     clearWorkflowTemplateContextForKeyAtom,
+  )
+  const clearWorkflowContinuationEntryStateForKey = useSetAtom(
+    clearWorkflowContinuationEntryStateForKeyAtom,
   )
   const moveWorkflowRequestedResult = useSetAtom(
     moveWorkflowRequestedResultAtom,
@@ -119,6 +127,10 @@ export function useToolbarActions({
         fromKey: toWorkflowExecutionKey(path),
         toKey: toWorkflowExecutionKey(renamedPath),
       })
+      moveWorkflowContinuationEntryState({
+        fromKey: toWorkflowExecutionKey(path),
+        toKey: toWorkflowExecutionKey(renamedPath),
+      })
       setSelectedWorkflowPath(renamedPath)
       if (selectedProject) {
         const wfs = await window.api.listProjectWorkflows(selectedProject)
@@ -128,6 +140,7 @@ export function useToolbarActions({
     },
     [
       moveWorkflowExecutionState,
+      moveWorkflowContinuationEntryState,
       moveWorkflowRequestedResult,
       moveWorkflowTemplateContext,
       selectedProject,
@@ -158,6 +171,10 @@ export function useToolbarActions({
           fromKey: toWorkflowExecutionKey(targetPath),
           toKey: toWorkflowExecutionKey(savedPath),
         })
+        moveWorkflowContinuationEntryState({
+          fromKey: toWorkflowExecutionKey(targetPath),
+          toKey: toWorkflowExecutionKey(savedPath),
+        })
         setSelectedWorkflowPath(savedPath)
         if (selectedProject) {
           const wfs = await window.api.listProjectWorkflows(selectedProject)
@@ -175,6 +192,7 @@ export function useToolbarActions({
     deriveTitleFromPath,
     ensureWorkflowNameSync,
     moveWorkflowExecutionState,
+    moveWorkflowContinuationEntryState,
     moveWorkflowRequestedResult,
     moveWorkflowTemplateContext,
     selectedProject,
@@ -207,6 +225,10 @@ export function useToolbarActions({
         fromKey: toWorkflowExecutionKey(workflowPath),
         toKey: toWorkflowExecutionKey(filePath),
       })
+      moveWorkflowContinuationEntryState({
+        fromKey: toWorkflowExecutionKey(workflowPath),
+        toKey: toWorkflowExecutionKey(filePath),
+      })
       setSelectedWorkflowPath(filePath)
       setSelectedInboxTaskKey(null)
       setSelectedPastRun(null)
@@ -224,6 +246,7 @@ export function useToolbarActions({
   }, [
     deriveTitleFromPath,
     moveWorkflowExecutionState,
+    moveWorkflowContinuationEntryState,
     moveWorkflowRequestedResult,
     moveWorkflowTemplateContext,
     selectedProject,
@@ -266,6 +289,7 @@ export function useToolbarActions({
       toast.dismiss(loadingToastId)
       if (!result) return false
       clearWorkflowExecutionState(toWorkflowExecutionKey(null))
+      clearWorkflowContinuationEntryStateForKey(toWorkflowExecutionKey(null))
       clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(null))
       clearWorkflowRequestedResultForKey(
         toWorkflowExecutionKey(result.filePath),
@@ -276,6 +300,9 @@ export function useToolbarActions({
       setSelectedPastRun(null)
       setWorkflowSavedSnapshot(workflowSnapshot(createEmptyWorkflow()))
       clearWorkflowTemplateContextForKey(
+        toWorkflowExecutionKey(result.filePath),
+      )
+      clearWorkflowContinuationEntryStateForKey(
         toWorkflowExecutionKey(result.filePath),
       )
       if (selectedProject) {
@@ -296,6 +323,7 @@ export function useToolbarActions({
     }
   }, [
     clearWorkflowExecutionState,
+    clearWorkflowContinuationEntryStateForKey,
     clearWorkflowRequestedResultForKey,
     clearWorkflowTemplateContextForKey,
     deriveTitleFromPath,
@@ -333,6 +361,10 @@ export function useToolbarActions({
           fromKey: toWorkflowExecutionKey(workflowPath),
           toKey: toWorkflowExecutionKey(renamedPath),
         })
+        moveWorkflowContinuationEntryState({
+          fromKey: toWorkflowExecutionKey(workflowPath),
+          toKey: toWorkflowExecutionKey(renamedPath),
+        })
         setSelectedWorkflowPath(renamedPath)
         const renamedWorkflow = { ...workflow, name: trimmed }
         setCurrentWorkflow(renamedWorkflow)
@@ -348,6 +380,7 @@ export function useToolbarActions({
     [
       deriveTitleFromPath,
       moveWorkflowExecutionState,
+      moveWorkflowContinuationEntryState,
       moveWorkflowRequestedResult,
       moveWorkflowTemplateContext,
       refreshProjectData,
@@ -367,6 +400,9 @@ export function useToolbarActions({
     try {
       await window.api.deleteWorkflow(workflowPath)
       clearWorkflowExecutionState(toWorkflowExecutionKey(workflowPath))
+      clearWorkflowContinuationEntryStateForKey(
+        toWorkflowExecutionKey(workflowPath),
+      )
       clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(workflowPath))
       clearWorkflowRequestedResultForKey(toWorkflowExecutionKey(workflowPath))
       setSelectedWorkflowPath(null)
@@ -383,6 +419,7 @@ export function useToolbarActions({
     }
   }, [
     clearWorkflowExecutionState,
+    clearWorkflowContinuationEntryStateForKey,
     clearWorkflowRequestedResultForKey,
     clearWorkflowTemplateContextForKey,
     deriveTitleFromPath,

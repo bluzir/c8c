@@ -67,6 +67,7 @@ import {
   selectedFactoryCaseIdAtom,
   selectedInboxTaskKeyAtom,
   selectedWorkflowPathAtom,
+  setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   workflowEntryStateAtom,
   workflowSavedSnapshotAtom,
@@ -114,6 +115,9 @@ export function FactoryPage() {
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
+  const setWorkflowContinuationEntryStateForKey = useSetAtom(
+    setWorkflowContinuationEntryStateForKeyAtom,
+  )
   const setWorkflowTemplateContextForKey = useSetAtom(
     setWorkflowTemplateContextForKeyAtom,
   )
@@ -421,6 +425,7 @@ export function FactoryPage() {
     setSelectedPastRun,
     setSelectedInboxTaskKey,
     setSelectedCaseId,
+    setWorkflowContinuationEntryStateForKey,
     setWorkflowTemplateContextForKey,
   })
 

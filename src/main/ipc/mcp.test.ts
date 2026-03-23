@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type {
+  ConfigureMcpIntegrationInput,
+  McpIntegrationStatus,
+  McpIntegrationTestResult,
   McpMutationResult,
   McpTestResult,
   McpToolInfo,
@@ -12,6 +15,10 @@ const listPluginMcpServersMock = vi.fn()
 const setPluginMcpServerApprovedMock = vi.fn((..._args: unknown[]) =>
   Promise.resolve(true),
 )
+const listMcpIntegrationsMock = vi.fn()
+const getMcpIntegrationStatusesMock = vi.fn()
+const configureMcpIntegrationMock = vi.fn()
+const testMcpIntegrationMock = vi.fn()
 const allowedProjectRootsMock = vi.fn()
 const assertWithinRootsMock = vi.fn()
 
@@ -50,6 +57,15 @@ vi.mock("../lib/plugin-mcp", () => ({
 vi.mock("../lib/plugins", () => ({
   setPluginMcpServerApproved: (...args: unknown[]) =>
     setPluginMcpServerApprovedMock(...args),
+}))
+
+vi.mock("../lib/mcp-integrations", () => ({
+  listMcpIntegrations: (...args: unknown[]) => listMcpIntegrationsMock(...args),
+  getMcpIntegrationStatuses: (...args: unknown[]) =>
+    getMcpIntegrationStatusesMock(...args),
+  configureMcpIntegration: (...args: unknown[]) =>
+    configureMcpIntegrationMock(...args),
+  testMcpIntegration: (...args: unknown[]) => testMcpIntegrationMock(...args),
 }))
 
 describe("mcp IPC", () => {
@@ -93,6 +109,134 @@ describe("mcp IPC", () => {
     })
     listPluginMcpServersMock.mockResolvedValue([])
     setPluginMcpServerApprovedMock.mockResolvedValue(true)
+    listMcpIntegrationsMock.mockResolvedValue([])
+    getMcpIntegrationStatusesMock.mockResolvedValue([])
+    configureMcpIntegrationMock.mockImplementation(
+      async (_integrationId: string, input: ConfigureMcpIntegrationInput) =>
+        ({
+          integration: {
+            id: "exa",
+            label: "Exa Web Search",
+            description: "",
+            toolIds: ["exa"],
+            fields: [],
+          },
+          configured: true,
+          source: "keyring",
+          keyCount: Object.keys(input.values || {}).length,
+          keyringPath: "/Users/test/.c8c/integrations/keyring.json",
+          requestedToolIds: [],
+        }) satisfies McpIntegrationStatus,
+    )
+    testMcpIntegrationMock.mockResolvedValue({
+      healthy: true,
+    } satisfies McpIntegrationTestResult)
+  })
+
+  it("lists registry integrations through a dedicated handler", async () => {
+    const integrations: McpIntegrationStatus[] = [
+      {
+        integration: {
+          id: "exa",
+          label: "Exa Web Search",
+          description: "",
+          toolIds: ["exa"],
+          fields: [],
+        },
+        configured: false,
+        source: "none",
+        keyCount: 0,
+        keyringPath: "/Users/test/.c8c/integrations/keyring.json",
+        requestedToolIds: [],
+      },
+    ]
+    listMcpIntegrationsMock.mockResolvedValue(integrations)
+
+    const { registerMcpHandlers } = await import("./mcp")
+    registerMcpHandlers()
+
+    const handler = ipcHandlers.get("mcp:list-integrations") as
+      | ((
+          event: unknown,
+          projectPath?: string,
+        ) => Promise<McpIntegrationStatus[]>)
+      | undefined
+    expect(handler).toBeDefined()
+    await expect(handler!(undefined, "/safe/project")).resolves.toEqual(
+      integrations,
+    )
+    expect(listMcpIntegrationsMock).toHaveBeenCalledWith("/safe/project")
+  })
+
+  it("resolves integration statuses for requested tools", async () => {
+    const statuses: McpIntegrationStatus[] = [
+      {
+        integration: {
+          id: "exa",
+          label: "Exa Web Search",
+          description: "",
+          toolIds: ["exa"],
+          fields: [],
+        },
+        configured: false,
+        source: "none",
+        keyCount: 0,
+        keyringPath: "/Users/test/.c8c/integrations/keyring.json",
+        requestedToolIds: ["web_search"],
+      },
+    ]
+    getMcpIntegrationStatusesMock.mockResolvedValue(statuses)
+
+    const { registerMcpHandlers } = await import("./mcp")
+    registerMcpHandlers()
+
+    const handler = ipcHandlers.get("mcp:get-integration-statuses") as
+      | ((
+          event: unknown,
+          toolIds: string[],
+          projectPath?: string,
+        ) => Promise<McpIntegrationStatus[]>)
+      | undefined
+    expect(handler).toBeDefined()
+    await expect(
+      handler!(undefined, ["web_search"], "/safe/project"),
+    ).resolves.toEqual(statuses)
+    expect(getMcpIntegrationStatusesMock).toHaveBeenCalledWith(
+      ["web_search"],
+      "/safe/project",
+    )
+  })
+
+  it("configures an integration through the registry service", async () => {
+    const { registerMcpHandlers } = await import("./mcp")
+    registerMcpHandlers()
+
+    const handler = ipcHandlers.get("mcp:configure-integration") as
+      | ((
+          event: unknown,
+          integrationId: string,
+          input: ConfigureMcpIntegrationInput,
+          projectPath?: string,
+        ) => Promise<McpIntegrationStatus>)
+      | undefined
+    expect(handler).toBeDefined()
+
+    await expect(
+      handler!(
+        undefined,
+        "exa",
+        { values: { apiKey: "secret" } },
+        "/safe/project",
+      ),
+    ).resolves.toMatchObject({
+      configured: true,
+      source: "keyring",
+    })
+    expect(configureMcpIntegrationMock).toHaveBeenCalledWith(
+      "exa",
+      { values: { apiKey: "secret" } },
+      "/safe/project",
+    )
   })
 
   it("lists plugin MCP servers through a dedicated handler", async () => {

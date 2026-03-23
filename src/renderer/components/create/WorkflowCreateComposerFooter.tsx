@@ -2,8 +2,8 @@ import { ChevronDown, Ellipsis, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -19,11 +19,11 @@ import {
   resolveDetailBudgetPreset,
 } from "@/lib/workflow-detail-budget"
 
+const DEFAULT_HELP_MODE_LABEL = "Intent"
 const DEVELOPMENT_HELP_MODE_OPTIONS: Array<{
-  value: CreateEntryHelpModeHint | null
+  value: CreateEntryHelpModeHint
   label: string
 }> = [
-  { value: null, label: "Auto" },
   { value: "do", label: "Do it" },
   { value: "plan", label: "Plan it" },
   { value: "review", label: "Review it" },
@@ -58,7 +58,7 @@ export function WorkflowCreateComposerFooter({
   const selectedHelpModeLabel =
     DEVELOPMENT_HELP_MODE_OPTIONS.find(
       (option) => option.value === developmentHelpModeHint,
-    )?.label || "Auto"
+    )?.label || DEFAULT_HELP_MODE_LABEL
   const selectedDetailBudgetPreset = resolveDetailBudgetPreset(detailBudget)
   const detailsBadge =
     optionalDetailCount > 0 ? ` (${optionalDetailCount})` : ""
@@ -110,12 +110,19 @@ export function WorkflowCreateComposerFooter({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   {DEVELOPMENT_HELP_MODE_OPTIONS.map((option) => (
-                    <DropdownMenuItem
+                    <DropdownMenuCheckboxItem
                       key={option.label}
-                      onSelect={() => onToggleHelpMode(option.value)}
+                      checked={developmentHelpModeHint === option.value}
+                      onCheckedChange={() =>
+                        onToggleHelpMode(
+                          developmentHelpModeHint === option.value
+                            ? null
+                            : option.value,
+                        )
+                      }
                     >
                       {option.label}
-                    </DropdownMenuItem>
+                    </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>

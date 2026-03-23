@@ -2,16 +2,21 @@ import { createStore } from "jotai"
 import { describe, expect, it } from "vitest"
 import {
   appendInboxNotification,
+  clearWorkflowContinuationEntryStateForKeyAtom,
   closeSkillPickerAtom,
   currentWorkflowAtom,
+  moveWorkflowContinuationEntryStateAtom,
   openSkillPickerAtom,
   pruneInboxNotificationsByPersistentKeys,
+  selectedWorkflowContinuationEntryStateAtom,
   selectedWorkflowPathAtom,
   skillPickerOpenAtom,
   skillPickerRequestAtom,
   type InboxNotification,
+  setWorkflowContinuationEntryStateForKeyAtom,
   selectedWorkflowSavedRunReviewRequestedAtom,
   workflowEntryStateAtom,
+  workflowContinuationEntryStatesAtom,
   workflowDirtyAtom,
   workflowRequestedResultsAtom,
   workflowSavedSnapshotAtom,
@@ -317,6 +322,97 @@ describe("workflow continuation storage atoms", () => {
         recommendedNext: ["delivery-implement-phase"],
       },
     })
+  })
+
+  it("stores continuation bookmarks per workflow key", () => {
+    const store = createStore()
+
+    store.set(selectedWorkflowPathAtom, "/tmp/alpha.chain")
+    store.set(selectedWorkflowContinuationEntryStateAtom, {
+      workflowPath: "/tmp/alpha.chain",
+      workflowName: "Alpha",
+      source: "template",
+      title: "Continue Alpha",
+      summary: "Resume Alpha.",
+      contractLabel: "Requested result",
+      contractText: "Ship Alpha.",
+      inputText: "Input",
+      outputText: "Output",
+      readinessText: "Ready",
+    })
+
+    expect(store.get(selectedWorkflowContinuationEntryStateAtom)).toMatchObject(
+      {
+        workflowPath: "/tmp/alpha.chain",
+        workflowName: "Alpha",
+      },
+    )
+
+    store.set(selectedWorkflowPathAtom, "/tmp/beta.chain")
+    expect(store.get(selectedWorkflowContinuationEntryStateAtom)).toBeNull()
+
+    store.set(setWorkflowContinuationEntryStateForKeyAtom, {
+      key: "/tmp/beta.chain",
+      entryState: {
+        workflowPath: "/tmp/beta.chain",
+        workflowName: "Beta",
+        source: "template",
+        title: "Continue Beta",
+        summary: "Resume Beta.",
+        contractLabel: "Requested result",
+        contractText: "Ship Beta.",
+        inputText: "Input",
+        outputText: "Output",
+        readinessText: "Ready",
+      },
+    })
+
+    expect(store.get(workflowContinuationEntryStatesAtom)).toMatchObject({
+      "/tmp/alpha.chain": {
+        workflowName: "Alpha",
+      },
+      "/tmp/beta.chain": {
+        workflowName: "Beta",
+      },
+    })
+  })
+
+  it("moves and clears continuation bookmarks with workflow keys", () => {
+    const store = createStore()
+
+    store.set(workflowContinuationEntryStatesAtom, {
+      "/tmp/alpha.chain": {
+        workflowPath: "/tmp/alpha.chain",
+        workflowName: "Alpha",
+        source: "template",
+        title: "Continue Alpha",
+        summary: "Resume Alpha.",
+        contractLabel: "Requested result",
+        contractText: "Ship Alpha.",
+        inputText: "Input",
+        outputText: "Output",
+        readinessText: "Ready",
+      },
+    })
+
+    store.set(moveWorkflowContinuationEntryStateAtom, {
+      fromKey: "/tmp/alpha.chain",
+      toKey: "/tmp/renamed-alpha.chain",
+    })
+
+    expect(store.get(workflowContinuationEntryStatesAtom)).toEqual({
+      "/tmp/renamed-alpha.chain": expect.objectContaining({
+        workflowPath: "/tmp/renamed-alpha.chain",
+        workflowName: "Alpha",
+      }),
+    })
+
+    store.set(
+      clearWorkflowContinuationEntryStateForKeyAtom,
+      "/tmp/renamed-alpha.chain",
+    )
+
+    expect(store.get(workflowContinuationEntryStatesAtom)).toEqual({})
   })
 })
 

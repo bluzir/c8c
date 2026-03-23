@@ -7,6 +7,7 @@ import type {
   ChatEvent,
   ChatSessionSnapshot,
   ClaudeCodeSubscriptionStatus,
+  ConfigureMcpIntegrationInput,
   CreateEntryRouteInput,
   CreateEntryRouteResult,
   DesktopRuntimeInfo,
@@ -20,6 +21,8 @@ import type {
   HumanTaskSummary,
   InstalledPlugin,
   MarketplaceSource,
+  McpIntegrationStatus,
+  McpIntegrationTestResult,
   McpServerInfo,
   McpTestResult,
   McpToolInfo,
@@ -304,6 +307,20 @@ export interface C8cApi {
   ) => Promise<McpServerInfo[]>
   mcpListAllServers: (provider: ProviderId) => Promise<McpServerInfo[]>
   mcpListPluginServers: () => Promise<PluginMcpServerInfo[]>
+  listMcpIntegrations: (projectPath?: string) => Promise<McpIntegrationStatus[]>
+  getMcpIntegrationStatuses: (
+    toolIds: string[],
+    projectPath?: string,
+  ) => Promise<McpIntegrationStatus[]>
+  configureMcpIntegration: (
+    integrationId: string,
+    input: ConfigureMcpIntegrationInput,
+    projectPath?: string,
+  ) => Promise<McpIntegrationStatus>
+  testMcpIntegration: (
+    integrationId: string,
+    projectPath?: string,
+  ) => Promise<McpIntegrationTestResult>
   mcpAddServer: (
     provider: ProviderId,
     server: McpServerInfo,

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   formatPendingStartActionLabel,
   formatStartingPointMeta,
+  resolvePendingTemplateIntentLabel,
   resolveWorkflowCreateFigureOwner,
 } from "./useWorkflowCreateDerivedState"
 
@@ -114,5 +115,28 @@ describe("resolveWorkflowCreateFigureOwner", () => {
     ).toBe("Start Change the current app")
 
     expect(formatPendingStartActionLabel({})).toBe("Start this starting point")
+  })
+
+  it("only surfaces pending start intent from explicit routing metadata", () => {
+    expect(
+      resolvePendingTemplateIntentLabel({
+        routingHelpModeLabel: "Review it",
+        quickStartIntentLabel: "Do it",
+      }),
+    ).toBe("Review it")
+
+    expect(
+      resolvePendingTemplateIntentLabel({
+        routingHelpModeLabel: null,
+        quickStartIntentLabel: "Do it",
+      }),
+    ).toBe("Do it")
+
+    expect(
+      resolvePendingTemplateIntentLabel({
+        routingHelpModeLabel: null,
+        quickStartIntentLabel: null,
+      }),
+    ).toBeNull()
   })
 })

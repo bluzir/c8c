@@ -30,6 +30,7 @@ function StepSummaryStrip({
   branchLabel,
   detail,
   action,
+  secondaryContent,
 }: {
   contextLabelClass: string
   contextLabel: string
@@ -38,6 +39,7 @@ function StepSummaryStrip({
   branchLabel?: string | null
   detail?: string | null
   action?: ReactNode
+  secondaryContent?: ReactNode
 }) {
   return (
     <div className="border-b border-hairline px-1 py-3 first:pt-0 last:border-b-0 last:pb-0">
@@ -58,6 +60,7 @@ function StepSummaryStrip({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
+      {secondaryContent ? <div className="mt-2">{secondaryContent}</div> : null}
     </div>
   )
 }
@@ -69,6 +72,7 @@ export function SelectedStepSummaryPanel({
   selectedStageBranchLabel,
   selectedStageBranchDetail,
   action,
+  secondaryContent,
 }: {
   selectedStagePresentation: RuntimeStagePresentation | null
   selectedStageContextLabelClass: string
@@ -76,6 +80,7 @@ export function SelectedStepSummaryPanel({
   selectedStageBranchLabel?: string | null
   selectedStageBranchDetail?: string | null
   action?: ReactNode
+  secondaryContent?: ReactNode
 }) {
   if (!selectedStagePresentation) return null
 
@@ -91,6 +96,7 @@ export function SelectedStepSummaryPanel({
       branchLabel={selectedStageBranchLabel}
       detail={selectedStageBranchDetail || null}
       action={action}
+      secondaryContent={secondaryContent}
     />
   )
 }

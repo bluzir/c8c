@@ -1,11 +1,9 @@
-import type {
-  StageFamily,
-  WorkflowTemplate,
-  WorkflowTemplateStage,
-} from "@shared/types"
+import type { WorkflowTemplate } from "@shared/types"
+import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
+import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
 
 export type TemplateCategoryKey = "all" | "product" | "marketing" | "content"
-export type TemplateLibraryFilterKey = "all" | StageFamily
+export type TemplateLibraryFilterKey = "all" | `job:${string}`
 
 const PRODUCT_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
 
@@ -84,6 +82,10 @@ function compactText(values: Array<string | undefined | null>): string {
     .map((value) => (typeof value === "string" ? value.trim() : ""))
     .filter(Boolean)
     .join(" ")
+}
+
+function normalizeTemplateLibraryFilterValue(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ")
 }
 
 function tokenizeSearchTerms(value: string): string[] {
@@ -186,6 +188,22 @@ export function buildTemplateSearchText(template: WorkflowTemplate): string {
     template.name,
     template.id,
   ]).toLowerCase()
+}
+
+export function getTemplateLibraryFilterLabel(
+  template: Pick<WorkflowTemplate, "id" | "name" | "pack">,
+): string {
+  return (
+    deriveTemplateJobLabel(template) || getWorkflowTemplateDisplayName(template)
+  ).trim()
+}
+
+export function getTemplateLibraryFilterKey(
+  template: Pick<WorkflowTemplate, "id" | "name" | "pack">,
+): TemplateLibraryFilterKey {
+  return `job:${normalizeTemplateLibraryFilterValue(
+    getTemplateLibraryFilterLabel(template),
+  )}`
 }
 
 function buildTemplateImplicitSearchText(
@@ -296,5 +314,5 @@ export function templateMatchesLibraryFilter(
   filter: TemplateLibraryFilterKey,
 ): boolean {
   if (filter === "all") return true
-  return template.stageFamily === filter
+  return getTemplateLibraryFilterKey(template) === filter
 }
