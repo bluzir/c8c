@@ -13,6 +13,7 @@ import {
 } from "@/components/workflow-panel/WorkflowPanelInlineSections"
 import { cn } from "@/lib/cn"
 import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume"
+import type { FlowRulePreview } from "@/lib/flow-rules"
 import type { WorkflowResumeEntrySummary } from "@/lib/workflow-resume-entry"
 import type {
   ArtifactContract,
@@ -66,6 +67,7 @@ interface WorkflowListTabProps {
   blockedResumeSummary: WorkflowBlockedResumeSummary | null
   entryNextStepLabel: string
   stageStartInputLabels: string[]
+  entryFlowRules: FlowRulePreview[]
   onPrimaryEntryAction: () => void
   inputPanelRef: RefObject<HTMLDivElement | null>
   showProjectArtifactsPanel: boolean
@@ -86,8 +88,13 @@ interface WorkflowListTabProps {
   } | null
   showIdleInputPanel: boolean
   showFlowEditor: boolean
-  chainBuilderMode: ComponentProps<typeof ChainBuilder>["mode"]
-  onFocusStageDetails: ComponentProps<typeof ChainBuilder>["onStageSelect"]
+  chainBuilderMode: "edit" | "outline" | "monitor"
+  onFocusStageDetails:
+    | ((payload: {
+        nodeId: string
+        preferredTab: "nodes" | "log" | "result"
+      }) => void)
+    | undefined
   reviewSnapshot: PersistedRunSnapshot | null
   showReviewOutputMode: boolean
   showReviewOutputPanel?: boolean
@@ -112,6 +119,7 @@ export function WorkflowListTab({
   blockedResumeSummary,
   entryNextStepLabel,
   stageStartInputLabels,
+  entryFlowRules,
   onPrimaryEntryAction,
   inputPanelRef,
   showProjectArtifactsPanel,
@@ -169,12 +177,12 @@ export function WorkflowListTab({
                   blockedResumeSummary={blockedResumeSummary}
                   nextStepLabel={entryNextStepLabel}
                   inputLabels={stageStartInputLabels}
+                  flowRules={entryFlowRules}
                   onPrimaryAction={onPrimaryEntryAction}
                   primaryActionLabel={
-                    blockedResumeSummary?.primaryActionLabel ||
-                    (readyToRun
+                    readyToRun
                       ? resumeEntrySummary?.continueLabel || "Run"
-                      : "Add input")
+                      : "Add input"
                   }
                 />
                 {!blockedResumeSummary && (
@@ -202,6 +210,7 @@ export function WorkflowListTab({
                   contextLine={idleStageContract.contextLine}
                   provenanceLabel={idleStageContract.provenanceLabel}
                   inputLabels={idleStageContract.inputLabels}
+                  flowRules={entryFlowRules}
                   showNeeds={idleStageContract.showNeeds}
                   onPrimaryAction={onPrimaryEntryAction}
                   primaryActionLabel={

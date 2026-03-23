@@ -809,6 +809,7 @@ export function WorkflowPanel() {
                 blockedResumeSummary={blockedResumeSummary}
                 entryNextStepLabel={entryNextStepLabel}
                 stageStartInputLabels={stageStartInputLabels}
+                entryFlowRules={entryFlowRules}
                 onPrimaryEntryAction={() => {
                   if (blockedResumeSummary) {
                     focusBlockedTaskPanel()

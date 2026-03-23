@@ -234,6 +234,7 @@ export function WorkflowIdleStageContract({
   contextLine,
   provenanceLabel,
   inputLabels,
+  flowRules = [],
   showNeeds = true,
   onPrimaryAction,
   primaryActionLabel,
@@ -244,6 +245,7 @@ export function WorkflowIdleStageContract({
   contextLine?: string | null
   provenanceLabel?: string | null
   inputLabels: string[]
+  flowRules?: FlowRulePreview[]
   showNeeds?: boolean
   onPrimaryAction?: (() => void) | null
   primaryActionLabel?: string
@@ -278,6 +280,9 @@ export function WorkflowIdleStageContract({
                 </p>
               ))}
             </div>
+          )}
+          {flowRules.length > 0 && (
+            <FlowRulesPreview rules={flowRules} surface="flat" />
           )}
           {onPrimaryAction && primaryActionLabel && (
             <div className="flex flex-wrap items-center gap-2">
@@ -339,6 +344,7 @@ export function WorkflowResumeHeader({
   blockedResumeSummary,
   nextStepLabel,
   inputLabels,
+  flowRules = [],
   onPrimaryAction,
   primaryActionLabel,
 }: {
@@ -351,6 +357,7 @@ export function WorkflowResumeHeader({
   blockedResumeSummary?: WorkflowBlockedResumeSummary | null
   nextStepLabel: string
   inputLabels: string[]
+  flowRules?: FlowRulePreview[]
   onPrimaryAction: () => void
   primaryActionLabel: string
 }) {
@@ -405,6 +412,10 @@ export function WorkflowResumeHeader({
               </p>
             ))}
           </div>
+
+          {flowRules.length > 0 && (
+            <FlowRulesPreview rules={flowRules} surface="flat" />
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={onPrimaryAction}>

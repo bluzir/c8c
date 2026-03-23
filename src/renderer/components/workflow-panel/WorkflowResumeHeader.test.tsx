@@ -47,6 +47,13 @@ describe("WorkflowResumeHeader", () => {
         blockedResumeSummary={null}
         nextStepLabel="Continue to Verify."
         inputLabels={[]}
+        flowRules={[
+          {
+            id: "rule-1",
+            label: "Check evidence before continuing",
+            scope: "Review",
+          },
+        ]}
         onPrimaryAction={onPrimaryAction}
         primaryActionLabel="Continue"
       />,
@@ -57,6 +64,8 @@ describe("WorkflowResumeHeader", () => {
     expect(
       screen.getByText("Status: No blocking checks or approvals."),
     ).toBeTruthy()
+    expect(screen.getByText("Active rules")).toBeTruthy()
+    expect(screen.getByText("Check evidence before continuing")).toBeTruthy()
     expect(screen.queryByText(/Agent picked this start/i)).toBeNull()
 
     await user.click(screen.getByRole("button", { name: "Continue" }))
@@ -85,6 +94,7 @@ describe("WorkflowResumeHeader", () => {
         }}
         nextStepLabel="Review the result."
         inputLabels={[]}
+        flowRules={[]}
         onPrimaryAction={() => undefined}
         primaryActionLabel="Open task"
       />,
