@@ -14,8 +14,7 @@ import {
   OutputPanelContextMenu,
   type OutputPanelContextMenuState,
 } from "@/components/output/OutputPanelContextMenu"
-import { OutputPanelHistoryContent } from "@/components/output/OutputPanelHistoryContent"
-import { OutputPanelLogContent } from "@/components/output/OutputPanelLogContent"
+// OutputPanelHistoryContent and OutputPanelLogContent removed — history via Runs button, log inline in StepsList
 import { StepsList } from "@/components/output/StepsList"
 import { ResultTab } from "@/components/output/ResultTab"
 import type {
@@ -589,7 +588,7 @@ export function OutputPanel({
     // Step log is now inline in StepsList accordion — no separate tab
     // History moved to separate Runs button in toolbar
     return options
-  }, [canInspectActivity, canInspectHistory, canInspectLog, showResultSurface])
+  }, [canInspectActivity, showResultSurface])
 
   const activityOwnsSurface =
     !showIdleState && activeTab === "nodes" && !errorFigureOwnsSurface
@@ -598,9 +597,7 @@ export function OutputPanel({
       ? selectedStageScopeLabel || null
       : activeTab === "result"
         ? selectedResultScopeLabel
-        : activeTab === "history"
-          ? historyScopeLabel
-          : selectedStageScopeLabel
+        : selectedStageScopeLabel
 
   return (
     <>
