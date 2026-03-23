@@ -28,8 +28,8 @@ name: code-reviewer
 description: Review code changes against project conventions
 # ── Discovery metadata (new) ──
 stageFit:
-  - review        # primary stage family
-  - verify        # secondary (also useful here)
+  - evaluate      # primary stage family
+  - validate      # secondary (also useful here)
 keywords:
   - code review
   - pull request
@@ -42,7 +42,7 @@ keywords:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `stageFit` | `string[]` | No | Canonical stage families where this skill is most relevant. Values: `shape`, `plan`, `implement`, `review`, `verify`, `ship`. First value = primary. |
+| `stageFit` | `string[]` | No | Canonical stage families where this skill is most relevant. Values: `understand`, `design`, `execute`, `evaluate`, `validate`, `deliver`. First value = primary. |
 | `keywords` | `string[]` | No | Free-text keywords for search/ranking. Supplements `description` for fuzzy matching. |
 
 ### Inference rules (when `stageFit` is absent)
@@ -50,12 +50,12 @@ keywords:
 If a skill file has no `stageFit`, the discovery system infers it from:
 
 1. **Skill name patterns:**
-   - Contains `review`, `audit`, `lint`, `check` → `review`
-   - Contains `test`, `verify`, `validate`, `qa` → `verify`
-   - Contains `plan`, `spec`, `design`, `architect` → `plan`
-   - Contains `map`, `explore`, `research`, `investigate` → `shape`
-   - Contains `build`, `implement`, `create`, `generate`, `write` → `implement`
-   - Contains `ship`, `release`, `deploy`, `publish` → `ship`
+   - Contains `review`, `audit`, `lint`, `check`, `assess` → `evaluate`
+   - Contains `test`, `verify`, `validate`, `qa` → `validate`
+   - Contains `plan`, `spec`, `design`, `architect`, `strategy` → `design`
+   - Contains `map`, `explore`, `research`, `investigate`, `discover` → `understand`
+   - Contains `build`, `implement`, `create`, `generate`, `write`, `execute` → `execute`
+   - Contains `ship`, `release`, `deploy`, `publish`, `deliver`, `distribute` → `deliver`
 
 2. **Description keyword scan:** Same patterns applied to `description` field.
 

@@ -2,123 +2,170 @@
 
 **Date:** 2026-03-23
 **Status:** Active
-**Scope:** Map all 61 templates to canonical stage families, identify gaps and mismatches
-**Source:** R2-DEV-PROCESS-MAP-SPEC.md (canonical spine: Shape/Map → Plan → Implement → Review → Verify → Ship)
+**Scope:** Map all 61 templates to domain-agnostic stage families
+**Source:** R2-DEV-PROCESS-MAP-SPEC.md, NSM ("Start with one flow. Grow into a factory.")
 
 ---
 
-## 1. Current State
+## 1. Domain-Agnostic Stage Families
 
-**61 YAML templates** across 7 packs + standalone files.
+The NSM is multi-domain — not just dev. Stage families must work for code, content, outreach, and operations. Six universal stages:
 
-### Type System Gap
+| Stage | Code name | Dev example | Content example | Outreach example |
+|---|---|---|---|---|
+| **Understand** | `understand` | Map codebase | Research trends | Research market |
+| **Design** | `design` | Write spec/plan | Editorial calendar | Campaign strategy |
+| **Execute** | `execute` | Write code | Write content | Run outreach |
+| **Evaluate** | `evaluate` | Code review | Copy QA | Response analysis |
+| **Validate** | `validate` | Run tests | Fact-check | A/B test |
+| **Deliver** | `deliver` | Ship/deploy | Publish/distribute | Launch campaign |
 
-Two existing type systems, neither matches the canonical 6-stage spine:
+These replace the dev-specific names (Shape/Map, Plan, Implement, Review, Verify, Ship).
+
+---
+
+## 2. Type System
+
+### Current (broken)
 
 | Type | Values | Problem |
 |---|---|---|
 | `WorkflowTemplateStage` | research, strategy, content, code, outreach, operations | Domain classifier, not process stage |
-| `WorkflowTemplateJourneyStage` | map, intake, shape, research, plan, execute, verify, operate | Closer but missing `review`, `ship`; has non-canonical values |
+| `WorkflowTemplateJourneyStage` | map, intake, shape, research, plan, execute, verify, operate | Dev-centric, missing evaluate/deliver |
 
-**Action:** Add `stageFamily` field to `WorkflowTemplate` type with canonical values: `shape`, `plan`, `implement`, `review`, `verify`, `ship`.
+### Proposed
 
----
+Add `stageFamily` field to `WorkflowTemplate`:
 
-## 2. Stage Family Coverage
-
-| Stage Family | Templates | Dev-focused | Gap? |
-|---|---|---|---|
-| **Shape/Map** | 14 | delivery-map-codebase, delivery-shape-project, delivery-research-phase, deep-research | No |
-| **Plan** | 7 | delivery-plan-phase, cto-product-spec | No |
-| **Implement** | 18 | delivery-implement-phase | No |
-| **Review** | 6 | delivery-review-phase, full-stack-code-audit, cto-optimise-audit, ux-ui-polish-audit | No |
-| **Verify** | 4 | delivery-verify-phase, gstack-preflight-gate, playwright-visual-audit | No |
-| **Ship** | 3 | gstack-release-room | **Yes — no Delivery Lab ship template** |
-
----
-
-## 3. Mismatched Labels
-
-| Template | Current `journey_stage` | Correct | Fix |
-|---|---|---|---|
-| `content-qa-review` | `verify` | `review` | Rename — performs review/approval |
-| `courses-launch-assets` | `verify` | `operate` | Rename — packages for launch |
-| `delivery-investigate-bug` | `apply` | _(non-canonical)_ | Remove or map to `shape` |
-
----
-
-## 4. Multi-Stage Templates (11)
-
-These span multiple stage families. Decision needed: decompose or assign primary.
-
-| Template | Stages spanned | Recommendation |
-|---|---|---|
-| `content-pipeline` | Shape+Implement+Review | Assign `implement` (primary output) |
-| `design-code-test` | Implement+Review+Verify | Assign `implement` |
-| `impeccable-ui-pipeline` | Review+Implement | Assign `review` (audit drives the flow) |
-| `remotion-video-director-pipeline` | Plan+Implement+Review+Ship | Assign `implement` |
-| `cold-outreach-pipeline` | Research+Implement+Review | Assign `implement` |
-| `new-vertical-to-live-campaign` | Research→Ship | Assign `implement` |
-| `delivery-investigate-bug` | Shape+Implement+Verify | Assign `shape` (investigation drives it) |
-| `landing-audit-loop` | Review+Implement | Assign `review` |
-| `gstack-feature-squad` | Shape+Plan | Assign `shape` |
-| `gstack-preflight-gate` | Review+Verify | Assign `verify` |
-| `segmented-outreach-launchpad` | Implement+Ship | Assign `implement` |
-
----
-
-## 5. Non-Dev Templates (22)
-
-These serve marketing, sales, content, operations — not the dev process. They don't naturally map to the dev spine.
-
-| Domain | Count | Examples |
-|---|---|---|
-| Marketing | 6 | AI CMO pack |
-| Content | 5 | content standalone |
-| Outreach/Sales | 5 | cold-outreach, segmented-outreach |
-| Research (market) | 4 | lead-research, segment-research |
-| Operations | 2 | invoice-chaos, meeting-actions |
-
-**Decision needed:** Do non-dev templates get `stageFamily` at all? Options:
-- A) Force-map to closest dev stage (messy but unified)
-- B) Allow `stageFamily: null` for non-dev templates (clean, honest)
-- C) Create parallel domain spines later (R5 scope)
-
-**Recommendation:** Option B for R2. Non-dev templates get `stageFamily: null` and are excluded from the dev process map UI. R5 adds domain-specific spines.
-
----
-
-## 6. The Canonical Dev Pack: Delivery Lab
-
-The Delivery Lab pack is the **only pack that maps cleanly** to the full dev spine:
-
-```
-delivery-map-codebase     → Shape/Map
-delivery-shape-project    → Shape/Map
-delivery-research-phase   → Shape/Map (research branch)
-delivery-plan-phase       → Plan
-delivery-implement-phase  → Implement
-delivery-review-phase     → Review
-delivery-verify-phase     → Verify
-(missing)                 → Ship ← GAP
+```ts
+type StageFamily = "understand" | "design" | "execute" | "evaluate" | "validate" | "deliver"
 ```
 
-**Action:** Create `delivery-ship-phase` template for the Delivery Lab pack covering: changelog, release notes, deployment checklist.
+All 61 templates get a value — no nulls, no domain exclusions.
 
 ---
 
-## 7. Action Items
+## 3. Full Template Mapping
+
+### Understand (14 templates)
+
+| Template | Domain | Pack |
+|---|---|---|
+| delivery-map-codebase | dev | Delivery Lab |
+| delivery-shape-project | dev | Delivery Lab |
+| delivery-research-phase | dev | Delivery Lab |
+| delivery-investigate-bug | dev | Delivery Lab |
+| deep-research | dev | standalone |
+| ai-cmo-growth-thesis | marketing | AI CMO |
+| content-trend-watch | content | Content Lab |
+| courses-audience-offer | education | Courses Lab |
+| gstack-feature-squad | dev | Gstack |
+| indispensable-jtbd-pipeline | strategy | standalone |
+| irresistible-resonance-pipeline | strategy | standalone |
+| lead-research-machine | sales | standalone |
+| seed-account-map-pipeline | sales | standalone |
+| segment-research-gate | strategy | standalone |
+
+### Design (7 templates)
+
+| Template | Domain | Pack |
+|---|---|---|
+| delivery-plan-phase | dev | Delivery Lab |
+| cto-product-spec | dev | standalone |
+| content-idea-backlog | content | Content Lab |
+| content-editorial-calendar | content | Content Lab |
+| content-post-calendar | content | Content Lab |
+| courses-curriculum-map | education | Courses Lab |
+| meeting-actions-plan | operations | standalone |
+
+### Execute (18 templates)
+
+| Template | Domain | Pack |
+|---|---|---|
+| delivery-implement-phase | dev | Delivery Lab |
+| ai-cmo-seo-engine | marketing | AI CMO |
+| ai-cmo-geo-engine | marketing | AI CMO |
+| ai-cmo-hacker-news-engine | marketing | AI CMO |
+| ai-cmo-reddit-engine | marketing | AI CMO |
+| ai-cmo-x-engine | marketing | AI CMO |
+| content-draft-post | content | Content Lab |
+| content-ready-posts | content | Content Lab |
+| content-repurposing-factory | content | standalone |
+| courses-lesson-system | education | Courses Lab |
+| courses-trigger-playbook | education | Courses Lab |
+| design-code-test | dev | standalone |
+| landing-page-generator | content | standalone |
+| predictable-text-factory | content | standalone |
+| application-tailoring-pipeline | outreach | standalone |
+| raw-list-to-verified-contacts | outreach | standalone |
+| twitter-growth-machine | marketing | standalone |
+| invoice-chaos-fixer | operations | standalone |
+
+### Evaluate (9 templates)
+
+| Template | Domain | Pack |
+|---|---|---|
+| delivery-review-phase | dev | Delivery Lab |
+| content-qa-review | content | Content Lab |
+| full-stack-code-audit | dev | standalone |
+| cto-optimise-audit | dev | standalone |
+| ux-ui-polish-audit | dev | standalone |
+| copy-quality-pipeline | content | standalone |
+| impeccable-ui-pipeline | dev | standalone |
+| landing-audit-loop | content | standalone |
+| remotion-video-director-pipeline | dev | standalone |
+
+### Validate (5 templates)
+
+| Template | Domain | Pack |
+|---|---|---|
+| delivery-verify-phase | dev | Delivery Lab |
+| gstack-preflight-gate | dev | Gstack |
+| gstack-web-quality-board | dev | Gstack |
+| playwright-visual-audit | dev | standalone |
+| vertical-pain-to-target-list | strategy | standalone |
+
+### Deliver (8 templates)
+
+| Template | Domain | Pack |
+|---|---|---|
+| gstack-release-room | dev | Gstack |
+| content-distribution-bundle | content | Content Lab |
+| courses-launch-assets | education | Courses Lab |
+| content-pipeline | content | standalone |
+| cold-outreach-pipeline | outreach | standalone |
+| new-vertical-to-live-campaign | outreach | standalone |
+| segmented-outreach-launchpad | outreach | standalone |
+| content-distribution-bundle | content | Content Lab |
+
+---
+
+## 4. Mismatched Labels to Fix
+
+| Template | Current `journey_stage` | Correct `stageFamily` |
+|---|---|---|
+| content-qa-review | verify | **evaluate** |
+| courses-launch-assets | verify | **deliver** |
+| delivery-investigate-bug | apply | **understand** |
+
+---
+
+## 5. Missing: Delivery Lab Ship Template
+
+The Delivery Lab pack covers 5 of 6 stages but has no **deliver** template. Create `delivery-ship-phase` covering: changelog, release notes, deployment checklist.
+
+---
+
+## 6. Action Items
 
 ### P0 (R2 blocker)
-1. Add `stageFamily?: "shape" | "plan" | "implement" | "review" | "verify" | "ship"` to `WorkflowTemplate` type
-2. Assign `stageFamily` to all 39 dev-relevant templates
-3. Fix 3 mismatched `journey_stage` labels
-4. Create `delivery-ship-phase` template
+1. Add `stageFamily` type: `"understand" | "design" | "execute" | "evaluate" | "validate" | "deliver"`
+2. Add `stageFamily` field to `WorkflowTemplate` in `src/shared/types.ts`
+3. Assign `stageFamily` to all 61 builtin YAML templates
+4. Fix 3 mismatched `journey_stage` labels
+5. Create `delivery-ship-phase` template
 
 ### P1 (R2 follow-up)
-5. Decide primary `stageFamily` for 11 multi-stage templates
-6. Set `stageFamily: null` on 22 non-dev templates
-7. Update UI routing to use `stageFamily` for process map display
-
-### P2 (R5 prep)
-8. Design domain-specific process spines for content, outreach, operations
+6. Hub catalog entries also get `stageFamily`
+7. UI process map uses `stageFamily` for navigation spine
+8. Skill `stageFit` aligned to same 6 values
