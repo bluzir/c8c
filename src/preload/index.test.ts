@@ -18,7 +18,8 @@ describe("preload workflow event bridge", () => {
   it("subscribes to workflow:event once and removes the listener on final unsubscribe", async () => {
     vi.doMock("electron", () => ({
       contextBridge: {
-        exposeInMainWorld: (...args: unknown[]) => exposeInMainWorldMock(...args),
+        exposeInMainWorld: (...args: unknown[]) =>
+          exposeInMainWorldMock(...args),
       },
       ipcRenderer: {
         on: (...args: unknown[]) => onMock(...args),
@@ -29,8 +30,12 @@ describe("preload workflow event bridge", () => {
 
     await import("./index")
 
-    const api = exposeInMainWorldMock.mock.calls.find(([name]) => name === "api")?.[1] as {
-      onWorkflowEvent: (callback: (payload: { runId: string; type: string }) => void) => () => void
+    const api = exposeInMainWorldMock.mock.calls.find(
+      ([name]) => name === "api",
+    )?.[1] as {
+      onWorkflowEvent: (
+        callback: (payload: { runId: string; type: string }) => void,
+      ) => () => void
     }
     expect(api).toBeDefined()
 
@@ -42,7 +47,10 @@ describe("preload workflow event bridge", () => {
     expect(onMock).toHaveBeenCalledTimes(1)
     expect(onMock).toHaveBeenCalledWith("workflow:event", expect.any(Function))
 
-    const handler = onMock.mock.calls[0]?.[1] as ((event: unknown, payload: unknown) => void)
+    const handler = onMock.mock.calls[0]?.[1] as (
+      event: unknown,
+      payload: unknown,
+    ) => void
     const payload = { runId: "run-1", type: "run-done" }
     handler({}, payload)
 
