@@ -155,7 +155,61 @@ export function StepsList({
   )
 }
 
-type StepDetailView = "result" | "log"
+function deriveLogSummary(log: import("@shared/types").LogEntry[] | undefined) {
+  if (!log || log.length === 0) return null
+  const counts: Record<string, number> = {}
+  let lastAction = ""
+  for (const entry of log) {
+    if (entry.type === "tool_use") {
+      const tool = entry.tool.split("__").pop() || entry.tool
+      counts[tool] = (counts[tool] || 0) + 1
+      lastAction = `${tool}...`
+    } else if (entry.type === "thinking") {
+      counts["thinking"] = (counts["thinking"] || 0) + 1
+      lastAction = "Thinking..."
+    } else if (entry.type === "text") {
+      counts["text"] = (counts["text"] || 0) + 1
+    } else if (entry.type === "error") {
+      counts["errors"] = (counts["errors"] || 0) + 1
+    } else if (entry.type === "diff") {
+      counts["edits"] = (counts["edits"] || 0) + 1
+    }
+  }
+  const parts: string[] = []
+  if (counts["Read"]) parts.push(`${counts["Read"]} files read`)
+  if (counts["Write"]) parts.push(`${counts["Write"]} files written`)
+  if (counts["Edit"]) parts.push(`${counts["Edit"]} edits`)
+  if (counts["edits"]) parts.push(`${counts["edits"]} diffs`)
+  if (counts["Bash"]) parts.push(`${counts["Bash"]} commands`)
+  const searchKeys = Object.keys(counts).filter(
+    (k) =>
+      k.includes("search") ||
+      k.includes("Search") ||
+      k === "web_search_exa" ||
+      k === "web_search_serper",
+  )
+  const searchCount = searchKeys.reduce((s, k) => s + counts[k], 0)
+  if (searchCount) parts.push(`${searchCount} searches`)
+  if (counts["thinking"]) parts.push(`${counts["thinking"]} thinking blocks`)
+  // Catch remaining tools not yet listed
+  const knownKeys = new Set([
+    "Read",
+    "Write",
+    "Edit",
+    "Bash",
+    "thinking",
+    "text",
+    "errors",
+    "edits",
+    ...searchKeys,
+  ])
+  for (const [tool, count] of Object.entries(counts)) {
+    if (!knownKeys.has(tool) && tool !== "text" && tool !== "errors") {
+      parts.push(`${count} ${tool}`)
+    }
+  }
+  return { lastAction, stats: parts.join(" · "), totalEntries: log.length }
+}
 
 function StepExpandedContent({
   nodeId,
@@ -176,9 +230,9 @@ function StepExpandedContent({
   runId?: string | null
   evalOverrideNodeIds?: Set<string>
 }) {
-  const [detailView, setDetailView] = useState<StepDetailView>(
-    status === "running" ? "log" : "result",
-  )
+  const [showFullLog, setShowFullLog] = useState(false)
+  const logSummary = deriveLogSummary(nodeState?.log)
+  const hasResult = status === "done" && Boolean(nodeState?.output?.content)
 
   if (status === "blocked") {
     return (
@@ -191,24 +245,28 @@ function StepExpandedContent({
   }
 
   if (status === "failed") {
-    const hasLog = Boolean(nodeState?.log?.length)
     return (
       <div className="space-y-2 px-3 py-3">
         <div className="text-body-sm text-status-danger">
           {nodeState?.error || "Step failed"}
         </div>
-        {hasLog && (
-          <button
-            type="button"
-            className="ui-meta-text text-muted-foreground hover:text-foreground"
-            onClick={() =>
-              setDetailView(detailView === "log" ? "result" : "log")
-            }
-          >
-            {detailView === "log" ? "Hide log" : "View step log"}
-          </button>
+        {logSummary && (
+          <>
+            <div className="ui-meta-text text-muted-foreground">
+              {logSummary.stats}
+            </div>
+            <button
+              type="button"
+              className="ui-meta-text text-muted-foreground hover:text-foreground"
+              onClick={() => setShowFullLog(!showFullLog)}
+            >
+              {showFullLog
+                ? "Hide log"
+                : `Show full log (${logSummary.totalEntries} entries)`}
+            </button>
+          </>
         )}
-        {detailView === "log" && hasLog && (
+        {showFullLog && (
           <div className="max-h-[min(20rem,40vh)] overflow-y-auto ui-scroll-region">
             <LogTab
               selectedNodeId={nodeId}
@@ -224,46 +282,42 @@ function StepExpandedContent({
     )
   }
 
-  // Running or done — show toggle between Result and Log
-  const hasResult = status === "done" && Boolean(nodeState?.output?.content)
-  const hasLog = Boolean(nodeState?.log?.length) || status === "running"
-  const showToggle = hasResult && hasLog
-
+  // Running or done — compact summary + optional full log
   return (
-    <div className="space-y-2">
-      {showToggle && (
-        <div className="flex gap-1 px-3 pt-2">
-          <button
-            type="button"
-            className={cn(
-              "rounded-full px-3 py-0.5 text-body-sm font-medium transition-colors",
-              detailView === "result"
-                ? "bg-surface-1 border border-hairline text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            onClick={() => setDetailView("result")}
-          >
-            Result
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "rounded-full px-3 py-0.5 text-body-sm font-medium transition-colors",
-              detailView === "log"
-                ? "bg-surface-1 border border-hairline text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            onClick={() => setDetailView("log")}
-          >
-            Log
-          </button>
+    <div className="space-y-2 px-3 py-3">
+      {/* Live activity line for running */}
+      {status === "running" && logSummary?.lastAction && (
+        <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
+          <Loader2 size={12} className="animate-spin shrink-0" />
+          <span className="truncate">{logSummary.lastAction}</span>
         </div>
       )}
 
-      {detailView === "result" && hasResult ? (
-        <StepResultContent nodeState={nodeState} />
-      ) : hasLog || status === "running" ? (
-        <div className="max-h-[min(24rem,50vh)] overflow-y-auto ui-scroll-region">
+      {/* Compact stats */}
+      {logSummary && (
+        <div className="ui-meta-text text-muted-foreground">
+          {logSummary.stats}
+        </div>
+      )}
+
+      {/* Result for done steps */}
+      {hasResult && <StepResultContent nodeState={nodeState} />}
+
+      {/* Full log toggle */}
+      {logSummary && (
+        <button
+          type="button"
+          className="ui-meta-text text-muted-foreground hover:text-foreground"
+          onClick={() => setShowFullLog(!showFullLog)}
+        >
+          {showFullLog
+            ? "Hide full log"
+            : `Show full log (${logSummary.totalEntries} entries)`}
+        </button>
+      )}
+
+      {showFullLog && (
+        <div className="max-h-[min(24rem,50vh)] overflow-y-auto ui-scroll-region border-t border-hairline pt-2">
           <LogTab
             selectedNodeId={nodeId}
             nodeStates={nodeStates}
@@ -273,10 +327,11 @@ function StepExpandedContent({
             evalOverrideNodeIds={evalOverrideNodeIds || new Set()}
           />
         </div>
-      ) : (
-        <div className="px-3 py-3 text-body-sm text-muted-foreground">
-          No output yet
-        </div>
+      )}
+
+      {/* No content at all */}
+      {!logSummary && !hasResult && status !== "running" && (
+        <div className="text-body-sm text-muted-foreground">No output yet</div>
       )}
     </div>
   )
