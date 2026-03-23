@@ -86,13 +86,17 @@ export function formatRelativeTime(updatedAt?: number): string {
 }
 
 export function workflowHasActiveRunStatus(status?: string): boolean {
-  return status === "starting"
-    || status === "running"
-    || status === "paused"
-    || status === "cancelling"
+  return (
+    status === "starting" ||
+    status === "running" ||
+    status === "paused" ||
+    status === "cancelling"
+  )
 }
 
-export function latestRunByWorkflowPath(pastRuns: RunResult[]): Map<string, RunResult> {
+export function latestRunByWorkflowPath(
+  pastRuns: RunResult[],
+): Map<string, RunResult> {
   const result = new Map<string, RunResult>()
   for (const run of pastRuns) {
     const path = run.workflowPath
@@ -102,6 +106,17 @@ export function latestRunByWorkflowPath(pastRuns: RunResult[]): Map<string, RunR
   return result
 }
 
+export function isSidebarWorkflowReviewableRun(
+  run?: Pick<RunResult, "status"> | null,
+) {
+  return (
+    run?.status === "completed" ||
+    run?.status === "failed" ||
+    run?.status === "cancelled" ||
+    run?.status === "interrupted"
+  )
+}
+
 export function resolveWorkflowLaunchTimestamp({
   executionState,
   latestRun,
@@ -109,12 +124,12 @@ export function resolveWorkflowLaunchTimestamp({
   executionState?: Pick<WorkflowExecutionState, "runStartedAt"> | null
   latestRun?: Pick<RunResult, "startedAt"> | null
 }): number {
-  const activeStartedAt = typeof executionState?.runStartedAt === "number"
-    ? executionState.runStartedAt
-    : 0
-  const latestStartedAt = typeof latestRun?.startedAt === "number"
-    ? latestRun.startedAt
-    : 0
+  const activeStartedAt =
+    typeof executionState?.runStartedAt === "number"
+      ? executionState.runStartedAt
+      : 0
+  const latestStartedAt =
+    typeof latestRun?.startedAt === "number" ? latestRun.startedAt : 0
   return Math.max(activeStartedAt, latestStartedAt)
 }
 
@@ -150,8 +165,17 @@ export interface SidebarWorkflowSummary {
   detailLabel: string | null
 }
 
-export type SidebarWorkflowBaseState = "new" | "idle" | "running" | "paused" | "blocked"
-export type SidebarWorkflowNotificationTone = "none" | "success" | "warning" | "error"
+export type SidebarWorkflowBaseState =
+  | "new"
+  | "idle"
+  | "running"
+  | "paused"
+  | "blocked"
+export type SidebarWorkflowNotificationTone =
+  | "none"
+  | "success"
+  | "warning"
+  | "error"
 
 export interface SidebarWorkflowRowState {
   baseState: SidebarWorkflowBaseState
@@ -162,10 +186,14 @@ export interface SidebarWorkflowRowState {
   showStatusSpinner: boolean
 }
 
-function hasWaitingHumanDecision(executionState?: WorkflowExecutionState | null): boolean {
+function hasWaitingHumanDecision(
+  executionState?: WorkflowExecutionState | null,
+): boolean {
   if (!executionState) return false
-  return Object.values(executionState.nodeStates).some((nodeState) =>
-    nodeState.status === "waiting_approval" || nodeState.status === "waiting_human",
+  return Object.values(executionState.nodeStates).some(
+    (nodeState) =>
+      nodeState.status === "waiting_approval" ||
+      nodeState.status === "waiting_human",
   )
 }
 
@@ -181,18 +209,28 @@ export function deriveSidebarWorkflowBaseState({
   const runStatus = executionState?.runStatus ?? "idle"
   const runOutcome = executionState?.runOutcome ?? null
 
-  if (approvalCount > 0 || runOutcome === "blocked" || hasWaitingHumanDecision(executionState)) {
+  if (
+    approvalCount > 0 ||
+    runOutcome === "blocked" ||
+    hasWaitingHumanDecision(executionState)
+  ) {
     return "blocked"
   }
   if (runStatus === "paused") return "paused"
-  if (runStatus === "starting" || runStatus === "running" || runStatus === "cancelling") {
+  if (
+    runStatus === "starting" ||
+    runStatus === "running" ||
+    runStatus === "cancelling"
+  ) {
     return "running"
   }
   if (latestRun || runStatus === "done" || runStatus === "error") return "idle"
   return "new"
 }
 
-export function sidebarNotificationToneForRunStatus(status?: RunStatus | null): SidebarWorkflowNotificationTone {
+export function sidebarNotificationToneForRunStatus(
+  status?: RunStatus | null,
+): SidebarWorkflowNotificationTone {
   switch (status) {
     case "completed":
       return "success"
@@ -212,7 +250,10 @@ function unreadNotificationTitle(
 ): string | null {
   if (!latestRun) return null
   if (unreadNotification === "success") return "New completed result"
-  if (unreadNotification === "warning") return latestRun.status === "cancelled" ? "New cancelled run" : "New run needs review"
+  if (unreadNotification === "warning")
+    return latestRun.status === "cancelled"
+      ? "New cancelled run"
+      : "New run needs review"
   if (unreadNotification === "error") return "New failed run"
   return null
 }
@@ -235,9 +276,13 @@ export function deriveSidebarWorkflowRowState({
     latestRun,
     approvalCount,
   })
-  const unreadNotification = !isSelected && baseState === "idle" && latestRun?.runId && latestRun.runId !== seenRunId
-    ? sidebarNotificationToneForRunStatus(latestRun.status)
-    : "none"
+  const unreadNotification =
+    !isSelected &&
+    baseState === "idle" &&
+    latestRun?.runId &&
+    latestRun.runId !== seenRunId
+      ? sidebarNotificationToneForRunStatus(latestRun.status)
+      : "none"
 
   if (baseState === "running") {
     return {
@@ -278,7 +323,8 @@ export function deriveSidebarWorkflowRowState({
       unreadNotification: "none",
       unreadNotificationTitle: null,
       statusLabel: "New",
-      statusBadgeClass: "ui-status-badge border border-hairline bg-surface-2/80 text-muted-foreground",
+      statusBadgeClass:
+        "ui-status-badge border border-hairline bg-surface-2/80 text-muted-foreground",
       showStatusSpinner: false,
     }
   }
@@ -286,7 +332,10 @@ export function deriveSidebarWorkflowRowState({
   return {
     baseState,
     unreadNotification,
-    unreadNotificationTitle: unreadNotificationTitle(unreadNotification, latestRun),
+    unreadNotificationTitle: unreadNotificationTitle(
+      unreadNotification,
+      latestRun,
+    ),
     statusLabel: null,
     statusBadgeClass: null,
     showStatusSpinner: false,
@@ -299,11 +348,11 @@ export function buildSidebarWorkflowSummary({
   executionState?: WorkflowExecutionState | null
 }): SidebarWorkflowSummary {
   if (
-    executionState
-    && (workflowHasActiveRunStatus(executionState.runStatus)
-      || executionState.runStatus === "done"
-      || executionState.runStatus === "error")
-    && executionState.workflowSnapshot
+    executionState &&
+    (workflowHasActiveRunStatus(executionState.runStatus) ||
+      executionState.runStatus === "done" ||
+      executionState.runStatus === "error") &&
+    executionState.workflowSnapshot
   ) {
     const summary = buildRunProgressSummary({
       workflow: executionState.workflowSnapshot,
@@ -317,7 +366,7 @@ export function buildSidebarWorkflowSummary({
 
     return {
       detailLabel: workflowHasActiveRunStatus(executionState.runStatus)
-        ? (summary.activeStepLabel || summary.branchLabel || null)
+        ? summary.activeStepLabel || summary.branchLabel || null
         : null,
     }
   }

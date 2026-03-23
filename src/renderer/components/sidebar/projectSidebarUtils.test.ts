@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { clampSidebarWidth, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "./useSidebarResize"
+import {
+  clampSidebarWidth,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+} from "./useSidebarResize"
 import {
   compareSidebarWorkflowsByLaunchTime,
   buildSidebarWorkflowSummary,
@@ -7,6 +11,7 @@ import {
   deriveSidebarWorkflowRowState,
   formatRelativeTime,
   historicalRunVisual,
+  isSidebarWorkflowReviewableRun,
   latestRunByWorkflowPath,
   projectFolderName,
   resolveWorkflowLaunchTimestamp,
@@ -40,15 +45,21 @@ describe("projectSidebarUtils", () => {
   })
 
   it("selects another project before toggling its workflow list", () => {
-    expect(resolveProjectRowSelectionState("/tmp/beta", "/tmp/alpha", false)).toEqual({
+    expect(
+      resolveProjectRowSelectionState("/tmp/beta", "/tmp/alpha", false),
+    ).toEqual({
       shouldSelectProject: true,
       nextExpanded: true,
     })
-    expect(resolveProjectRowSelectionState("/tmp/beta", "/tmp/alpha", true)).toEqual({
+    expect(
+      resolveProjectRowSelectionState("/tmp/beta", "/tmp/alpha", true),
+    ).toEqual({
       shouldSelectProject: true,
       nextExpanded: false,
     })
-    expect(resolveProjectRowSelectionState("/tmp/beta", "/tmp/beta", true)).toEqual({
+    expect(
+      resolveProjectRowSelectionState("/tmp/beta", "/tmp/beta", true),
+    ).toEqual({
       shouldSelectProject: false,
       nextExpanded: false,
     })
@@ -80,16 +91,35 @@ describe("projectSidebarUtils", () => {
     expect(latestByPath.size).toBe(2)
   })
 
-  it("prefers the freshest launch timestamp from either live execution or history", () => {
-    expect(resolveWorkflowLaunchTimestamp({
-      executionState: { runStartedAt: 200 } as any,
-      latestRun: { startedAt: 150 } as any,
-    })).toBe(200)
+  it("marks only terminal saved runs as sidebar review targets", () => {
+    expect(isSidebarWorkflowReviewableRun({ status: "completed" } as any)).toBe(
+      true,
+    )
+    expect(isSidebarWorkflowReviewableRun({ status: "failed" } as any)).toBe(
+      true,
+    )
+    expect(isSidebarWorkflowReviewableRun({ status: "running" } as any)).toBe(
+      false,
+    )
+    expect(isSidebarWorkflowReviewableRun({ status: "blocked" } as any)).toBe(
+      false,
+    )
+  })
 
-    expect(resolveWorkflowLaunchTimestamp({
-      executionState: null,
-      latestRun: { startedAt: 300 } as any,
-    })).toBe(300)
+  it("prefers the freshest launch timestamp from either live execution or history", () => {
+    expect(
+      resolveWorkflowLaunchTimestamp({
+        executionState: { runStartedAt: 200 } as any,
+        latestRun: { startedAt: 150 } as any,
+      }),
+    ).toBe(200)
+
+    expect(
+      resolveWorkflowLaunchTimestamp({
+        executionState: null,
+        latestRun: { startedAt: 300 } as any,
+      }),
+    ).toBe(300)
   })
 
   it("sorts workflow rows by launch time instead of selection or status", () => {
@@ -107,14 +137,16 @@ describe("projectSidebarUtils", () => {
       "/tmp/running.chain": { runStartedAt: 250, runStatus: "running" },
     } as any
 
-    const sorted = [...workflows].sort((left, right) => compareSidebarWorkflowsByLaunchTime({
-      leftWorkflow: left,
-      rightWorkflow: right,
-      leftExecutionState: executionStates[left.path],
-      rightExecutionState: executionStates[right.path],
-      leftLatestRun: latestRuns[left.path],
-      rightLatestRun: latestRuns[right.path],
-    }))
+    const sorted = [...workflows].sort((left, right) =>
+      compareSidebarWorkflowsByLaunchTime({
+        leftWorkflow: left,
+        rightWorkflow: right,
+        leftExecutionState: executionStates[left.path],
+        rightExecutionState: executionStates[right.path],
+        leftLatestRun: latestRuns[left.path],
+        rightLatestRun: latestRuns[right.path],
+      }),
+    )
 
     expect(sorted.map((workflow) => workflow.path)).toEqual([
       "/tmp/blocked.chain",
@@ -139,9 +171,19 @@ describe("projectSidebarUtils", () => {
         workflowSnapshot: {
           version: 1,
           name: "Demo",
-          defaults: { model: "sonnet", maxTurns: 10, timeout_minutes: 10, maxParallel: 1 },
+          defaults: {
+            model: "sonnet",
+            maxTurns: 10,
+            timeout_minutes: 10,
+            maxParallel: 1,
+          },
           nodes: [
-            { id: "input", type: "input", position: { x: 0, y: 0 }, config: {} },
+            {
+              id: "input",
+              type: "input",
+              position: { x: 0, y: 0 },
+              config: {},
+            },
             {
               id: "shape",
               type: "skill",
@@ -181,29 +223,33 @@ describe("projectSidebarUtils", () => {
   })
 
   it("derives blocked before unread history when approvals are waiting", () => {
-    expect(deriveSidebarWorkflowBaseState({
-      executionState: {
-        runStatus: "done",
-        runOutcome: "blocked",
-        nodeStates: {},
-      },
-      latestRun: {
-        status: "completed",
-      },
-    } as any)).toBe("blocked")
+    expect(
+      deriveSidebarWorkflowBaseState({
+        executionState: {
+          runStatus: "done",
+          runOutcome: "blocked",
+          nodeStates: {},
+        },
+        latestRun: {
+          status: "completed",
+        },
+      } as any),
+    ).toBe("blocked")
 
-    expect(deriveSidebarWorkflowRowState({
-      executionState: {
-        runStatus: "done",
-        runOutcome: "blocked",
-        nodeStates: {},
-      },
-      latestRun: {
-        runId: "run-2",
-        status: "completed",
-      },
-      seenRunId: null,
-    } as any)).toMatchObject({
+    expect(
+      deriveSidebarWorkflowRowState({
+        executionState: {
+          runStatus: "done",
+          runOutcome: "blocked",
+          nodeStates: {},
+        },
+        latestRun: {
+          runId: "run-2",
+          status: "completed",
+        },
+        seenRunId: null,
+      } as any),
+    ).toMatchObject({
       baseState: "blocked",
       unreadNotification: "none",
       statusLabel: "Needs approval",
@@ -215,49 +261,57 @@ describe("projectSidebarUtils", () => {
     expect(sidebarNotificationToneForRunStatus("interrupted")).toBe("warning")
     expect(sidebarNotificationToneForRunStatus("failed")).toBe("error")
 
-    expect(deriveSidebarWorkflowRowState({
-      latestRun: {
-        runId: "run-1",
-        status: "completed",
-      },
-      seenRunId: null,
-    })).toMatchObject({
+    expect(
+      deriveSidebarWorkflowRowState({
+        latestRun: {
+          runId: "run-1",
+          status: "completed",
+        },
+        seenRunId: null,
+      }),
+    ).toMatchObject({
       baseState: "idle",
       unreadNotification: "success",
       statusLabel: null,
     })
 
-    expect(deriveSidebarWorkflowRowState({
-      latestRun: {
-        runId: "run-2",
-        status: "failed",
-      },
-      seenRunId: null,
-    })).toMatchObject({
+    expect(
+      deriveSidebarWorkflowRowState({
+        latestRun: {
+          runId: "run-2",
+          status: "failed",
+        },
+        seenRunId: null,
+      }),
+    ).toMatchObject({
       baseState: "idle",
       unreadNotification: "error",
     })
   })
 
   it("clears unread markers for seen or selected runs", () => {
-    expect(deriveSidebarWorkflowRowState({
-      latestRun: {
-        runId: "run-1",
-        status: "completed",
-      },
-      seenRunId: "run-1",
-    })).toMatchObject({
+    expect(
+      deriveSidebarWorkflowRowState({
+        latestRun: {
+          runId: "run-1",
+          status: "completed",
+        },
+        seenRunId: "run-1",
+      }),
+    ).toMatchObject({
       unreadNotification: "none",
     })
 
-    expect(deriveSidebarWorkflowRowState({
-      latestRun: {
-        runId: "run-2",
-        status: "failed",
-      },
-      seenRunId: null,
-      isSelected: true,
-    })).toMatchObject({
+    expect(
+      deriveSidebarWorkflowRowState({
+        latestRun: {
+          runId: "run-2",
+          status: "failed",
+        },
+        seenRunId: null,
+        isSelected: true,
+      }),
+    ).toMatchObject({
       unreadNotification: "none",
     })
   })

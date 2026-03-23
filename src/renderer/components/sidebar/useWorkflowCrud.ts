@@ -1,18 +1,17 @@
-import {
-  useState,
-  type Dispatch,
-  type SetStateAction,
-} from "react"
+import { useState, type Dispatch, type SetStateAction } from "react"
 import { useSetAtom } from "jotai"
 import type { MainView } from "@/lib/store"
-import type { Workflow, WorkflowFile } from "@shared/types"
+import type { RunResult, Workflow, WorkflowFile } from "@shared/types"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { selectedInboxTaskKeyAtom, workflowOpenStateAtom } from "@/lib/store"
-import { selectedPastRunAtom, toWorkflowExecutionKey } from "@/features/execution"
+import {
+  selectedPastRunAtom,
+  toWorkflowExecutionKey,
+} from "@/features/execution"
 
 interface UseWorkflowCrudParams {
   selectedProject: string | null
@@ -20,7 +19,9 @@ interface UseWorkflowCrudParams {
   setSelectedProject: Dispatch<SetStateAction<string | null>>
   setExpandedProjects: Dispatch<SetStateAction<string[]>>
   setWorkflows: Dispatch<SetStateAction<WorkflowFile[]>>
-  setProjectWorkflowsCache: Dispatch<SetStateAction<Record<string, WorkflowFile[]>>>
+  setProjectWorkflowsCache: Dispatch<
+    SetStateAction<Record<string, WorkflowFile[]>>
+  >
   selectedWorkflowPath: string | null
   setSelectedWorkflowPath: Dispatch<SetStateAction<string | null>>
   currentWorkflow: Workflow
@@ -31,12 +32,25 @@ interface UseWorkflowCrudParams {
   confirmDiscard: (action: string, workflowDirty: boolean) => Promise<boolean>
   clearDraftExecutionState: () => void
   workflowHasActiveRun: (workflowPath: string) => boolean
-  moveWorkflowExecutionState: (params: { fromKey: string; toKey: string }) => void
+  moveWorkflowExecutionState: (params: {
+    fromKey: string
+    toKey: string
+  }) => void
   clearWorkflowExecutionState: (workflowKey: string) => void
-  moveWorkflowRequestedResult: (params: { fromKey: string; toKey: string }) => void
+  moveWorkflowRequestedResult: (params: {
+    fromKey: string
+    toKey: string
+  }) => void
   clearWorkflowRequestedResult: (workflowKey: string) => void
-  moveWorkflowTemplateContext: (params: { fromKey: string; toKey: string }) => void
+  moveWorkflowTemplateContext: (params: {
+    fromKey: string
+    toKey: string
+  }) => void
   clearWorkflowTemplateContext: (workflowKey: string) => void
+  resolveWorkflowReviewRun?: (
+    workflowPath: string,
+    projectPath?: string,
+  ) => RunResult | null
   onProjectAdd?: (projectPath: string) => void
   onWorkflowCreate?: (workflowPath: string) => void
 }
@@ -79,7 +93,9 @@ export function removeWorkflowFromProjectCaches(
   const next: Record<string, WorkflowFile[]> = {}
 
   for (const [projectPath, workflows] of Object.entries(caches)) {
-    const filtered = workflows.filter((workflow) => workflow.path !== workflowPath)
+    const filtered = workflows.filter(
+      (workflow) => workflow.path !== workflowPath,
+    )
     next[projectPath] = filtered
     if (filtered.length !== workflows.length) {
       changed = true
@@ -87,6 +103,17 @@ export function removeWorkflowFromProjectCaches(
   }
 
   return changed ? next : caches
+}
+
+export function applyWorkflowSelectionReviewState(
+  reviewRun: RunResult | null,
+  clearReviewState: () => void,
+  setSelectedPastRun: (value: RunResult | null) => void,
+): void {
+  clearReviewState()
+  if (reviewRun) {
+    setSelectedPastRun(reviewRun)
+  }
 }
 
 export function useWorkflowCrud({
@@ -112,16 +139,21 @@ export function useWorkflowCrud({
   clearWorkflowRequestedResult,
   moveWorkflowTemplateContext,
   clearWorkflowTemplateContext,
+  resolveWorkflowReviewRun,
   onProjectAdd,
   onWorkflowCreate,
 }: UseWorkflowCrudParams) {
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
-  const [pendingRenameWorkflow, setPendingRenameWorkflow] = useState<WorkflowFile | null>(null)
+  const [pendingRenameWorkflow, setPendingRenameWorkflow] =
+    useState<WorkflowFile | null>(null)
   const [renameInput, setRenameInput] = useState("")
-  const [pendingDeleteWorkflow, setPendingDeleteWorkflow] = useState<WorkflowFile | null>(null)
-  const [pendingRemoveProject, setPendingRemoveProject] = useState<string | null>(null)
+  const [pendingDeleteWorkflow, setPendingDeleteWorkflow] =
+    useState<WorkflowFile | null>(null)
+  const [pendingRemoveProject, setPendingRemoveProject] = useState<
+    string | null
+  >(null)
   const [creatingWorkflow, setCreatingWorkflow] = useState(false)
   const clearReviewState = () => {
     setSelectedInboxTaskKey(null)
@@ -129,7 +161,10 @@ export function useWorkflowCrud({
   }
 
   const addProject = async () => {
-    if (selectedProject && !(await confirmDiscard("switch projects", workflowDirty))) {
+    if (
+      selectedProject &&
+      !(await confirmDiscard("switch projects", workflowDirty))
+    ) {
       return
     }
 
@@ -137,7 +172,9 @@ export function useWorkflowCrud({
       const projectPath = await window.api.addProject()
       if (!projectPath) return
 
-      setProjects((prev) => (prev.includes(projectPath) ? prev : [...prev, projectPath]))
+      setProjects((prev) =>
+        prev.includes(projectPath) ? prev : [...prev, projectPath],
+      )
       setSelectedProject(projectPath)
       createEmptySelectionState(
         setSelectedWorkflowPath,
@@ -188,9 +225,18 @@ export function useWorkflowCrud({
     )
   }
 
-  const selectWorkflow = async (workflow: WorkflowFile, projectPath?: string) => {
+  const selectWorkflow = async (
+    workflow: WorkflowFile,
+    projectPath?: string,
+  ) => {
+    const reviewRun =
+      resolveWorkflowReviewRun?.(workflow.path, projectPath) || null
     if (selectedWorkflowPath === workflow.path) {
-      clearReviewState()
+      applyWorkflowSelectionReviewState(
+        reviewRun,
+        clearReviewState,
+        setSelectedPastRun,
+      )
       setMainView("thread")
       return
     }
@@ -225,6 +271,9 @@ export function useWorkflowCrud({
         setWorkflowSavedSnapshot,
         clearReviewState,
       )
+      if (reviewRun) {
+        setSelectedPastRun(reviewRun)
+      }
     } catch (error) {
       toast.dismiss(loadingToastId)
       setWorkflowOpenState({
@@ -248,14 +297,19 @@ export function useWorkflowCrud({
       const chain = createEmptyWorkflow()
       const filePath = await window.api.createWorkflow(projectPath, name, chain)
       const loadedWorkflow = await window.api.loadWorkflow(filePath)
-      const workflowNameFromPath = filePath
-        .split(/[\\/]/)
-        .pop()
-        ?.replace(/\.(chain|yaml|yml)$/i, "") || name
+      const workflowNameFromPath =
+        filePath
+          .split(/[\\/]/)
+          .pop()
+          ?.replace(/\.(chain|yaml|yml)$/i, "") || name
 
       setMainView("thread")
       setWorkflows((prev) => [
-        { name: loadedWorkflow.name || workflowNameFromPath, path: filePath, updatedAt: Date.now() },
+        {
+          name: loadedWorkflow.name || workflowNameFromPath,
+          path: filePath,
+          updatedAt: Date.now(),
+        },
         ...prev,
       ])
       applyLoadedWorkflow(
@@ -288,18 +342,25 @@ export function useWorkflowCrud({
     const projectPath = await window.api.addProject()
     if (!projectPath) return
 
-    setProjects((prev) => (prev.includes(projectPath) ? prev : [...prev, projectPath]))
+    setProjects((prev) =>
+      prev.includes(projectPath) ? prev : [...prev, projectPath],
+    )
     setSelectedProject(projectPath)
     await createWorkflow(projectPath)
   }
 
   const selectGlobalWorkflow = async (workflow: WorkflowFile) => {
+    const reviewRun = resolveWorkflowReviewRun?.(workflow.path) || null
     if (!selectedProject) {
       toastError("Open a project first to run this flow")
       return
     }
     if (selectedWorkflowPath === workflow.path) {
-      clearReviewState()
+      applyWorkflowSelectionReviewState(
+        reviewRun,
+        clearReviewState,
+        setSelectedPastRun,
+      )
       setMainView("thread")
       return
     }
@@ -330,6 +391,9 @@ export function useWorkflowCrud({
         setWorkflowSavedSnapshot,
         clearReviewState,
       )
+      if (reviewRun) {
+        setSelectedPastRun(reviewRun)
+      }
     } catch (error) {
       toast.dismiss(loadingToastId)
       setWorkflowOpenState({
@@ -427,8 +491,12 @@ export function useWorkflowCrud({
       clearWorkflowRequestedResult(toWorkflowExecutionKey(workflow.path))
       clearWorkflowTemplateContext(toWorkflowExecutionKey(workflow.path))
 
-      setWorkflows((previous) => previous.filter((entry) => entry.path !== workflow.path))
-      setProjectWorkflowsCache((previous) => removeWorkflowFromProjectCaches(previous, workflow.path))
+      setWorkflows((previous) =>
+        previous.filter((entry) => entry.path !== workflow.path),
+      )
+      setProjectWorkflowsCache((previous) =>
+        removeWorkflowFromProjectCaches(previous, workflow.path),
+      )
 
       if (selectedProject) {
         const refreshed = await window.api.listProjectWorkflows(selectedProject)
@@ -455,7 +523,10 @@ export function useWorkflowCrud({
     }
   }
 
-  const duplicateWorkflow = async (workflow: WorkflowFile, projectPath?: string) => {
+  const duplicateWorkflow = async (
+    workflow: WorkflowFile,
+    projectPath?: string,
+  ) => {
     try {
       const newPath = await window.api.duplicateWorkflow(workflow.path)
       if (projectPath) {
@@ -463,7 +534,10 @@ export function useWorkflowCrud({
         if (projectPath === selectedProject) {
           setWorkflows(refreshed)
         } else {
-          setProjectWorkflowsCache((prev) => ({ ...prev, [projectPath]: refreshed }))
+          setProjectWorkflowsCache((prev) => ({
+            ...prev,
+            [projectPath]: refreshed,
+          }))
         }
       }
 
@@ -487,17 +561,28 @@ export function useWorkflowCrud({
     }
   }
 
-  const copyWorkflowToProject = async (workflow: WorkflowFile, projectPath: string) => {
+  const copyWorkflowToProject = async (
+    workflow: WorkflowFile,
+    projectPath: string,
+  ) => {
     try {
       const loadedWorkflow = await window.api.loadWorkflow(workflow.path)
-      await window.api.createWorkflow(projectPath, loadedWorkflow.name || workflow.name || "flow", loadedWorkflow)
+      await window.api.createWorkflow(
+        projectPath,
+        loadedWorkflow.name || workflow.name || "flow",
+        loadedWorkflow,
+      )
       const refreshed = await window.api.listProjectWorkflows(projectPath)
       if (projectPath === selectedProject) {
         setWorkflows(refreshed)
       } else {
-        setProjectWorkflowsCache((prev) => ({ ...prev, [projectPath]: refreshed }))
+        setProjectWorkflowsCache((prev) => ({
+          ...prev,
+          [projectPath]: refreshed,
+        }))
       }
-      const projectName = projectPath.split(/[\\/]/).filter(Boolean).pop() || projectPath
+      const projectName =
+        projectPath.split(/[\\/]/).filter(Boolean).pop() || projectPath
       toast.success(`Copied to ${projectName}`)
     } catch (error) {
       toastErrorFromCatch("Could not copy flow to project", error)

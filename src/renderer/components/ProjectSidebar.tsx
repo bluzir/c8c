@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   projectsAtom,
@@ -33,13 +33,12 @@ import {
 } from "@/features/execution"
 import { cn } from "@/lib/cn"
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "@/lib/sidebar-layout"
+import { FolderOpen, Settings, ChevronRight, Plus } from "lucide-react"
 import {
-  FolderOpen,
-  Settings,
-  ChevronRight,
-  Plus,
-} from "lucide-react"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import {
   formatRelativeTime,
@@ -47,6 +46,7 @@ import {
   latestRunByWorkflowPath,
   projectFolderName,
   resolveProjectRowSelectionState,
+  isSidebarWorkflowReviewableRun,
   workflowHasActiveRunStatus,
 } from "@/components/sidebar/projectSidebarUtils"
 import { useProjectSidebarData } from "@/components/sidebar/useProjectSidebarData"
@@ -86,7 +86,9 @@ export function ProjectSidebar({
   const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
   const [expandedProjects, setExpandedProjects] = useAtom(expandedProjectsAtom)
   const [workflows, setWorkflows] = useAtom(workflowsAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
   const [workflowDirty] = useAtom(workflowDirtyAtom)
   const [sidebarWidth, setSidebarWidth] = useAtom(projectSidebarWidthAtom)
   const [currentWorkflow, setCurrentWorkflow] = useAtom(currentWorkflowAtom)
@@ -102,16 +104,29 @@ export function ProjectSidebar({
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
   const moveWorkflowExecutionState = useSetAtom(moveWorkflowExecutionStateAtom)
-  const clearWorkflowExecutionState = useSetAtom(clearWorkflowExecutionStateAtom)
-  const moveWorkflowRequestedResult = useSetAtom(moveWorkflowRequestedResultAtom)
-  const clearWorkflowRequestedResult = useSetAtom(clearWorkflowRequestedResultForKeyAtom)
-  const moveWorkflowTemplateContext = useSetAtom(moveWorkflowTemplateContextAtom)
-  const clearWorkflowTemplateContext = useSetAtom(clearWorkflowTemplateContextForKeyAtom)
+  const clearWorkflowExecutionState = useSetAtom(
+    clearWorkflowExecutionStateAtom,
+  )
+  const moveWorkflowRequestedResult = useSetAtom(
+    moveWorkflowRequestedResultAtom,
+  )
+  const clearWorkflowRequestedResult = useSetAtom(
+    clearWorkflowRequestedResultForKeyAtom,
+  )
+  const moveWorkflowTemplateContext = useSetAtom(
+    moveWorkflowTemplateContextAtom,
+  )
+  const clearWorkflowTemplateContext = useSetAtom(
+    clearWorkflowTemplateContextForKeyAtom,
+  )
   const markWorkflowSidebarRunSeen = useSetAtom(markWorkflowSidebarRunSeenAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState("")
-  const [expandedWorkflowLists, setExpandedWorkflowLists] = useState<Record<string, boolean>>({})
-  const [sidebarContextMenu, setSidebarContextMenu] = useState<SidebarContextMenuState | null>(null)
+  const [expandedWorkflowLists, setExpandedWorkflowLists] = useState<
+    Record<string, boolean>
+  >({})
+  const [sidebarContextMenu, setSidebarContextMenu] =
+    useState<SidebarContextMenuState | null>(null)
   const normalizedWorkflowSearchQuery = workflowSearchQuery.trim().toLowerCase()
   const hasWorkflowSearchQuery = normalizedWorkflowSearchQuery.length > 0
   const projectRequired = resolveProjectRequiredContract({
@@ -121,7 +136,9 @@ export function ProjectSidebar({
 
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const workflowHasActiveRun = (workflowPath: string) => {
-    return workflowHasActiveRunStatus(workflowExecutionStates[workflowPath]?.runStatus ?? "idle")
+    return workflowHasActiveRunStatus(
+      workflowExecutionStates[workflowPath]?.runStatus ?? "idle",
+    )
   }
   const clearDraftExecutionState = () => {
     clearWorkflowExecutionState(toWorkflowExecutionKey(null))
@@ -154,17 +171,39 @@ export function ProjectSidebar({
     setWorkflowSavedSnapshot,
   })
   const hasProjects = projects.length > 0
-  const showSidebarSearch = hasProjects
-    && (workflows.length > 3 || Object.values(projectWorkflowsCache).some((wfs) => wfs.length > 3))
+  const showSidebarSearch =
+    hasProjects &&
+    (workflows.length > 3 ||
+      Object.values(projectWorkflowsCache).some((wfs) => wfs.length > 3))
   const visibleGlobalWorkflows = hasWorkflowSearchQuery
-    ? globalWorkflows.filter((workflow) => workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery))
+    ? globalWorkflows.filter((workflow) =>
+        workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery),
+      )
     : globalWorkflows
-  const latestRunsByWorkflow = useMemo(() => latestRunByWorkflowPath(pastRuns), [pastRuns])
-  const hasVisibleProjectResults = hasWorkflowSearchQuery
-    && projects.some((projectPath) => (projectWorkflowsCache[projectPath] || []).some((workflow) => (
-      workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery)
-    )))
-  const hasSearchResults = hasVisibleProjectResults || visibleGlobalWorkflows.length > 0
+  const latestRunsByWorkflow = useMemo(
+    () => latestRunByWorkflowPath(pastRuns),
+    [pastRuns],
+  )
+  const resolveWorkflowReviewRun = useCallback(
+    (workflowPath: string, projectPath?: string) => {
+      const projectRun = projectPath
+        ? projectLatestRunsCache[projectPath]?.[workflowPath] || null
+        : null
+      const latestRun =
+        projectRun || latestRunsByWorkflow.get(workflowPath) || null
+      return isSidebarWorkflowReviewableRun(latestRun) ? latestRun : null
+    },
+    [latestRunsByWorkflow, projectLatestRunsCache],
+  )
+  const hasVisibleProjectResults =
+    hasWorkflowSearchQuery &&
+    projects.some((projectPath) =>
+      (projectWorkflowsCache[projectPath] || []).some((workflow) =>
+        workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery),
+      ),
+    )
+  const hasSearchResults =
+    hasVisibleProjectResults || visibleGlobalWorkflows.length > 0
   const sidebarContentState = !hasProjects
     ? "empty_projects"
     : hasWorkflowSearchQuery
@@ -213,6 +252,7 @@ export function ProjectSidebar({
     clearWorkflowRequestedResult,
     moveWorkflowTemplateContext,
     clearWorkflowTemplateContext,
+    resolveWorkflowReviewRun,
     onProjectAdd,
     onWorkflowCreate,
   })
@@ -246,19 +286,28 @@ export function ProjectSidebar({
     requestRenameWorkflow,
   })
 
-  const { resizing, startResize, handleResizeKeyDown } = useSidebarResize(sidebarWidth, setSidebarWidth)
+  const { resizing, startResize, handleResizeKeyDown } = useSidebarResize(
+    sidebarWidth,
+    setSidebarWidth,
+  )
 
   useEffect(() => {
     if (!selectedProject) return
-    const latestRunsByWorkflowByProject = Object.fromEntries(latestRunsByWorkflow.entries())
+    const latestRunsByWorkflowByProject = Object.fromEntries(
+      latestRunsByWorkflow.entries(),
+    )
     setProjectLatestRunsCache((prev) => {
       const current = prev[selectedProject]
       const currentKeys = Object.keys(current || {})
       const nextKeys = Object.keys(latestRunsByWorkflowByProject)
       if (
-        current
-        && currentKeys.length === nextKeys.length
-        && nextKeys.every((workflowPath) => current[workflowPath]?.runId === latestRunsByWorkflowByProject[workflowPath]?.runId)
+        current &&
+        currentKeys.length === nextKeys.length &&
+        nextKeys.every(
+          (workflowPath) =>
+            current[workflowPath]?.runId ===
+            latestRunsByWorkflowByProject[workflowPath]?.runId,
+        )
       ) {
         return prev
       }
@@ -270,8 +319,10 @@ export function ProjectSidebar({
   }, [latestRunsByWorkflow, selectedProject, setProjectLatestRunsCache])
 
   useEffect(() => {
-    if (mainView !== "thread" || !selectedProject || !selectedWorkflowPath) return
-    const latestRun = projectLatestRunsCache[selectedProject]?.[selectedWorkflowPath]
+    if (mainView !== "thread" || !selectedProject || !selectedWorkflowPath)
+      return
+    const latestRun =
+      projectLatestRunsCache[selectedProject]?.[selectedWorkflowPath]
     if (!latestRun?.runId) return
     markWorkflowSidebarRunSeen({
       workflowPath: selectedWorkflowPath,
@@ -334,7 +385,9 @@ export function ProjectSidebar({
         onOpenSkills={() => setMainView("skills")}
         onOpenInbox={() => setMainView("inbox")}
         onOpenRunsDashboard={() => setMultiRunDashboardOpen(true)}
-        onAddProject={() => { void addProject() }}
+        onAddProject={() => {
+          void addProject()
+        }}
         onToggleVisibility={onToggleVisibility}
         showVisibilityToggle={showVisibilityToggle}
       />
@@ -352,9 +405,15 @@ export function ProjectSidebar({
                 <FolderOpen size={17} />
               </div>
               <div className="space-y-1">
-                <h2 className="text-sidebar-item font-medium text-foreground">Project required</h2>
-                <p className="text-sidebar-item text-muted-foreground">{projectRequired.blockerStatement}</p>
-                <p className="text-sidebar-meta text-muted-foreground">No custom skills needed to start.</p>
+                <h2 className="text-sidebar-item font-medium text-foreground">
+                  Project required
+                </h2>
+                <p className="text-sidebar-item text-muted-foreground">
+                  {projectRequired.blockerStatement}
+                </p>
+                <p className="text-sidebar-meta text-muted-foreground">
+                  No custom skills needed to start.
+                </p>
               </div>
               <Button
                 type="button"
@@ -370,59 +429,82 @@ export function ProjectSidebar({
         ) : (
           <>
             {sidebarContentState === "search_results" ? (
-              <div className="px-3 pb-1 pt-1 section-kicker text-muted-foreground">Results</div>
+              <div className="px-3 pb-1 pt-1 section-kicker text-muted-foreground">
+                Results
+              </div>
             ) : null}
 
             {projects.map((projectPath) => {
               const isSelectedProject = selectedProject === projectPath
               const isExpanded = expandedProjects.includes(projectPath)
               const isDraggingProject = draggedProjectPath === projectPath
-              const projectDropPosition = projectDropIndicator?.projectPath === projectPath
-                ? projectDropIndicator.position
-                : null
+              const projectDropPosition =
+                projectDropIndicator?.projectPath === projectPath
+                  ? projectDropIndicator.position
+                  : null
               const projectWorkflows = projectWorkflowsCache[projectPath] || []
-              const isProjectLoading = projectWorkflowsLoading[projectPath] === true
-              const hasVisibleProjectWorkflows = !hasWorkflowSearchQuery || projectWorkflows.some((workflow) => (
-                workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery)
-              ))
+              const isProjectLoading =
+                projectWorkflowsLoading[projectPath] === true
+              const hasVisibleProjectWorkflows =
+                !hasWorkflowSearchQuery ||
+                projectWorkflows.some((workflow) =>
+                  workflow.name
+                    .toLowerCase()
+                    .includes(normalizedWorkflowSearchQuery),
+                )
 
               if (hasWorkflowSearchQuery && !hasVisibleProjectWorkflows) {
                 return null
               }
 
-              const projectRowSelection = resolveProjectRowSelectionState(projectPath, selectedProject, isExpanded)
-              const projectRollup = getProjectStatusRollup(projectPath, projectWorkflows)
-              const projectRollupMeta = projectRollup.blockedCount > 0
-                ? {
-                  dotClass: "bg-status-danger",
-                  title: `${projectRollup.blockedCount} blocked flow${projectRollup.blockedCount === 1 ? "" : "s"}`,
-                }
-                : projectRollup.waitingCount > 0
+              const projectRowSelection = resolveProjectRowSelectionState(
+                projectPath,
+                selectedProject,
+                isExpanded,
+              )
+              const projectRollup = getProjectStatusRollup(
+                projectPath,
+                projectWorkflows,
+              )
+              const projectRollupMeta =
+                projectRollup.blockedCount > 0
                   ? {
-                    dotClass: "bg-status-warning",
-                    title: `${projectRollup.waitingCount} waiting flow${projectRollup.waitingCount === 1 ? "" : "s"}`,
-                  }
-                  : projectRollup.activeCount > 0
-                    ? {
-                      dotClass: "bg-status-info",
-                      title: `${projectRollup.activeCount} active flow${projectRollup.activeCount === 1 ? "" : "s"}`,
+                      dotClass: "bg-status-danger",
+                      title: `${projectRollup.blockedCount} blocked flow${projectRollup.blockedCount === 1 ? "" : "s"}`,
                     }
-                    : null
-              const shouldShowProjectWorkflows = hasWorkflowSearchQuery || isExpanded
+                  : projectRollup.waitingCount > 0
+                    ? {
+                        dotClass: "bg-status-warning",
+                        title: `${projectRollup.waitingCount} waiting flow${projectRollup.waitingCount === 1 ? "" : "s"}`,
+                      }
+                    : projectRollup.activeCount > 0
+                      ? {
+                          dotClass: "bg-status-info",
+                          title: `${projectRollup.activeCount} active flow${projectRollup.activeCount === 1 ? "" : "s"}`,
+                        }
+                      : null
+              const shouldShowProjectWorkflows =
+                hasWorkflowSearchQuery || isExpanded
 
               return (
                 <div
                   key={projectPath}
                   className={cn(
                     "sidebar-list-group mt-1 first:mt-0",
-                    projectDropPosition === "before" && "sidebar-list-group--project-drop-before",
-                    projectDropPosition === "after" && "sidebar-list-group--project-drop-after",
+                    projectDropPosition === "before" &&
+                      "sidebar-list-group--project-drop-before",
+                    projectDropPosition === "after" &&
+                      "sidebar-list-group--project-drop-after",
                   )}
                 >
                   <div
                     className="group flex items-center gap-1"
-                    onDragOver={(event) => handleProjectDragOver(projectPath, event)}
-                    onDragLeave={(event) => handleProjectDragLeave(projectPath, event)}
+                    onDragOver={(event) =>
+                      handleProjectDragOver(projectPath, event)
+                    }
+                    onDragLeave={(event) =>
+                      handleProjectDragLeave(projectPath, event)
+                    }
                     onDrop={(event) => handleProjectDrop(projectPath, event)}
                   >
                     <button
@@ -431,18 +513,28 @@ export function ProjectSidebar({
                       draggable={projects.length > 1 && !hasWorkflowSearchQuery}
                       className={cn(
                         "sidebar-project-row ui-pressable text-left text-sidebar-label",
-                        projects.length > 1 && !hasWorkflowSearchQuery && "cursor-grab active:cursor-grabbing",
-                        isSelectedProject ? "text-foreground" : "text-muted-foreground",
+                        projects.length > 1 &&
+                          !hasWorkflowSearchQuery &&
+                          "cursor-grab active:cursor-grabbing",
+                        isSelectedProject
+                          ? "text-foreground"
+                          : "text-muted-foreground",
                         isDraggingProject && "sidebar-project-row--dragging",
-                        projectDropPosition && "sidebar-project-row--drop-target",
+                        projectDropPosition &&
+                          "sidebar-project-row--drop-target",
                       )}
-                      onDragStart={(event) => handleProjectDragStart(projectPath, event)}
+                      onDragStart={(event) =>
+                        handleProjectDragStart(projectPath, event)
+                      }
                       onDragEnd={clearProjectDragState}
                       onClick={() => {
                         if (projectRowSelection.shouldSelectProject) {
                           setSelectedProject(projectPath)
                         }
-                        if (!hasWorkflowSearchQuery && projectRowSelection.nextExpanded !== isExpanded) {
+                        if (
+                          !hasWorkflowSearchQuery &&
+                          projectRowSelection.nextExpanded !== isExpanded
+                        ) {
                           toggleProjectExpansion(projectPath)
                         }
                       }}
@@ -466,13 +558,18 @@ export function ProjectSidebar({
                         )}
                       />
                       <FolderOpen size={14} className="flex-shrink-0" />
-                      <span className="truncate flex-1">{projectFolderName(projectPath)}</span>
+                      <span className="truncate flex-1">
+                        {projectFolderName(projectPath)}
+                      </span>
                       {projectRollupMeta ? (
                         <span
                           role="img"
                           aria-label={projectRollupMeta.title}
                           title={projectRollupMeta.title}
-                          className={cn("ml-1 inline-flex h-1.5 w-1.5 rounded-full", projectRollupMeta.dotClass)}
+                          className={cn(
+                            "ml-1 inline-flex h-1.5 w-1.5 rounded-full",
+                            projectRollupMeta.dotClass,
+                          )}
                         />
                       ) : null}
                     </button>
@@ -492,67 +589,83 @@ export function ProjectSidebar({
                               <Plus size={14} />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent>New flow in {projectFolderName(projectPath)}</TooltipContent>
+                          <TooltipContent>
+                            New flow in {projectFolderName(projectPath)}
+                          </TooltipContent>
                         </Tooltip>
-
                       </div>
                     ) : null}
                   </div>
 
-                  {shouldShowProjectWorkflows ? (() => {
-                    const isWorkflowListExpanded = expandedWorkflowLists[projectPath] ?? false
+                  {shouldShowProjectWorkflows
+                    ? (() => {
+                        const isWorkflowListExpanded =
+                          expandedWorkflowLists[projectPath] ?? false
 
-                    return (
-                      <SidebarProjectWorkflowList
-                        projectPath={projectPath}
-                        projectLabel={projectFolderName(projectPath)}
-                        projectWorkflows={projectWorkflows}
-                        isProjectLoading={isProjectLoading}
-                        workflowSearchQuery={workflowSearchQuery}
-                        isWorkflowListExpanded={isWorkflowListExpanded}
-                        selectedWorkflowPath={selectedWorkflowPath}
-                        workflowDirty={workflowDirty}
-                        workflowExecutionStates={workflowExecutionStates}
-                        seenRunIds={workflowSidebarSeenRunIds}
-                        getWorkflowRunMetrics={getWorkflowRunMetrics}
-                        getHistoricalRunVisual={getHistoricalRunVisual}
-                        sortProjectWorkflows={sortProjectWorkflows}
-                        onToggleExpanded={() => {
-                          setExpandedWorkflowLists((prev) => ({
-                            ...prev,
-                            [projectPath]: !isWorkflowListExpanded,
-                          }))
-                        }}
-                        onOpenWorkflow={(workflow) => void selectWorkflow(workflow, projectPath)}
-                        onRenameWorkflow={requestRenameWorkflow}
-                        onWorkflowContextMenu={setSidebarContextMenu}
-                      />
-                    )
-                  })() : null}
+                        return (
+                          <SidebarProjectWorkflowList
+                            projectPath={projectPath}
+                            projectLabel={projectFolderName(projectPath)}
+                            projectWorkflows={projectWorkflows}
+                            isProjectLoading={isProjectLoading}
+                            workflowSearchQuery={workflowSearchQuery}
+                            isWorkflowListExpanded={isWorkflowListExpanded}
+                            selectedWorkflowPath={selectedWorkflowPath}
+                            workflowDirty={workflowDirty}
+                            workflowExecutionStates={workflowExecutionStates}
+                            seenRunIds={workflowSidebarSeenRunIds}
+                            getWorkflowRunMetrics={getWorkflowRunMetrics}
+                            getHistoricalRunVisual={getHistoricalRunVisual}
+                            sortProjectWorkflows={sortProjectWorkflows}
+                            onToggleExpanded={() => {
+                              setExpandedWorkflowLists((prev) => ({
+                                ...prev,
+                                [projectPath]: !isWorkflowListExpanded,
+                              }))
+                            }}
+                            onOpenWorkflow={(workflow) =>
+                              void selectWorkflow(workflow, projectPath)
+                            }
+                            onRenameWorkflow={requestRenameWorkflow}
+                            onWorkflowContextMenu={setSidebarContextMenu}
+                          />
+                        )
+                      })()
+                    : null}
                 </div>
               )
             })}
 
             {visibleGlobalWorkflows.length > 0 ? (
               <div className="mt-3 px-1.5">
-                <div className="px-1.5 pb-1 section-kicker text-muted-foreground">Global flows</div>
-                <div role="list" aria-label="Global flows" className="mt-0.5 ml-7 space-y-px sidebar-list-group">
+                <div className="px-1.5 pb-1 section-kicker text-muted-foreground">
+                  Global flows
+                </div>
+                <div
+                  role="list"
+                  aria-label="Global flows"
+                  className="mt-0.5 ml-7 space-y-px sidebar-list-group"
+                >
                   {visibleGlobalWorkflows.map((workflow) => {
                     const isSelected = selectedWorkflowPath === workflow.path
-                    const latestRun = latestRunsByWorkflow.get(workflow.path) || null
+                    const latestRun =
+                      latestRunsByWorkflow.get(workflow.path) || null
                     const workflowRowState = deriveSidebarWorkflowRowState({
                       executionState: workflowExecutionStates[workflow.path],
                       latestRun: latestRun
                         ? {
-                          runId: latestRun.runId,
-                          status: latestRun.status,
-                        }
+                            runId: latestRun.runId,
+                            status: latestRun.status,
+                          }
                         : null,
                       isSelected,
                     })
-                    const idleMetaLabel = workflowRowState.baseState === "idle"
-                      ? formatRelativeTime(latestRun?.completedAt || workflow.updatedAt)
-                      : null
+                    const idleMetaLabel =
+                      workflowRowState.baseState === "idle"
+                        ? formatRelativeTime(
+                            latestRun?.completedAt || workflow.updatedAt,
+                          )
+                        : null
                     return (
                       <SidebarGlobalWorkflowRow
                         key={workflow.path}
@@ -639,9 +752,7 @@ export function ProjectSidebar({
         tabIndex={0}
         onPointerDown={startResize}
         onKeyDown={handleResizeKeyDown}
-        className={cn(
-          "absolute right-0 top-0 h-full no-drag ui-resize-handle",
-        )}
+        className={cn("absolute right-0 top-0 h-full no-drag ui-resize-handle")}
         data-resizing={resizing}
       />
 
