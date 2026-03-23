@@ -26,6 +26,7 @@ import type {
   WorkflowTemplate,
 } from "@shared/types"
 import { ExecutionSurfaceNoticeBanner } from "@/components/ui/execution-surface-notice"
+import { dispatchDesktopCommand } from "@/lib/desktop-command-bus"
 import { useOutputPanelActions } from "@/components/output/useOutputPanelActions"
 import { useOutputPanelCommandBindings } from "@/components/output/useOutputPanelCommandBindings"
 import { useOutputPanelDerivedState } from "@/components/output/useOutputPanelDerivedState"
@@ -440,7 +441,7 @@ export function OutputPanel({
     if (!failureNodeId) return
     setInspectedNodeId(failureNodeId)
     if (canInspectFailureLog) {
-      setActiveTab("log")
+      setActiveTab("nodes")
       return
     }
     if (canInspectActivity) {
@@ -484,7 +485,7 @@ export function OutputPanel({
     onUseInNewFlow,
     onActivateResultSurface: activateResultSurface,
     onFocusStageSurface: focusStageSurface,
-    onOpenHistory: () => setActiveTab("history"),
+    onOpenHistory: () => dispatchDesktopCommand("flow.history"),
     onRerunFrom: handleRerunFrom,
   })
 
@@ -647,7 +648,7 @@ export function OutputPanel({
           {savedRunSnapshotNotice}
           {(!reviewingRunHistory || canInspectSavedRun) && (
             <StepsList
-              nodes={allDisplayNodes}
+              nodes={allDisplayNodes as any}
               nodeStates={displayNodeStates}
               evalResults={displayEvalResults}
               activeNodeId={displayActiveNodeId}

@@ -48,7 +48,7 @@ export function useOutputPanelCommandBindings({
   onRunNextStage?: (() => Promise<void> | void) | null
   onUseInNewFlow?: (() => Promise<void> | void) | null
   onActivateResultSurface: () => void
-  onFocusStageSurface: (tab: "nodes" | "log") => void
+  onFocusStageSurface: (tab: "nodes") => void
   onOpenHistory: () => void
   onRerunFrom: (nodeId: string) => void
 }) {
@@ -92,7 +92,7 @@ export function useOutputPanelCommandBindings({
         return
       }
       if (commandId === "output.view_log" && canInspectLog) {
-        onFocusStageSurface("log")
+        onFocusStageSurface("nodes")
         return
       }
       if (commandId === "output.view_history" && canInspectHistory) {

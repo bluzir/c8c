@@ -150,7 +150,7 @@ export function useWorkflowPanelReviewState({
       setSelectedPastRun(workflowPastRuns[0] || null)
     }
     setViewMode("list")
-    setOutputTabRequest({ tab: "result", nonce: Date.now() })
+    setOutputTabRequest({ tab: "nodes", nonce: Date.now() })
   }, [
     runStatus,
     selectedPastRun,

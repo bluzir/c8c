@@ -83,7 +83,7 @@ export function useOutputPanelSurfaceState({
   )
 
   const focusStageSurface = useCallback(
-    (tab: "nodes" | "log") => {
+    (tab: "nodes") => {
       const fallbackNodeId =
         selectedStageId ||
         selectedResultNodeId ||
@@ -131,15 +131,15 @@ export function useOutputPanelSurfaceState({
     }
   }, [activeTab, showResultSurface])
 
+  // Fallback: if somehow on a removed tab, go to nodes
   useEffect(() => {
-    if (activeTab === "history" && pastRunCount === 0) {
+    if (activeTab === "history" || activeTab === "log") {
       setActiveTab("nodes")
     }
-  }, [activeTab, pastRunCount])
+  }, [activeTab])
 
   useEffect(() => {
     if (activeTab !== "log") return
-    if (canInspectLog) return
     setActiveTab(
       canInspectActivity ? "nodes" : showResultSurface ? "result" : "nodes",
     )
