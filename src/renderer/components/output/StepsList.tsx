@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import { cn } from "@/lib/cn"
 import { Loader2 } from "lucide-react"
 import { StepRow } from "./StepRow"
+import { LogTab } from "./OutputSections"
 import { formatDuration, formatCost } from "./outputFormatters"
 import { getRuntimeNodeLabel } from "@/lib/runtime-flow-labels"
 import type {
+  Workflow,
   WorkflowNode,
   NodeState,
   WorkflowRuntimeMeta,
@@ -18,6 +21,9 @@ interface StepsListProps {
   evalResults?: Record<string, EvaluationResult[]>
   activeNodeId?: string | null
   runtimeMeta?: WorkflowRuntimeMeta
+  workflow?: Workflow
+  runId?: string | null
+  evalOverrideNodeIds?: Set<string>
   onRerunFrom?: (nodeId: string) => void
 }
 
@@ -75,6 +81,9 @@ export function StepsList({
   evalResults,
   activeNodeId,
   runtimeMeta,
+  workflow,
+  runId,
+  evalOverrideNodeIds,
   onRerunFrom,
 }: StepsListProps) {
   const [expandedStepId, setExpandedStepId] = useState<string | null>(
@@ -99,13 +108,19 @@ export function StepsList({
         const status = deriveStepStatus(nodeState)
         const duration = deriveDuration(nodeState)
         const cost = deriveCost(nodeState)
-        const fanOutProgress = deriveFanOutProgress(
-          node,
-          nodeStates,
-          runtimeMeta,
-        )
+        const fanOutProgress =
+          "config" in node && node.config
+            ? deriveFanOutProgress(
+                node as WorkflowNode,
+                nodeStates,
+                runtimeMeta,
+              )
+            : undefined
         const expanded = expandedStepId === node.id
-        const label = getRuntimeNodeLabel(node, { fallbackId: node.id })
+        const label =
+          "config" in node && node.config
+            ? getRuntimeNodeLabel(node as WorkflowNode, { fallbackId: node.id })
+            : (node as { label?: string }).label || node.id
 
         return (
           <StepRow
@@ -123,6 +138,15 @@ export function StepsList({
               nodeId={node.id}
               status={status}
               nodeState={nodeState}
+              nodeStates={nodeStates}
+              evalResults={evalResults}
+              workflowNode={
+                "config" in node && node.config
+                  ? (node as WorkflowNode)
+                  : undefined
+              }
+              runId={runId}
+              evalOverrideNodeIds={evalOverrideNodeIds}
             />
           </StepRow>
         )
@@ -131,36 +155,30 @@ export function StepsList({
   )
 }
 
+type StepDetailView = "result" | "log"
+
 function StepExpandedContent({
   nodeId,
   status,
   nodeState,
+  nodeStates,
+  evalResults,
+  workflowNode,
+  runId,
+  evalOverrideNodeIds,
 }: {
   nodeId: string
   status: StepStatus
   nodeState: NodeState | undefined
+  nodeStates: Record<string, NodeState>
+  evalResults?: Record<string, EvaluationResult[]>
+  workflowNode?: WorkflowNode
+  runId?: string | null
+  evalOverrideNodeIds?: Set<string>
 }) {
-  if (status === "running") {
-    return (
-      <div
-        className="flex items-center gap-2 px-3 py-3 text-body-sm text-muted-foreground"
-        data-testid="step-log-placeholder"
-      >
-        <Loader2 size={14} className="animate-spin" />
-        <span>Running...</span>
-      </div>
-    )
-  }
-
-  if (status === "failed") {
-    return (
-      <div className="px-3 py-3">
-        <div className="text-body-sm text-status-danger">
-          {nodeState?.error || "Step failed"}
-        </div>
-      </div>
-    )
-  }
+  const [detailView, setDetailView] = useState<StepDetailView>(
+    status === "running" ? "log" : "result",
+  )
 
   if (status === "blocked") {
     return (
@@ -172,31 +190,122 @@ function StepExpandedContent({
     )
   }
 
-  if (status === "done") {
-    const result = nodeState?.output?.content
-    const duration = deriveDuration(nodeState)
-    const cost = deriveCost(nodeState)
-    const metaParts: string[] = []
-    if (duration) metaParts.push(duration)
-    if (cost) metaParts.push(cost)
-
+  if (status === "failed") {
+    const hasLog = Boolean(nodeState?.log?.length)
     return (
-      <div className="px-3 py-3 space-y-2">
-        {result ? (
-          <div className="prose-c8c text-body-sm">{result}</div>
-        ) : (
-          <div className="text-body-sm text-muted-foreground">
-            Step completed
-          </div>
+      <div className="space-y-2 px-3 py-3">
+        <div className="text-body-sm text-status-danger">
+          {nodeState?.error || "Step failed"}
+        </div>
+        {hasLog && (
+          <button
+            type="button"
+            className="ui-meta-text text-muted-foreground hover:text-foreground"
+            onClick={() =>
+              setDetailView(detailView === "log" ? "result" : "log")
+            }
+          >
+            {detailView === "log" ? "Hide log" : "View step log"}
+          </button>
         )}
-        {metaParts.length > 0 && (
-          <div className="ui-meta-text text-muted-foreground">
-            {metaParts.join(" · ")}
+        {detailView === "log" && hasLog && (
+          <div className="max-h-[min(20rem,40vh)] overflow-y-auto ui-scroll-region">
+            <LogTab
+              selectedNodeId={nodeId}
+              nodeStates={nodeStates}
+              evalResults={evalResults || {}}
+              workflowNode={workflowNode || null}
+              runId={runId || null}
+              evalOverrideNodeIds={evalOverrideNodeIds || new Set()}
+            />
           </div>
         )}
       </div>
     )
   }
 
-  return null
+  // Running or done — show toggle between Result and Log
+  const hasResult = status === "done" && Boolean(nodeState?.output?.content)
+  const hasLog = Boolean(nodeState?.log?.length) || status === "running"
+  const showToggle = hasResult && hasLog
+
+  return (
+    <div className="space-y-2">
+      {showToggle && (
+        <div className="flex gap-1 px-3 pt-2">
+          <button
+            type="button"
+            className={cn(
+              "rounded-full px-3 py-0.5 text-body-sm font-medium transition-colors",
+              detailView === "result"
+                ? "bg-surface-1 border border-hairline text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => setDetailView("result")}
+          >
+            Result
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "rounded-full px-3 py-0.5 text-body-sm font-medium transition-colors",
+              detailView === "log"
+                ? "bg-surface-1 border border-hairline text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => setDetailView("log")}
+          >
+            Log
+          </button>
+        </div>
+      )}
+
+      {detailView === "result" && hasResult ? (
+        <StepResultContent nodeState={nodeState} />
+      ) : hasLog || status === "running" ? (
+        <div className="max-h-[min(24rem,50vh)] overflow-y-auto ui-scroll-region">
+          <LogTab
+            selectedNodeId={nodeId}
+            nodeStates={nodeStates}
+            evalResults={evalResults || {}}
+            workflowNode={workflowNode || null}
+            runId={runId || null}
+            evalOverrideNodeIds={evalOverrideNodeIds || new Set()}
+          />
+        </div>
+      ) : (
+        <div className="px-3 py-3 text-body-sm text-muted-foreground">
+          No output yet
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StepResultContent({
+  nodeState,
+}: {
+  nodeState: NodeState | undefined
+}) {
+  const result = nodeState?.output?.content
+  const duration = deriveDuration(nodeState)
+  const cost = deriveCost(nodeState)
+  const metaParts: string[] = []
+  if (duration) metaParts.push(duration)
+  if (cost) metaParts.push(cost)
+
+  return (
+    <div className="px-3 py-3 space-y-2">
+      {result ? (
+        <div className="prose-c8c text-body-sm">{result}</div>
+      ) : (
+        <div className="text-body-sm text-muted-foreground">Step completed</div>
+      )}
+      {metaParts.length > 0 && (
+        <div className="ui-meta-text text-muted-foreground">
+          {metaParts.join(" · ")}
+        </div>
+      )}
+    </div>
+  )
 }

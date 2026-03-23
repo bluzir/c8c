@@ -586,9 +586,7 @@ export function OutputPanel({
     if (showResultSurface) {
       options.push({ value: "result", label: "Result" })
     }
-    if (canInspectLog) {
-      options.push({ value: "log", label: "Step log" })
-    }
+    // Step log is now inline in StepsList accordion — no separate tab
     if (canInspectHistory) {
       options.push({ value: "history", label: "History" })
     }
@@ -659,6 +657,9 @@ export function OutputPanel({
               evalResults={displayEvalResults}
               activeNodeId={displayActiveNodeId}
               runtimeMeta={runtimeMeta}
+              workflow={workflow}
+              runId={runId}
+              evalOverrideNodeIds={evalOverrideNodeIds}
               onRerunFrom={onRerunFrom ? handleRerunFrom : undefined}
             />
           )}
