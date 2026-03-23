@@ -24,6 +24,7 @@ pack:
 suggested_tools:
   - web_search
   - exa
+  - serper
 contract_out:
   - kind: trend_digest
     title: Trend Digest
@@ -64,13 +65,26 @@ nodes:
     config:
       skillRef: researcher
       prompt: >-
-        Build a Trend Digest from the provided material. Identify:
-        1) major themes,
-        2) specific signals or evidence,
-        3) what feels newly important,
-        4) contrarian or under-covered angles,
-        5) what these signals suggest for future content.
-        Keep the output structured, concise, and ready to feed into an idea backlog.
+        Build a Trend Digest by actively searching for signals. Use TWO
+        sources in parallel:
+
+        1) REDDIT (via Serper): search site:reddit.com for the topic,
+           scrape top threads with includeMarkdown=true, extract
+           top-scored comments as community insights.
+
+        2) X/TWITTER (via Exa): use web_search_advanced_exa with
+           category "tweet" to find recent discussions, launches,
+           and opinions.
+
+        Then synthesize into a structured digest:
+        - Major themes (with source links)
+        - Specific signals backed by quotes and scores
+        - What feels newly important vs continuing
+        - Contrarian or under-covered angles
+        - What these signals suggest for future content
+
+        Keep the output structured, concise, and ready to feed into
+        an idea backlog. Cite Reddit scores and tweet engagement.
   - id: eval-1
     type: evaluator
     position:
