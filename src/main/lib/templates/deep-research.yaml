@@ -17,6 +17,7 @@ steps:
 suggested_tools:
   - web_search
   - exa
+  - serper
 contract_out:
   - kind: research_pack
     title: Research Pack
@@ -47,12 +48,13 @@ nodes:
       y: 200
     config:
       skillRef: researcher
+      maxTurns: 3
       prompt:
-        "Create a decomposition plan for this topic from different lenses before research starts. Return ONLY a JSON
-        array where each aspect has: name, lens, key_question, why_it_matters, priority (high|medium), and query_seeds
-        (3-4 concrete search queries). Cover 4-6 distinct lenses and avoid overlap. In the same output, include Key
-        Assumptions Check (KAC): add 1-2 high-priority assumption-check aspects that explicitly try to disprove critical
-        hidden assumptions."
+        "Create a QUICK decomposition plan — do NOT research yet, only plan. Return ONLY a JSON array (no markdown, no
+        explanation) where each aspect has: name, lens, key_question, why_it_matters, priority (high|medium), and
+        query_seeds (3-4 search queries). Cover 4-6 distinct lenses, avoid overlap. Add 1-2 KAC (Key Assumptions Check)
+        aspects that try to disprove hidden assumptions. This step should take under 30 seconds — just think and output
+        the plan JSON. Do NOT call any search tools."
   - id: splitter-1
     type: splitter
     position:
@@ -60,8 +62,9 @@ nodes:
       y: 200
     config:
       strategy:
-        Input is a prepared JSON array of research aspects (including KAC checks). Create one branch per aspect and
-        preserve the full object details in each branch so the downstream researcher has complete context.
+        The input is a JSON array of research aspects. Create exactly ONE branch per JSON object in the array.
+        Each branch content must be the full JSON object for that aspect (name, lens, key_question, query_seeds).
+        Do NOT split within an aspect. Do NOT split by sentences or table rows. One aspect = one branch.
       maxBranches: 8
   - id: researcher-1
     type: skill
@@ -70,10 +73,16 @@ nodes:
       y: 200
     config:
       skillRef: researcher
-      prompt:
-        Research this aspect thoroughly. Find credible sources, key data points, expert opinions, and emerging trends.
-        Prioritize primary sources and recent publications. For KAC/assumption-check aspects, prioritize disconfirming
-        evidence, failure cases, and counter-examples.
+      prompt: >-
+        Research this aspect thoroughly using ALL available sources in parallel:
+        1) WEB (via Exa or web search): articles, blogs, reports, expert analysis.
+        2) REDDIT (via Serper): search site:reddit.com for community insights,
+        scrape top threads with includeMarkdown=true, extract scored comments.
+        3) X/TWITTER (via Exa): category "tweet" for recent discussions and opinions.
+        Find credible sources, key data points, expert opinions, and emerging trends.
+        Prioritize primary sources and recent publications. Cite Reddit scores and
+        tweet engagement where available. For KAC/assumption-check aspects, prioritize
+        disconfirming evidence, failure cases, and counter-examples.
   - id: merger-1
     type: merger
     position:
@@ -91,10 +100,10 @@ nodes:
       x: 1570
       y: 200
     config:
-      criteria: "Score 1-10: concrete evidence per aspect researched, no speculative conclusions presented as facts, disconfirming evidence included where relevant, sources are specific not vague."
-      threshold: 7
-      maxRetries: 2
-      retryFrom: splitter-1
+      criteria: "Score 1-10: report covers multiple aspects with concrete evidence, sources are cited, no speculative conclusions presented as facts. Do NOT re-research — only evaluate the written report."
+      threshold: 5
+      maxRetries: 1
+      retryFrom: merger-1
   - id: output-1
     type: output
     position:
