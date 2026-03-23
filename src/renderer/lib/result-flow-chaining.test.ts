@@ -64,7 +64,10 @@ describe("selectTemplatesForResultChaining", () => {
 
     const result = selectTemplatesForResultChaining({
       templates,
-      sourceArtifacts: [createArtifact("qa_report"), createArtifact("phase_plan")],
+      sourceArtifacts: [
+        createArtifact("qa_report"),
+        createArtifact("phase_plan"),
+      ],
     })
 
     expect(result.map((template) => template.id)).toEqual(["double", "single"])

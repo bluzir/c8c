@@ -6,6 +6,7 @@ import {
   isEditableKeyboardTarget,
   isShortcutConsumed,
   matchesPrimaryShortcut,
+  type PrimaryModifierKey,
 } from "@/lib/keyboard-shortcuts"
 
 export function useToolbarCommandBindings({
@@ -30,7 +31,7 @@ export function useToolbarCommandBindings({
   onOpenBatch,
   onOpenSettings,
 }: {
-  primaryModifierKey: string
+  primaryModifierKey: PrimaryModifierKey
   workflowDirty: boolean
   workflowReviewMode: boolean
   isRunning: boolean
@@ -129,9 +130,17 @@ export function useToolbarCommandBindings({
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isShortcutConsumed(event)) return
 
-      const isEditable = isEditableKeyboardTarget(event.target as HTMLElement | null)
+      const isEditable = isEditableKeyboardTarget(
+        event.target as HTMLElement | null,
+      )
 
-      if (matchesPrimaryShortcut(event, { key: "k", primaryModifierKey, shift: true })) {
+      if (
+        matchesPrimaryShortcut(event, {
+          key: "k",
+          primaryModifierKey,
+          shift: true,
+        })
+      ) {
         event.preventDefault()
         onToggleChat()
         return
@@ -143,6 +152,15 @@ export function useToolbarCommandBindings({
         return
       }
 
+      if (
+        !isEditable &&
+        matchesPrimaryShortcut(event, { key: "d", primaryModifierKey })
+      ) {
+        event.preventDefault()
+        onOpenDefaults()
+        return
+      }
+
       if (matchesPrimaryShortcut(event, { key: "s", primaryModifierKey })) {
         event.preventDefault()
         if (workflowDirty) {
@@ -151,7 +169,11 @@ export function useToolbarCommandBindings({
         return
       }
 
-      if (isEditable || !matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey })) return
+      if (
+        isEditable ||
+        !matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey })
+      )
+        return
       if (workflowReviewMode) return
       if (isRunning) {
         consumeShortcut(event)

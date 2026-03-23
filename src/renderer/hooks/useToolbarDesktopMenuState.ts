@@ -63,7 +63,10 @@ export function useToolbarDesktopMenuState({
         },
         editFlow: {
           enabled: canEditStructure,
-          checked: canEditStructure && viewMode === "list" && flowSurfaceMode === "edit",
+          checked:
+            canEditStructure &&
+            viewMode === "list" &&
+            flowSurfaceMode === "edit",
         },
         toggleAgentPanel: {
           enabled: true,

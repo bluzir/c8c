@@ -49,23 +49,39 @@ function createContext(tags: string[] = []): WorkflowTemplateRunContext {
 
 describe("stage run policy", () => {
   it("requires start approval when the template has a human gate tag", () => {
-    expect(templateRequiresStartApproval(createTemplate(["human_gate_required"]))).toBe(true)
-    expect(contextRequiresStartApproval(createContext(["human_gate_required"]))).toBe(true)
+    expect(
+      templateRequiresStartApproval(createTemplate(["human_gate_required"])),
+    ).toBe(true)
+    expect(
+      contextRequiresStartApproval(createContext(["human_gate_required"])),
+    ).toBe(true)
   })
 
   it("does not require start approval without a human gate tag", () => {
-    expect(templateRequiresStartApproval(createTemplate(["review_gates"]))).toBe(false)
-    expect(contextRequiresStartApproval(createContext(["review_gates"]))).toBe(false)
+    expect(
+      templateRequiresStartApproval(createTemplate(["review_gates"])),
+    ).toBe(false)
+    expect(contextRequiresStartApproval(createContext(["review_gates"]))).toBe(
+      false,
+    )
     expect(templateRequiresStartApproval(null)).toBe(false)
     expect(contextRequiresStartApproval(null)).toBe(false)
   })
 
   it("auto-runs continuation only for non-gated templates", () => {
-    expect(templateAutoRunsOnContinue(createTemplate(["review_gates"]))).toBe(true)
-    expect(templateAutoRunsOnContinue(createTemplate(["human_gate_required"]))).toBe(false)
+    expect(templateAutoRunsOnContinue(createTemplate(["review_gates"]))).toBe(
+      true,
+    )
+    expect(
+      templateAutoRunsOnContinue(createTemplate(["human_gate_required"])),
+    ).toBe(false)
     expect(templateAutoRunsOnContinue(null)).toBe(false)
-    expect(contextAutoRunsOnContinue(createContext(["review_gates"]))).toBe(true)
-    expect(contextAutoRunsOnContinue(createContext(["human_gate_required"]))).toBe(false)
+    expect(contextAutoRunsOnContinue(createContext(["review_gates"]))).toBe(
+      true,
+    )
+    expect(
+      contextAutoRunsOnContinue(createContext(["human_gate_required"])),
+    ).toBe(false)
     expect(contextAutoRunsOnContinue(null)).toBe(false)
   })
 })

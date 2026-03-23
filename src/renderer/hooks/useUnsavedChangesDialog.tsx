@@ -35,7 +35,10 @@ export function useUnsavedChangesDialog() {
   }, [])
 
   const unsavedChangesDialog = (
-    <Dialog open={pendingAction !== null} onOpenChange={(open) => !open && resolveDialog(false)}>
+    <Dialog
+      open={pendingAction !== null}
+      onOpenChange={(open) => !open && resolveDialog(false)}
+    >
       <CanvasDialogContent showCloseButton={false}>
         <CanvasDialogHeader>
           <DialogTitle>Discard unsaved changes?</DialogTitle>
@@ -44,10 +47,18 @@ export function useUnsavedChangesDialog() {
           </DialogDescription>
         </CanvasDialogHeader>
         <CanvasDialogFooter>
-          <Button variant="ghost" size="sm" onClick={() => resolveDialog(false)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => resolveDialog(false)}
+          >
             Keep editing
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => resolveDialog(true)}>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => resolveDialog(true)}
+          >
             Discard changes
           </Button>
         </CanvasDialogFooter>

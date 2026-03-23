@@ -34,4 +34,3 @@ describe("resolveWorkflowInput", () => {
     expect(result.type).toBe("text")
   })
 })
-

@@ -36,25 +36,54 @@ function createWorkflow(): Workflow {
           },
         },
       },
-      { id: "output-1", type: "output", position: { x: 480, y: 0 }, config: {} },
+      {
+        id: "output-1",
+        type: "output",
+        position: { x: 480, y: 0 },
+        config: {},
+      },
     ],
     edges: [
-      { id: "e-input-skill", source: "input-1", target: "skill-1", type: "default" },
-      { id: "e-skill-merger", source: "skill-1", target: "merger-1", type: "default" },
-      { id: "e-merger-human", source: "merger-1", target: "human-1", type: "default" },
-      { id: "e-human-output", source: "human-1", target: "output-1", type: "default" },
+      {
+        id: "e-input-skill",
+        source: "input-1",
+        target: "skill-1",
+        type: "default",
+      },
+      {
+        id: "e-skill-merger",
+        source: "skill-1",
+        target: "merger-1",
+        type: "default",
+      },
+      {
+        id: "e-merger-human",
+        source: "merger-1",
+        target: "human-1",
+        type: "default",
+      },
+      {
+        id: "e-human-output",
+        source: "human-1",
+        target: "output-1",
+        type: "default",
+      },
     ],
   }
 }
 
 describe("validation navigation", () => {
   it("routes workflow defaults model errors to the list input card when list mode is preferred", () => {
-    const target = resolveValidationNavigationTarget(createWorkflow(), {
-      nodeId: "__workflow__",
-      field: "defaults.model",
-      message: "model mismatch",
-      severity: "error",
-    }, "list")
+    const target = resolveValidationNavigationTarget(
+      createWorkflow(),
+      {
+        nodeId: "__workflow__",
+        field: "defaults.model",
+        message: "model mismatch",
+        severity: "error",
+      },
+      "list",
+    )
 
     expect(target).toEqual({
       viewMode: "list",
@@ -64,12 +93,16 @@ describe("validation navigation", () => {
   })
 
   it("routes merger prompt errors to the list merger editor", () => {
-    const target = resolveValidationNavigationTarget(createWorkflow(), {
-      nodeId: "merger-1",
-      field: "config.prompt",
-      message: "prompt invalid",
-      severity: "error",
-    }, "list")
+    const target = resolveValidationNavigationTarget(
+      createWorkflow(),
+      {
+        nodeId: "merger-1",
+        field: "config.prompt",
+        message: "prompt invalid",
+        severity: "error",
+      },
+      "list",
+    )
 
     expect(target).toEqual({
       viewMode: "list",
@@ -79,12 +112,16 @@ describe("validation navigation", () => {
   })
 
   it("routes merger strategy errors to the list merger editor", () => {
-    const target = resolveValidationNavigationTarget(createWorkflow(), {
-      nodeId: "merger-1",
-      field: "config.strategy",
-      message: "strategy invalid",
-      severity: "error",
-    }, "list")
+    const target = resolveValidationNavigationTarget(
+      createWorkflow(),
+      {
+        nodeId: "merger-1",
+        field: "config.strategy",
+        message: "strategy invalid",
+        severity: "error",
+      },
+      "list",
+    )
 
     expect(target).toEqual({
       viewMode: "list",
@@ -94,12 +131,16 @@ describe("validation navigation", () => {
   })
 
   it("routes human static request errors to the editable request title field", () => {
-    const target = resolveValidationNavigationTarget(createWorkflow(), {
-      nodeId: "human-1",
-      field: "config.staticRequest",
-      message: "request invalid",
-      severity: "error",
-    }, "list")
+    const target = resolveValidationNavigationTarget(
+      createWorkflow(),
+      {
+        nodeId: "human-1",
+        field: "config.staticRequest",
+        message: "request invalid",
+        severity: "error",
+      },
+      "list",
+    )
 
     expect(target).toEqual({
       viewMode: "list",
@@ -109,12 +150,16 @@ describe("validation navigation", () => {
   })
 
   it("routes permission mode errors to the list skill editor", () => {
-    const target = resolveValidationNavigationTarget(createWorkflow(), {
-      nodeId: "skill-1",
-      field: "config.permissionMode",
-      message: "permission invalid",
-      severity: "error",
-    }, "list")
+    const target = resolveValidationNavigationTarget(
+      createWorkflow(),
+      {
+        nodeId: "skill-1",
+        field: "config.permissionMode",
+        message: "permission invalid",
+        severity: "error",
+      },
+      "list",
+    )
 
     expect(target).toEqual({
       viewMode: "list",

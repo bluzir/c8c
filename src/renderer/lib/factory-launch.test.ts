@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { ArtifactRecord, Workflow, WorkflowFile, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  Workflow,
+  WorkflowFile,
+  WorkflowTemplate,
+} from "@shared/types"
 import { prepareTemplateStageLaunch } from "./factory-launch"
 import { workflowSnapshot } from "./workflow-snapshot"
 
@@ -8,10 +13,25 @@ function createWorkflow(name = "Stage workflow"): Workflow {
     version: 1,
     name,
     description: "",
-    defaults: { model: "sonnet", maxTurns: 40, timeout_minutes: 30, maxParallel: 4 },
+    defaults: {
+      model: "sonnet",
+      maxTurns: 40,
+      timeout_minutes: 30,
+      maxParallel: 4,
+    },
     nodes: [
-      { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: { inputType: "text", required: true } },
-      { id: "output-1", type: "output", position: { x: 240, y: 0 }, config: { title: "Result" } },
+      {
+        id: "input-1",
+        type: "input",
+        position: { x: 0, y: 0 },
+        config: { inputType: "text", required: true },
+      },
+      {
+        id: "output-1",
+        type: "output",
+        position: { x: 240, y: 0 },
+        config: { title: "Result" },
+      },
     ],
     edges: [
       { id: "edge-1", source: "input-1", target: "output-1", type: "default" },
@@ -40,7 +60,9 @@ function createTemplate(): WorkflowTemplate {
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "spec",
@@ -70,13 +92,21 @@ describe("prepareTemplateStageLaunch", () => {
   it("builds stage launch state from the selected template, artifacts, and factory scope", async () => {
     const loadedWorkflow = createWorkflow("Delivery Plan Phase")
     const refreshedWorkflows: WorkflowFile[] = [
-      { name: "Delivery Plan Phase", path: "/tmp/project/delivery-plan-phase.flow.yaml", updatedAt: 10 },
+      {
+        name: "Delivery Plan Phase",
+        path: "/tmp/project/delivery-plan-phase.flow.yaml",
+        updatedAt: 10,
+      },
     ]
     const api = {
-      createWorkflow: vi.fn().mockResolvedValue("/tmp/project/delivery-plan-phase.flow.yaml"),
+      createWorkflow: vi
+        .fn()
+        .mockResolvedValue("/tmp/project/delivery-plan-phase.flow.yaml"),
       loadWorkflow: vi.fn().mockResolvedValue(loadedWorkflow),
       listProjectWorkflows: vi.fn().mockResolvedValue(refreshedWorkflows),
-      recordProjectTemplateUsage: vi.fn().mockRejectedValue(new Error("usage store unavailable")),
+      recordProjectTemplateUsage: vi
+        .fn()
+        .mockRejectedValue(new Error("usage store unavailable")),
     }
 
     vi.stubGlobal("window", { api })
@@ -99,12 +129,21 @@ describe("prepareTemplateStageLaunch", () => {
       inputSeedPrefix: "Turn the approved scope into an execution-ready plan.",
     })
 
-    expect(api.createWorkflow).toHaveBeenCalledWith("/tmp/project", "Delivery Plan Phase", expect.objectContaining({
-      name: "Delivery Plan Phase",
-    }))
-    expect(api.loadWorkflow).toHaveBeenCalledWith("/tmp/project/delivery-plan-phase.flow.yaml")
+    expect(api.createWorkflow).toHaveBeenCalledWith(
+      "/tmp/project",
+      "Delivery Plan Phase",
+      expect.objectContaining({
+        name: "Delivery Plan Phase",
+      }),
+    )
+    expect(api.loadWorkflow).toHaveBeenCalledWith(
+      "/tmp/project/delivery-plan-phase.flow.yaml",
+    )
     expect(api.listProjectWorkflows).toHaveBeenCalledWith("/tmp/project")
-    expect(api.recordProjectTemplateUsage).toHaveBeenCalledWith("/tmp/project", "delivery-plan-phase")
+    expect(api.recordProjectTemplateUsage).toHaveBeenCalledWith(
+      "/tmp/project",
+      "delivery-plan-phase",
+    )
 
     expect(launch.filePath).toBe("/tmp/project/delivery-plan-phase.flow.yaml")
     expect(launch.loadedWorkflow).toEqual(loadedWorkflow)
@@ -144,8 +183,12 @@ describe("prepareTemplateStageLaunch", () => {
       resolveUsage = resolve
     })
     const api = {
-      createWorkflow: vi.fn().mockResolvedValue("/tmp/project/delivery-plan-phase.flow.yaml"),
-      loadWorkflow: vi.fn().mockResolvedValue(createWorkflow("Delivery Plan Phase")),
+      createWorkflow: vi
+        .fn()
+        .mockResolvedValue("/tmp/project/delivery-plan-phase.flow.yaml"),
+      loadWorkflow: vi
+        .fn()
+        .mockResolvedValue(createWorkflow("Delivery Plan Phase")),
       listProjectWorkflows: vi.fn().mockResolvedValue([]),
       recordProjectTemplateUsage: vi.fn().mockReturnValue(usagePromise),
     }
@@ -161,7 +204,9 @@ describe("prepareTemplateStageLaunch", () => {
 
     const outcome = await Promise.race([
       launchPromise.then(() => "launched"),
-      new Promise<string>((resolve) => setTimeout(() => resolve("timed-out"), 0)),
+      new Promise<string>((resolve) =>
+        setTimeout(() => resolve("timed-out"), 0),
+      ),
     ])
 
     expect(outcome).toBe("launched")

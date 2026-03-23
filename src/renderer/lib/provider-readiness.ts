@@ -1,7 +1,15 @@
 import { PROVIDER_LABELS } from "@shared/provider-metadata"
-import type { ProviderAuthStatus, ProviderHealth, ProviderId } from "@shared/types"
+import type {
+  ProviderAuthStatus,
+  ProviderHealth,
+  ProviderId,
+} from "@shared/types"
 
-export type ProviderReadinessBadgeVariant = "outline" | "success" | "warning" | "destructive"
+export type ProviderReadinessBadgeVariant =
+  | "outline"
+  | "success"
+  | "warning"
+  | "destructive"
 
 export interface ProviderReadinessVerdict {
   badgeVariant: ProviderReadinessBadgeVariant
@@ -36,21 +44,35 @@ export function getProviderSignInMethod(
   const normalized = authMethod?.toLowerCase() || ""
   if (normalized === "test-mode") return "Test mode"
   if (normalized === "api_key") return "Custom API key"
-  if (providerId === "codex" && normalized === "chatgpt") return "ChatGPT account"
-  if (providerId === "claude" && (normalized.includes("subscription") || normalized.includes("oauth"))) {
+  if (providerId === "codex" && normalized === "chatgpt")
+    return "ChatGPT account"
+  if (
+    providerId === "claude" &&
+    (normalized.includes("subscription") || normalized.includes("oauth"))
+  ) {
     return "Claude account"
   }
   return `${PROVIDER_LABELS[providerId]} account`
 }
 
-function providerSetupMessage(providerId: ProviderId, health?: ProviderHealth | null) {
-  return health?.error?.trim()
-    || `${PROVIDER_LABELS[providerId]} is not ready. Install or reconnect the CLI in Settings.`
+function providerSetupMessage(
+  providerId: ProviderId,
+  health?: ProviderHealth | null,
+) {
+  return (
+    health?.error?.trim() ||
+    `${PROVIDER_LABELS[providerId]} is not ready. Install or reconnect the CLI in Settings.`
+  )
 }
 
-function providerSignInMessage(providerId: ProviderId, auth?: ProviderAuthStatus | null) {
-  return auth?.error?.trim()
-    || `${PROVIDER_LABELS[providerId]} needs sign-in. Open Settings and run ${getProviderLoginCommand(providerId)}.`
+function providerSignInMessage(
+  providerId: ProviderId,
+  auth?: ProviderAuthStatus | null,
+) {
+  return (
+    auth?.error?.trim() ||
+    `${PROVIDER_LABELS[providerId]} needs sign-in. Open Settings and run ${getProviderLoginCommand(providerId)}.`
+  )
 }
 
 export function resolveProviderReadinessVerdict(
@@ -59,7 +81,8 @@ export function resolveProviderReadinessVerdict(
   auth?: ProviderAuthStatus | null,
 ): ProviderReadinessVerdict {
   const providerLabel = PROVIDER_LABELS[providerId]
-  const available = typeof health?.available === "boolean" ? health.available : undefined
+  const available =
+    typeof health?.available === "boolean" ? health.available : undefined
   const authenticated = Boolean(auth?.authenticated)
   const authState = auth?.state ?? "unknown"
 
@@ -68,7 +91,8 @@ export function resolveProviderReadinessVerdict(
       badgeVariant: "outline",
       badgeLabel: "Checking",
       title: `${providerLabel} provider status is loading`,
-      description: "Refreshing CLI and sign-in diagnostics for the current provider.",
+      description:
+        "Refreshing CLI and sign-in diagnostics for the current provider.",
       blocking: false,
     }
   }
@@ -78,7 +102,8 @@ export function resolveProviderReadinessVerdict(
       badgeVariant: "destructive",
       badgeLabel: "Needs setup",
       title: `${providerLabel} is not ready`,
-      description: "The CLI is missing or unavailable. Fix this before running flows with this provider.",
+      description:
+        "The CLI is missing or unavailable. Fix this before running flows with this provider.",
       blocking: true,
     }
   }
@@ -98,7 +123,8 @@ export function resolveProviderReadinessVerdict(
       badgeVariant: "warning",
       badgeLabel: "Check sign-in",
       title: `${providerLabel} may still be ready`,
-      description: "The CLI is available, but sign-in could not be confirmed from the app. ChatGPT login or an app-managed API key may still work.",
+      description:
+        "The CLI is available, but sign-in could not be confirmed from the app. ChatGPT login or an app-managed API key may still work.",
       blocking: false,
     }
   }
@@ -108,7 +134,8 @@ export function resolveProviderReadinessVerdict(
       badgeVariant: "warning",
       badgeLabel: "Check sign-in",
       title: `${providerLabel} needs attention`,
-      description: "The CLI is installed, but sign-in status could not be confirmed from the app.",
+      description:
+        "The CLI is installed, but sign-in status could not be confirmed from the app.",
       blocking: true,
     }
   }
@@ -117,7 +144,8 @@ export function resolveProviderReadinessVerdict(
     badgeVariant: "warning",
     badgeLabel: "Needs sign-in",
     title: `${providerLabel} needs sign-in`,
-    description: "Sign in to this provider before running new flows or resuming saved work.",
+    description:
+      "Sign in to this provider before running new flows or resuming saved work.",
     blocking: true,
   }
 }

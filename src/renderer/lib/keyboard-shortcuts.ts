@@ -17,10 +17,10 @@ export interface KeyboardShortcutEvent {
 
 function isHtmlElementLike(target: EventTarget | null): target is HTMLElement {
   return Boolean(
-    target
-    && typeof target === "object"
-    && "tagName" in target
-    && typeof (target as { tagName?: unknown }).tagName === "string",
+    target &&
+    typeof target === "object" &&
+    "tagName" in target &&
+    typeof (target as { tagName?: unknown }).tagName === "string",
   )
 }
 
@@ -31,10 +31,12 @@ export function isEditableKeyboardTarget(target: EventTarget | null) {
 
   const tagName = target.tagName
   return Boolean(
-    target.isContentEditable
-    || tagName === "INPUT"
-    || tagName === "TEXTAREA"
-    || (typeof target.closest === "function" ? target.closest("[contenteditable=true]") : null),
+    target.isContentEditable ||
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    (typeof target.closest === "function"
+      ? target.closest("[contenteditable=true]")
+      : null),
   )
 }
 
@@ -99,5 +101,7 @@ export function matchesAltShortcut(
 ) {
   if (event.defaultPrevented) return false
   if (event.key.toLowerCase() !== key.toLowerCase()) return false
-  return event.altKey && !event.ctrlKey && !event.metaKey && event.shiftKey === shift
+  return (
+    event.altKey && !event.ctrlKey && !event.metaKey && event.shiftKey === shift
+  )
 }

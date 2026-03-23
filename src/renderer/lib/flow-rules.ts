@@ -1,4 +1,7 @@
-import type { ExecutionPolicyTag, WorkflowExecutionPolicyProfile } from "@shared/types"
+import type {
+  ExecutionPolicyTag,
+  WorkflowExecutionPolicyProfile,
+} from "@shared/types"
 import type { ExecutionLoopSummary } from "./execution-loops"
 
 export interface FlowRulePreview {
@@ -7,7 +10,9 @@ export interface FlowRulePreview {
   scope: string
 }
 
-const POLICY_RULE_REGISTRY: Partial<Record<ExecutionPolicyTag, Omit<FlowRulePreview, "id">>> = {
+const POLICY_RULE_REGISTRY: Partial<
+  Record<ExecutionPolicyTag, Omit<FlowRulePreview, "id">>
+> = {
   human_gate_required: {
     label: "Ask for approval before this step runs",
     scope: "Run",
@@ -54,7 +59,10 @@ const POLICY_RULE_REGISTRY: Partial<Record<ExecutionPolicyTag, Omit<FlowRulePrev
   },
 }
 
-function normalizeScopeLabel(value: string | null | undefined, fallback: string) {
+function normalizeScopeLabel(
+  value: string | null | undefined,
+  fallback: string,
+) {
   const clean = (value || "").trim()
   return clean || fallback
 }
@@ -98,7 +106,9 @@ function scopeFromLoopLabel(loopLabel: string | null | undefined) {
   return normalized || "Check"
 }
 
-export function deriveExecutionLoopFlowRules(summary: ExecutionLoopSummary | null | undefined) {
+export function deriveExecutionLoopFlowRules(
+  summary: ExecutionLoopSummary | null | undefined,
+) {
   if (!summary) return [] as FlowRulePreview[]
 
   const scope = scopeFromLoopLabel(summary.loopLabel)
@@ -123,7 +133,10 @@ export function deriveExecutionLoopFlowRules(summary: ExecutionLoopSummary | nul
     })
   }
 
-  if (summary.outcome === "human decision" || summary.outcome === "retry cap reached") {
+  if (
+    summary.outcome === "human decision" ||
+    summary.outcome === "retry cap reached"
+  ) {
     rules.push({
       id: "loop-approval",
       label: "Ask for human approval when the loop cannot decide",

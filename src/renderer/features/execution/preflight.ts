@@ -1,6 +1,10 @@
 import type { C8cApi } from "@shared/c8c-api"
 import { getModelPricing, resolveModelFamily } from "@shared/model-pricing"
-import { PROVIDER_LABELS, resolveWorkflowProvider, workflowRequiresProvider } from "@shared/provider-metadata"
+import {
+  PROVIDER_LABELS,
+  resolveWorkflowProvider,
+  workflowRequiresProvider,
+} from "@shared/provider-metadata"
 import type {
   ClaudeCodeSubscriptionStatus,
   EvaluatorNodeConfig,
@@ -41,9 +45,14 @@ export interface ExecutionPreflightFailure {
   snapshot: ExecutionPreflightSnapshot
 }
 
-export type ExecutionPreflightResult = ExecutionPreflightSuccess | ExecutionPreflightFailure
+export type ExecutionPreflightResult =
+  | ExecutionPreflightSuccess
+  | ExecutionPreflightFailure
 
-type ExecutionPreflightApi = Pick<C8cApi, "getProviderDiagnostics" | "getClaudeCodeSubscriptionStatus">
+type ExecutionPreflightApi = Pick<
+  C8cApi,
+  "getProviderDiagnostics" | "getClaudeCodeSubscriptionStatus"
+>
 
 /**
  * Minimum Claude CLI version required by c8c.
@@ -86,8 +95,14 @@ export function resolveEffectiveExecutionProvider(
   workflow: Workflow,
   settings: ProviderSettings,
 ): ProviderId {
-  const requestedProvider = resolveWorkflowProvider(workflow, settings.defaultProvider)
-  return applyExecutionProviderFeatureFlags(requestedProvider, settings.features)
+  const requestedProvider = resolveWorkflowProvider(
+    workflow,
+    settings.defaultProvider,
+  )
+  return applyExecutionProviderFeatureFlags(
+    requestedProvider,
+    settings.features,
+  )
 }
 
 function unavailableMessage(
@@ -96,17 +111,23 @@ function unavailableMessage(
   providerError?: string | null,
 ): string {
   if (provider === "codex") {
-    return providerError
-      || "Codex CLI is not installed or not executable. Install it with: npm install -g @openai/codex"
+    return (
+      providerError ||
+      "Codex CLI is not installed or not executable. Install it with: npm install -g @openai/codex"
+    )
   }
 
   if (cliStatus && !cliStatus.cliInstalled) {
-    return cliStatus.error
-      || "Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code"
+    return (
+      cliStatus.error ||
+      "Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code"
+    )
   }
 
-  return providerError
-    || "Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code"
+  return (
+    providerError ||
+    "Claude CLI is not installed. Install it with: npm install -g @anthropic-ai/claude-code"
+  )
 }
 
 function authRequiredMessage(
@@ -115,27 +136,39 @@ function authRequiredMessage(
   providerError?: string | null,
 ): string {
   if (provider === "codex") {
-    return providerError
-      || "Codex CLI is not authenticated. Run `codex login` (ChatGPT subscription works) or configure an optional CODEX_API_KEY in Settings."
+    return (
+      providerError ||
+      "Codex CLI is not authenticated. Run `codex login` (ChatGPT subscription works) or configure an optional CODEX_API_KEY in Settings."
+    )
   }
 
   if (cliStatus && !cliStatus.loggedIn) {
-    return cliStatus.error
-      || "Claude CLI is not authenticated. Run `claude login` in your terminal."
+    return (
+      cliStatus.error ||
+      "Claude CLI is not authenticated. Run `claude login` in your terminal."
+    )
   }
 
-  return providerError
-    || "Claude CLI is not authenticated. Run `claude login` in your terminal."
+  return (
+    providerError ||
+    "Claude CLI is not authenticated. Run `claude login` in your terminal."
+  )
 }
 
 export function evaluateExecutionStartPreflight(
   workflow: Workflow,
   snapshot: ExecutionPreflightSnapshot,
 ): ExecutionPreflightResult {
-  const effectiveProvider = resolveEffectiveExecutionProvider(workflow, snapshot.diagnostics.settings)
+  const effectiveProvider = resolveEffectiveExecutionProvider(
+    workflow,
+    snapshot.diagnostics.settings,
+  )
 
   if (!workflowRequiresProvider(workflow)) {
-    const warnings = collectPreflightWarnings(workflow, snapshot.diagnostics.settings)
+    const warnings = collectPreflightWarnings(
+      workflow,
+      snapshot.diagnostics.settings,
+    )
     return {
       ok: true,
       effectiveProvider,
@@ -152,7 +185,11 @@ export function evaluateExecutionStartPreflight(
       ok: false,
       reason: "cli_unavailable",
       effectiveProvider,
-      message: unavailableMessage(effectiveProvider, snapshot.cliStatus, providerHealth?.error),
+      message: unavailableMessage(
+        effectiveProvider,
+        snapshot.cliStatus,
+        providerHealth?.error,
+      ),
       snapshot,
     }
   }
@@ -160,7 +197,10 @@ export function evaluateExecutionStartPreflight(
   // Version gate — only enforced for Claude CLI where we can reliably parse semver.
   if (effectiveProvider === "claude") {
     const detectedVersion = parseCliVersion(providerHealth?.version)
-    if (detectedVersion && compareSemver(detectedVersion, MIN_CLAUDE_CLI_VERSION) < 0) {
+    if (
+      detectedVersion &&
+      compareSemver(detectedVersion, MIN_CLAUDE_CLI_VERSION) < 0
+    ) {
       return {
         ok: false,
         reason: "cli_version_unsupported",
@@ -173,7 +213,10 @@ export function evaluateExecutionStartPreflight(
 
   // Codex can legitimately return unknown auth state when ACP/API-key-backed flows are available.
   if (effectiveProvider === "codex" && providerAuth?.state === "unknown") {
-    const warnings = collectPreflightWarnings(workflow, snapshot.diagnostics.settings)
+    const warnings = collectPreflightWarnings(
+      workflow,
+      snapshot.diagnostics.settings,
+    )
     return {
       ok: true,
       effectiveProvider,
@@ -187,12 +230,19 @@ export function evaluateExecutionStartPreflight(
       ok: false,
       reason: "auth_required",
       effectiveProvider,
-      message: authRequiredMessage(effectiveProvider, snapshot.cliStatus, providerAuth?.error),
+      message: authRequiredMessage(
+        effectiveProvider,
+        snapshot.cliStatus,
+        providerAuth?.error,
+      ),
       snapshot,
     }
   }
 
-  const warnings = collectPreflightWarnings(workflow, snapshot.diagnostics.settings)
+  const warnings = collectPreflightWarnings(
+    workflow,
+    snapshot.diagnostics.settings,
+  )
   return {
     ok: true,
     effectiveProvider,
@@ -206,12 +256,14 @@ function collectPreflightWarnings(
   settings: ProviderSettings,
 ): PreflightWarning[] {
   const warnings: PreflightWarning[] = []
-  const effectiveProvider = resolveEffectiveExecutionProvider(workflow, settings)
+  const effectiveProvider = resolveEffectiveExecutionProvider(
+    workflow,
+    settings,
+  )
   if (effectiveProvider === "codex") {
     return warnings
   }
-  const defaultModel = workflow.defaults?.model
-    ?? "sonnet"
+  const defaultModel = workflow.defaults?.model ?? "sonnet"
   const budgetWarning = evaluateTokenBudgetWarning(workflow, defaultModel)
   if (budgetWarning) {
     warnings.push(budgetWarning)
@@ -231,10 +283,14 @@ export async function loadExecutionStartPreflight(
     })
   }
 
-  const effectiveProvider = resolveEffectiveExecutionProvider(workflow, diagnostics.settings)
-  const cliStatus = effectiveProvider === "claude"
-    ? await api.getClaudeCodeSubscriptionStatus()
-    : null
+  const effectiveProvider = resolveEffectiveExecutionProvider(
+    workflow,
+    diagnostics.settings,
+  )
+  const cliStatus =
+    effectiveProvider === "claude"
+      ? await api.getClaudeCodeSubscriptionStatus()
+      : null
 
   return evaluateExecutionStartPreflight(workflow, {
     diagnostics,
@@ -242,10 +298,14 @@ export async function loadExecutionStartPreflight(
   })
 }
 
-export function formatExecutionPreflightTitle(provider: ProviderId, reason: ExecutionPreflightFailure["reason"]): string {
+export function formatExecutionPreflightTitle(
+  provider: ProviderId,
+  reason: ExecutionPreflightFailure["reason"],
+): string {
   const providerLabel = PROVIDER_LABELS[provider]
   if (reason === "cli_unavailable") return `${providerLabel} unavailable`
-  if (reason === "cli_version_unsupported") return `${providerLabel} update required`
+  if (reason === "cli_version_unsupported")
+    return `${providerLabel} update required`
   return `${providerLabel} login required`
 }
 
@@ -260,7 +320,10 @@ export function resolveExecutionStartBlockReason(
   workflow: Workflow,
   snapshot: {
     settings: ProviderSettings
-    availability: Record<ProviderId, ProviderDiagnostics["health"][ProviderId] | null>
+    availability: Record<
+      ProviderId,
+      ProviderDiagnostics["health"][ProviderId] | null
+    >
     auth: Record<ProviderId, ProviderDiagnostics["auth"][ProviderId] | null>
   },
 ): string | null {
@@ -268,18 +331,26 @@ export function resolveExecutionStartBlockReason(
     return null
   }
 
-  const effectiveProvider = resolveEffectiveExecutionProvider(workflow, snapshot.settings)
+  const effectiveProvider = resolveEffectiveExecutionProvider(
+    workflow,
+    snapshot.settings,
+  )
   const providerHealth = snapshot.availability[effectiveProvider]
   if (!providerHealth) {
     return null
   }
   if (!providerHealth.available) {
-    return appendSettingsHint(unavailableMessage(effectiveProvider, null, providerHealth.error))
+    return appendSettingsHint(
+      unavailableMessage(effectiveProvider, null, providerHealth.error),
+    )
   }
 
   if (effectiveProvider === "claude") {
     const detectedVersion = parseCliVersion(providerHealth.version)
-    if (detectedVersion && compareSemver(detectedVersion, MIN_CLAUDE_CLI_VERSION) < 0) {
+    if (
+      detectedVersion &&
+      compareSemver(detectedVersion, MIN_CLAUDE_CLI_VERSION) < 0
+    ) {
       return appendSettingsHint(
         `Claude CLI version ${detectedVersion} is installed, but c8c requires ${MIN_CLAUDE_CLI_VERSION} or newer. Run: npm update -g @anthropic-ai/claude-code`,
       )
@@ -294,7 +365,9 @@ export function resolveExecutionStartBlockReason(
     return null
   }
   if (!providerAuth.authenticated) {
-    return appendSettingsHint(authRequiredMessage(effectiveProvider, null, providerAuth.error))
+    return appendSettingsHint(
+      authRequiredMessage(effectiveProvider, null, providerAuth.error),
+    )
   }
 
   return null
@@ -344,8 +417,13 @@ export interface FlowCostBreakdownItem {
  *    point and the evaluator, multiplied by `maxRetries`.
  * 4. Estimates cost using conservative per-invocation token averages.
  */
-export function estimateFlowCost(workflow: Workflow, defaultModel?: string): FlowCostEstimate {
-  const modelFamily = resolveModelFamily(defaultModel || workflow.defaults?.model)
+export function estimateFlowCost(
+  workflow: Workflow,
+  defaultModel?: string,
+): FlowCostEstimate {
+  const modelFamily = resolveModelFamily(
+    defaultModel || workflow.defaults?.model,
+  )
   const nodeMap = new Map<string, WorkflowNode>()
   for (const node of workflow.nodes) {
     nodeMap.set(node.id, node)
@@ -395,7 +473,11 @@ export function estimateFlowCost(workflow: Workflow, defaultModel?: string): Flo
     const maxBranches = config.maxBranches ?? DEFAULT_SPLITTER_MAX_BRANCHES
 
     // Find skill nodes downstream of this splitter (BFS, stop at merger)
-    const downstreamSkills = countDownstreamSkillNodes(splitter.id, nodeMap, outgoing)
+    const downstreamSkills = countDownstreamSkillNodes(
+      splitter.id,
+      nodeMap,
+      outgoing,
+    )
 
     if (downstreamSkills > 0 && maxBranches > 1) {
       // The downstream skills are already counted once in totalSkillNodes.
@@ -419,7 +501,13 @@ export function estimateFlowCost(workflow: Workflow, defaultModel?: string): Flo
     if (maxRetries > 0) {
       // The retryFrom node is the starting point of the retry loop.
       // If not specified, the immediate upstream skill node is retried.
-      const retryScope = countRetrySkillNodes(evaluator.id, config.retryFrom, nodeMap, outgoing, workflow)
+      const retryScope = countRetrySkillNodes(
+        evaluator.id,
+        config.retryFrom,
+        nodeMap,
+        outgoing,
+        workflow,
+      )
 
       if (retryScope > 0) {
         const additionalInvocations = retryScope * maxRetries
@@ -435,12 +523,14 @@ export function estimateFlowCost(workflow: Workflow, defaultModel?: string): Flo
   }
 
   // Estimate cost
-  const avgTokens = AVG_TOKENS_PER_INVOCATION[modelFamily] ?? AVG_TOKENS_PER_INVOCATION.sonnet
+  const avgTokens =
+    AVG_TOKENS_PER_INVOCATION[modelFamily] ?? AVG_TOKENS_PER_INVOCATION.sonnet
   // Assume roughly equal input/output token split
   const inputTokens = avgTokens * 0.6
   const outputTokens = avgTokens * 0.4
   const pricing = getModelPricing(modelFamily)
-  const costPerInvocation = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
+  const costPerInvocation =
+    (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
   const estimatedCostUsd = worstCaseInvocations * costPerInvocation
 
   return {

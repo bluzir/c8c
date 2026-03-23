@@ -3,7 +3,9 @@ import type { ArtifactRecord, CaseStateRecord } from "@shared/types"
 import type { WorkflowTemplateRunContext } from "./workflow-entry"
 import { deriveWorkflowResumeEntrySummary } from "./workflow-resume-entry"
 
-function createContext(overrides: Partial<WorkflowTemplateRunContext> = {}): WorkflowTemplateRunContext {
+function createContext(
+  overrides: Partial<WorkflowTemplateRunContext> = {},
+): WorkflowTemplateRunContext {
   return {
     templateId: "delivery-plan-phase",
     templateName: "Delivery Factory: Plan Phase",
@@ -19,7 +21,9 @@ function createContext(overrides: Partial<WorkflowTemplateRunContext> = {}): Wor
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "requirements_spec",
@@ -42,7 +46,9 @@ function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord
   }
 }
 
-function createCaseState(overrides: Partial<CaseStateRecord> = {}): CaseStateRecord {
+function createCaseState(
+  overrides: Partial<CaseStateRecord> = {},
+): CaseStateRecord {
   return {
     version: 1,
     caseId: "case:seller-photo-upload",
@@ -93,7 +99,9 @@ describe("workflow-resume-entry", () => {
       startApprovalRequired: true,
     })
 
-    expect(summary?.checksText).toBe("Approval is still required before continue.")
+    expect(summary?.checksText).toBe(
+      "Approval is still required before continue.",
+    )
     expect(summary?.continueLabel).toBe("Continue to Review")
   })
 

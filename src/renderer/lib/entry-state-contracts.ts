@@ -63,16 +63,21 @@ export function resolveGuidedTemplateEntryContract(
   const stagePath = template.pack?.id
     ? deriveTemplatePackStagePath(catalog, template.pack.id)
     : []
-  const firstStageLabel = stagePath[0] || deriveTemplateJourneyStageLabel(template)
-  const jobLabel = deriveTemplateJobLabel(template) || getWorkflowTemplateDisplayName(template)
-  const entryKind: GuidedEntryKind = isGuidedTemplate(template) ? "guided" : "isolated"
+  const firstStageLabel =
+    stagePath[0] || deriveTemplateJourneyStageLabel(template)
+  const jobLabel =
+    deriveTemplateJobLabel(template) || getWorkflowTemplateDisplayName(template)
+  const entryKind: GuidedEntryKind = isGuidedTemplate(template)
+    ? "guided"
+    : "isolated"
 
   return {
     template,
     entryKind,
     jobLabel,
     jobSummary: template.headline || deriveTemplateCardCopy(template),
-    primaryActionLabel: entryKind === "guided" ? "Start first stage" : "Start this flow",
+    primaryActionLabel:
+      entryKind === "guided" ? "Start first stage" : "Start this flow",
     useWhen: deriveTemplateUseWhen(template),
     youProvide: template.input,
     youGetFirst: template.output,
@@ -86,7 +91,9 @@ export function splitGuidedTemplateEntryContracts(
   templates: WorkflowTemplate[],
   catalog: WorkflowTemplate[] = templates,
 ) {
-  const entries = templates.map((template) => resolveGuidedTemplateEntryContract(template, catalog))
+  const entries = templates.map((template) =>
+    resolveGuidedTemplateEntryContract(template, catalog),
+  )
   return {
     entries,
     guidedEntries: entries.filter((entry) => entry.entryKind === "guided"),
@@ -94,7 +101,11 @@ export function splitGuidedTemplateEntryContracts(
   }
 }
 
-export type DemotedDestinationKey = "starting_points" | "skills" | "lab" | "settings"
+export type DemotedDestinationKey =
+  | "starting_points"
+  | "skills"
+  | "lab"
+  | "settings"
 
 export interface DemotedDestinationAccessContract {
   key: DemotedDestinationKey
@@ -105,7 +116,10 @@ export interface DemotedDestinationAccessContract {
   commandPaletteAccessible: boolean
 }
 
-export const DEMOTED_DESTINATION_ACCESS_CONTRACTS: Record<DemotedDestinationKey, DemotedDestinationAccessContract> = {
+export const DEMOTED_DESTINATION_ACCESS_CONTRACTS: Record<
+  DemotedDestinationKey,
+  DemotedDestinationAccessContract
+> = {
   starting_points: {
     key: "starting_points",
     label: "Starting points",

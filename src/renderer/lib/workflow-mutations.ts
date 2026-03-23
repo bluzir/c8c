@@ -11,7 +11,10 @@ import type {
   WorkflowEdge,
   WorkflowNode,
 } from "@shared/types"
-import { inferProviderFromModel, modelLooksCompatible } from "@shared/provider-metadata"
+import {
+  inferProviderFromModel,
+  modelLooksCompatible,
+} from "@shared/provider-metadata"
 import { findInsertionPoint } from "@/lib/workflow-graph-utils"
 import {
   DEFAULT_APPROVAL_CONFIG,
@@ -60,7 +63,11 @@ function createUniqueEdgeId(
   return candidate
 }
 
-export function wouldCreateCycle(workflow: Workflow, sourceNodeId: string, targetNodeId: string): boolean {
+export function wouldCreateCycle(
+  workflow: Workflow,
+  sourceNodeId: string,
+  targetNodeId: string,
+): boolean {
   const adjacency = new Map<string, string[]>()
   for (const edge of workflow.edges) {
     if (edge.type === "fail") continue
@@ -96,9 +103,22 @@ function addLinearNodeBeforeOutput(
   if (!pt) return workflow
 
   const { outputNode, prevNodeId, filteredEdges } = pt
-  const edgeFromPrevToNodeId = createUniqueEdgeId(filteredEdges, prevNodeId, node.id, "default")
+  const edgeFromPrevToNodeId = createUniqueEdgeId(
+    filteredEdges,
+    prevNodeId,
+    node.id,
+    "default",
+  )
   const edgeFromNodeToOutputId = createUniqueEdgeId(
-    [...filteredEdges, { id: edgeFromPrevToNodeId, source: prevNodeId, target: node.id, type: "default" }],
+    [
+      ...filteredEdges,
+      {
+        id: edgeFromPrevToNodeId,
+        source: prevNodeId,
+        target: node.id,
+        type: "default",
+      },
+    ],
     node.id,
     outputNode.id,
     "default",
@@ -143,22 +163,26 @@ function normalizePositiveInteger(value: unknown): number | undefined {
 
 function normalizeStringArray(value: unknown): string[] | undefined {
   if (Array.isArray(value)) {
-    const normalized = [...new Set(
-      value
-        .filter((item): item is string => typeof item === "string")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    )]
+    const normalized = [
+      ...new Set(
+        value
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    ]
     return normalized.length > 0 ? normalized : undefined
   }
 
   if (typeof value === "string") {
-    const normalized = [...new Set(
-      value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    )]
+    const normalized = [
+      ...new Set(
+        value
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    ]
     return normalized.length > 0 ? normalized : undefined
   }
 
@@ -206,7 +230,11 @@ export function addSkillNodeToWorkflow(
     ...nextWorkflow,
     defaults: {
       ...(nextWorkflow.defaults || {}),
-      ...(workflowProvider ? {} : inferredProvider ? { provider: inferredProvider } : {}),
+      ...(workflowProvider
+        ? {}
+        : inferredProvider
+          ? { provider: inferredProvider }
+          : {}),
       model: suggestedModel,
     },
   }
@@ -279,13 +307,18 @@ export function addFanOutPatternToWorkflow(
       id: splitterId,
       type: "splitter",
       position: { x: 0, y: 0 },
-      config: { ...DEFAULT_FANOUT_PATTERN.splitter } satisfies SplitterNodeConfig,
+      config: {
+        ...DEFAULT_FANOUT_PATTERN.splitter,
+      } satisfies SplitterNodeConfig,
     },
     {
       id: skillId,
       type: "skill",
       position: { x: 0, y: 0 },
-      config: { ...DEFAULT_FANOUT_PATTERN.worker } satisfies Pick<SkillNodeConfig, "skillRef" | "prompt">,
+      config: { ...DEFAULT_FANOUT_PATTERN.worker } satisfies Pick<
+        SkillNodeConfig,
+        "skillRef" | "prompt"
+      >,
     },
     {
       id: mergerId,
@@ -371,22 +404,32 @@ export function removeNodeAndRewireWorkflow(
 
   const incomingEdges = workflow.edges.filter((e) => e.target === nodeId)
   const outgoingEdges = workflow.edges.filter((e) => e.source === nodeId)
-  const newEdges = workflow.edges.filter((e) => e.source !== nodeId && e.target !== nodeId)
-  const existingEdgeKeys = new Set(newEdges.map((edge) => `${edge.source}=>${edge.target}:${edge.type}`))
+  const newEdges = workflow.edges.filter(
+    (e) => e.source !== nodeId && e.target !== nodeId,
+  )
+  const existingEdgeKeys = new Set(
+    newEdges.map((edge) => `${edge.source}=>${edge.target}:${edge.type}`),
+  )
 
   for (const incoming of incomingEdges) {
     for (const outgoing of outgoingEdges) {
       if (incoming.source === outgoing.target) {
         continue
       }
-      const bridgeType: EdgeType = outgoing.type === "default" ? incoming.type : outgoing.type
+      const bridgeType: EdgeType =
+        outgoing.type === "default" ? incoming.type : outgoing.type
       const edgeKey = `${incoming.source}=>${outgoing.target}:${bridgeType}`
       if (existingEdgeKeys.has(edgeKey)) {
         continue
       }
 
       newEdges.push({
-        id: createUniqueEdgeId(newEdges, incoming.source, outgoing.target, bridgeType),
+        id: createUniqueEdgeId(
+          newEdges,
+          incoming.source,
+          outgoing.target,
+          bridgeType,
+        ),
         source: incoming.source,
         target: outgoing.target,
         type: bridgeType,
@@ -428,22 +471,30 @@ export function addEdgeToWorkflow(
   targetNodeId: string,
   edgeType: EdgeType = "default",
 ): AddEdgeResult {
-  if (sourceNodeId === targetNodeId) return { workflow, error: "Cannot connect a node to itself." }
+  if (sourceNodeId === targetNodeId)
+    return { workflow, error: "Cannot connect a node to itself." }
 
   const sourceNode = workflow.nodes.find((node) => node.id === sourceNodeId)
   const targetNode = workflow.nodes.find((node) => node.id === targetNodeId)
-  if (!sourceNode || !targetNode) return { workflow, error: "Source or target node not found." }
+  if (!sourceNode || !targetNode)
+    return { workflow, error: "Source or target node not found." }
 
   // Keep graph semantics sane for common mistakes.
-  if (sourceNode.type === "output") return { workflow, error: "Cannot connect from an output node." }
-  if (targetNode.type === "input") return { workflow, error: "Cannot connect to an input node." }
-  if (edgeType !== "fail" && wouldCreateCycle(workflow, sourceNodeId, targetNodeId)) return { workflow, error: "Cannot connect: would create a cycle." }
+  if (sourceNode.type === "output")
+    return { workflow, error: "Cannot connect from an output node." }
+  if (targetNode.type === "input")
+    return { workflow, error: "Cannot connect to an input node." }
+  if (
+    edgeType !== "fail" &&
+    wouldCreateCycle(workflow, sourceNodeId, targetNodeId)
+  )
+    return { workflow, error: "Cannot connect: would create a cycle." }
 
   const duplicate = workflow.edges.some(
     (edge) =>
-      edge.source === sourceNodeId
-      && edge.target === targetNodeId
-      && edge.type === edgeType,
+      edge.source === sourceNodeId &&
+      edge.target === targetNodeId &&
+      edge.type === edgeType,
   )
   if (duplicate) return { workflow, error: "Cannot connect: duplicate edge." }
 
@@ -453,7 +504,12 @@ export function addEdgeToWorkflow(
       edges: [
         ...workflow.edges,
         {
-          id: createUniqueEdgeId(workflow.edges, sourceNodeId, targetNodeId, edgeType),
+          id: createUniqueEdgeId(
+            workflow.edges,
+            sourceNodeId,
+            targetNodeId,
+            edgeType,
+          ),
           source: sourceNodeId,
           target: targetNodeId,
           type: edgeType,
@@ -518,7 +574,12 @@ export function insertSkillNodeAfter(
   for (const edge of outgoingEdges) {
     const nextEdge: WorkflowEdge = {
       ...edge,
-      id: createUniqueEdgeId([...forwardingBaseEdges, ...forwardedEdges], newNodeId, edge.target, edge.type),
+      id: createUniqueEdgeId(
+        [...forwardingBaseEdges, ...forwardedEdges],
+        newNodeId,
+        edge.target,
+        edge.type,
+      ),
       source: newNodeId,
     }
     forwardedEdges.push(nextEdge)
@@ -547,7 +608,12 @@ function rebuildLinearWorkflowWithMiddleNodes(
     const source = newNodes[i]
     const target = newNodes[i + 1]
     newEdges.push({
-      id: createUniqueEdgeId(newEdges, source.id, target.id, source.type === "evaluator" ? "pass" : "default"),
+      id: createUniqueEdgeId(
+        newEdges,
+        source.id,
+        target.id,
+        source.type === "evaluator" ? "pass" : "default",
+      ),
       source: source.id,
       target: target.id,
       type: source.type === "evaluator" ? "pass" : "default",
@@ -577,7 +643,9 @@ export function isLinearChainReorderSafe(workflow: Workflow): boolean {
   return getLinearChainReorderBlockReason(workflow) === null
 }
 
-export function getLinearChainReorderBlockReason(workflow: Workflow): string | null {
+export function getLinearChainReorderBlockReason(
+  workflow: Workflow,
+): string | null {
   const inputNodes = workflow.nodes.filter((node) => node.type === "input")
   const outputNodes = workflow.nodes.filter((node) => node.type === "output")
   if (inputNodes.length !== 1 || outputNodes.length !== 1) {
@@ -585,7 +653,11 @@ export function getLinearChainReorderBlockReason(workflow: Workflow): string | n
   }
 
   // Reorder in list mode must not flatten fan-out/fan-in topology.
-  if (workflow.nodes.some((node) => node.type === "splitter" || node.type === "merger")) {
+  if (
+    workflow.nodes.some(
+      (node) => node.type === "splitter" || node.type === "merger",
+    )
+  ) {
     return "Reordering is unavailable once the flow branches. Use Canvas to restructure branching flows."
   }
 
@@ -654,8 +726,12 @@ export function getMiddleNodeMoveBlockedReason(
     return "Only editable steps can be reordered."
   }
 
-  const middleNodes = workflow.nodes.filter((candidate) => candidate.type !== "input" && candidate.type !== "output")
-  const sourceIndex = middleNodes.findIndex((candidate) => candidate.id === nodeId)
+  const middleNodes = workflow.nodes.filter(
+    (candidate) => candidate.type !== "input" && candidate.type !== "output",
+  )
+  const sourceIndex = middleNodes.findIndex(
+    (candidate) => candidate.id === nodeId,
+  )
   if (sourceIndex < 0) {
     return "Only editable steps can be reordered."
   }
@@ -677,7 +753,9 @@ export function moveMiddleNodeByDirection(
   direction: "up" | "down",
 ): Workflow {
   if (!isLinearChainReorderSafe(workflow)) return workflow
-  const middleNodes = workflow.nodes.filter((n) => n.type !== "input" && n.type !== "output")
+  const middleNodes = workflow.nodes.filter(
+    (n) => n.type !== "input" && n.type !== "output",
+  )
   const sourceIndex = middleNodes.findIndex((n) => n.id === nodeId)
   if (sourceIndex < 0) return workflow
 
@@ -685,7 +763,10 @@ export function moveMiddleNodeByDirection(
   if (targetIndex < 0 || targetIndex >= middleNodes.length) return workflow
 
   const next = [...middleNodes]
-  ;[next[sourceIndex], next[targetIndex]] = [next[targetIndex], next[sourceIndex]]
+  ;[next[sourceIndex], next[targetIndex]] = [
+    next[targetIndex],
+    next[sourceIndex],
+  ]
 
   return rebuildLinearWorkflowWithMiddleNodes(workflow, next)
 }
@@ -697,14 +778,17 @@ export function moveMiddleNodeBeforeTarget(
 ): Workflow {
   if (!isLinearChainReorderSafe(workflow)) return workflow
   if (sourceNodeId === targetNodeId) return workflow
-  const middleNodes = workflow.nodes.filter((n) => n.type !== "input" && n.type !== "output")
+  const middleNodes = workflow.nodes.filter(
+    (n) => n.type !== "input" && n.type !== "output",
+  )
   const sourceIndex = middleNodes.findIndex((n) => n.id === sourceNodeId)
   const targetIndex = middleNodes.findIndex((n) => n.id === targetNodeId)
   if (sourceIndex < 0 || targetIndex < 0) return workflow
 
   const next = [...middleNodes]
   const [sourceNode] = next.splice(sourceIndex, 1)
-  const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+  const insertionIndex =
+    sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
   next.splice(insertionIndex, 0, sourceNode)
 
   return rebuildLinearWorkflowWithMiddleNodes(workflow, next)

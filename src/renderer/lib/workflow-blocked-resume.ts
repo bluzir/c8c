@@ -1,6 +1,12 @@
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { deriveExecutionLoopSummary } from "@/lib/execution-loops"
-import type { ArtifactRecord, EvaluationResult, HumanTaskSnapshot, NodeState, Workflow } from "@shared/types"
+import type {
+  ArtifactRecord,
+  EvaluationResult,
+  HumanTaskSnapshot,
+  NodeState,
+  Workflow,
+} from "@shared/types"
 import {
   deriveBlockedTaskLatestResultText,
   deriveBlockedTaskReasonText,
@@ -22,7 +28,8 @@ export interface WorkflowBlockedResumeSummary {
 function formatArtifactList(artifacts: ArtifactRecord[]) {
   if (artifacts.length === 0) return "saved results"
   if (artifacts.length === 1) return artifacts[0].title
-  if (artifacts.length === 2) return `${artifacts[0].title} and ${artifacts[1].title}`
+  if (artifacts.length === 2)
+    return `${artifacts[0].title} and ${artifacts[1].title}`
   return `${artifacts[0].title}, ${artifacts[1].title}, +${artifacts.length - 2} more`
 }
 
@@ -59,7 +66,10 @@ function collectFindingLines(...values: Array<string | null | undefined>) {
     })
 }
 
-function deriveCriteriaFindings(criteria: EvaluationResult["criteria"], threshold: number) {
+function deriveCriteriaFindings(
+  criteria: EvaluationResult["criteria"],
+  threshold: number,
+) {
   return (criteria || [])
     .filter((criterion) => criterion.score < threshold)
     .sort((left, right) => left.score - right.score)
@@ -79,19 +89,28 @@ function deriveBlockedFindings({
   evalResults?: Record<string, EvaluationResult[]>
   reasonText: string
 }) {
-  if (nodeStates && evalResults && (task.kind === "approval" || task.request.metadata?.generatedByNodeId)) {
+  if (
+    nodeStates &&
+    evalResults &&
+    (task.kind === "approval" || task.request.metadata?.generatedByNodeId)
+  ) {
     const loopSummary = deriveExecutionLoopSummary({
       workflow,
       nodeStates,
       evalResults,
       runOutcome: "blocked",
-      preferredEvaluatorNodeId: task.request.metadata?.generatedByNodeId || task.nodeId,
+      preferredEvaluatorNodeId:
+        task.request.metadata?.generatedByNodeId || task.nodeId,
     })
-    const criteriaFindings = deriveCriteriaFindings(loopSummary?.criteriaBreakdown, loopSummary?.threshold || 0)
+    const criteriaFindings = deriveCriteriaFindings(
+      loopSummary?.criteriaBreakdown,
+      loopSummary?.threshold || 0,
+    )
     if (criteriaFindings.length > 0) return criteriaFindings.slice(0, 3)
 
-    const loopReasonFindings = collectFindingLines(loopSummary?.reason)
-      .filter((line) => line !== normalizeFindingLine(reasonText))
+    const loopReasonFindings = collectFindingLines(loopSummary?.reason).filter(
+      (line) => line !== normalizeFindingLine(reasonText),
+    )
     if (loopReasonFindings.length > 0) return loopReasonFindings.slice(0, 3)
   }
 
@@ -121,25 +140,30 @@ export function deriveWorkflowBlockedResumeSummary({
   const orderedSourceArtifacts = sortArtifactsByRecency(sourceArtifacts)
   const currentStepLabel = deriveCurrentStepLabel(workflow, task.nodeId)
   const primaryArtifact = orderedSourceArtifacts[0] || null
-  const workLabel = primaryArtifact?.caseLabel
-    || primaryArtifact?.workflowName
-    || task.workflowName
-    || task.title
-    || "Saved work"
-  const reasonText = deriveBlockedTaskReasonText({
-    ...task,
-    summary: task.summary || task.request.summary,
-    instructions: task.instructions || task.request.instructions,
-  }, currentStepLabel)
+  const workLabel =
+    primaryArtifact?.caseLabel ||
+    primaryArtifact?.workflowName ||
+    task.workflowName ||
+    task.title ||
+    "Saved work"
+  const reasonText = deriveBlockedTaskReasonText(
+    {
+      ...task,
+      summary: task.summary || task.request.summary,
+      instructions: task.instructions || task.request.instructions,
+    },
+    currentStepLabel,
+  )
 
   return {
     workLabel,
     currentStepLabel,
     statusText: deriveBlockedTaskStatusText(task, currentStepLabel),
     reasonText,
-    attachText: orderedSourceArtifacts.length > 0
-      ? formatArtifactList(orderedSourceArtifacts)
-      : "Saved work context is already tied to this step.",
+    attachText:
+      orderedSourceArtifacts.length > 0
+        ? formatArtifactList(orderedSourceArtifacts)
+        : "Saved work context is already tied to this step.",
     latestResultText: deriveBlockedTaskLatestResultText(primaryArtifact),
     findings: deriveBlockedFindings({
       workflow,
@@ -149,6 +173,7 @@ export function deriveWorkflowBlockedResumeSummary({
       reasonText,
     }),
     primaryArtifact,
-    primaryActionLabel: task.kind === "approval" ? "Open approval" : "Provide input",
+    primaryActionLabel:
+      task.kind === "approval" ? "Open approval" : "Provide input",
   }
 }

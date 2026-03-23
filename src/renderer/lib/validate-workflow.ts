@@ -12,16 +12,24 @@ export interface ValidationError {
   severity: "error" | "warning"
 }
 
-export function validateWorkflow(workflow: Workflow, defaultProvider: ProviderId = "claude"): ValidationError[] {
-  const errors: ValidationError[] = validateWorkflowForExecution(workflow).map((issue) => ({
-    nodeId: issue.nodeId,
-    field: issue.field,
-    message: issue.message,
-    severity: issue.severity,
-  }))
+export function validateWorkflow(
+  workflow: Workflow,
+  defaultProvider: ProviderId = "claude",
+): ValidationError[] {
+  const errors: ValidationError[] = validateWorkflowForExecution(workflow).map(
+    (issue) => ({
+      nodeId: issue.nodeId,
+      field: issue.field,
+      message: issue.message,
+      severity: issue.severity,
+    }),
+  )
   const workflowProvider = resolveWorkflowProvider(workflow, defaultProvider)
 
-  if (workflow.defaults?.model?.trim() && !modelLooksCompatible(workflowProvider, workflow.defaults.model)) {
+  if (
+    workflow.defaults?.model?.trim() &&
+    !modelLooksCompatible(workflowProvider, workflow.defaults.model)
+  ) {
     errors.push({
       nodeId: "__workflow__",
       field: "defaults.model",

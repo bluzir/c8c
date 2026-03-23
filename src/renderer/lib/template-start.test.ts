@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest"
-import type { ArtifactRecord, CreateEntryRouteResult, WorkflowTemplate } from "@shared/types"
-import { buildTemplateStartState, buildTemplateStartStateFromRoute } from "./template-start"
+import type {
+  ArtifactRecord,
+  CreateEntryRouteResult,
+  WorkflowTemplate,
+} from "@shared/types"
+import {
+  buildTemplateStartState,
+  buildTemplateStartStateFromRoute,
+} from "./template-start"
 
 function createTemplate(inputType: "text" | "directory"): WorkflowTemplate {
   return {
-    id: inputType === "directory" ? "delivery-map-codebase" : "delivery-shape-project",
+    id:
+      inputType === "directory"
+        ? "delivery-map-codebase"
+        : "delivery-shape-project",
     name: "Dev Process",
     description: "Start a development process.",
     stage: "research",
@@ -18,7 +28,12 @@ function createTemplate(inputType: "text" | "directory"): WorkflowTemplate {
       version: 1,
       name: "Dev Process",
       description: "",
-      defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+      defaults: {
+        model: "sonnet",
+        maxTurns: 120,
+        timeout_minutes: 30,
+        maxParallel: 8,
+      },
       nodes: [
         {
           id: "input",

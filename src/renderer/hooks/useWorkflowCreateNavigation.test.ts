@@ -5,7 +5,9 @@ import { applyWorkflowCreateNavigationState } from "./useWorkflowCreateNavigatio
 describe("useWorkflowCreateNavigation helpers", () => {
   it("clears review state before opening workflow create", () => {
     const sourceArtifacts = [{ id: "artifact-1" } as ArtifactRecord]
-    const sourceAttachments: InputAttachment[] = [{ kind: "text", label: "Source", content: "result" }]
+    const sourceAttachments: InputAttachment[] = [
+      { kind: "text", label: "Source", content: "result" },
+    ]
     const setMainView = vi.fn()
     const setSelectedResultModeId = vi.fn()
     const setWorkflowCreateContext = vi.fn()
@@ -36,12 +38,20 @@ describe("useWorkflowCreateNavigation helpers", () => {
       projectPath: "/tmp/project",
       locked: false,
     })
-    expect(setWorkflowCreateDraftPrompt).toHaveBeenCalledWith("polish the draft")
-    expect(setWorkflowCreateSourceArtifacts).toHaveBeenCalledWith(sourceArtifacts)
-    expect(setWorkflowCreateSourceAttachments).toHaveBeenCalledWith(sourceAttachments)
+    expect(setWorkflowCreateDraftPrompt).toHaveBeenCalledWith(
+      "polish the draft",
+    )
+    expect(setWorkflowCreateSourceArtifacts).toHaveBeenCalledWith(
+      sourceArtifacts,
+    )
+    expect(setWorkflowCreateSourceAttachments).toHaveBeenCalledWith(
+      sourceAttachments,
+    )
     expect(clearReviewState).toHaveBeenCalledTimes(1)
     expect(setMainView).toHaveBeenCalledWith("workflow_create")
-    expect(clearReviewState.mock.invocationCallOrder[0]).toBeLessThan(setMainView.mock.invocationCallOrder[0])
+    expect(clearReviewState.mock.invocationCallOrder[0]).toBeLessThan(
+      setMainView.mock.invocationCallOrder[0],
+    )
   })
 
   it("respects explicit project selection and lock state", () => {

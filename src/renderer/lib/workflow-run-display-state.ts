@@ -37,10 +37,11 @@ export function resolveWorkflowRunDisplayState({
   approvalCount = 0,
   lastError = null,
 }: ResolveWorkflowRunDisplayStateArgs): WorkflowRunDisplaySummary {
-  const isInFlight = runStatus === "starting"
-    || runStatus === "running"
-    || runStatus === "paused"
-    || runStatus === "cancelling"
+  const isInFlight =
+    runStatus === "starting" ||
+    runStatus === "running" ||
+    runStatus === "paused" ||
+    runStatus === "cancelling"
 
   if (runStatus === "paused") {
     return {
@@ -78,7 +79,10 @@ export function resolveWorkflowRunDisplayState({
     }
   }
 
-  if (runOutcome === "blocked" || (runStatus === "running" && approvalCount > 0)) {
+  if (
+    runOutcome === "blocked" ||
+    (runStatus === "running" && approvalCount > 0)
+  ) {
     const isTerminal = runOutcome === "blocked" || runStatus === "done"
     return {
       state: "blocked",
@@ -103,7 +107,11 @@ export function resolveWorkflowRunDisplayState({
     }
   }
 
-  if (runStatus === "error" || runOutcome === "failed" || runOutcome === "interrupted") {
+  if (
+    runStatus === "error" ||
+    runOutcome === "failed" ||
+    runOutcome === "interrupted"
+  ) {
     return {
       state: "failed",
       label: runOutcome === "interrupted" ? "Interrupted" : "Failed",

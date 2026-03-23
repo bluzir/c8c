@@ -1,9 +1,27 @@
-import type { SkillNodeConfig, SplitterNodeConfig, Workflow } from "@shared/types"
+import type {
+  SkillNodeConfig,
+  SplitterNodeConfig,
+  Workflow,
+} from "@shared/types"
 import { cloneWorkflow } from "./workflow-graph-utils"
 
 export const MIN_DETAIL_BUDGET = 1
 export const MAX_DETAIL_BUDGET = 100
-export const DEFAULT_DETAIL_BUDGET = 8
+export type DetailBudgetPresetId = "low" | "medium" | "high"
+
+export interface DetailBudgetPreset {
+  id: DetailBudgetPresetId
+  label: string
+  value: number
+}
+
+export const DETAIL_BUDGET_PRESETS: DetailBudgetPreset[] = [
+  { id: "low", label: "Low", value: 10 },
+  { id: "medium", label: "Medium", value: 50 },
+  { id: "high", label: "High", value: 100 },
+]
+
+export const DEFAULT_DETAIL_BUDGET = DETAIL_BUDGET_PRESETS[0].value
 
 function replaceBranchCount(text: string, budget: number): string {
   return text
@@ -11,7 +29,11 @@ function replaceBranchCount(text: string, budget: number): string {
     .replace(/\bcreate up to \d+\b/i, `create up to ${budget}`)
 }
 
-function appendGranularityGuidance(text: string, budget: number, focus: string): string {
+function appendGranularityGuidance(
+  text: string,
+  budget: number,
+  focus: string,
+): string {
   const guidance = `Use up to ${budget} branches when the project is large enough. Prefer narrower ${focus} slices over broad buckets, but do not invent fake work for small projects.`
   if (text.includes(guidance)) return text
   return `${text.trim()}\n\n${guidance}`
@@ -22,7 +44,11 @@ function rewritePlaywrightMapperPrompt(prompt: string, budget: number): string {
     /In Scenario Candidates, propose \d+-\d+ high-value visual-testing scenarios\./i,
     `In Scenario Candidates, propose up to ${budget} high-value visual-testing scenarios.`,
   )
-  return appendGranularityGuidance(next, budget, "scenario, route, state, and viewport")
+  return appendGranularityGuidance(
+    next,
+    budget,
+    "scenario, route, state, and viewport",
+  )
 }
 
 function buildAuditStrategy(
@@ -59,12 +85,7 @@ function rewriteSplitterStrategy(
       return buildAuditStrategy(
         budget,
         "audit areas",
-        [
-          "security",
-          "code quality",
-          "architecture",
-          "test coverage",
-        ],
+        ["security", "code quality", "architecture", "test coverage"],
         "module, feature, route, service, or file-cluster",
       )
     case "ux-ui-polish-audit":
@@ -122,7 +143,29 @@ function rewriteSplitterStrategy(
 
 export function clampDetailBudget(value: number | null | undefined): number {
   if (!Number.isFinite(value)) return DEFAULT_DETAIL_BUDGET
-  return Math.min(MAX_DETAIL_BUDGET, Math.max(MIN_DETAIL_BUDGET, Math.round(value as number)))
+  return Math.min(
+    MAX_DETAIL_BUDGET,
+    Math.max(MIN_DETAIL_BUDGET, Math.round(value as number)),
+  )
+}
+
+export function resolveDetailBudgetPreset(
+  value: number | null | undefined,
+): DetailBudgetPreset {
+  const budget = clampDetailBudget(value)
+  return DETAIL_BUDGET_PRESETS.reduce(
+    (bestPreset, preset) =>
+      Math.abs(preset.value - budget) < Math.abs(bestPreset.value - budget)
+        ? preset
+        : bestPreset,
+    DETAIL_BUDGET_PRESETS[0]!,
+  )
+}
+
+export function getDetailBudgetPresetById(
+  id: string,
+): DetailBudgetPreset | null {
+  return DETAIL_BUDGET_PRESETS.find((preset) => preset.id === id) ?? null
 }
 
 export function applyWorkflowDetailBudget(
@@ -147,12 +190,20 @@ export function applyWorkflowDetailBudget(
         config: {
           ...config,
           maxBranches: budget,
-          strategy: rewriteSplitterStrategy(config.strategy || "", budget, options?.templateId),
+          strategy: rewriteSplitterStrategy(
+            config.strategy || "",
+            budget,
+            options?.templateId,
+          ),
         },
       }
     }
 
-    if (options?.templateId === "playwright-visual-audit" && node.id === "mapper-1" && node.type === "skill") {
+    if (
+      options?.templateId === "playwright-visual-audit" &&
+      node.id === "mapper-1" &&
+      node.type === "skill"
+    ) {
       const config = node.config as SkillNodeConfig
       return {
         ...node,

@@ -13,10 +13,13 @@ describe("result-mode-factory", () => {
     const factory = buildFactoryFromResultMode({
       mode,
       values: normalizeResultModeConfig("content", {
-        content_goal: "Generate 100 Facebook posts about AI agents in the next 30 days",
-        channel_and_audience: "Facebook for founders running AI-native businesses",
+        content_goal:
+          "Generate 100 Facebook posts about AI agents in the next 30 days",
+        channel_and_audience:
+          "Facebook for founders running AI-native businesses",
         tone_of_voice: "Direct\nNo slop\nInfo style",
-        volume_and_quality: "100 posts, all specific and publishable without heavy rewrites",
+        volume_and_quality:
+          "100 posts, all specific and publishable without heavy rewrites",
       }),
       now: 1700000000000,
     })
@@ -33,7 +36,11 @@ describe("result-mode-factory", () => {
       "100 posts, all specific and publishable without heavy rewrites",
     ])
     expect(factory.recipe?.packIds).toEqual(["ai-cmo"])
-    expect(factory.recipe?.stageOrder).toEqual(["Research the market", "Choose the angle", "Ship the assets"])
+    expect(factory.recipe?.stageOrder).toEqual([
+      "Research the market",
+      "Choose the angle",
+      "Ship the assets",
+    ])
   })
 
   it("reuses an existing matching factory when one is already selected for the mode", () => {
@@ -85,7 +92,10 @@ describe("result-mode-factory", () => {
 
     expect(factory.id).toBe(existing.id)
     expect(factory.modeId).toBe("courses")
-    expect(factory.recipe?.packIds).toEqual(["content-factory-alpha", "courses-factory-alpha"])
+    expect(factory.recipe?.packIds).toEqual([
+      "content-factory-alpha",
+      "courses-factory-alpha",
+    ])
     expect(factory.recipe?.strategistCheckpoints).toEqual([
       "Approve voice and structure",
       "Approve sample asset quality",

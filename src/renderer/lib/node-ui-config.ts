@@ -37,7 +37,8 @@ export const NODE_ICON_TONES: Record<NodeType, string> = {
   input: "border-status-info/30 bg-status-info/10 text-status-info",
   output: "border-hairline bg-surface-1 text-muted-foreground",
   skill: "border-foreground/20 bg-foreground/10 text-foreground-subtle",
-  evaluator: "border-status-warning/30 bg-status-warning/10 text-status-warning",
+  evaluator:
+    "border-status-warning/30 bg-status-warning/10 text-status-warning",
   splitter: "border-status-info/25 bg-status-info/8 text-status-info",
   merger: "border-status-success/25 bg-status-success/8 text-status-success",
   approval: "border-status-danger/22 bg-status-danger/8 text-status-danger",

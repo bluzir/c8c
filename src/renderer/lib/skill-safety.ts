@@ -11,12 +11,30 @@ export interface SkillSafetyWarning {
 // ── Destructive command patterns ────────────────────────
 
 const DESTRUCTIVE_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
-  { pattern: /\brm\s+-r(f)?\b/i, message: "This skill contains destructive file removal commands" },
-  { pattern: /\brm\s+-f(r)?\b/i, message: "This skill contains destructive file removal commands" },
-  { pattern: /\bdel\s+\//i, message: "This skill contains destructive delete commands" },
-  { pattern: /\bformat\s+[A-Z]:/i, message: "This skill contains disk format commands" },
-  { pattern: /\bDROP\s+TABLE\b/i, message: "This skill contains destructive database commands" },
-  { pattern: /\bDELETE\s+FROM\b/i, message: "This skill contains destructive database commands" },
+  {
+    pattern: /\brm\s+-r(f)?\b/i,
+    message: "This skill contains destructive file removal commands",
+  },
+  {
+    pattern: /\brm\s+-f(r)?\b/i,
+    message: "This skill contains destructive file removal commands",
+  },
+  {
+    pattern: /\bdel\s+\//i,
+    message: "This skill contains destructive delete commands",
+  },
+  {
+    pattern: /\bformat\s+[A-Z]:/i,
+    message: "This skill contains disk format commands",
+  },
+  {
+    pattern: /\bDROP\s+TABLE\b/i,
+    message: "This skill contains destructive database commands",
+  },
+  {
+    pattern: /\bDELETE\s+FROM\b/i,
+    message: "This skill contains destructive database commands",
+  },
 ]
 
 // ── Outbound data patterns ──────────────────────────────
@@ -63,7 +81,9 @@ export function analyzeSkillSafety(
   }
 
   // Check for outbound network patterns
-  const hasOutbound = OUTBOUND_PATTERNS.some(({ pattern }) => pattern.test(skillContent))
+  const hasOutbound = OUTBOUND_PATTERNS.some(({ pattern }) =>
+    pattern.test(skillContent),
+  )
   if (hasOutbound) {
     warnings.push({
       severity: "danger",
@@ -82,7 +102,9 @@ export function analyzeSkillSafety(
   }
 
   // Check for outside-project paths
-  const hasOutsidePaths = OUTSIDE_PROJECT_PATTERNS.some(({ pattern }) => pattern.test(skillContent))
+  const hasOutsidePaths = OUTSIDE_PROJECT_PATTERNS.some(({ pattern }) =>
+    pattern.test(skillContent),
+  )
   if (hasOutsidePaths) {
     warnings.push({
       severity: "warning",
@@ -91,7 +113,9 @@ export function analyzeSkillSafety(
   }
 
   // Check allowed tools for file mutation
-  const hasFileMutationTool = tools.some((tool) => FILE_MUTATION_TOOLS.has(tool))
+  const hasFileMutationTool = tools.some((tool) =>
+    FILE_MUTATION_TOOLS.has(tool),
+  )
   if (hasFileMutationTool) {
     warnings.push({
       severity: "info",

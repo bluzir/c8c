@@ -9,11 +9,16 @@ interface ResolveGuidedStartTemplateOptions {
   projectPath?: string | null
 }
 
-const REPO_SIGNAL_RE = /\b(repo|repository|codebase|branch|diff|pull request|workspace|project folder|directory|file path|existing code)\b/i
-const BRIEF_SIGNAL_RE = /\b(feature|brief|scope|requirements?|flow|screen|experience|roadmap|plan|upload|checkout|signup|dashboard|onboarding|settings|billing|auth)\b/i
-const REVIEW_SIGNAL_RE = /\b(review|verify|verification|qa|ship|merge|pull request|pr|diff)\b/i
-const SECURITY_SIGNAL_RE = /\b(security|secure|vulnerability|vulnerabilities|vuln|auth|authentication|authorization|permissions?|owasp|secret|secrets|exposure|hardening)\b/i
-const PATH_SIGNAL_RE = /(^|[\s"'`])([~./\\][^\s]+|[A-Za-z]:\\[^\s]+|[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+)/m
+const REPO_SIGNAL_RE =
+  /\b(repo|repository|codebase|branch|diff|pull request|workspace|project folder|directory|file path|existing code)\b/i
+const BRIEF_SIGNAL_RE =
+  /\b(feature|brief|scope|requirements?|flow|screen|experience|roadmap|plan|upload|checkout|signup|dashboard|onboarding|settings|billing|auth)\b/i
+const REVIEW_SIGNAL_RE =
+  /\b(review|verify|verification|qa|ship|merge|pull request|pr|diff)\b/i
+const SECURITY_SIGNAL_RE =
+  /\b(security|secure|vulnerability|vulnerabilities|vuln|auth|authentication|authorization|permissions?|owasp|secret|secrets|exposure|hardening)\b/i
+const PATH_SIGNAL_RE =
+  /(^|[\s"'`])([~./\\][^\s]+|[A-Za-z]:\\[^\s]+|[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+)/m
 
 function normalize(value: string | undefined | null) {
   return (value || "").trim()
@@ -30,9 +35,11 @@ function includesProjectPathSignal(value: string, projectPath?: string | null) {
 }
 
 function hasRepoSignal(value: string, projectPath?: string | null) {
-  return REPO_SIGNAL_RE.test(value)
-    || PATH_SIGNAL_RE.test(value)
-    || includesProjectPathSignal(value, projectPath)
+  return (
+    REPO_SIGNAL_RE.test(value) ||
+    PATH_SIGNAL_RE.test(value) ||
+    includesProjectPathSignal(value, projectPath)
+  )
 }
 
 function hasBriefSignal(value: string) {
@@ -64,7 +71,10 @@ export function resolveGuidedStartTemplateId({
     return fallbackTemplateId || "delivery-map-codebase"
   }
 
-  if (hasRepoSignal(combined, projectPath) && (hasReviewSignal(combined) || SECURITY_SIGNAL_RE.test(combined))) {
+  if (
+    hasRepoSignal(combined, projectPath) &&
+    (hasReviewSignal(combined) || SECURITY_SIGNAL_RE.test(combined))
+  ) {
     return "full-stack-code-audit"
   }
 

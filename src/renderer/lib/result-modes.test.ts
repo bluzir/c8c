@@ -14,7 +14,9 @@ import {
   templateMatchesResultMode,
 } from "./result-modes"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "generic-template",
     name: "Generic Template",
@@ -91,9 +93,11 @@ describe("result-modes", () => {
       }),
     ]
 
-    expect(filterTemplatesForResultMode(templates, "courses").map((template) => template.id)).toEqual([
-      "landing-page-generator",
-    ])
+    expect(
+      filterTemplatesForResultMode(templates, "courses").map(
+        (template) => template.id,
+      ),
+    ).toEqual(["landing-page-generator"])
   })
 
   it("prioritizes high-confidence content matches first", () => {
@@ -114,10 +118,11 @@ describe("result-modes", () => {
       }),
     ]
 
-    expect(prioritizeTemplatesForResultMode(templates, "courses").map((template) => template.id)).toEqual([
-      "content-ready-posts",
-      "landing-page-generator",
-    ])
+    expect(
+      prioritizeTemplatesForResultMode(templates, "courses").map(
+        (template) => template.id,
+      ),
+    ).toEqual(["content-ready-posts", "landing-page-generator"])
   })
 
   it("falls back to development for unknown mode ids", () => {
@@ -125,11 +130,19 @@ describe("result-modes", () => {
   })
 
   it("infers development mode for engineering intent", () => {
-    expect(inferResultModeFromText("ux ui polish the current app and review the implementation")).toBe("development")
+    expect(
+      inferResultModeFromText(
+        "ux ui polish the current app and review the implementation",
+      ),
+    ).toBe("development")
   })
 
   it("infers marketing mode for growth intent", () => {
-    expect(inferResultModeFromText("build a campaign and positioning plan for this audience")).toBe("content")
+    expect(
+      inferResultModeFromText(
+        "build a campaign and positioning plan for this audience",
+      ),
+    ).toBe("content")
   })
 
   it("resolves development quick starts in canonical order", () => {
@@ -142,7 +155,11 @@ describe("result-modes", () => {
       createTemplate({ id: "delivery-verify-phase", name: "Verify" }),
     ]
 
-    expect(getResultModeQuickStarts(templates, "development").map((entry) => entry.template.id)).toEqual([
+    expect(
+      getResultModeQuickStarts(templates, "development").map(
+        (entry) => entry.template.id,
+      ),
+    ).toEqual([
       "delivery-map-codebase",
       "delivery-shape-project",
       "delivery-plan-phase",
@@ -152,25 +169,60 @@ describe("result-modes", () => {
 
   it("reorders development create quick starts from stable project context", () => {
     const quickStarts = [
-      { templateId: "delivery-map-codebase", label: "Map", summary: "", intentLabel: "Do it" },
-      { templateId: "delivery-shape-project", label: "Shape", summary: "", intentLabel: "Do it" },
-      { templateId: "delivery-plan-phase", label: "Plan", summary: "", intentLabel: "Plan it" },
-      { templateId: "delivery-review-phase", label: "Review", summary: "", intentLabel: "Review it" },
-      { templateId: "delivery-verify-phase", label: "Verify", summary: "", intentLabel: "Review it" },
+      {
+        templateId: "delivery-map-codebase",
+        label: "Map",
+        summary: "",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-shape-project",
+        label: "Shape",
+        summary: "",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-plan-phase",
+        label: "Plan",
+        summary: "",
+        intentLabel: "Plan it",
+      },
+      {
+        templateId: "delivery-review-phase",
+        label: "Review",
+        summary: "",
+        intentLabel: "Review it",
+      },
+      {
+        templateId: "delivery-verify-phase",
+        label: "Verify",
+        summary: "",
+        intentLabel: "Review it",
+      },
     ]
 
-    expect(prioritizeDevelopmentCreateQuickStarts(quickStarts, "greenfield_empty").map((entry) => entry.templateId)).toEqual([
-      "delivery-shape-project",
-      "delivery-plan-phase",
-    ])
+    expect(
+      prioritizeDevelopmentCreateQuickStarts(
+        quickStarts,
+        "greenfield_empty",
+      ).map((entry) => entry.templateId),
+    ).toEqual(["delivery-shape-project", "delivery-plan-phase"])
 
-    expect(prioritizeDevelopmentCreateQuickStarts(quickStarts, "existing_repo").map((entry) => entry.templateId)).toEqual([
+    expect(
+      prioritizeDevelopmentCreateQuickStarts(quickStarts, "existing_repo").map(
+        (entry) => entry.templateId,
+      ),
+    ).toEqual([
       "delivery-map-codebase",
       "delivery-shape-project",
       "delivery-plan-phase",
     ])
 
-    expect(prioritizeDevelopmentCreateQuickStarts(quickStarts, "review_ready").map((entry) => entry.templateId)).toEqual([
+    expect(
+      prioritizeDevelopmentCreateQuickStarts(quickStarts, "review_ready").map(
+        (entry) => entry.templateId,
+      ),
+    ).toEqual([
       "delivery-review-phase",
       "delivery-map-codebase",
       "delivery-shape-project",
@@ -180,41 +232,136 @@ describe("result-modes", () => {
 
   it("rewrites development quick starts into job-first labels", () => {
     const quickStarts = [
-      { templateId: "delivery-map-codebase", label: "Map codebase", summary: "Map", intentLabel: "Do it" },
-      { templateId: "delivery-shape-project", label: "Shape project", summary: "Shape", intentLabel: "Do it" },
-      { templateId: "delivery-plan-phase", label: "Plan next phase", summary: "Plan", intentLabel: "Plan it" },
-      { templateId: "delivery-review-phase", label: "Review phase", summary: "Review", intentLabel: "Review it" },
-      { templateId: "delivery-verify-phase", label: "Verify phase", summary: "Verify", intentLabel: "Review it" },
+      {
+        templateId: "delivery-map-codebase",
+        label: "Map codebase",
+        summary: "Map",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-shape-project",
+        label: "Shape project",
+        summary: "Shape",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-plan-phase",
+        label: "Plan next phase",
+        summary: "Plan",
+        intentLabel: "Plan it",
+      },
+      {
+        templateId: "delivery-review-phase",
+        label: "Review phase",
+        summary: "Review",
+        intentLabel: "Review it",
+      },
+      {
+        templateId: "delivery-verify-phase",
+        label: "Verify phase",
+        summary: "Verify",
+        intentLabel: "Review it",
+      },
     ]
 
-    expect(presentDevelopmentCreateQuickStarts(quickStarts, "greenfield_empty")).toMatchObject([
-      { templateId: "delivery-map-codebase", label: "Map codebase", intentLabel: "Do it" },
-      { templateId: "delivery-shape-project", label: "Build from brief", intentLabel: "Do it" },
-      { templateId: "delivery-plan-phase", label: "Plan from brief", intentLabel: "Plan it" },
-      { templateId: "delivery-review-phase", label: "Review phase", intentLabel: "Review it" },
-      { templateId: "delivery-verify-phase", label: "Verify phase", intentLabel: "Review it" },
+    expect(
+      presentDevelopmentCreateQuickStarts(quickStarts, "greenfield_empty"),
+    ).toMatchObject([
+      {
+        templateId: "delivery-map-codebase",
+        label: "Map codebase",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-shape-project",
+        label: "Build from brief",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-plan-phase",
+        label: "Plan from brief",
+        intentLabel: "Plan it",
+      },
+      {
+        templateId: "delivery-review-phase",
+        label: "Review phase",
+        intentLabel: "Review it",
+      },
+      {
+        templateId: "delivery-verify-phase",
+        label: "Verify phase",
+        intentLabel: "Review it",
+      },
     ])
 
-    expect(presentDevelopmentCreateQuickStarts(quickStarts, "review_ready")).toMatchObject([
-      { templateId: "delivery-map-codebase", label: "Explore this project", intentLabel: "Do it" },
-      { templateId: "delivery-shape-project", label: "Change the app", intentLabel: "Do it" },
-      { templateId: "delivery-plan-phase", label: "Plan the change", intentLabel: "Plan it" },
-      { templateId: "delivery-review-phase", label: "Review before ship", intentLabel: "Review it" },
-      { templateId: "delivery-verify-phase", label: "Verify phase", intentLabel: "Review it" },
+    expect(
+      presentDevelopmentCreateQuickStarts(quickStarts, "review_ready"),
+    ).toMatchObject([
+      {
+        templateId: "delivery-map-codebase",
+        label: "Explore this project",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-shape-project",
+        label: "Change the app",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-plan-phase",
+        label: "Plan the change",
+        intentLabel: "Plan it",
+      },
+      {
+        templateId: "delivery-review-phase",
+        label: "Review before ship",
+        intentLabel: "Review it",
+      },
+      {
+        templateId: "delivery-verify-phase",
+        label: "Verify phase",
+        intentLabel: "Review it",
+      },
     ])
   })
 
   it("rewrites development route options into the same job-first grammar", () => {
     const options = [
-      { templateId: "delivery-map-codebase", label: "Map codebase", intentLabel: "Do it" },
-      { templateId: "delivery-shape-project", label: "Shape project", intentLabel: "Do it" },
-      { templateId: "delivery-plan-phase", label: "Plan next phase", intentLabel: "Plan it" },
+      {
+        templateId: "delivery-map-codebase",
+        label: "Map codebase",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-shape-project",
+        label: "Shape project",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-plan-phase",
+        label: "Plan next phase",
+        intentLabel: "Plan it",
+      },
     ]
 
-    expect(presentDevelopmentCreateRouteOptions(options, "existing_repo")).toEqual([
-      { templateId: "delivery-map-codebase", label: "Explore this project", intentLabel: "Do it" },
-      { templateId: "delivery-shape-project", label: "Change the app", intentLabel: "Do it" },
-      { templateId: "delivery-plan-phase", label: "Plan the change", intentLabel: "Plan it" },
+    expect(
+      presentDevelopmentCreateRouteOptions(options, "existing_repo"),
+    ).toEqual([
+      {
+        templateId: "delivery-map-codebase",
+        label: "Explore this project",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-shape-project",
+        label: "Change the app",
+        intentLabel: "Do it",
+      },
+      {
+        templateId: "delivery-plan-phase",
+        label: "Plan the change",
+        intentLabel: "Plan it",
+      },
     ])
   })
 

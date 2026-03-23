@@ -47,11 +47,7 @@ const DEV_PROCESS_ORDER: ProcessSpineStageId[] = [
   "ship",
 ]
 
-const REVIEW_ENTRY_ORDER: ProcessSpineStageId[] = [
-  "review",
-  "verify",
-  "ship",
-]
+const REVIEW_ENTRY_ORDER: ProcessSpineStageId[] = ["review", "verify", "ship"]
 
 const STAGE_RANK: Record<ProcessSpineStageId, number> = {
   shape_map: 0,
@@ -94,10 +90,17 @@ function normalizeToken(value: string) {
   return value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ")
 }
 
-function stageIdFromLabel(value: string | null | undefined): ProcessSpineStageId | null {
+function stageIdFromLabel(
+  value: string | null | undefined,
+): ProcessSpineStageId | null {
   const normalized = normalizeToken(value || "")
   if (!normalized) return null
-  if (normalized === "shape / map" || normalized === "shape map" || normalized === "map" || normalized === "shape") {
+  if (
+    normalized === "shape / map" ||
+    normalized === "shape map" ||
+    normalized === "map" ||
+    normalized === "shape"
+  ) {
     return "shape_map"
   }
   if (normalized === "plan") return "plan"
@@ -108,17 +111,25 @@ function stageIdFromLabel(value: string | null | undefined): ProcessSpineStageId
   return null
 }
 
-function stageIdFromPackJourneyStage(value: string | null | undefined): ProcessSpineStageId | null {
+function stageIdFromPackJourneyStage(
+  value: string | null | undefined,
+): ProcessSpineStageId | null {
   const normalized = normalizeToken(value || "")
   if (!normalized) return null
   return JOURNEY_STAGE_TO_PROCESS_STAGE[normalized] || null
 }
 
 export function deriveProcessSpineStageId(
-  templateOrContext?: Pick<WorkflowTemplate, "id" | "pack"> | Pick<WorkflowTemplateRunContext, "templateId" | "pack"> | null,
+  templateOrContext?:
+    | Pick<WorkflowTemplate, "id" | "pack">
+    | Pick<WorkflowTemplateRunContext, "templateId" | "pack">
+    | null,
 ): ProcessSpineStageId | null {
   if (!templateOrContext) return null
-  const templateId = "templateId" in templateOrContext ? templateOrContext.templateId : templateOrContext.id
+  const templateId =
+    "templateId" in templateOrContext
+      ? templateOrContext.templateId
+      : templateOrContext.id
   const explicit = TEMPLATE_STAGE_OVERRIDES[templateId]
   if (explicit) return explicit
   return stageIdFromPackJourneyStage(templateOrContext.pack?.journeyStage)
@@ -135,10 +146,15 @@ function dedupeStageIds(values: ProcessSpineStageId[]) {
   return next
 }
 
-function ensureStage(order: ProcessSpineStageId[], stageId: ProcessSpineStageId | null) {
+function ensureStage(
+  order: ProcessSpineStageId[],
+  stageId: ProcessSpineStageId | null,
+) {
   if (!stageId || order.includes(stageId)) return order
   const next = [...order]
-  const insertAt = next.findIndex((candidate) => STAGE_RANK[candidate] > STAGE_RANK[stageId])
+  const insertAt = next.findIndex(
+    (candidate) => STAGE_RANK[candidate] > STAGE_RANK[stageId],
+  )
   if (insertAt === -1) {
     next.push(stageId)
     return next
@@ -147,7 +163,9 @@ function ensureStage(order: ProcessSpineStageId[], stageId: ProcessSpineStageId 
   return next
 }
 
-function normalizeStageOrder(values: string[] | undefined): ProcessSpineStageId[] {
+function normalizeStageOrder(
+  values: string[] | undefined,
+): ProcessSpineStageId[] {
   if (!values?.length) return []
   const stages = values
     .map((value) => stageIdFromLabel(value))
@@ -157,7 +175,10 @@ function normalizeStageOrder(values: string[] | undefined): ProcessSpineStageId[
 
 function matchesFactoryContext(
   factory: ProjectFactoryDefinition,
-  context?: Pick<WorkflowTemplateRunContext, "factoryId" | "factoryLabel" | "pack"> | null,
+  context?: Pick<
+    WorkflowTemplateRunContext,
+    "factoryId" | "factoryLabel" | "pack"
+  > | null,
 ) {
   if (!context) return false
   if (context.factoryId) return factory.id === context.factoryId
@@ -165,11 +186,19 @@ function matchesFactoryContext(
   const packId = context.pack?.id
   if (packId && factory.recipe?.packIds?.includes(packId)) return true
 
-  const normalizedLabel = normalizeToken(context.factoryLabel || context.pack?.label || "")
-  return Boolean(normalizedLabel) && normalizeToken(factory.label) === normalizedLabel
+  const normalizedLabel = normalizeToken(
+    context.factoryLabel || context.pack?.label || "",
+  )
+  return (
+    Boolean(normalizedLabel) &&
+    normalizeToken(factory.label) === normalizedLabel
+  )
 }
 
-function buildPackStageOrder(templates: WorkflowTemplate[], packId: string): ProcessSpineStageId[] {
+function buildPackStageOrder(
+  templates: WorkflowTemplate[],
+  packId: string,
+): ProcessSpineStageId[] {
   const stages = templates
     .filter((template) => template.pack?.id === packId)
     .map((template) => deriveProcessSpineStageId(template))
@@ -179,7 +208,10 @@ function buildPackStageOrder(templates: WorkflowTemplate[], packId: string): Pro
 }
 
 function isDevProcessContext(
-  context: Pick<WorkflowTemplateRunContext, "templateId" | "pack"> | null | undefined,
+  context:
+    | Pick<WorkflowTemplateRunContext, "templateId" | "pack">
+    | null
+    | undefined,
   currentStageId: ProcessSpineStageId | null,
 ) {
   if (currentStageId && DEV_PROCESS_ORDER.includes(currentStageId)) return true
@@ -188,7 +220,11 @@ function isDevProcessContext(
 }
 
 function buildDefaultOrder(currentStageId: ProcessSpineStageId | null) {
-  if (currentStageId === "review" || currentStageId === "verify" || currentStageId === "ship") {
+  if (
+    currentStageId === "review" ||
+    currentStageId === "verify" ||
+    currentStageId === "ship"
+  ) {
     return [...REVIEW_ENTRY_ORDER]
   }
   if (currentStageId) {
@@ -206,18 +242,20 @@ function deriveCurrentStageState({
   runOutcome: RunStatus | null
   reviewingPastRun?: boolean
 }): Extract<ProcessSpineStageState, "current" | "done" | "blocked"> {
-  if (reviewingPastRun || (runStatus === "done" && runOutcome === "completed")) {
+  if (
+    reviewingPastRun ||
+    (runStatus === "done" && runOutcome === "completed")
+  ) {
     return "done"
   }
 
   if (
-    runStatus === "error"
-    || (runStatus === "done" && (
-      runOutcome === "blocked"
-      || runOutcome === "failed"
-      || runOutcome === "cancelled"
-      || runOutcome === "interrupted"
-    ))
+    runStatus === "error" ||
+    (runStatus === "done" &&
+      (runOutcome === "blocked" ||
+        runOutcome === "failed" ||
+        runOutcome === "cancelled" ||
+        runOutcome === "interrupted"))
   ) {
     return "blocked"
   }
@@ -227,29 +265,43 @@ function deriveCurrentStageState({
 
 export function selectProcessSpineFactory(
   blueprint: ProjectFactoryBlueprint | null,
-  context?: Pick<WorkflowTemplateRunContext, "factoryId" | "factoryLabel" | "pack"> | null,
+  context?: Pick<
+    WorkflowTemplateRunContext,
+    "factoryId" | "factoryLabel" | "pack"
+  > | null,
 ): ProjectFactoryDefinition | null {
   if (!blueprint || !context) return null
   const factories = blueprint.factories || []
   if (context.factoryId) {
-    const direct = factories.find((factory) => factory.id === context.factoryId) || null
+    const direct =
+      factories.find((factory) => factory.id === context.factoryId) || null
     if (direct) return direct
   }
 
   if (blueprint.selectedFactoryId) {
-    const selected = factories.find((factory) => factory.id === blueprint.selectedFactoryId) || null
+    const selected =
+      factories.find((factory) => factory.id === blueprint.selectedFactoryId) ||
+      null
     if (selected && matchesFactoryContext(selected, context)) return selected
   }
 
   const packId = context.pack?.id
   if (packId) {
-    const byPack = factories.find((factory) => factory.recipe?.packIds?.includes(packId)) || null
+    const byPack =
+      factories.find((factory) => factory.recipe?.packIds?.includes(packId)) ||
+      null
     if (byPack) return byPack
   }
 
-  const normalizedLabel = normalizeToken(context.factoryLabel || context.pack?.label || "")
+  const normalizedLabel = normalizeToken(
+    context.factoryLabel || context.pack?.label || "",
+  )
   if (normalizedLabel) {
-    return factories.find((factory) => normalizeToken(factory.label) === normalizedLabel) || null
+    return (
+      factories.find(
+        (factory) => normalizeToken(factory.label) === normalizedLabel,
+      ) || null
+    )
   }
 
   return null
@@ -277,10 +329,14 @@ export function buildProcessSpine({
   if (!currentStageId && !nextStageId) return null
 
   const factoryStageOrder = normalizeStageOrder(factory?.recipe?.stageOrder)
-  const packStageOrder = context?.pack?.id ? buildPackStageOrder(templates || [], context.pack.id) : []
-  let order = packStageOrder.length > 0
-    ? packStageOrder
-    : (factoryStageOrder.length > 0 && isDevProcessContext(context, currentStageId))
+  const packStageOrder = context?.pack?.id
+    ? buildPackStageOrder(templates || [], context.pack.id)
+    : []
+  let order =
+    packStageOrder.length > 0
+      ? packStageOrder
+      : factoryStageOrder.length > 0 &&
+          isDevProcessContext(context, currentStageId)
         ? [...DEV_PROCESS_ORDER]
         : factoryStageOrder.length > 0
           ? factoryStageOrder

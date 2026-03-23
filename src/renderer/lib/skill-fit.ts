@@ -7,7 +7,10 @@ export interface SkillStageFit {
   reason: string
 }
 
-export function deriveSkillStageFit(skill: DiscoveredSkill, stageLabel?: string | null): SkillStageFit {
+export function deriveSkillStageFit(
+  skill: DiscoveredSkill,
+  stageLabel?: string | null,
+): SkillStageFit {
   void skill
   void stageLabel
   return {
@@ -21,7 +24,9 @@ export function deriveSkillProvenanceLabel(skill: DiscoveredSkill): string {
   const sourceKind = getSkillSourceKind(skill)
   const sourceLabel = getSkillSourceLabel(skill)
   if (sourceKind === "plugin") {
-    return skill.pluginVersion ? `${sourceLabel} v${skill.pluginVersion}` : sourceLabel
+    return skill.pluginVersion
+      ? `${sourceLabel} v${skill.pluginVersion}`
+      : sourceLabel
   }
   return sourceLabel
 }

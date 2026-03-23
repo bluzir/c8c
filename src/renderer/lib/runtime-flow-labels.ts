@@ -27,7 +27,9 @@ export interface RuntimeStagePresentation {
   artifactRoleLabel: string
 }
 
-function getRuntimeArtifactRoleLabel(role?: NodeInput["metadata"]["artifact_role"]) {
+function getRuntimeArtifactRoleLabel(
+  role?: NodeInput["metadata"]["artifact_role"],
+) {
   if (role === "input") return "Input"
   if (role === "decision") return "Decision"
   if (role === "final") return "Final"
@@ -40,9 +42,12 @@ function buildArtifactOutcomeText(
   fallbackText: string,
 ) {
   if (!artifactLabel) return fallbackText
-  if (role === "input") return `This step brings ${artifactLabel} into the flow.`
-  if (role === "decision") return `This step records ${artifactLabel} before the flow continues.`
-  if (role === "final") return `This step delivers ${artifactLabel} ready to review.`
+  if (role === "input")
+    return `This step brings ${artifactLabel} into the flow.`
+  if (role === "decision")
+    return `This step records ${artifactLabel} before the flow continues.`
+  if (role === "final")
+    return `This step delivers ${artifactLabel} ready to review.`
   return `This step produces ${artifactLabel} for the next step.`
 }
 
@@ -82,7 +87,10 @@ export function getRuntimeStagePresentation(
   node: WorkflowNode,
   options?: { fallbackId?: string; output?: NodeInput | null },
 ): RuntimeStagePresentation {
-  const artifactOverrideLabel = compactCopy(options?.output?.metadata?.artifact_label, 72)
+  const artifactOverrideLabel = compactCopy(
+    options?.output?.metadata?.artifact_label,
+    72,
+  )
   const artifactRole = options?.output?.metadata?.artifact_role
 
   if (node.type === "skill") {
@@ -91,30 +99,49 @@ export function getRuntimeStagePresentation(
     if (skillRef) {
       const parts = skillRef.split("/").filter(Boolean)
       const leaf = parts.length > 0 ? parts[parts.length - 1] : skillRef
-      const artifactLabel = artifactOverrideLabel || `${humanizeRuntimeIdentifier(leaf)} output`
+      const artifactLabel =
+        artifactOverrideLabel || `${humanizeRuntimeIdentifier(leaf)} output`
       return {
         kind: "Role",
-        group: parts.length > 1
-          ? parts.slice(0, -1).map((part) => humanizeRuntimeIdentifier(part)).join(" / ")
-          : "Agent role",
+        group:
+          parts.length > 1
+            ? parts
+                .slice(0, -1)
+                .map((part) => humanizeRuntimeIdentifier(part))
+                .join(" / ")
+            : "Agent role",
         title: humanizeRuntimeIdentifier(leaf),
         outcomeLabel: "Produces",
-        outcomeText: buildArtifactOutcomeText(artifactRole || "intermediate", artifactLabel, compactCopy(config.prompt, 80) || "Result for the next role."),
+        outcomeText: buildArtifactOutcomeText(
+          artifactRole || "intermediate",
+          artifactLabel,
+          compactCopy(config.prompt, 80) || "Result for the next role.",
+        ),
         artifactLabel,
-        artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "intermediate"),
+        artifactRoleLabel: getRuntimeArtifactRoleLabel(
+          artifactRole || "intermediate",
+        ),
       }
     }
 
-    const title = compactCopy(config.prompt, 48) || humanizeRuntimeIdentifier(options?.fallbackId || "skill")
+    const title =
+      compactCopy(config.prompt, 48) ||
+      humanizeRuntimeIdentifier(options?.fallbackId || "skill")
     const artifactLabel = artifactOverrideLabel || `${title} output`
     return {
       kind: "Role",
       group: "Agent role",
       title,
       outcomeLabel: "Produces",
-      outcomeText: buildArtifactOutcomeText(artifactRole || "intermediate", artifactLabel, "Result for the next role."),
+      outcomeText: buildArtifactOutcomeText(
+        artifactRole || "intermediate",
+        artifactLabel,
+        "Result for the next role.",
+      ),
       artifactLabel,
-      artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "intermediate"),
+      artifactRoleLabel: getRuntimeArtifactRoleLabel(
+        artifactRole || "intermediate",
+      ),
     }
   }
 
@@ -124,11 +151,19 @@ export function getRuntimeStagePresentation(
     return {
       kind: "Check",
       group: "Quality check",
-      title: config.threshold ? `Quality check ${config.threshold}/10` : "Quality check",
+      title: config.threshold
+        ? `Quality check ${config.threshold}/10`
+        : "Quality check",
       outcomeLabel: "Decides",
-      outcomeText: buildArtifactOutcomeText(artifactRole || "decision", artifactLabel, "Whether work is strong enough to continue."),
+      outcomeText: buildArtifactOutcomeText(
+        artifactRole || "decision",
+        artifactLabel,
+        "Whether work is strong enough to continue.",
+      ),
       artifactLabel,
-      artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "decision"),
+      artifactRoleLabel: getRuntimeArtifactRoleLabel(
+        artifactRole || "decision",
+      ),
     }
   }
 
@@ -139,33 +174,46 @@ export function getRuntimeStagePresentation(
       group: "Parallel work",
       title: "Fan out",
       outcomeLabel: "Creates",
-      outcomeText: buildArtifactOutcomeText(artifactRole || "intermediate", artifactLabel, "Parallel branch assignments for downstream roles."),
+      outcomeText: buildArtifactOutcomeText(
+        artifactRole || "intermediate",
+        artifactLabel,
+        "Parallel branch assignments for downstream roles.",
+      ),
       artifactLabel,
-      artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "intermediate"),
+      artifactRoleLabel: getRuntimeArtifactRoleLabel(
+        artifactRole || "intermediate",
+      ),
     }
   }
 
   if (node.type === "merger") {
     const config = node.config as MergerNodeConfig
-    const artifactLabel = artifactOverrideLabel || (
-      config.strategy === "summarize"
+    const artifactLabel =
+      artifactOverrideLabel ||
+      (config.strategy === "summarize"
         ? "Merged summary"
         : config.strategy === "select_best"
           ? "Best branch result"
-          : "Merged result"
-    )
+          : "Merged result")
     return {
       kind: "Merge",
       group: "Merge",
-      title: config.strategy === "summarize"
-        ? "Summarize branches"
-        : config.strategy === "select_best"
-          ? "Select best branch"
-          : "Merge branches",
+      title:
+        config.strategy === "summarize"
+          ? "Summarize branches"
+          : config.strategy === "select_best"
+            ? "Select best branch"
+            : "Merge branches",
       outcomeLabel: "Produces",
-      outcomeText: buildArtifactOutcomeText(artifactRole || "intermediate", artifactLabel, "One combined result from the branch work."),
+      outcomeText: buildArtifactOutcomeText(
+        artifactRole || "intermediate",
+        artifactLabel,
+        "One combined result from the branch work.",
+      ),
       artifactLabel,
-      artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "intermediate"),
+      artifactRoleLabel: getRuntimeArtifactRoleLabel(
+        artifactRole || "intermediate",
+      ),
     }
   }
 
@@ -177,9 +225,15 @@ export function getRuntimeStagePresentation(
       group: "Review check",
       title: compactCopy(config.message, 42) || "Review and continue",
       outcomeLabel: "Approves",
-      outcomeText: buildArtifactOutcomeText(artifactRole || "decision", artifactLabel, "A human decision before the flow can continue."),
+      outcomeText: buildArtifactOutcomeText(
+        artifactRole || "decision",
+        artifactLabel,
+        "A human decision before the flow can continue.",
+      ),
       artifactLabel,
-      artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "decision"),
+      artifactRoleLabel: getRuntimeArtifactRoleLabel(
+        artifactRole || "decision",
+      ),
     }
   }
 
@@ -189,7 +243,9 @@ export function getRuntimeStagePresentation(
     return {
       kind: config.mode === "approval" ? "Approval" : "Input",
       group: config.mode === "approval" ? "Review check" : "Human input",
-      title: compactCopy(config.staticRequest?.title, 42) || (config.mode === "approval" ? "Review and continue" : "Provide input"),
+      title:
+        compactCopy(config.staticRequest?.title, 42) ||
+        (config.mode === "approval" ? "Review and continue" : "Provide input"),
       outcomeLabel: config.mode === "approval" ? "Approves" : "Collects",
       outcomeText: buildArtifactOutcomeText(
         artifactRole || "decision",
@@ -199,18 +255,27 @@ export function getRuntimeStagePresentation(
           : "Structured answers from a human before the flow can continue.",
       ),
       artifactLabel,
-      artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "decision"),
+      artifactRoleLabel: getRuntimeArtifactRoleLabel(
+        artifactRole || "decision",
+      ),
     }
   }
 
   if (node.type === "output") {
-    const artifactLabel = artifactOverrideLabel || compactCopy(node.config.title, 42) || "Final result"
+    const artifactLabel =
+      artifactOverrideLabel ||
+      compactCopy(node.config.title, 42) ||
+      "Final result"
     return {
       kind: "Result",
       group: "Result",
       title: compactCopy(node.config.title, 42) || "Final result",
       outcomeLabel: "Delivers",
-      outcomeText: buildArtifactOutcomeText(artifactRole || "final", artifactLabel, "The final output ready to review, copy, or export."),
+      outcomeText: buildArtifactOutcomeText(
+        artifactRole || "final",
+        artifactLabel,
+        "The final output ready to review, copy, or export.",
+      ),
       artifactLabel,
       artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "final"),
     }
@@ -222,13 +287,20 @@ export function getRuntimeStagePresentation(
     group: "Input",
     title: "Input",
     outcomeLabel: "Provides",
-    outcomeText: buildArtifactOutcomeText(artifactRole || "input", artifactLabel, "The source material this flow works from."),
+    outcomeText: buildArtifactOutcomeText(
+      artifactRole || "input",
+      artifactLabel,
+      "The source material this flow works from.",
+    ),
     artifactLabel,
     artifactRoleLabel: getRuntimeArtifactRoleLabel(artifactRole || "input"),
   }
 }
 
-export function getRuntimeStageIdentity(node: WorkflowNode, options?: { fallbackId?: string }) {
+export function getRuntimeStageIdentity(
+  node: WorkflowNode,
+  options?: { fallbackId?: string },
+) {
   const presentation = getRuntimeStagePresentation(node, options)
   return {
     group: presentation.group,
@@ -236,6 +308,9 @@ export function getRuntimeStageIdentity(node: WorkflowNode, options?: { fallback
   }
 }
 
-export function getRuntimeNodeLabel(node: WorkflowNode, options?: { fallbackId?: string }) {
+export function getRuntimeNodeLabel(
+  node: WorkflowNode,
+  options?: { fallbackId?: string },
+) {
   return getRuntimeStagePresentation(node, options).title
 }

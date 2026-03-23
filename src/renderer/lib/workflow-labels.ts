@@ -33,7 +33,11 @@ export function getWorkflowNodeLabel(node: WorkflowNode): string {
     const cfg = node.config as InputNodeConfig
     const parts: string[] = []
     if (cfg.inputType && cfg.inputType !== "auto") {
-      parts.push(cfg.inputType === "url" ? "URL" : cfg.inputType.charAt(0).toUpperCase() + cfg.inputType.slice(1))
+      parts.push(
+        cfg.inputType === "url"
+          ? "URL"
+          : cfg.inputType.charAt(0).toUpperCase() + cfg.inputType.slice(1),
+      )
     }
     if (cfg.required === false) parts.push("optional")
     return parts.length > 0 ? `input (${parts.join(", ")})` : "input"

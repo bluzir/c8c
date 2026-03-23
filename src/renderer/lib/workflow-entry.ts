@@ -60,15 +60,21 @@ export interface WorkflowTemplateCaseOverride {
   caseLabel?: string
 }
 
-export function getRequestedResultFromEntryState(entryState: WorkflowEntryState | null | undefined) {
+export function getRequestedResultFromEntryState(
+  entryState: WorkflowEntryState | null | undefined,
+) {
   if (!entryState) return ""
-  if (entryState.contractLabel !== "Requested result" && entryState.contractLabel !== "What you asked for") {
+  if (
+    entryState.contractLabel !== "Requested result" &&
+    entryState.contractLabel !== "What you asked for"
+  ) {
     return ""
   }
   return entryState.contractText.trim()
 }
 
-const DEFAULT_INPUT_PLACEHOLDER = "Enter your input text, paste a URL, or describe what to run..."
+const DEFAULT_INPUT_PLACEHOLDER =
+  "Enter your input text, paste a URL, or describe what to run..."
 
 function collapseWhitespace(value: string) {
   return value.trim().replace(/\s+/g, " ")
@@ -106,19 +112,25 @@ function createFactoryCaseId(seed: string) {
   return `case:${seed}:${Date.now().toString(36)}`
 }
 
-export function deriveArtifactCaseKey(artifact: Pick<ArtifactRecord, "caseId" | "workflowPath" | "runId">) {
-  if (typeof artifact.caseId === "string" && artifact.caseId.trim().length > 0) {
+export function deriveArtifactCaseKey(
+  artifact: Pick<ArtifactRecord, "caseId" | "workflowPath" | "runId">,
+) {
+  if (
+    typeof artifact.caseId === "string" &&
+    artifact.caseId.trim().length > 0
+  ) {
     return artifact.caseId
   }
   return `legacy:${artifact.workflowPath || artifact.runId}`
 }
 
 function factorySeed(factoryId: string) {
-  return factoryId
-    .replace(/^(factory|pack):/i, "")
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    || "factory"
+  return (
+    factoryId
+      .replace(/^(factory|pack):/i, "")
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "") || "factory"
+  )
 }
 
 function deriveFactoryIdentity(
@@ -126,11 +138,19 @@ function deriveFactoryIdentity(
   sourceArtifacts?: ArtifactRecord[],
   factory?: Pick<ProjectFactoryDefinition, "id" | "label"> | null,
 ) {
-  const sourcedFactory = sourceArtifacts?.find((artifact) => typeof artifact.factoryId === "string" && artifact.factoryId.trim().length > 0)
+  const sourcedFactory = sourceArtifacts?.find(
+    (artifact) =>
+      typeof artifact.factoryId === "string" &&
+      artifact.factoryId.trim().length > 0,
+  )
   if (sourcedFactory?.factoryId) {
     return {
       factoryId: sourcedFactory.factoryId,
-      factoryLabel: sourcedFactory.factoryLabel || factory?.label || template.pack?.label || template.name,
+      factoryLabel:
+        sourcedFactory.factoryLabel ||
+        factory?.label ||
+        template.pack?.label ||
+        template.name,
     }
   }
 
@@ -160,7 +180,10 @@ function deriveCaseIdentity(
     }
   }
 
-  const firstArtifactWithCase = sourceArtifacts?.find((artifact) => typeof artifact.caseId === "string" && artifact.caseId.trim().length > 0)
+  const firstArtifactWithCase = sourceArtifacts?.find(
+    (artifact) =>
+      typeof artifact.caseId === "string" && artifact.caseId.trim().length > 0,
+  )
   if (firstArtifactWithCase?.caseId) {
     return {
       caseId: firstArtifactWithCase.caseId,
@@ -168,7 +191,11 @@ function deriveCaseIdentity(
     }
   }
 
-  const { factoryId } = deriveFactoryIdentity(template, sourceArtifacts, factory)
+  const { factoryId } = deriveFactoryIdentity(
+    template,
+    sourceArtifacts,
+    factory,
+  )
   if (factoryId) {
     return {
       caseId: createFactoryCaseId(factorySeed(factoryId)),
@@ -237,17 +264,22 @@ const TEMPLATE_CONTINUATION_LABELS: Record<string, string> = {
 
 const TEMPLATE_CONTINUATION_DESCRIPTIONS: Record<string, string> = {
   "delivery-map-codebase": "Explore the current codebase before changing it.",
-  "delivery-shape-project": "Define what should change before planning or implementation starts.",
+  "delivery-shape-project":
+    "Define what should change before planning or implementation starts.",
   "delivery-plan-phase": "Turn the scoped change into an execution-ready plan.",
   "delivery-implement-phase": "Apply the approved change to the current app.",
-  "delivery-review-phase": "Review the current work and surface concrete gaps before final checks.",
+  "delivery-review-phase":
+    "Review the current work and surface concrete gaps before final checks.",
   "delivery-verify-phase": "Check completion against the expected outcome.",
   "gstack-preflight-gate": "Check completion before moving toward release.",
   "gstack-release-room": "Ship the approved work.",
   "ux-ui-polish-audit": "Audit the current UI and surface concrete UX gaps.",
-  "impeccable-ui-pipeline": "Improve the current UI flow and polish weak spots.",
-  "playwright-visual-audit": "Run a browser-based visual check on the current UI.",
-  "full-stack-code-audit": "Audit the codebase for security, quality, and architecture risks.",
+  "impeccable-ui-pipeline":
+    "Improve the current UI flow and polish weak spots.",
+  "playwright-visual-audit":
+    "Run a browser-based visual check on the current UI.",
+  "full-stack-code-audit":
+    "Audit the codebase for security, quality, and architecture risks.",
 }
 
 const EXECUTION_POLICY_TAG_LABELS: Record<string, string> = {
@@ -269,7 +301,11 @@ const EXECUTION_POLICY_TAG_LABELS: Record<string, string> = {
 
 function deriveEntryTitle(name: string | undefined) {
   const normalized = collapseWhitespace(name || "")
-  if (!normalized || normalized === "new-workflow" || normalized === "new-flow") {
+  if (
+    !normalized ||
+    normalized === "new-workflow" ||
+    normalized === "new-flow"
+  ) {
     return "Runnable flow"
   }
   return normalized
@@ -278,15 +314,23 @@ function deriveEntryTitle(name: string | undefined) {
 export function deriveTemplateUseWhen(template: WorkflowTemplate) {
   const explicitUseWhen = collapseWhitespace(template.useWhen || "")
   if (explicitUseWhen) {
-    return ensureSentence(explicitUseWhen, "You want a ready-to-run flow that you can adapt to this job.")
+    return ensureSentence(
+      explicitUseWhen,
+      "You want a ready-to-run flow that you can adapt to this job.",
+    )
   }
 
-  const base = collapseWhitespace(template.description || template.headline || template.how)
+  const base = collapseWhitespace(
+    template.description || template.headline || template.how,
+  )
   if (!base) {
     return "You want a ready-to-run flow that you can adapt to this job."
   }
   if (/^(you|when|if)\b/i.test(base)) {
-    return ensureSentence(base, "You want a ready-to-run flow that you can adapt to this job.")
+    return ensureSentence(
+      base,
+      "You want a ready-to-run flow that you can adapt to this job.",
+    )
   }
   return ensureSentence(
     `You need to ${lowerFirst(base)}`,
@@ -321,76 +365,101 @@ export function deriveTemplateDisplayLabel(
   template?: Pick<WorkflowTemplate, "id" | "name" | "pack"> | null,
 ) {
   if (!template) return null
-  return TEMPLATE_STAGE_LABELS[template.id]
-    || stripPackPrefix(template.name, template.pack?.label)
-    || deriveTemplateJourneyStageLabel(template as WorkflowTemplate)
+  return (
+    TEMPLATE_STAGE_LABELS[template.id] ||
+    stripPackPrefix(template.name, template.pack?.label) ||
+    deriveTemplateJourneyStageLabel(template as WorkflowTemplate)
+  )
 }
 
 export function deriveTemplateJobLabel(
   template?: Pick<WorkflowTemplate, "id" | "name" | "pack"> | null,
 ) {
   if (!template) return null
-  return TEMPLATE_JOB_LABELS[template.id]
-    || stripPackPrefix(template.name, template.pack?.label)
-    || null
+  return (
+    TEMPLATE_JOB_LABELS[template.id] ||
+    stripPackPrefix(template.name, template.pack?.label) ||
+    null
+  )
 }
 
 export function deriveTemplateContinuationLabel(
   template?: Pick<WorkflowTemplate, "id" | "name" | "pack"> | null,
 ) {
   if (!template) return null
-  return TEMPLATE_CONTINUATION_LABELS[template.id]
-    || deriveTemplateJobLabel(template)
-    || stripPackPrefix(template.name, template.pack?.label)
-    || null
+  return (
+    TEMPLATE_CONTINUATION_LABELS[template.id] ||
+    deriveTemplateJobLabel(template) ||
+    stripPackPrefix(template.name, template.pack?.label) ||
+    null
+  )
 }
 
 export function deriveTemplateContinuationDescription(
-  template?: Pick<WorkflowTemplate, "id" | "name" | "pack" | "description" | "headline" | "how" | "output"> | null,
+  template?: Pick<
+    WorkflowTemplate,
+    "id" | "name" | "pack" | "description" | "headline" | "how" | "output"
+  > | null,
 ) {
   if (!template) return null
   const explicit = TEMPLATE_CONTINUATION_DESCRIPTIONS[template.id]
   if (explicit) return explicit
 
   const fallback = collapseWhitespace(
-    template.output
-    || template.description
-    || template.headline
-    || template.how
-    || "",
+    template.output ||
+      template.description ||
+      template.headline ||
+      template.how ||
+      "",
   )
   return fallback ? ensureSentence(fallback, "") : null
 }
 
 export function deriveTemplateContextDisplayLabel(
-  context?: Pick<WorkflowTemplateRunContext, "templateId" | "templateName" | "pack"> | null,
+  context?: Pick<
+    WorkflowTemplateRunContext,
+    "templateId" | "templateName" | "pack"
+  > | null,
 ) {
   if (!context) return null
-  return TEMPLATE_STAGE_LABELS[context.templateId]
-    || stripPackPrefix(context.templateName, context.pack?.label)
-    || deriveTemplateContextJourneyStageLabel(context)
+  return (
+    TEMPLATE_STAGE_LABELS[context.templateId] ||
+    stripPackPrefix(context.templateName, context.pack?.label) ||
+    deriveTemplateContextJourneyStageLabel(context)
+  )
 }
 
 export function deriveTemplateContextJobLabel(
-  context?: Pick<WorkflowTemplateRunContext, "templateId" | "templateName" | "pack"> | null,
+  context?: Pick<
+    WorkflowTemplateRunContext,
+    "templateId" | "templateName" | "pack"
+  > | null,
 ) {
   if (!context) return null
-  return TEMPLATE_JOB_LABELS[context.templateId]
-    || stripPackPrefix(context.templateName, context.pack?.label)
-    || null
+  return (
+    TEMPLATE_JOB_LABELS[context.templateId] ||
+    stripPackPrefix(context.templateName, context.pack?.label) ||
+    null
+  )
 }
 
-export function deriveTemplateExecutionDisciplineLabels(template: WorkflowTemplate) {
+export function deriveTemplateExecutionDisciplineLabels(
+  template: WorkflowTemplate,
+) {
   const tags = template.executionPolicy?.tags || []
   if (tags.length > 0) {
-    return tags.map((tag) => EXECUTION_POLICY_TAG_LABELS[tag] ?? titleCaseFromIdentifier(tag))
+    return tags.map(
+      (tag) => EXECUTION_POLICY_TAG_LABELS[tag] ?? titleCaseFromIdentifier(tag),
+    )
   }
 
   const summary = collapseWhitespace(template.executionPolicy?.summary || "")
   return summary ? [summary] : []
 }
 
-export function formatArtifactContractLabel(contract: ArtifactContract | string) {
+export function formatArtifactContractLabel(
+  contract: ArtifactContract | string,
+) {
   if (typeof contract === "string") {
     return titleCaseFromIdentifier(contract)
   }
@@ -400,7 +469,10 @@ export function formatArtifactContractLabel(contract: ArtifactContract | string)
   return titleCaseFromIdentifier(contract.kind)
 }
 
-export function deriveTemplatePackStagePath(templates: WorkflowTemplate[], packId: string) {
+export function deriveTemplatePackStagePath(
+  templates: WorkflowTemplate[],
+  packId: string,
+) {
   const labels: string[] = []
   const seen = new Set<string>()
 
@@ -415,17 +487,26 @@ export function deriveTemplatePackStagePath(templates: WorkflowTemplate[], packI
   return labels
 }
 
-function buildTemplateEntrySummary(template: WorkflowTemplate, source: Extract<WorkflowEntrySource, "template" | "template_customize">) {
+function buildTemplateEntrySummary(
+  template: WorkflowTemplate,
+  source: Extract<WorkflowEntrySource, "template" | "template_customize">,
+) {
   const packLabel = collapseWhitespace(template.pack?.label || "")
   const stageLabel = deriveTemplateJourneyStageLabel(template)
-  const disciplineSummary = collapseWhitespace(template.executionPolicy?.summary || "")
+  const disciplineSummary = collapseWhitespace(
+    template.executionPolicy?.summary || "",
+  )
   const summaryParts: string[] = []
   const jobLabel = deriveTemplateJobLabel(template)
 
   if (packLabel && jobLabel) {
-    summaryParts.push(`This ${packLabel} flow helps you ${lowerFirst(jobLabel)}.`)
+    summaryParts.push(
+      `This ${packLabel} flow helps you ${lowerFirst(jobLabel)}.`,
+    )
   } else if (packLabel && stageLabel) {
-    summaryParts.push(`This ${packLabel} flow begins in ${lowerFirst(stageLabel)}.`)
+    summaryParts.push(
+      `This ${packLabel} flow begins in ${lowerFirst(stageLabel)}.`,
+    )
   } else if (source === "template_customize") {
     summaryParts.push("This proven flow is open for agent refinement.")
   } else {
@@ -433,7 +514,9 @@ function buildTemplateEntrySummary(template: WorkflowTemplate, source: Extract<W
   }
 
   if (disciplineSummary) {
-    summaryParts.push(ensureSentence(`It follows ${lowerFirst(disciplineSummary)}`, ""))
+    summaryParts.push(
+      ensureSentence(`It follows ${lowerFirst(disciplineSummary)}`, ""),
+    )
   }
 
   summaryParts.push(
@@ -450,7 +533,10 @@ function deriveWorkflowInputText(workflow: Workflow) {
   const inputConfig = (inputNode?.config || {}) as InputNodeConfig
   const placeholder = collapseWhitespace(inputConfig.placeholder || "")
   if (placeholder && placeholder !== DEFAULT_INPUT_PLACEHOLDER) {
-    return ensureSentence(placeholder.replace(/\.\.\.$/, ""), "Add the source input this flow should work from.")
+    return ensureSentence(
+      placeholder.replace(/\.\.\.$/, ""),
+      "Add the source input this flow should work from.",
+    )
   }
 
   switch (inputConfig.inputType) {
@@ -481,23 +567,42 @@ function deriveWorkflowOutputText(workflow: Workflow, fallback: string) {
 }
 
 function describeWorkflowReadiness(workflow: Workflow) {
-  const workingStages = workflow.nodes.filter((node) => node.type !== "input" && node.type !== "output")
-  const branchCount = workingStages.filter((node) => node.type === "splitter").length
-  const qualityGateCount = workingStages.filter((node) => node.type === "evaluator").length
-  const approvalCount = workingStages.filter((node) => node.type === "approval").length
-  const parts = [`${workingStages.length} working ${workingStages.length === 1 ? "step" : "steps"}`]
+  const workingStages = workflow.nodes.filter(
+    (node) => node.type !== "input" && node.type !== "output",
+  )
+  const branchCount = workingStages.filter(
+    (node) => node.type === "splitter",
+  ).length
+  const qualityGateCount = workingStages.filter(
+    (node) => node.type === "evaluator",
+  ).length
+  const approvalCount = workingStages.filter(
+    (node) => node.type === "approval",
+  ).length
+  const parts = [
+    `${workingStages.length} working ${workingStages.length === 1 ? "step" : "steps"}`,
+  ]
 
   if (branchCount > 0) {
-    parts.push(`${branchCount} branch ${branchCount === 1 ? "point" : "points"}`)
+    parts.push(
+      `${branchCount} branch ${branchCount === 1 ? "point" : "points"}`,
+    )
   }
   if (qualityGateCount > 0) {
-    parts.push(`${qualityGateCount} quality ${qualityGateCount === 1 ? "check" : "checks"}`)
+    parts.push(
+      `${qualityGateCount} quality ${qualityGateCount === 1 ? "check" : "checks"}`,
+    )
   }
   if (approvalCount > 0) {
-    parts.push(`${approvalCount} human ${approvalCount === 1 ? "review" : "reviews"}`)
+    parts.push(
+      `${approvalCount} human ${approvalCount === 1 ? "review" : "reviews"}`,
+    )
   }
 
-  return ensureSentence(`Ready to run with ${parts.join(", ")}`, "Ready to run.")
+  return ensureSentence(
+    `Ready to run with ${parts.join(", ")}`,
+    "Ready to run.",
+  )
 }
 
 export function buildGeneratedWorkflowEntryState({
@@ -521,9 +626,10 @@ export function buildGeneratedWorkflowEntryState({
     workflowName: workflow.name,
     source,
     title: deriveEntryTitle(workflow.name),
-    summary: source === "generated"
-      ? "The agent turned your request into a runnable flow. Add the input below, then run it or refine it."
-      : "The agent prepared a first draft from your request. Review the input below, then run it or keep refining it.",
+    summary:
+      source === "generated"
+        ? "The agent turned your request into a runnable flow. Add the input below, then run it or refine it."
+        : "The agent prepared a first draft from your request. Review the input below, then run it or keep refining it.",
     contractLabel: "What you asked for",
     contractText: cleanRequest,
     inputText: deriveWorkflowInputText(workflow),
@@ -552,8 +658,14 @@ export function buildTemplateWorkflowEntryState({
     summary: buildTemplateEntrySummary(template, source),
     contractLabel: "Use this when",
     contractText: deriveTemplateUseWhen(template),
-    inputText: ensureSentence(template.input, "Add the source material this flow should work from."),
-    outputText: ensureSentence(template.output, "A final result ready to review."),
+    inputText: ensureSentence(
+      template.input,
+      "Add the source material this flow should work from.",
+    ),
+    outputText: ensureSentence(
+      template.output,
+      "A final result ready to review.",
+    ),
     readinessText: describeWorkflowReadiness(template.workflow),
   }
 }
@@ -573,8 +685,17 @@ export function buildTemplateRunContext({
   factory?: Pick<ProjectFactoryDefinition, "id" | "label"> | null
   caseOverride?: WorkflowTemplateCaseOverride | null
 }): WorkflowTemplateRunContext {
-  const { factoryId, factoryLabel } = deriveFactoryIdentity(template, sourceArtifacts, factory)
-  const { caseId, caseLabel } = deriveCaseIdentity(template, sourceArtifacts, factory, caseOverride)
+  const { factoryId, factoryLabel } = deriveFactoryIdentity(
+    template,
+    sourceArtifacts,
+    factory,
+  )
+  const { caseId, caseLabel } = deriveCaseIdentity(
+    template,
+    sourceArtifacts,
+    factory,
+    caseOverride,
+  )
   return {
     templateId: template.id,
     templateName: template.name,
@@ -582,8 +703,14 @@ export function buildTemplateRunContext({
     workflowName: template.workflow.name || template.name,
     source,
     useWhen: deriveTemplateUseWhen(template),
-    inputText: ensureSentence(template.input, "Add the source material this flow should work from."),
-    outputText: ensureSentence(template.output, "A final result ready to review."),
+    inputText: ensureSentence(
+      template.input,
+      "Add the source material this flow should work from.",
+    ),
+    outputText: ensureSentence(
+      template.output,
+      "A final result ready to review.",
+    ),
     factoryId,
     factoryLabel,
     caseId,
@@ -641,13 +768,22 @@ export function buildContinuationArtifactPool({
 }: {
   currentArtifacts: ArtifactRecord[]
   projectArtifacts: ArtifactRecord[]
-  context?: Pick<WorkflowTemplateRunContext, "caseId" | "sourceArtifactIds"> | null
+  context?: Pick<
+    WorkflowTemplateRunContext,
+    "caseId" | "sourceArtifactIds"
+  > | null
 }) {
   const pool: ArtifactRecord[] = []
   const seenIds = new Set<string>()
-  const orderedCurrentArtifacts = [...currentArtifacts].sort((left, right) => right.updatedAt - left.updatedAt)
-  const orderedProjectArtifacts = [...projectArtifacts].sort((left, right) => right.updatedAt - left.updatedAt)
-  const sourceArtifactIds = new Set((context?.sourceArtifactIds || []).filter(Boolean))
+  const orderedCurrentArtifacts = [...currentArtifacts].sort(
+    (left, right) => right.updatedAt - left.updatedAt,
+  )
+  const orderedProjectArtifacts = [...projectArtifacts].sort(
+    (left, right) => right.updatedAt - left.updatedAt,
+  )
+  const sourceArtifactIds = new Set(
+    (context?.sourceArtifactIds || []).filter(Boolean),
+  )
   const caseId = context?.caseId?.trim()
 
   const pushUnique = (artifacts: ArtifactRecord[]) => {
@@ -661,17 +797,25 @@ export function buildContinuationArtifactPool({
   pushUnique(orderedCurrentArtifacts)
 
   if (sourceArtifactIds.size > 0) {
-    pushUnique(orderedProjectArtifacts.filter((artifact) => sourceArtifactIds.has(artifact.id)))
+    pushUnique(
+      orderedProjectArtifacts.filter((artifact) =>
+        sourceArtifactIds.has(artifact.id),
+      ),
+    )
   }
 
   if (caseId) {
-    pushUnique(orderedProjectArtifacts.filter((artifact) => artifact.caseId === caseId))
+    pushUnique(
+      orderedProjectArtifacts.filter((artifact) => artifact.caseId === caseId),
+    )
   }
 
   return [...pool].sort((left, right) => right.updatedAt - left.updatedAt)
 }
 
-export function buildArtifactAttachmentSeedInput(artifactAttachments: InputAttachment[]) {
+export function buildArtifactAttachmentSeedInput(
+  artifactAttachments: InputAttachment[],
+) {
   if (artifactAttachments.length === 0) {
     return "Add the context this step should work from before running."
   }
@@ -683,7 +827,9 @@ export function buildArtifactAttachmentSeedInput(artifactAttachments: InputAttac
   return "Use the attached results as the primary context for this step. Add any extra scope or constraints here before running."
 }
 
-export function buildArtifactInputAttachments(artifacts: ArtifactRecord[]): InputAttachment[] {
+export function buildArtifactInputAttachments(
+  artifacts: ArtifactRecord[],
+): InputAttachment[] {
   return artifacts.map((artifact) => ({
     kind: "file" as const,
     path: artifact.relativePath,
@@ -692,12 +838,16 @@ export function buildArtifactInputAttachments(artifacts: ArtifactRecord[]): Inpu
 }
 
 function inputAttachmentKey(attachment: InputAttachment) {
-  if (attachment.kind === "file") return `file:${attachment.path}:${attachment.name}`
-  if (attachment.kind === "run") return `run:${attachment.runId}:${attachment.workspace}`
+  if (attachment.kind === "file")
+    return `file:${attachment.path}:${attachment.name}`
+  if (attachment.kind === "run")
+    return `run:${attachment.runId}:${attachment.workspace}`
   return `text:${attachment.label}:${attachment.content}`
 }
 
-export function mergeInputAttachments(...groups: InputAttachment[][]): InputAttachment[] {
+export function mergeInputAttachments(
+  ...groups: InputAttachment[][]
+): InputAttachment[] {
   const seen = new Set<string>()
   const merged: InputAttachment[] = []
 

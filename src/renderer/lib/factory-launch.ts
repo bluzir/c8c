@@ -1,4 +1,10 @@
-import type { ArtifactRecord, InputAttachment, ProjectFactoryDefinition, WorkflowFile, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  InputAttachment,
+  ProjectFactoryDefinition,
+  WorkflowFile,
+  WorkflowTemplate,
+} from "@shared/types"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
 import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
 import {
@@ -37,14 +43,21 @@ export async function prepareTemplateStageLaunch({
   savedSnapshot: string
 }> {
   const nextWorkflow = resolveTemplateWorkflow(template, webSearchBackend)
-  const filePath = await window.api.createWorkflow(projectPath, template.name, nextWorkflow)
-  void window.api.recordProjectTemplateUsage(projectPath, template.id).catch(() => undefined)
+  const filePath = await window.api.createWorkflow(
+    projectPath,
+    template.name,
+    nextWorkflow,
+  )
+  void window.api
+    .recordProjectTemplateUsage(projectPath, template.id)
+    .catch(() => undefined)
   const [loadedWorkflow, refreshedWorkflows] = await Promise.all([
     window.api.loadWorkflow(filePath),
     window.api.listProjectWorkflows(projectPath),
   ])
 
-  const artifactAttachments: InputAttachment[] = buildArtifactInputAttachments(artifacts)
+  const artifactAttachments: InputAttachment[] =
+    buildArtifactInputAttachments(artifacts)
   const hydratedTemplate = {
     ...template,
     workflow: loadedWorkflow,

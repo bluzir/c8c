@@ -8,13 +8,18 @@ export interface InsertionPoint {
 
 export function findInsertionPoint(workflow: Workflow): InsertionPoint | null {
   const outputNode = workflow.nodes.find(
-    (node): node is Extract<WorkflowNode, { type: "output" }> => node.type === "output",
+    (node): node is Extract<WorkflowNode, { type: "output" }> =>
+      node.type === "output",
   )
   if (!outputNode) return null
 
-  const edgeToOutput = workflow.edges.find((edge) => edge.target === outputNode.id)
+  const edgeToOutput = workflow.edges.find(
+    (edge) => edge.target === outputNode.id,
+  )
   const prevNodeId = edgeToOutput?.source ?? "input-1"
-  const filteredEdges = workflow.edges.filter((edge) => edge.id !== edgeToOutput?.id)
+  const filteredEdges = workflow.edges.filter(
+    (edge) => edge.id !== edgeToOutput?.id,
+  )
 
   return { outputNode, prevNodeId, filteredEdges }
 }

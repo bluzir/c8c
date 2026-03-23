@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest"
-import type { ArtifactRecord, CaseStateRecord, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  WorkflowTemplate,
+} from "@shared/types"
 import { deriveArtifactInspectSummary } from "./artifact-inspect"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-plan-phase",
     name: "Delivery Factory: Plan Phase",
@@ -31,7 +37,9 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "requirements_spec",
@@ -48,7 +56,9 @@ function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord
   }
 }
 
-function createCaseState(overrides: Partial<CaseStateRecord> = {}): CaseStateRecord {
+function createCaseState(
+  overrides: Partial<CaseStateRecord> = {},
+): CaseStateRecord {
   return {
     version: 1,
     caseId: "case:seller-photo-upload",
@@ -126,9 +136,11 @@ describe("artifact-inspect", () => {
     })
 
     expect(summary).toMatchObject({
-      statusText: "Saved artifact. No next step is ready from this artifact alone yet.",
+      statusText:
+        "Saved artifact. No next step is ready from this artifact alone yet.",
       savedFromText: "Saved from a previous run",
-      sourceText: "No upstream artifacts were recorded for this saved artifact.",
+      sourceText:
+        "No upstream artifacts were recorded for this saved artifact.",
       readyNextText: "No next step is ready from this artifact alone yet.",
       readyNextLabels: [],
       latestCheckText: null,
@@ -143,6 +155,8 @@ describe("artifact-inspect", () => {
       matchingTemplates: [],
     })
 
-    expect(summary.latestCheckText).toBe("Approval recorded. Plan can continue.")
+    expect(summary.latestCheckText).toBe(
+      "Approval recorded. Plan can continue.",
+    )
   })
 })

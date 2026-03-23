@@ -4,13 +4,17 @@ type OutputSurfaceCommandHandler = (commandId: OutputSurfaceCommandId) => void
 
 const handlers = new Set<OutputSurfaceCommandHandler>()
 
-export function dispatchOutputSurfaceCommand(commandId: OutputSurfaceCommandId) {
+export function dispatchOutputSurfaceCommand(
+  commandId: OutputSurfaceCommandId,
+) {
   for (const handler of handlers) {
     handler(commandId)
   }
 }
 
-export function subscribeOutputSurfaceCommands(handler: OutputSurfaceCommandHandler) {
+export function subscribeOutputSurfaceCommands(
+  handler: OutputSurfaceCommandHandler,
+) {
   handlers.add(handler)
   return () => {
     handlers.delete(handler)

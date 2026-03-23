@@ -67,7 +67,10 @@ export function resolveWorkflowInput(
   const usedDefault = userTrimmed.length === 0 && defaultTrimmed.length > 0
   const resolvedValue = usedDefault ? defaultValue : rawValue
   const resolvedTrimmed = resolvedValue.trim()
-  const forcedType = config.inputType && config.inputType !== "auto" ? config.inputType : undefined
+  const forcedType =
+    config.inputType && config.inputType !== "auto"
+      ? config.inputType
+      : undefined
   const resolvedType = forcedType || detectWorkflowInputType(resolvedValue)
 
   if (!resolvedTrimmed) {

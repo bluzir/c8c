@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { deriveExecutionLoopFlowRules, deriveExecutionPolicyFlowRules } from "./flow-rules"
+import {
+  deriveExecutionLoopFlowRules,
+  deriveExecutionPolicyFlowRules,
+} from "./flow-rules"
 import { deriveExecutionLoopSummary } from "./execution-loops"
 import type { Workflow, WorkflowExecutionPolicyProfile } from "@shared/types"
 
@@ -8,8 +11,23 @@ const BASE_WORKFLOW: Workflow = {
   name: "Review Phase",
   nodes: [
     { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-    { id: "skill-1", type: "skill", position: { x: 100, y: 0 }, config: { prompt: "Review code" } },
-    { id: "eval-1", type: "evaluator", position: { x: 200, y: 0 }, config: { criteria: "Quality", threshold: 8, maxRetries: 3, retryFrom: "skill-1" } },
+    {
+      id: "skill-1",
+      type: "skill",
+      position: { x: 100, y: 0 },
+      config: { prompt: "Review code" },
+    },
+    {
+      id: "eval-1",
+      type: "evaluator",
+      position: { x: 200, y: 0 },
+      config: {
+        criteria: "Quality",
+        threshold: 8,
+        maxRetries: 3,
+        retryFrom: "skill-1",
+      },
+    },
     { id: "output-1", type: "output", position: { x: 300, y: 0 }, config: {} },
   ],
   edges: [
@@ -26,7 +44,9 @@ describe("deriveExecutionPolicyFlowRules", () => {
       tags: ["human_gate_required", "critique_loops", "publish_gate"],
     }
 
-    expect(deriveExecutionPolicyFlowRules(profile, { defaultScope: "Verify" })).toEqual([
+    expect(
+      deriveExecutionPolicyFlowRules(profile, { defaultScope: "Verify" }),
+    ).toEqual([
       {
         id: "policy-human_gate_required",
         label: "Ask for approval before this step runs",
@@ -50,7 +70,9 @@ describe("deriveExecutionPolicyFlowRules", () => {
       summary: "Run to the next decision with human review.",
     }
 
-    expect(deriveExecutionPolicyFlowRules(profile, { defaultScope: "Run" })).toEqual([
+    expect(
+      deriveExecutionPolicyFlowRules(profile, { defaultScope: "Run" }),
+    ).toEqual([
       {
         id: "policy-summary",
         label: "Run to the next decision with human review.",

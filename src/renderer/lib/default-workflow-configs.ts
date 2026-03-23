@@ -7,11 +7,12 @@ import type {
   SplitterNodeConfig,
 } from "@shared/types"
 
-export const DEFAULT_EVALUATOR_CONFIG: Omit<EvaluatorNodeConfig, "retryFrom"> = {
-  criteria: "Score 1-10 on clarity, engagement, and effectiveness",
-  threshold: 7,
-  maxRetries: 3,
-}
+export const DEFAULT_EVALUATOR_CONFIG: Omit<EvaluatorNodeConfig, "retryFrom"> =
+  {
+    criteria: "Score 1-10 on clarity, engagement, and effectiveness",
+    threshold: 7,
+    maxRetries: 3,
+  }
 
 export const DEFAULT_FANOUT_PATTERN: {
   splitter: SplitterNodeConfig

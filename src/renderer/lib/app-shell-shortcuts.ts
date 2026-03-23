@@ -36,25 +36,33 @@ export function resolveAppShellShortcutIntent({
     return { type: "new_flow" }
   }
 
-  if (!isEditable && matchesPrimaryShortcut(event, { key: "s", primaryModifierKey, shift: true })) {
+  if (
+    !isEditable &&
+    matchesPrimaryShortcut(event, { key: "s", primaryModifierKey, shift: true })
+  ) {
     return { type: "attach_skill" }
   }
 
   if (!isEditable && /^[1-5]$/.test(event.key)) {
     const index = Number(event.key) - 1
     if (
-      index < quickSwitchCount
-      && matchesPrimaryShortcut(event, { key: event.key, primaryModifierKey })
+      index < quickSwitchCount &&
+      matchesPrimaryShortcut(event, { key: event.key, primaryModifierKey })
     ) {
       return { type: "quick_switch", index }
     }
   }
 
-  if (matchesPrimaryShortcut(event, { key: "k", primaryModifierKey, shift: true })) {
+  if (
+    matchesPrimaryShortcut(event, { key: "k", primaryModifierKey, shift: true })
+  ) {
     return { type: "toggle_thread" }
   }
 
-  if (!isEditable && matchesPrimaryShortcut(event, { key: "b", primaryModifierKey })) {
+  if (
+    !isEditable &&
+    matchesPrimaryShortcut(event, { key: "b", primaryModifierKey })
+  ) {
     return { type: "toggle_sidebar" }
   }
 

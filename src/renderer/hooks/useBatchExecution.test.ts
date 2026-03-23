@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest"
 import type { BatchItemResult, BatchSummary } from "@shared/types"
-import { mergeBatchItems, resolveBatchDoneState, summarizeBatchItems } from "./useBatchExecution"
+import {
+  mergeBatchItems,
+  resolveBatchDoneState,
+  summarizeBatchItems,
+} from "./useBatchExecution"
 
-function createBatchSummary(overrides: Partial<BatchSummary> = {}): BatchSummary {
+function createBatchSummary(
+  overrides: Partial<BatchSummary> = {},
+): BatchSummary {
   return {
     total: 3,
     processed: 1,
@@ -16,7 +22,9 @@ function createBatchSummary(overrides: Partial<BatchSummary> = {}): BatchSummary
   }
 }
 
-function createBatchItem(overrides: Partial<BatchItemResult> = {}): BatchItemResult {
+function createBatchItem(
+  overrides: Partial<BatchItemResult> = {},
+): BatchItemResult {
   return {
     input_index: 0,
     run_id: "run-1",
@@ -31,15 +39,18 @@ function createBatchItem(overrides: Partial<BatchItemResult> = {}): BatchItemRes
 
 describe("useBatchExecution helpers", () => {
   it("summarizes cancelled runs from preserved items", () => {
-    const summary = summarizeBatchItems([
-      createBatchItem(),
-      createBatchItem({
-        input_index: 1,
-        run_id: "run-2",
-        status: "cancelled",
-        output: undefined,
-      }),
-    ], 3)
+    const summary = summarizeBatchItems(
+      [
+        createBatchItem(),
+        createBatchItem({
+          input_index: 1,
+          run_id: "run-2",
+          status: "cancelled",
+          output: undefined,
+        }),
+      ],
+      3,
+    )
 
     expect(summary).toEqual({
       total: 3,
@@ -84,7 +95,9 @@ describe("useBatchExecution helpers", () => {
       },
     )
 
-    expect(resolved.items).toEqual(mergeBatchItems(previousItems, incomingItems))
+    expect(resolved.items).toEqual(
+      mergeBatchItems(previousItems, incomingItems),
+    )
     expect(resolved.summary).toEqual({
       total: 3,
       processed: 2,

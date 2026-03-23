@@ -52,13 +52,16 @@ interface DeriveExecutionLoopSummaryInput {
   preferredEvaluatorNodeId?: string | null
 }
 
-function isEvaluatorNode(node: WorkflowNode): node is Extract<WorkflowNode, { type: "evaluator" }> {
+function isEvaluatorNode(
+  node: WorkflowNode,
+): node is Extract<WorkflowNode, { type: "evaluator" }> {
   return node.type === "evaluator"
 }
 
 function inferLoopLabel(workflowName: string, nodeTitle: string) {
   const text = `${workflowName} ${nodeTitle}`.toLowerCase()
-  if (/\b(verify|verification|preflight|validation|ship)\b/.test(text)) return "Verify loop"
+  if (/\b(verify|verification|preflight|validation|ship)\b/.test(text))
+    return "Verify loop"
   if (/\b(review|audit|polish|critique|qa)\b/.test(text)) return "Review loop"
   return "Quality loop"
 }
@@ -94,7 +97,11 @@ function deriveOutcome({
     }
   }
 
-  if ((evaluatorState?.status === "running" || evaluatorState?.status === "pending") && latestAttempt.attempt < maxRetries) {
+  if (
+    (evaluatorState?.status === "running" ||
+      evaluatorState?.status === "pending") &&
+    latestAttempt.attempt < maxRetries
+  ) {
     return {
       outcome: "auto-return",
       outcomeLabel: "Auto-return",
@@ -124,8 +131,9 @@ export function deriveExecutionLoopSummary({
   runOutcome = null,
   preferredEvaluatorNodeId = null,
 }: DeriveExecutionLoopSummaryInput): ExecutionLoopSummary | null {
-  const blockingHumanDecision = Object.values(nodeStates).some((state) =>
-    state.status === "waiting_approval" || state.status === "waiting_human",
+  const blockingHumanDecision = Object.values(nodeStates).some(
+    (state) =>
+      state.status === "waiting_approval" || state.status === "waiting_human",
   )
 
   const candidates = workflow.nodes
@@ -144,17 +152,26 @@ export function deriveExecutionLoopSummary({
     const rightPreferred = right.node.id === preferredEvaluatorNodeId ? 1 : 0
     if (leftPreferred !== rightPreferred) return rightPreferred - leftPreferred
 
-    const leftPriority = left.nodeState?.status === "waiting_approval" || left.nodeState?.status === "waiting_human" || left.nodeState?.status === "running"
-      ? 1
-      : 0
-    const rightPriority = right.nodeState?.status === "waiting_approval" || right.nodeState?.status === "waiting_human" || right.nodeState?.status === "running"
-      ? 1
-      : 0
+    const leftPriority =
+      left.nodeState?.status === "waiting_approval" ||
+      left.nodeState?.status === "waiting_human" ||
+      left.nodeState?.status === "running"
+        ? 1
+        : 0
+    const rightPriority =
+      right.nodeState?.status === "waiting_approval" ||
+      right.nodeState?.status === "waiting_human" ||
+      right.nodeState?.status === "running"
+        ? 1
+        : 0
     if (leftPriority !== rightPriority) return rightPriority - leftPriority
 
-    const leftCompletedAt = left.nodeState?.completedAt || left.nodeState?.startedAt || 0
-    const rightCompletedAt = right.nodeState?.completedAt || right.nodeState?.startedAt || 0
-    if (leftCompletedAt !== rightCompletedAt) return rightCompletedAt - leftCompletedAt
+    const leftCompletedAt =
+      left.nodeState?.completedAt || left.nodeState?.startedAt || 0
+    const rightCompletedAt =
+      right.nodeState?.completedAt || right.nodeState?.startedAt || 0
+    if (leftCompletedAt !== rightCompletedAt)
+      return rightCompletedAt - leftCompletedAt
 
     return right.attempts.length - left.attempts.length
   })
@@ -166,11 +183,17 @@ export function deriveExecutionLoopSummary({
   const latestAttempt = selected.attempts[selected.attempts.length - 1]
   if (!latestAttempt) return null
 
-  const previousAttempt = selected.attempts.length > 1
-    ? selected.attempts[selected.attempts.length - 2]
-    : null
-  const failedCriteriaCount = latestAttempt.criteria?.filter((criterion) => criterion.score < config.threshold).length || 0
-  const presentation = getRuntimeStagePresentation(selected.node, { fallbackId: selected.node.id })
+  const previousAttempt =
+    selected.attempts.length > 1
+      ? selected.attempts[selected.attempts.length - 2]
+      : null
+  const failedCriteriaCount =
+    latestAttempt.criteria?.filter(
+      (criterion) => criterion.score < config.threshold,
+    ).length || 0
+  const presentation = getRuntimeStagePresentation(selected.node, {
+    fallbackId: selected.node.id,
+  })
   const outcome = deriveOutcome({
     latestAttempt,
     evaluatorState: selected.nodeState,
@@ -196,11 +219,15 @@ export function deriveExecutionLoopSummary({
     outcomeSentence: outcome.outcomeSentence,
     reason: latestAttempt.reason,
     fixInstructions: latestAttempt.fix_instructions,
-    deltaLabel: previousAttempt ? `${previousAttempt.score}/10 -> ${latestAttempt.score}/10` : null,
+    deltaLabel: previousAttempt
+      ? `${previousAttempt.score}/10 -> ${latestAttempt.score}/10`
+      : null,
   }
 }
 
-export function deriveExecutionCheckRecord(summary: ExecutionLoopSummary | null): ExecutionCheckRecord | null {
+export function deriveExecutionCheckRecord(
+  summary: ExecutionLoopSummary | null,
+): ExecutionCheckRecord | null {
   if (!summary || summary.outcome === "human decision") return null
 
   if (summary.outcome === "auto-pass") {
@@ -220,7 +247,8 @@ export function deriveExecutionCheckRecord(summary: ExecutionLoopSummary | null)
       status: "returned",
       statusLabel: "Returned to fix",
       title: summary.title,
-      summary: summary.fixInstructions || summary.reason || summary.outcomeSentence,
+      summary:
+        summary.fixInstructions || summary.reason || summary.outcomeSentence,
       detailSummary: summary.criteriaBreakdown?.length ? "Why / checks" : "Why",
     }
   }

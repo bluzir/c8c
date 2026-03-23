@@ -20,10 +20,18 @@ describe("app-shell-command-palette", () => {
       selectedProject: "/tmp/alpha",
       projectWorkflowsCache: {
         "/tmp/alpha": [
-          { name: "Alpha recent", path: "/tmp/alpha/recent.chain", updatedAt: 20 },
+          {
+            name: "Alpha recent",
+            path: "/tmp/alpha/recent.chain",
+            updatedAt: 20,
+          },
         ],
         "/tmp/beta": [
-          { name: "Beta active", path: "/tmp/beta/active.chain", updatedAt: 10 },
+          {
+            name: "Beta active",
+            path: "/tmp/beta/active.chain",
+            updatedAt: 10,
+          },
           { name: "Beta stale", path: "/tmp/beta/stale.chain", updatedAt: 1 },
         ],
       },
@@ -63,10 +71,18 @@ describe("app-shell-command-palette", () => {
       selectedProject: "/tmp/vibecon",
       projectWorkflowsCache: {
         "/tmp/vibecon": [
-          { name: "UX/UI Polish Audit", path: "/tmp/vibecon/ui.chain", updatedAt: 5 },
+          {
+            name: "UX/UI Polish Audit",
+            path: "/tmp/vibecon/ui.chain",
+            updatedAt: 5,
+          },
         ],
         "/tmp/other": [
-          { name: "UX UI Polish Audit", path: "/tmp/other/ui.chain", updatedAt: 4 },
+          {
+            name: "UX UI Polish Audit",
+            path: "/tmp/other/ui.chain",
+            updatedAt: 4,
+          },
         ],
       },
       workflowExecutionStates: {},
@@ -110,8 +126,13 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
-    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Settings"])
+    expect(sections.map((section) => section.label)).toEqual([
+      "Actions",
+      "Start new",
+    ])
+    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual([
+      "Settings",
+    ])
     expect(sections[1]?.entries[0]).toMatchObject({
       kind: "start",
       label: "Start: settings",
@@ -132,8 +153,13 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
-    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Attach skill"])
+    expect(sections.map((section) => section.label)).toEqual([
+      "Actions",
+      "Start new",
+    ])
+    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual([
+      "Attach skill",
+    ])
   })
 
   it("surfaces runs dashboard as a shell action", () => {
@@ -150,8 +176,13 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
-    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Runs dashboard"])
+    expect(sections.map((section) => section.label)).toEqual([
+      "Actions",
+      "Start new",
+    ])
+    expect(sections[0]?.entries.map((entry) => entry.label)).toEqual([
+      "Runs dashboard",
+    ])
   })
 
   it("surfaces lab when the beta workspace is enabled", () => {
@@ -168,7 +199,10 @@ describe("app-shell-command-palette", () => {
       projects: ["/tmp/vibecon"],
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Actions", "Start new"])
+    expect(sections.map((section) => section.label)).toEqual([
+      "Actions",
+      "Start new",
+    ])
     expect(sections[0]?.entries.map((entry) => entry.label)).toEqual(["Lab"])
   })
 
@@ -187,7 +221,10 @@ describe("app-shell-command-palette", () => {
       projects,
     })
 
-    expect(sections.map((section) => section.label)).toEqual(["Switch project", "Start new"])
+    expect(sections.map((section) => section.label)).toEqual([
+      "Switch project",
+      "Start new",
+    ])
     expect(sections[0]?.entries[0]).toMatchObject({
       kind: "project",
       label: "content-os",

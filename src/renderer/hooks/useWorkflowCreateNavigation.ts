@@ -11,7 +11,11 @@ import {
   workflowCreateSourceAttachmentsAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
-import type { ArtifactRecord, InputAttachment, ResultModeId } from "@shared/types"
+import type {
+  ArtifactRecord,
+  InputAttachment,
+  ResultModeId,
+} from "@shared/types"
 
 interface OpenWorkflowCreateOptions {
   projectPath?: string | null
@@ -27,7 +31,10 @@ interface ApplyWorkflowCreateNavigationParams {
   selectedProject: string | null
   setMainView: (next: "workflow_create") => void
   setSelectedResultModeId: (next: ResultModeId) => void
-  setWorkflowCreateContext: (next: { projectPath: string | null; locked: boolean }) => void
+  setWorkflowCreateContext: (next: {
+    projectPath: string | null
+    locked: boolean
+  }) => void
   setWorkflowCreateDraftPrompt: (next: string) => void
   setWorkflowCreateSourceArtifacts: (next: ArtifactRecord[]) => void
   setWorkflowCreateSourceAttachments: (next: InputAttachment[]) => void
@@ -45,7 +52,10 @@ export function applyWorkflowCreateNavigationState({
   setWorkflowCreateSourceAttachments,
   clearReviewState,
 }: ApplyWorkflowCreateNavigationParams): void {
-  const projectPath = Object.prototype.hasOwnProperty.call(options, "projectPath")
+  const projectPath = Object.prototype.hasOwnProperty.call(
+    options,
+    "projectPath",
+  )
     ? (options.projectPath ?? null)
     : (selectedProject ?? null)
 
@@ -72,35 +82,42 @@ export function useWorkflowCreateNavigation() {
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
   const setWorkflowCreateContext = useSetAtom(workflowCreateContextAtom)
   const setWorkflowCreateDraftPrompt = useSetAtom(workflowCreateDraftPromptAtom)
-  const setWorkflowCreateSourceArtifacts = useSetAtom(workflowCreateSourceArtifactsAtom)
-  const setWorkflowCreateSourceAttachments = useSetAtom(workflowCreateSourceAttachmentsAtom)
+  const setWorkflowCreateSourceArtifacts = useSetAtom(
+    workflowCreateSourceArtifactsAtom,
+  )
+  const setWorkflowCreateSourceAttachments = useSetAtom(
+    workflowCreateSourceAttachmentsAtom,
+  )
 
-  const openWorkflowCreate = useCallback((options: OpenWorkflowCreateOptions = {}) => {
-    applyWorkflowCreateNavigationState({
-      options,
+  const openWorkflowCreate = useCallback(
+    (options: OpenWorkflowCreateOptions = {}) => {
+      applyWorkflowCreateNavigationState({
+        options,
+        selectedProject,
+        setMainView,
+        setSelectedResultModeId,
+        setWorkflowCreateContext,
+        setWorkflowCreateDraftPrompt,
+        setWorkflowCreateSourceArtifacts,
+        setWorkflowCreateSourceAttachments,
+        clearReviewState: () => {
+          setSelectedInboxTaskKey(null)
+          setSelectedPastRun(null)
+        },
+      })
+    },
+    [
       selectedProject,
       setMainView,
+      setSelectedInboxTaskKey,
+      setSelectedPastRun,
       setSelectedResultModeId,
       setWorkflowCreateContext,
       setWorkflowCreateDraftPrompt,
       setWorkflowCreateSourceArtifacts,
       setWorkflowCreateSourceAttachments,
-      clearReviewState: () => {
-        setSelectedInboxTaskKey(null)
-        setSelectedPastRun(null)
-      },
-    })
-  }, [
-    selectedProject,
-    setMainView,
-    setSelectedInboxTaskKey,
-    setSelectedPastRun,
-    setSelectedResultModeId,
-    setWorkflowCreateContext,
-    setWorkflowCreateDraftPrompt,
-    setWorkflowCreateSourceArtifacts,
-    setWorkflowCreateSourceAttachments,
-  ])
+    ],
+  )
 
   return { openWorkflowCreate }
 }

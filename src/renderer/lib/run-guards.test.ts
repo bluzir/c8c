@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { canReplaceCurrentWorkflow, getReplaceCurrentWorkflowBlockedReason } from "./run-guards"
+import {
+  canReplaceCurrentWorkflow,
+  getReplaceCurrentWorkflowBlockedReason,
+} from "./run-guards"
 
 describe("run guards", () => {
   it("blocks replacing the current workflow while a run is active", () => {
@@ -7,7 +10,9 @@ describe("run guards", () => {
     expect(canReplaceCurrentWorkflow("running")).toBe(false)
     expect(canReplaceCurrentWorkflow("paused")).toBe(false)
     expect(canReplaceCurrentWorkflow("cancelling")).toBe(false)
-    expect(getReplaceCurrentWorkflowBlockedReason("running")).toContain("Stop the active run first")
+    expect(getReplaceCurrentWorkflowBlockedReason("running")).toContain(
+      "Stop the active run first",
+    )
   })
 
   it("allows replacing the current workflow when no run is active", () => {

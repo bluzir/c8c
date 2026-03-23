@@ -10,7 +10,9 @@ import {
   templateMatchesLibraryFilter,
 } from "./template-filters"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "generic-template",
     name: "Generic Template",
@@ -54,7 +56,8 @@ describe("template-filters", () => {
       id: "segment-research-gate",
       stage: "research",
       name: "Segment Research with Quality Gate",
-      description: "Validate market segments with evidence and audience research.",
+      description:
+        "Validate market segments with evidence and audience research.",
       workflow: {
         version: 1,
         name: "Segment Research with Quality Gate",
@@ -164,6 +167,8 @@ describe("template-filters", () => {
       description: "Polish the UI and tighten the copy before launch.",
     })
 
-    expect(getTemplateSearchScore(explicitTemplate, "polish")).toBeGreaterThan(getTemplateSearchScore(implicitTemplate, "polish"))
+    expect(getTemplateSearchScore(explicitTemplate, "polish")).toBeGreaterThan(
+      getTemplateSearchScore(implicitTemplate, "polish"),
+    )
   })
 })

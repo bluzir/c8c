@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react"
-import type { DiscoveredSkill, GenerationProgress, RunResult, Workflow, WorkflowFile } from "@shared/types"
+import type {
+  DiscoveredSkill,
+  GenerationProgress,
+  RunResult,
+  Workflow,
+  WorkflowFile,
+} from "@shared/types"
 import { toast } from "sonner"
 import { cloneWorkflow } from "@/lib/workflow-graph-utils"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
-import type { WorkflowEntryState, WorkflowTemplateRunContext } from "@/lib/workflow-entry"
+import type {
+  WorkflowEntryState,
+  WorkflowTemplateRunContext,
+} from "@/lib/workflow-entry"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { applyWorkflowDetailBudget } from "@/lib/workflow-detail-budget"
 
@@ -23,7 +32,10 @@ interface UseWorkflowGenerationArgs {
   workflowEntryState: WorkflowEntryState | null
   setWorkflowEntryState: (next: WorkflowEntryState | null) => void
   selectedWorkflowTemplateContext: WorkflowTemplateRunContext | null
-  setWorkflowTemplateContextForKey: (params: { key: string; context: WorkflowTemplateRunContext | null }) => void
+  setWorkflowTemplateContextForKey: (params: {
+    key: string
+    context: WorkflowTemplateRunContext | null
+  }) => void
   skills: DiscoveredSkill[]
   setSkills: (next: DiscoveredSkill[]) => void
   selectedProject: string | null
@@ -91,9 +103,11 @@ export function useWorkflowGeneration({
   }
 
   const hasWorkflowContent = (candidate: Workflow): boolean =>
-    candidate.nodes.some((node) => node.type !== "input" && node.type !== "output")
-      || candidate.name.trim().length > 0
-      || (candidate.description || "").trim().length > 0
+    candidate.nodes.some(
+      (node) => node.type !== "input" && node.type !== "output",
+    ) ||
+    candidate.name.trim().length > 0 ||
+    (candidate.description || "").trim().length > 0
 
   const generate = async (target: GenerationTarget) => {
     if (!description.trim()) return
@@ -122,11 +136,14 @@ export function useWorkflowGeneration({
         description: skill.description,
       }))
 
-      const generatedWorkflow = applyWorkflowDetailBudget(await window.api.generateWorkflow(
-        description,
-        skillInfos,
-        selectedProject || undefined,
-      ), detailBudget)
+      const generatedWorkflow = applyWorkflowDetailBudget(
+        await window.api.generateWorkflow(
+          description,
+          skillInfos,
+          selectedProject || undefined,
+        ),
+        detailBudget,
+      )
       if (generationTokenRef.current !== token) return
 
       const previousWorkflow = cloneWorkflow(workflow)
@@ -135,9 +152,15 @@ export function useWorkflowGeneration({
 
       if (target === "new") {
         const baseName = generatedWorkflow.name.trim() || "generated-flow"
-        const createdPath = await window.api.createWorkflow(selectedProject!, baseName, generatedWorkflow)
+        const createdPath = await window.api.createWorkflow(
+          selectedProject!,
+          baseName,
+          generatedWorkflow,
+        )
         const savedWorkflow = await window.api.loadWorkflow(createdPath)
-        const refreshed = await window.api.listProjectWorkflows(selectedProject!)
+        const refreshed = await window.api.listProjectWorkflows(
+          selectedProject!,
+        )
 
         if (generationTokenRef.current !== token) return
 
@@ -180,22 +203,25 @@ export function useWorkflowGeneration({
         })
         // Replacing current workflow intentionally marks editor dirty.
         toast.success("Ready to review", {
-          description: "The agent replaced the current draft with a runnable flow.",
+          description:
+            "The agent replaced the current draft with a runnable flow.",
           action: hasWorkflowContent(previousWorkflow)
             ? {
-              label: "Undo",
-              onClick: () => {
-                setWorkflow(previousWorkflow)
-                setSelectedWorkflowPath(previousWorkflowPath)
-                setSelectedInboxTaskKey(previousReviewState.selectedInboxTaskKey)
-                setSelectedPastRun(previousReviewState.selectedPastRun)
-                setWorkflowEntryState(previousEntryState)
-                setWorkflowTemplateContextForKey({
-                  key: previousWorkflowKey,
-                  context: previousTemplateContext,
-                })
-              },
-            }
+                label: "Undo",
+                onClick: () => {
+                  setWorkflow(previousWorkflow)
+                  setSelectedWorkflowPath(previousWorkflowPath)
+                  setSelectedInboxTaskKey(
+                    previousReviewState.selectedInboxTaskKey,
+                  )
+                  setSelectedPastRun(previousReviewState.selectedPastRun)
+                  setWorkflowEntryState(previousEntryState)
+                  setWorkflowTemplateContextForKey({
+                    key: previousWorkflowKey,
+                    context: previousTemplateContext,
+                  })
+                },
+              }
             : undefined,
         })
       }
@@ -210,7 +236,10 @@ export function useWorkflowGeneration({
       }
     } catch (err) {
       if (generationTokenRef.current !== token) return
-      const msg = String(err).replace(/^Error: Error invoking remote method '[^']+': Error: /, "")
+      const msg = String(err).replace(
+        /^Error: Error invoking remote method '[^']+': Error: /,
+        "",
+      )
       setError(msg)
     } finally {
       if (generationTokenRef.current !== token) return

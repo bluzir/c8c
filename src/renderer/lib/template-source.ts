@@ -1,8 +1,11 @@
 import type { WorkflowTemplate } from "@shared/types"
 
-export function getTemplateSourceKind(template: WorkflowTemplate): "builtin" | "plugin" | "user" | "hub" {
+export function getTemplateSourceKind(
+  template: WorkflowTemplate,
+): "builtin" | "plugin" | "user" | "hub" {
   if (template.source === "hub") return "hub"
-  if (template.source === "plugin" || template.pluginId || template.pluginName) return "plugin"
+  if (template.source === "plugin" || template.pluginId || template.pluginName)
+    return "plugin"
   if (template.source === "user") return "user"
   return "builtin"
 }

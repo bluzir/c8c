@@ -42,14 +42,13 @@ function createProviderWorkflow(provider?: "claude" | "codex"): Workflow {
       makeNode("skill-1", "skill"),
       makeNode("output-1", "output"),
     ],
-    edges: [
-      makeEdge("input-1", "skill-1"),
-      makeEdge("skill-1", "output-1"),
-    ],
+    edges: [makeEdge("input-1", "skill-1"), makeEdge("skill-1", "output-1")],
   }
 }
 
-function createDiagnostics(overrides?: Partial<ProviderDiagnostics>): ProviderDiagnostics {
+function createDiagnostics(
+  overrides?: Partial<ProviderDiagnostics>,
+): ProviderDiagnostics {
   return {
     settings: {
       defaultProvider: "claude",
@@ -86,7 +85,9 @@ function createDiagnostics(overrides?: Partial<ProviderDiagnostics>): ProviderDi
   }
 }
 
-function createCliStatus(overrides?: Partial<ClaudeCodeSubscriptionStatus>): ClaudeCodeSubscriptionStatus {
+function createCliStatus(
+  overrides?: Partial<ClaudeCodeSubscriptionStatus>,
+): ClaudeCodeSubscriptionStatus {
   return {
     checkedAt: Date.now(),
     cliInstalled: true,
@@ -101,38 +102,45 @@ function createCliStatus(overrides?: Partial<ClaudeCodeSubscriptionStatus>): Cla
 
 describe("execution preflight", () => {
   it("falls back from codex to claude when the codex feature is disabled", () => {
-    expect(applyExecutionProviderFeatureFlags("codex", { codexProvider: false })).toBe("claude")
-    expect(resolveEffectiveExecutionProvider(createWorkflow("codex"), {
-      defaultProvider: "claude",
-      safetyProfile: "workspace_auto",
-      features: {
-        codexProvider: false,
-      },
-    })).toBe("claude")
+    expect(
+      applyExecutionProviderFeatureFlags("codex", { codexProvider: false }),
+    ).toBe("claude")
+    expect(
+      resolveEffectiveExecutionProvider(createWorkflow("codex"), {
+        defaultProvider: "claude",
+        safetyProfile: "workspace_auto",
+        features: {
+          codexProvider: false,
+        },
+      }),
+    ).toBe("claude")
   })
 
   it("blocks start when Claude CLI is unavailable", () => {
-    const result = evaluateExecutionStartPreflight(createProviderWorkflow("claude"), {
-      diagnostics: createDiagnostics({
-        health: {
-          claude: {
-            provider: "claude",
-            available: false,
-            error: "Claude CLI is not installed.",
+    const result = evaluateExecutionStartPreflight(
+      createProviderWorkflow("claude"),
+      {
+        diagnostics: createDiagnostics({
+          health: {
+            claude: {
+              provider: "claude",
+              available: false,
+              error: "Claude CLI is not installed.",
+            },
+            codex: {
+              provider: "codex",
+              available: true,
+              error: null,
+            },
           },
-          codex: {
-            provider: "codex",
-            available: true,
-            error: null,
-          },
-        },
-      }),
-      cliStatus: createCliStatus({
-        cliInstalled: false,
-        loggedIn: false,
-        error: "Claude CLI is not installed or not available in PATH.",
-      }),
-    })
+        }),
+        cliStatus: createCliStatus({
+          cliInstalled: false,
+          loggedIn: false,
+          error: "Claude CLI is not installed or not available in PATH.",
+        }),
+      },
+    )
 
     expect(result.ok).toBe(false)
     expect(result.effectiveProvider).toBe("claude")
@@ -143,24 +151,27 @@ describe("execution preflight", () => {
   })
 
   it("blocks start when Codex auth is required", () => {
-    const result = evaluateExecutionStartPreflight(createProviderWorkflow("codex"), {
-      diagnostics: createDiagnostics({
-        auth: {
-          claude: {
-            provider: "claude",
-            state: "authenticated",
-            authenticated: true,
+    const result = evaluateExecutionStartPreflight(
+      createProviderWorkflow("codex"),
+      {
+        diagnostics: createDiagnostics({
+          auth: {
+            claude: {
+              provider: "claude",
+              state: "authenticated",
+              authenticated: true,
+            },
+            codex: {
+              provider: "codex",
+              state: "unauthenticated",
+              authenticated: false,
+              error: "Codex CLI is not authenticated.",
+            },
           },
-          codex: {
-            provider: "codex",
-            state: "unauthenticated",
-            authenticated: false,
-            error: "Codex CLI is not authenticated.",
-          },
-        },
-      }),
-      cliStatus: null,
-    })
+        }),
+        cliStatus: null,
+      },
+    )
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -170,23 +181,26 @@ describe("execution preflight", () => {
   })
 
   it("allows codex when auth state is unknown but CLI is available", () => {
-    const result = evaluateExecutionStartPreflight(createProviderWorkflow("codex"), {
-      diagnostics: createDiagnostics({
-        auth: {
-          claude: {
-            provider: "claude",
-            state: "authenticated",
-            authenticated: true,
+    const result = evaluateExecutionStartPreflight(
+      createProviderWorkflow("codex"),
+      {
+        diagnostics: createDiagnostics({
+          auth: {
+            claude: {
+              provider: "claude",
+              state: "authenticated",
+              authenticated: true,
+            },
+            codex: {
+              provider: "codex",
+              state: "unknown",
+              authenticated: false,
+            },
           },
-          codex: {
-            provider: "codex",
-            state: "unknown",
-            authenticated: false,
-          },
-        },
-      }),
-      cliStatus: null,
-    })
+        }),
+        cliStatus: null,
+      },
+    )
 
     expect(result).toMatchObject({
       ok: true,
@@ -222,8 +236,12 @@ describe("execution preflight", () => {
   })
 
   it("loads Claude CLI status only when the effective provider is Claude", async () => {
-    const getProviderDiagnostics = vi.fn().mockResolvedValue(createDiagnostics())
-    const getClaudeCodeSubscriptionStatus = vi.fn().mockResolvedValue(createCliStatus())
+    const getProviderDiagnostics = vi
+      .fn()
+      .mockResolvedValue(createDiagnostics())
+    const getClaudeCodeSubscriptionStatus = vi
+      .fn()
+      .mockResolvedValue(createCliStatus())
 
     const result = await loadExecutionStartPreflight(
       {
@@ -241,7 +259,9 @@ describe("execution preflight", () => {
   })
 
   it("skips CLI auth probes for providerless workflows", async () => {
-    const getProviderDiagnostics = vi.fn().mockResolvedValue(createDiagnostics())
+    const getProviderDiagnostics = vi
+      .fn()
+      .mockResolvedValue(createDiagnostics())
     const getClaudeCodeSubscriptionStatus = vi.fn()
 
     const result = await loadExecutionStartPreflight(
@@ -260,15 +280,17 @@ describe("execution preflight", () => {
   })
 
   it("skips Claude CLI status when the effective provider is Codex", async () => {
-    const getProviderDiagnostics = vi.fn().mockResolvedValue(createDiagnostics({
-      settings: {
-        defaultProvider: "codex",
-        safetyProfile: "workspace_auto",
-        features: {
-          codexProvider: true,
+    const getProviderDiagnostics = vi.fn().mockResolvedValue(
+      createDiagnostics({
+        settings: {
+          defaultProvider: "codex",
+          safetyProfile: "workspace_auto",
+          features: {
+            codexProvider: true,
+          },
         },
-      },
-    }))
+      }),
+    )
     const getClaudeCodeSubscriptionStatus = vi.fn()
 
     const result = await loadExecutionStartPreflight(
@@ -287,156 +309,183 @@ describe("execution preflight", () => {
   })
 
   it("formats provider-specific titles", () => {
-    expect(formatExecutionPreflightTitle("claude", "cli_unavailable")).toBe("Claude Code unavailable")
-    expect(formatExecutionPreflightTitle("claude", "cli_version_unsupported")).toBe("Claude Code update required")
-    expect(formatExecutionPreflightTitle("codex", "auth_required")).toBe("OpenAI Codex login required")
+    expect(formatExecutionPreflightTitle("claude", "cli_unavailable")).toBe(
+      "Claude Code unavailable",
+    )
+    expect(
+      formatExecutionPreflightTitle("claude", "cli_version_unsupported"),
+    ).toBe("Claude Code update required")
+    expect(formatExecutionPreflightTitle("codex", "auth_required")).toBe(
+      "OpenAI Codex login required",
+    )
   })
 
   it("returns a settings-directed block reason for unavailable providers", () => {
-    expect(resolveExecutionStartBlockReason(createProviderWorkflow("claude"), {
-      settings: createDiagnostics().settings,
-      availability: {
-        claude: {
-          provider: "claude",
-          available: false,
-          error: "Claude CLI is not installed.",
+    expect(
+      resolveExecutionStartBlockReason(createProviderWorkflow("claude"), {
+        settings: createDiagnostics().settings,
+        availability: {
+          claude: {
+            provider: "claude",
+            available: false,
+            error: "Claude CLI is not installed.",
+          },
+          codex: {
+            provider: "codex",
+            available: true,
+            error: null,
+          },
         },
-        codex: {
-          provider: "codex",
-          available: true,
-          error: null,
-        },
-      },
-      auth: createDiagnostics().auth,
-    })).toContain("Open Settings to fix the provider setup.")
+        auth: createDiagnostics().auth,
+      }),
+    ).toContain("Open Settings to fix the provider setup.")
   })
 
   it("does not block when provider diagnostics have not loaded yet", () => {
-    expect(resolveExecutionStartBlockReason(createProviderWorkflow("codex"), {
-      settings: createDiagnostics({
-        settings: {
-          defaultProvider: "codex",
-          safetyProfile: "workspace_auto",
-          features: {
-            codexProvider: true,
+    expect(
+      resolveExecutionStartBlockReason(createProviderWorkflow("codex"), {
+        settings: createDiagnostics({
+          settings: {
+            defaultProvider: "codex",
+            safetyProfile: "workspace_auto",
+            features: {
+              codexProvider: true,
+            },
           },
+        }).settings,
+        availability: {
+          claude: null,
+          codex: null,
         },
-      }).settings,
-      availability: {
-        claude: null,
-        codex: null,
-      },
-      auth: {
-        claude: null,
-        codex: null,
-      },
-    })).toBeNull()
+        auth: {
+          claude: null,
+          codex: null,
+        },
+      }),
+    ).toBeNull()
   })
 
   describe("CLI version checking", () => {
     it("blocks start when Claude CLI version is below minimum", () => {
-      const result = evaluateExecutionStartPreflight(createProviderWorkflow("claude"), {
-        diagnostics: createDiagnostics({
-          health: {
-            claude: {
-              provider: "claude",
-              available: true,
-              version: "0.1.0",
-              error: null,
+      const result = evaluateExecutionStartPreflight(
+        createProviderWorkflow("claude"),
+        {
+          diagnostics: createDiagnostics({
+            health: {
+              claude: {
+                provider: "claude",
+                available: true,
+                version: "0.1.0",
+                error: null,
+              },
+              codex: {
+                provider: "codex",
+                available: true,
+                error: null,
+              },
             },
-            codex: {
-              provider: "codex",
-              available: true,
-              error: null,
-            },
-          },
-        }),
-        cliStatus: createCliStatus(),
-      })
+          }),
+          cliStatus: createCliStatus(),
+        },
+      )
 
       expect(result.ok).toBe(false)
       if (!result.ok) {
         expect(result.reason).toBe("cli_version_unsupported")
         expect(result.message).toContain("0.1.0")
         expect(result.message).toContain(MIN_CLAUDE_CLI_VERSION)
-        expect(result.message).toContain("npm update -g @anthropic-ai/claude-code")
+        expect(result.message).toContain(
+          "npm update -g @anthropic-ai/claude-code",
+        )
       }
     })
 
     it("allows execution when Claude CLI version meets minimum", () => {
-      const result = evaluateExecutionStartPreflight(createProviderWorkflow("claude"), {
-        diagnostics: createDiagnostics({
-          health: {
-            claude: {
-              provider: "claude",
-              available: true,
-              version: "2.0.0",
-              error: null,
+      const result = evaluateExecutionStartPreflight(
+        createProviderWorkflow("claude"),
+        {
+          diagnostics: createDiagnostics({
+            health: {
+              claude: {
+                provider: "claude",
+                available: true,
+                version: "2.0.0",
+                error: null,
+              },
+              codex: {
+                provider: "codex",
+                available: true,
+                error: null,
+              },
             },
-            codex: {
-              provider: "codex",
-              available: true,
-              error: null,
-            },
-          },
-        }),
-        cliStatus: createCliStatus(),
-      })
+          }),
+          cliStatus: createCliStatus(),
+        },
+      )
 
       expect(result.ok).toBe(true)
     })
 
     it("allows execution when Claude CLI version cannot be parsed (backwards compat)", () => {
-      const result = evaluateExecutionStartPreflight(createProviderWorkflow("claude"), {
-        diagnostics: createDiagnostics({
-          health: {
-            claude: {
-              provider: "claude",
-              available: true,
-              version: "unknown-version-format",
-              error: null,
+      const result = evaluateExecutionStartPreflight(
+        createProviderWorkflow("claude"),
+        {
+          diagnostics: createDiagnostics({
+            health: {
+              claude: {
+                provider: "claude",
+                available: true,
+                version: "unknown-version-format",
+                error: null,
+              },
+              codex: {
+                provider: "codex",
+                available: true,
+                error: null,
+              },
             },
-            codex: {
-              provider: "codex",
-              available: true,
-              error: null,
-            },
-          },
-        }),
-        cliStatus: createCliStatus(),
-      })
+          }),
+          cliStatus: createCliStatus(),
+        },
+      )
 
       expect(result.ok).toBe(true)
     })
 
     it("allows execution when version field is absent (backwards compat)", () => {
-      const result = evaluateExecutionStartPreflight(createProviderWorkflow("claude"), {
-        diagnostics: createDiagnostics(),
-        cliStatus: createCliStatus(),
-      })
+      const result = evaluateExecutionStartPreflight(
+        createProviderWorkflow("claude"),
+        {
+          diagnostics: createDiagnostics(),
+          cliStatus: createCliStatus(),
+        },
+      )
 
       expect(result.ok).toBe(true)
     })
 
     it("does not version-check Codex provider", () => {
-      const result = evaluateExecutionStartPreflight(createProviderWorkflow("codex"), {
-        diagnostics: createDiagnostics({
-          health: {
-            claude: {
-              provider: "claude",
-              available: true,
-              error: null,
+      const result = evaluateExecutionStartPreflight(
+        createProviderWorkflow("codex"),
+        {
+          diagnostics: createDiagnostics({
+            health: {
+              claude: {
+                provider: "claude",
+                available: true,
+                error: null,
+              },
+              codex: {
+                provider: "codex",
+                available: true,
+                version: "0.0.1",
+                error: null,
+              },
             },
-            codex: {
-              provider: "codex",
-              available: true,
-              version: "0.0.1",
-              error: null,
-            },
-          },
-        }),
-        cliStatus: null,
-      })
+          }),
+          cliStatus: null,
+        },
+      )
 
       expect(result.ok).toBe(true)
     })
@@ -509,7 +558,11 @@ describe("execution preflight", () => {
 // ── Helpers for graph construction ──────────────────────
 
 let nodeCounter = 0
-function makeNode(id: string, type: WorkflowNode["type"], config?: Record<string, unknown>): WorkflowNode {
+function makeNode(
+  id: string,
+  type: WorkflowNode["type"],
+  config?: Record<string, unknown>,
+): WorkflowNode {
   nodeCounter++
   const base = { id, type, position: { x: nodeCounter * 100, y: 0 } }
   switch (type) {
@@ -518,21 +571,45 @@ function makeNode(id: string, type: WorkflowNode["type"], config?: Record<string
     case "output":
       return { ...base, type: "output", config: { ...config } } as WorkflowNode
     case "skill":
-      return { ...base, type: "skill", config: { prompt: "test", ...config } } as WorkflowNode
+      return {
+        ...base,
+        type: "skill",
+        config: { prompt: "test", ...config },
+      } as WorkflowNode
     case "evaluator":
-      return { ...base, type: "evaluator", config: { criteria: "test", threshold: 7, maxRetries: 0, ...config } } as WorkflowNode
+      return {
+        ...base,
+        type: "evaluator",
+        config: { criteria: "test", threshold: 7, maxRetries: 0, ...config },
+      } as WorkflowNode
     case "splitter":
-      return { ...base, type: "splitter", config: { strategy: "auto", ...config } } as WorkflowNode
+      return {
+        ...base,
+        type: "splitter",
+        config: { strategy: "auto", ...config },
+      } as WorkflowNode
     case "merger":
-      return { ...base, type: "merger", config: { strategy: "concatenate", ...config } } as WorkflowNode
+      return {
+        ...base,
+        type: "merger",
+        config: { strategy: "concatenate", ...config },
+      } as WorkflowNode
     case "approval":
-      return { ...base, type: "approval", config: { show_content: true, allow_edit: false, ...config } } as WorkflowNode
+      return {
+        ...base,
+        type: "approval",
+        config: { show_content: true, allow_edit: false, ...config },
+      } as WorkflowNode
     default:
       return { ...base, type, config: { ...config } } as unknown as WorkflowNode
   }
 }
 
-function makeEdge(source: string, target: string, type: WorkflowEdge["type"] = "default"): WorkflowEdge {
+function makeEdge(
+  source: string,
+  target: string,
+  type: WorkflowEdge["type"] = "default",
+): WorkflowEdge {
   return { id: `${source}->${target}`, source, target, type }
 }
 
@@ -558,10 +635,7 @@ describe("estimateFlowCost", () => {
         makeNode("skill-1", "skill"),
         makeNode("output-1", "output"),
       ],
-      [
-        makeEdge("input-1", "skill-1"),
-        makeEdge("skill-1", "output-1"),
-      ],
+      [makeEdge("input-1", "skill-1"), makeEdge("skill-1", "output-1")],
     )
 
     const estimate = estimateFlowCost(wf)
@@ -664,7 +738,10 @@ describe("estimateFlowCost", () => {
         makeNode("input-1", "input"),
         makeNode("skill-1", "skill"),
         makeNode("skill-2", "skill"),
-        makeNode("eval-1", "evaluator", { maxRetries: 2, retryFrom: "skill-1" }),
+        makeNode("eval-1", "evaluator", {
+          maxRetries: 2,
+          retryFrom: "skill-1",
+        }),
         makeNode("output-1", "output"),
       ],
       [
@@ -713,10 +790,7 @@ describe("estimateFlowCost", () => {
         makeNode("skill-1", "skill"),
         makeNode("output-1", "output"),
       ],
-      [
-        makeEdge("input-1", "skill-1"),
-        makeEdge("skill-1", "output-1"),
-      ],
+      [makeEdge("input-1", "skill-1"), makeEdge("skill-1", "output-1")],
       "opus",
     )
 
@@ -728,30 +802,24 @@ describe("estimateFlowCost", () => {
         makeNode("skill-1b", "skill"),
         makeNode("output-1b", "output"),
       ],
-      [
-        makeEdge("input-1b", "skill-1b"),
-        makeEdge("skill-1b", "output-1b"),
-      ],
+      [makeEdge("input-1b", "skill-1b"), makeEdge("skill-1b", "output-1b")],
       "sonnet",
     )
 
     const estimateSonnet = estimateFlowCost(wfSonnet)
 
     // Opus should be significantly more expensive than sonnet
-    expect(estimateOpus.estimatedCostUsd).toBeGreaterThan(estimateSonnet.estimatedCostUsd)
+    expect(estimateOpus.estimatedCostUsd).toBeGreaterThan(
+      estimateSonnet.estimatedCostUsd,
+    )
     expect(estimateOpus.modelFamily).toBe("opus")
     expect(estimateSonnet.modelFamily).toBe("sonnet")
   })
 
   it("returns zero invocations for workflow with no skill nodes", () => {
     const wf = buildWorkflow(
-      [
-        makeNode("input-1", "input"),
-        makeNode("output-1", "output"),
-      ],
-      [
-        makeEdge("input-1", "output-1"),
-      ],
+      [makeNode("input-1", "input"), makeNode("output-1", "output")],
+      [makeEdge("input-1", "output-1")],
     )
 
     const estimate = estimateFlowCost(wf)
@@ -827,10 +895,7 @@ describe("evaluateTokenBudgetWarning", () => {
         makeNode("skill-1", "skill"),
         makeNode("output-1", "output"),
       ],
-      [
-        makeEdge("input-1", "skill-1"),
-        makeEdge("skill-1", "output-1"),
-      ],
+      [makeEdge("input-1", "skill-1"), makeEdge("skill-1", "output-1")],
     )
 
     const warning = evaluateTokenBudgetWarning(wf, "sonnet")
@@ -861,7 +926,9 @@ describe("evaluateTokenBudgetWarning", () => {
     const warning = evaluateTokenBudgetWarning(wf, "opus")
     expect(warning).not.toBeNull()
     expect(warning!.kind).toBe("token_budget")
-    expect(warning!.estimatedCostUsd).toBeGreaterThan(DEFAULT_COST_WARNING_THRESHOLD_USD)
+    expect(warning!.estimatedCostUsd).toBeGreaterThan(
+      DEFAULT_COST_WARNING_THRESHOLD_USD,
+    )
     expect(warning!.worstCaseInvocations).toBeGreaterThan(1)
     expect(warning!.message).toContain("$")
     expect(warning!.message).toContain("worst case")

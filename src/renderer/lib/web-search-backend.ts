@@ -1,15 +1,19 @@
-import type { Workflow, WorkflowTemplate, WorkflowTemplateStage } from "@shared/types"
+import type {
+  Workflow,
+  WorkflowTemplate,
+  WorkflowTemplateStage,
+} from "@shared/types"
 import { cloneWorkflow } from "./workflow-graph-utils"
 import { applyWorkflowDetailBudget } from "./workflow-detail-budget"
 
 export type WebSearchBackend = "builtin" | "exa"
 
 const BUILTIN_WEB_TOOLS = ["WebSearch", "WebFetch", "ToolSearch"] as const
-const EXA_WEB_TOOLS = ["mcp__exa__web_search_exa", "mcp__exa__crawling_exa"] as const
-const SHELL_WEB_FETCH_TOOLS = [
-  "Bash(curl:*)",
-  "Bash(wget:*)",
+const EXA_WEB_TOOLS = [
+  "mcp__exa__web_search_exa",
+  "mcp__exa__crawling_exa",
 ] as const
+const SHELL_WEB_FETCH_TOOLS = ["Bash(curl:*)", "Bash(wget:*)"] as const
 
 function unique(tools: string[] | undefined): string[] | undefined {
   if (!tools || tools.length === 0) return undefined
@@ -56,9 +60,18 @@ export function applyWebSearchBackendPreset(
   }
 
   // builtin backend
-  next.defaults.disallowedTools = removeTools(next.defaults.disallowedTools, BUILTIN_WEB_TOOLS)
-  next.defaults.disallowedTools = removeTools(next.defaults.disallowedTools, SHELL_WEB_FETCH_TOOLS)
-  next.defaults.allowedTools = removeTools(next.defaults.allowedTools, EXA_WEB_TOOLS)
+  next.defaults.disallowedTools = removeTools(
+    next.defaults.disallowedTools,
+    BUILTIN_WEB_TOOLS,
+  )
+  next.defaults.disallowedTools = removeTools(
+    next.defaults.disallowedTools,
+    SHELL_WEB_FETCH_TOOLS,
+  )
+  next.defaults.allowedTools = removeTools(
+    next.defaults.allowedTools,
+    EXA_WEB_TOOLS,
+  )
   return next
 }
 
@@ -67,11 +80,19 @@ export function resolveTemplateWorkflow(
   backend: WebSearchBackend,
   options?: { detailBudget?: number | null; templateId?: string | null },
 ): Workflow {
-  let nextWorkflow = applyWebSearchBackendPreset(template.workflow, template.stage, backend)
+  let nextWorkflow = applyWebSearchBackendPreset(
+    template.workflow,
+    template.stage,
+    backend,
+  )
   if (options?.detailBudget != null) {
-    nextWorkflow = applyWorkflowDetailBudget(nextWorkflow, options.detailBudget, {
-      templateId: options.templateId,
-    })
+    nextWorkflow = applyWorkflowDetailBudget(
+      nextWorkflow,
+      options.detailBudget,
+      {
+        templateId: options.templateId,
+      },
+    )
   }
   const templateName = template.name.trim()
   if (templateName) {

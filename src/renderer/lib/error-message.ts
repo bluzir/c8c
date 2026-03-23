@@ -5,7 +5,10 @@
  * - Strings → returned as-is (first line only)
  * - Everything else → fallback
  */
-export function errorToUserMessage(error: unknown, fallback = "An unexpected error occurred."): string {
+export function errorToUserMessage(
+  error: unknown,
+  fallback = "An unexpected error occurred.",
+): string {
   let raw: string | undefined
 
   if (error instanceof Error && error.message.trim()) {

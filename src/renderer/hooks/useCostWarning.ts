@@ -20,8 +20,12 @@ export function createCostWarningController(
   let open = false
 
   return {
-    async handlePreflightWarnings(warnings: PreflightWarning[]): Promise<boolean> {
-      const budgetWarning = warnings.find((warning) => warning.kind === "token_budget")
+    async handlePreflightWarnings(
+      warnings: PreflightWarning[],
+    ): Promise<boolean> {
+      const budgetWarning = warnings.find(
+        (warning) => warning.kind === "token_budget",
+      )
       if (!budgetWarning) return true
       if (open) return false
 
@@ -63,15 +67,21 @@ export function createCostWarningController(
  * (user cancelled).
  */
 export function useCostWarning() {
-  const [state, setState] = useState<CostWarningState>({ open: false, warning: null })
+  const [state, setState] = useState<CostWarningState>({
+    open: false,
+    warning: null,
+  })
   const controllerRef = useRef<CostWarningController | null>(null)
   if (!controllerRef.current) {
     controllerRef.current = createCostWarningController(setState)
   }
 
-  const handlePreflightWarnings = useCallback((warnings: PreflightWarning[]) => {
-    return controllerRef.current!.handlePreflightWarnings(warnings)
-  }, [])
+  const handlePreflightWarnings = useCallback(
+    (warnings: PreflightWarning[]) => {
+      return controllerRef.current!.handlePreflightWarnings(warnings)
+    },
+    [],
+  )
 
   const confirm = useCallback(() => {
     controllerRef.current!.confirm()

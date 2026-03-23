@@ -1,7 +1,5 @@
 import { useAtom } from "jotai"
-import {
-  currentWorkflowAtom,
-} from "@/lib/store"
+import { currentWorkflowAtom } from "@/lib/store"
 import {
   activeNodeIdAtom,
   artifactPersistenceErrorAtom,

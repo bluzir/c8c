@@ -16,14 +16,19 @@ function resolveSetAtomValue<T>(update: SetAtomValue<T>, previous: T): T {
     : update
 }
 
-export const workflowExecutionStatesAtom = atom<Record<string, WorkflowExecutionState>>({})
+export const workflowExecutionStatesAtom = atom<
+  Record<string, WorkflowExecutionState>
+>({})
 export const selectedWorkflowExecutionKeyAtom = atom((get) =>
   toWorkflowExecutionKey(get(selectedWorkflowPathAtom)),
 )
 export const selectedWorkflowExecutionAtom = atom(
   (get) => {
     const key = get(selectedWorkflowExecutionKeyAtom)
-    return get(workflowExecutionStatesAtom)[key] ?? createEmptyWorkflowExecutionState()
+    return (
+      get(workflowExecutionStatesAtom)[key] ??
+      createEmptyWorkflowExecutionState()
+    )
   },
   (get, set, update: SetAtomValue<WorkflowExecutionState>) => {
     const key = get(selectedWorkflowExecutionKeyAtom)
@@ -45,7 +50,10 @@ export const updateWorkflowExecutionStateAtom = atom(
   (
     get,
     set,
-    { key, update }: { key: string; update: SetAtomValue<WorkflowExecutionState> },
+    {
+      key,
+      update,
+    }: { key: string; update: SetAtomValue<WorkflowExecutionState> },
   ) => {
     const states = get(workflowExecutionStatesAtom)
     const previous = states[key] ?? createEmptyWorkflowExecutionState()
@@ -95,7 +103,9 @@ export const moveWorkflowExecutionStateAtom = atom(
   },
 )
 
-function createSelectedWorkflowExecutionFieldAtom<K extends keyof WorkflowExecutionState>(field: K) {
+function createSelectedWorkflowExecutionFieldAtom<
+  K extends keyof WorkflowExecutionState,
+>(field: K) {
   return atom(
     (get) => get(selectedWorkflowExecutionAtom)[field],
     (get, set, update: SetAtomValue<WorkflowExecutionState[K]>) => {
@@ -107,41 +117,66 @@ function createSelectedWorkflowExecutionFieldAtom<K extends keyof WorkflowExecut
   )
 }
 
-export const runStatusAtom = createSelectedWorkflowExecutionFieldAtom("runStatus")
-export const runOutcomeAtom = createSelectedWorkflowExecutionFieldAtom("runOutcome")
-export const runStartedAtAtom = createSelectedWorkflowExecutionFieldAtom("runStartedAt")
-export const completedAtAtom = createSelectedWorkflowExecutionFieldAtom("completedAt")
-export const workflowNameAtom = createSelectedWorkflowExecutionFieldAtom("workflowName")
+export const runStatusAtom =
+  createSelectedWorkflowExecutionFieldAtom("runStatus")
+export const runOutcomeAtom =
+  createSelectedWorkflowExecutionFieldAtom("runOutcome")
+export const runStartedAtAtom =
+  createSelectedWorkflowExecutionFieldAtom("runStartedAt")
+export const completedAtAtom =
+  createSelectedWorkflowExecutionFieldAtom("completedAt")
+export const workflowNameAtom =
+  createSelectedWorkflowExecutionFieldAtom("workflowName")
 export const runIdAtom = createSelectedWorkflowExecutionFieldAtom("runId")
-export const runWorkflowPathAtom = createSelectedWorkflowExecutionFieldAtom("runWorkflowPath")
-export const nodeStatesAtom = createSelectedWorkflowExecutionFieldAtom("nodeStates")
-export const activeNodeIdAtom = createSelectedWorkflowExecutionFieldAtom("activeNodeId")
-export const inspectedNodeIdAtom = createSelectedWorkflowExecutionFieldAtom("inspectedNodeId")
-export const evalResultsAtom = createSelectedWorkflowExecutionFieldAtom("evalResults")
-export const finalContentAtom = createSelectedWorkflowExecutionFieldAtom("finalContent")
-export const reportPathAtom = createSelectedWorkflowExecutionFieldAtom("reportPath")
-export const workspaceAtom = createSelectedWorkflowExecutionFieldAtom("workspace")
+export const runWorkflowPathAtom =
+  createSelectedWorkflowExecutionFieldAtom("runWorkflowPath")
+export const nodeStatesAtom =
+  createSelectedWorkflowExecutionFieldAtom("nodeStates")
+export const activeNodeIdAtom =
+  createSelectedWorkflowExecutionFieldAtom("activeNodeId")
+export const inspectedNodeIdAtom =
+  createSelectedWorkflowExecutionFieldAtom("inspectedNodeId")
+export const evalResultsAtom =
+  createSelectedWorkflowExecutionFieldAtom("evalResults")
+export const finalContentAtom =
+  createSelectedWorkflowExecutionFieldAtom("finalContent")
+export const reportPathAtom =
+  createSelectedWorkflowExecutionFieldAtom("reportPath")
+export const workspaceAtom =
+  createSelectedWorkflowExecutionFieldAtom("workspace")
 export const pastRunsAtom = atom<RunResult[]>([])
-export const selectedPastRunAtom = createSelectedWorkflowExecutionFieldAtom("selectedPastRun")
-export const runtimeNodesAtom = createSelectedWorkflowExecutionFieldAtom("runtimeNodes")
-export const runtimeEdgesAtom = createSelectedWorkflowExecutionFieldAtom("runtimeEdges")
-export const runtimeMetaAtom = createSelectedWorkflowExecutionFieldAtom("runtimeMeta")
-export const artifactRecordsAtom = createSelectedWorkflowExecutionFieldAtom("artifactRecords")
-export const artifactPersistenceStatusAtom = createSelectedWorkflowExecutionFieldAtom("artifactPersistenceStatus")
-export const artifactPersistenceErrorAtom = createSelectedWorkflowExecutionFieldAtom("artifactPersistenceError")
-export const surfaceNoticeAtom = createSelectedWorkflowExecutionFieldAtom("surfaceNotice")
-export const evalOverrideNodeIdsAtom = createSelectedWorkflowExecutionFieldAtom("evalOverrideNodeIds")
+export const selectedPastRunAtom =
+  createSelectedWorkflowExecutionFieldAtom("selectedPastRun")
+export const runtimeNodesAtom =
+  createSelectedWorkflowExecutionFieldAtom("runtimeNodes")
+export const runtimeEdgesAtom =
+  createSelectedWorkflowExecutionFieldAtom("runtimeEdges")
+export const runtimeMetaAtom =
+  createSelectedWorkflowExecutionFieldAtom("runtimeMeta")
+export const artifactRecordsAtom =
+  createSelectedWorkflowExecutionFieldAtom("artifactRecords")
+export const artifactPersistenceStatusAtom =
+  createSelectedWorkflowExecutionFieldAtom("artifactPersistenceStatus")
+export const artifactPersistenceErrorAtom =
+  createSelectedWorkflowExecutionFieldAtom("artifactPersistenceError")
+export const surfaceNoticeAtom =
+  createSelectedWorkflowExecutionFieldAtom("surfaceNotice")
+export const evalOverrideNodeIdsAtom = createSelectedWorkflowExecutionFieldAtom(
+  "evalOverrideNodeIds",
+)
 
-export const runsByWorkflowPathAtom = atom<Record<string, RunResult[]>>((get) => {
-  const runs = get(pastRunsAtom)
-  const grouped: Record<string, RunResult[]> = {}
-  for (const run of runs) {
-    const key = run.workflowPath || "__orphan__"
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(run)
-  }
-  return grouped
-})
+export const runsByWorkflowPathAtom = atom<Record<string, RunResult[]>>(
+  (get) => {
+    const runs = get(pastRunsAtom)
+    const grouped: Record<string, RunResult[]> = {}
+    for (const run of runs) {
+      const key = run.workflowPath || "__orphan__"
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(run)
+    }
+    return grouped
+  },
+)
 
 export function doesRunBelongToWorkflowHistory(
   run: Pick<RunResult, "workflowName" | "workflowPath">,
@@ -163,7 +198,9 @@ export const workflowHistoryRunsAtom = atom<RunResult[]>((get) => {
   const selectedWorkflowPath = (get(selectedWorkflowPathAtom) || "").trim()
   const workflowName = (get(currentWorkflowAtom).name || "").trim()
 
-  return runs.filter((run) => doesRunBelongToWorkflowHistory(run, selectedWorkflowPath, workflowName))
+  return runs.filter((run) =>
+    doesRunBelongToWorkflowHistory(run, selectedWorkflowPath, workflowName),
+  )
 })
 
 export const approvalRequestsAtom = atom<ApprovalRequest[]>([])

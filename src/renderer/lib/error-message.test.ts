@@ -7,7 +7,9 @@ describe("errorToUserMessage", () => {
   })
 
   it("returns string errors as-is", () => {
-    expect(errorToUserMessage("something went wrong")).toBe("something went wrong")
+    expect(errorToUserMessage("something went wrong")).toBe(
+      "something went wrong",
+    )
   })
 
   it("strips stack traces from Error.message", () => {
@@ -17,7 +19,9 @@ describe("errorToUserMessage", () => {
   })
 
   it("strips multi-line string errors to first line", () => {
-    expect(errorToUserMessage("Error: boom\n    at foo.ts:1:1")).toBe("Error: boom")
+    expect(errorToUserMessage("Error: boom\n    at foo.ts:1:1")).toBe(
+      "Error: boom",
+    )
   })
 
   it("returns fallback for null", () => {
@@ -45,6 +49,8 @@ describe("errorToUserMessage", () => {
   })
 
   it("returns fallback for Error with empty message", () => {
-    expect(errorToUserMessage(new Error(""))).toBe("An unexpected error occurred.")
+    expect(errorToUserMessage(new Error(""))).toBe(
+      "An unexpected error occurred.",
+    )
   })
 })

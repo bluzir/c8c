@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest"
-import type { ArtifactRecord, HumanTaskSummary, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  HumanTaskSummary,
+  WorkflowTemplate,
+} from "@shared/types"
 import { deriveWorkflowCreateContinuations } from "./workflow-create-continuation"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-shape-project",
     name: "Delivery Factory: Shape Project",
@@ -32,7 +38,9 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "verification_report",
@@ -55,7 +63,9 @@ function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord
   }
 }
 
-function createTask(overrides: Partial<HumanTaskSummary> = {}): HumanTaskSummary {
+function createTask(
+  overrides: Partial<HumanTaskSummary> = {},
+): HumanTaskSummary {
   return {
     task: "Review feature spec",
     taskId: "task-1",

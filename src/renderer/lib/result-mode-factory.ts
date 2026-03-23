@@ -1,4 +1,7 @@
-import type { ProjectFactoryBlueprint, ProjectFactoryDefinition } from "@shared/types"
+import type {
+  ProjectFactoryBlueprint,
+  ProjectFactoryDefinition,
+} from "@shared/types"
 import type { ResultModeConfigValues } from "@/lib/result-mode-config"
 import type { WorkflowResultMode } from "@/lib/result-modes"
 
@@ -19,7 +22,12 @@ function dedupe(values: string[]) {
 }
 
 function splitLines(value: string | undefined | null) {
-  return dedupe((value || "").split("\n").map((line) => line.trim()).filter(Boolean))
+  return dedupe(
+    (value || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean),
+  )
 }
 
 function titleCaseFromIdentifier(value: string) {
@@ -54,8 +62,12 @@ function firstFilled(...values: Array<string | undefined | null>) {
 
 function extractTargetDefinition(values: string[]) {
   const combined = values.join("\n")
-  const targetMatch = combined.match(/\b(\d+)\s+(posts?|articles?|lessons?|modules?|emails?|assets?|videos?)\b/i)
-  const horizonMatch = combined.match(/\b(next\s+\d+\s+(?:days?|weeks?|months?)|\d+\s+(?:days?|weeks?|months?))\b/i)
+  const targetMatch = combined.match(
+    /\b(\d+)\s+(posts?|articles?|lessons?|modules?|emails?|assets?|videos?)\b/i,
+  )
+  const horizonMatch = combined.match(
+    /\b(next\s+\d+\s+(?:days?|weeks?|months?)|\d+\s+(?:days?|weeks?|months?))\b/i,
+  )
 
   return {
     targetCount: targetMatch ? Number(targetMatch[1]) : null,
@@ -64,40 +76,95 @@ function extractTargetDefinition(values: string[]) {
   }
 }
 
-function factoryLabelForMode(mode: WorkflowResultMode, values: ResultModeConfigValues, existingFactory?: ProjectFactoryDefinition | null) {
+function factoryLabelForMode(
+  mode: WorkflowResultMode,
+  values: ResultModeConfigValues,
+  existingFactory?: ProjectFactoryDefinition | null,
+) {
   if (mode.id === "development") {
-    return firstFilled(values.project_goal, existingFactory?.label, existingFactory?.outcome?.title, "Product Lab")
+    return firstFilled(
+      values.project_goal,
+      existingFactory?.label,
+      existingFactory?.outcome?.title,
+      "Product Lab",
+    )
   }
   if (mode.id === "content") {
-    return firstFilled(values.content_goal, existingFactory?.label, existingFactory?.outcome?.title, "Marketing Lab")
+    return firstFilled(
+      values.content_goal,
+      existingFactory?.label,
+      existingFactory?.outcome?.title,
+      "Marketing Lab",
+    )
   }
   if (mode.id === "courses") {
-    return firstFilled(values.course_outcome, existingFactory?.label, existingFactory?.outcome?.title, "Content Lab")
+    return firstFilled(
+      values.course_outcome,
+      existingFactory?.label,
+      existingFactory?.outcome?.title,
+      "Content Lab",
+    )
   }
-  return firstFilled(existingFactory?.label, existingFactory?.outcome?.title, `${mode.label} Lab`)
+  return firstFilled(
+    existingFactory?.label,
+    existingFactory?.outcome?.title,
+    `${mode.label} Lab`,
+  )
 }
 
-function buildOutcomeStatement(mode: WorkflowResultMode, values: ResultModeConfigValues) {
+function buildOutcomeStatement(
+  mode: WorkflowResultMode,
+  values: ResultModeConfigValues,
+) {
   const sections: Array<{ label: string; value: string }> = []
 
   if (mode.id === "development") {
-    if (trim(values.source_context)) sections.push({ label: "Source context", value: trim(values.source_context) })
-    if (trim(values.quality_bar)) sections.push({ label: "Quality bar", value: trim(values.quality_bar) })
+    if (trim(values.source_context))
+      sections.push({
+        label: "Source context",
+        value: trim(values.source_context),
+      })
+    if (trim(values.quality_bar))
+      sections.push({ label: "Quality bar", value: trim(values.quality_bar) })
   } else if (mode.id === "content") {
-    if (trim(values.channel_and_audience)) sections.push({ label: "Channel and audience", value: trim(values.channel_and_audience) })
-    if (trim(values.tone_of_voice)) sections.push({ label: "Tone of voice", value: trim(values.tone_of_voice) })
-    if (trim(values.volume_and_quality)) sections.push({ label: "Volume and quality bar", value: trim(values.volume_and_quality) })
+    if (trim(values.channel_and_audience))
+      sections.push({
+        label: "Channel and audience",
+        value: trim(values.channel_and_audience),
+      })
+    if (trim(values.tone_of_voice))
+      sections.push({
+        label: "Tone of voice",
+        value: trim(values.tone_of_voice),
+      })
+    if (trim(values.volume_and_quality))
+      sections.push({
+        label: "Volume and quality bar",
+        value: trim(values.volume_and_quality),
+      })
   } else if (mode.id === "courses") {
-    if (trim(values.audience)) sections.push({ label: "Audience", value: trim(values.audience) })
-    if (trim(values.format_and_depth)) sections.push({ label: "Format and depth", value: trim(values.format_and_depth) })
-    if (trim(values.launch_needs)) sections.push({ label: "Launch needs", value: trim(values.launch_needs) })
+    if (trim(values.audience))
+      sections.push({ label: "Audience", value: trim(values.audience) })
+    if (trim(values.format_and_depth))
+      sections.push({
+        label: "Format and depth",
+        value: trim(values.format_and_depth),
+      })
+    if (trim(values.launch_needs))
+      sections.push({ label: "Launch needs", value: trim(values.launch_needs) })
   }
 
   if (sections.length === 0) return undefined
-  return sections.map((section) => `${section.label}: ${section.value}`).join("\n")
+  return sections
+    .map((section) => `${section.label}: ${section.value}`)
+    .join("\n")
 }
 
-function buildConstraints(mode: WorkflowResultMode, values: ResultModeConfigValues, existingFactory?: ProjectFactoryDefinition | null) {
+function buildConstraints(
+  mode: WorkflowResultMode,
+  values: ResultModeConfigValues,
+  existingFactory?: ProjectFactoryDefinition | null,
+) {
   const next = [...(existingFactory?.outcome?.constraints || [])]
   if (mode.id === "development") {
     next.push(...splitLines(values.quality_bar))
@@ -111,7 +178,11 @@ function buildConstraints(mode: WorkflowResultMode, values: ResultModeConfigValu
   return dedupe(next)
 }
 
-function buildStrategistCheckpoints(mode: WorkflowResultMode, values: ResultModeConfigValues, existingFactory?: ProjectFactoryDefinition | null) {
+function buildStrategistCheckpoints(
+  mode: WorkflowResultMode,
+  values: ResultModeConfigValues,
+  existingFactory?: ProjectFactoryDefinition | null,
+) {
   if (mode.id === "development") {
     const configured = splitLines(values.strategist_checkpoints)
     if (configured.length > 0) return configured
@@ -125,17 +196,32 @@ function buildStrategistCheckpoints(mode: WorkflowResultMode, values: ResultMode
   if (mode.id === "courses") {
     return ["Approve voice and structure", "Approve sample asset quality"]
   }
-  return ["Approve scope and direction", "Approve quality before wider execution"]
+  return [
+    "Approve scope and direction",
+    "Approve quality before wider execution",
+  ]
 }
 
 function defaultQualityPolicy(mode: WorkflowResultMode) {
   if (mode.id === "content") {
-    return ["Evidence-first market research", "Angle before asset production", "Human review before scaling"]
+    return [
+      "Evidence-first market research",
+      "Angle before asset production",
+      "Human review before scaling",
+    ]
   }
   if (mode.id === "courses") {
-    return ["Voice-locked drafting", "Structure before scale", "Human publish or launch approval"]
+    return [
+      "Voice-locked drafting",
+      "Structure before scale",
+      "Human publish or launch approval",
+    ]
   }
-  return ["Spec-first delivery", "Visible verification before complete", "Sparse human approvals"]
+  return [
+    "Spec-first delivery",
+    "Visible verification before complete",
+    "Sparse human approvals",
+  ]
 }
 
 function defaultCaseGenerationRule(mode: WorkflowResultMode) {
@@ -145,14 +231,23 @@ function defaultCaseGenerationRule(mode: WorkflowResultMode) {
 }
 
 function defaultSuccessSignal(mode: WorkflowResultMode) {
-  if (mode.id === "content") return "A grounded market angle, campaign plan, or asset pack that is ready for review."
-  if (mode.id === "courses") return "A publishable content system or lesson asset set that is ready for human review."
+  if (mode.id === "content")
+    return "A grounded market angle, campaign plan, or asset pack that is ready for review."
+  if (mode.id === "courses")
+    return "A publishable content system or lesson asset set that is ready for human review."
   return "A plan or implementation path that meets the requested quality bar."
 }
 
-function buildAudience(mode: WorkflowResultMode, values: ResultModeConfigValues, existingFactory?: ProjectFactoryDefinition | null) {
+function buildAudience(
+  mode: WorkflowResultMode,
+  values: ResultModeConfigValues,
+  existingFactory?: ProjectFactoryDefinition | null,
+) {
   if (mode.id === "content") {
-    return firstFilled(values.channel_and_audience, existingFactory?.outcome?.audience)
+    return firstFilled(
+      values.channel_and_audience,
+      existingFactory?.outcome?.audience,
+    )
   }
   if (mode.id === "courses") {
     return firstFilled(values.audience, existingFactory?.outcome?.audience)
@@ -171,16 +266,28 @@ export function pickReusableFactoryForMode({
 }): ProjectFactoryDefinition | null {
   const factories = blueprint?.factories || []
   if (selectedFactoryId) {
-    const selected = factories.find((factory) => factory.id === selectedFactoryId) || null
-    if (selected && (selected.modeId === mode.id || selected.recipe?.packIds?.some((packId) => mode.packIds?.includes(packId)))) {
+    const selected =
+      factories.find((factory) => factory.id === selectedFactoryId) || null
+    if (
+      selected &&
+      (selected.modeId === mode.id ||
+        selected.recipe?.packIds?.some((packId) =>
+          mode.packIds?.includes(packId),
+        ))
+    ) {
       return selected
     }
   }
 
-  return factories.find((factory) =>
-    factory.modeId === mode.id
-    || factory.recipe?.packIds?.some((packId) => mode.packIds?.includes(packId)),
-  ) || null
+  return (
+    factories.find(
+      (factory) =>
+        factory.modeId === mode.id ||
+        factory.recipe?.packIds?.some((packId) =>
+          mode.packIds?.includes(packId),
+        ),
+    ) || null
+  )
 }
 
 export function buildFactoryFromResultMode({
@@ -199,18 +306,21 @@ export function buildFactoryFromResultMode({
   ) as ResultModeConfigValues
   const allTexts = Object.values(normalizedValues).filter(Boolean)
   const target = extractTargetDefinition(allTexts)
-  const label = factoryLabelForMode(mode, normalizedValues, existingFactory)
-    || `${mode.label} Lab`
-  const outcomeTitle = firstFilled(
-    mode.id === "development" ? normalizedValues.project_goal : undefined,
-    mode.id === "content" ? normalizedValues.content_goal : undefined,
-    mode.id === "courses" ? normalizedValues.course_outcome : undefined,
-    existingFactory?.outcome?.title,
-    label,
-  ) || label
-  const outcomeStatement = buildOutcomeStatement(mode, normalizedValues)
-    || existingFactory?.outcome?.statement
-    || mode.useFor
+  const label =
+    factoryLabelForMode(mode, normalizedValues, existingFactory) ||
+    `${mode.label} Lab`
+  const outcomeTitle =
+    firstFilled(
+      mode.id === "development" ? normalizedValues.project_goal : undefined,
+      mode.id === "content" ? normalizedValues.content_goal : undefined,
+      mode.id === "courses" ? normalizedValues.course_outcome : undefined,
+      existingFactory?.outcome?.title,
+      label,
+    ) || label
+  const outcomeStatement =
+    buildOutcomeStatement(mode, normalizedValues) ||
+    existingFactory?.outcome?.statement ||
+    mode.useFor
   const qualityPolicy = existingFactory?.recipe?.qualityPolicy?.length
     ? existingFactory.recipe.qualityPolicy
     : defaultQualityPolicy(mode)
@@ -229,19 +339,38 @@ export function buildFactoryFromResultMode({
         existingFactory?.outcome?.successSignal,
         defaultSuccessSignal(mode),
       ),
-      timeHorizon: firstFilled(target.timeHorizon, existingFactory?.outcome?.timeHorizon),
-      targetCount: target.targetCount ?? existingFactory?.outcome?.targetCount ?? null,
-      targetUnit: firstFilled(target.targetUnit, existingFactory?.outcome?.targetUnit),
+      timeHorizon: firstFilled(
+        target.timeHorizon,
+        existingFactory?.outcome?.timeHorizon,
+      ),
+      targetCount:
+        target.targetCount ?? existingFactory?.outcome?.targetCount ?? null,
+      targetUnit: firstFilled(
+        target.targetUnit,
+        existingFactory?.outcome?.targetUnit,
+      ),
       audience: buildAudience(mode, normalizedValues, existingFactory),
       constraints: buildConstraints(mode, normalizedValues, existingFactory),
     },
     recipe: {
-      summary: firstFilled(existingFactory?.recipe?.summary, `${mode.label} guided path`),
-      packIds: dedupe([...(existingFactory?.recipe?.packIds || []), ...(mode.packIds || [])]),
-      stageOrder: existingFactory?.recipe?.stageOrder?.length ? existingFactory.recipe.stageOrder : mode.guidedPath,
+      summary: firstFilled(
+        existingFactory?.recipe?.summary,
+        `${mode.label} guided path`,
+      ),
+      packIds: dedupe([
+        ...(existingFactory?.recipe?.packIds || []),
+        ...(mode.packIds || []),
+      ]),
+      stageOrder: existingFactory?.recipe?.stageOrder?.length
+        ? existingFactory.recipe.stageOrder
+        : mode.guidedPath,
       artifactContracts: existingFactory?.recipe?.artifactContracts,
       qualityPolicy,
-      strategistCheckpoints: buildStrategistCheckpoints(mode, normalizedValues, existingFactory),
+      strategistCheckpoints: buildStrategistCheckpoints(
+        mode,
+        normalizedValues,
+        existingFactory,
+      ),
       caseGenerationRules: existingFactory?.recipe?.caseGenerationRules?.length
         ? existingFactory.recipe.caseGenerationRules
         : [defaultCaseGenerationRule(mode)],

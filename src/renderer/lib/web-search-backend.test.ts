@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { Workflow } from "@shared/types"
-import { applyWebSearchBackendPreset, resolveTemplateWorkflow } from "./web-search-backend"
+import {
+  applyWebSearchBackendPreset,
+  resolveTemplateWorkflow,
+} from "./web-search-backend"
 
 function makeWorkflow(): Workflow {
   return {
@@ -19,7 +22,12 @@ function makeWorkflow(): Workflow {
         position: { x: 300, y: 0 },
         config: { skillRef: "researcher", prompt: "Research this topic." },
       },
-      { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
+      {
+        id: "output-1",
+        type: "output",
+        position: { x: 600, y: 0 },
+        config: {},
+      },
     ],
     edges: [
       { id: "e1", source: "input-1", target: "researcher-1", type: "default" },
@@ -51,7 +59,11 @@ describe("applyWebSearchBackendPreset", () => {
     }
     const next = applyWebSearchBackendPreset(workflow, "research", "exa")
     expect(next.defaults?.allowedTools).toEqual(
-      expect.arrayContaining(["Read", "mcp__exa__web_search_exa", "mcp__exa__crawling_exa"]),
+      expect.arrayContaining([
+        "Read",
+        "mcp__exa__web_search_exa",
+        "mcp__exa__crawling_exa",
+      ]),
     )
   })
 
@@ -59,7 +71,13 @@ describe("applyWebSearchBackendPreset", () => {
     const workflow = makeWorkflow()
     workflow.defaults = {
       ...(workflow.defaults || {}),
-      disallowedTools: ["Read", "WebSearch", "ToolSearch", "Bash(curl:*)", "Bash(wget:*)"],
+      disallowedTools: [
+        "Read",
+        "WebSearch",
+        "ToolSearch",
+        "Bash(curl:*)",
+        "Bash(wget:*)",
+      ],
     }
     const next = applyWebSearchBackendPreset(workflow, "research", "builtin")
     expect(next.defaults?.disallowedTools).toEqual(["Read"])
@@ -69,7 +87,11 @@ describe("applyWebSearchBackendPreset", () => {
     const workflow = makeWorkflow()
     workflow.defaults = {
       ...(workflow.defaults || {}),
-      allowedTools: ["Read", "mcp__exa__web_search_exa", "mcp__exa__crawling_exa"],
+      allowedTools: [
+        "Read",
+        "mcp__exa__web_search_exa",
+        "mcp__exa__crawling_exa",
+      ],
     }
     const next = applyWebSearchBackendPreset(workflow, "research", "builtin")
     expect(next.defaults?.allowedTools).toEqual(["Read"])
@@ -85,11 +107,14 @@ describe("applyWebSearchBackendPreset", () => {
 describe("resolveTemplateWorkflow", () => {
   it("uses template display name as workflow name", () => {
     const workflow = { ...makeWorkflow(), name: "new-flow" }
-    const next = resolveTemplateWorkflow({
-      name: "Deep Research",
-      stage: "research",
-      workflow,
-    }, "builtin")
+    const next = resolveTemplateWorkflow(
+      {
+        name: "Deep Research",
+        stage: "research",
+        workflow,
+      },
+      "builtin",
+    )
 
     expect(next.name).toBe("Deep Research")
     expect(workflow.name).toBe("new-flow")
@@ -107,11 +132,17 @@ describe("resolveTemplateWorkflow", () => {
           type: "splitter",
           position: { x: 300, y: 0 },
           config: {
-            strategy: "From the project map, create exactly 5 parallel repo-wide audit tasks.",
+            strategy:
+              "From the project map, create exactly 5 parallel repo-wide audit tasks.",
             maxBranches: 5,
           },
         },
-        { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 600, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "splitter-1", type: "default" },
@@ -119,11 +150,15 @@ describe("resolveTemplateWorkflow", () => {
       ],
     }
 
-    const next = resolveTemplateWorkflow({
-      name: "UX/UI Polish Audit",
-      stage: "code",
-      workflow,
-    }, "builtin", { detailBudget: 20, templateId: "ux-ui-polish-audit" })
+    const next = resolveTemplateWorkflow(
+      {
+        name: "UX/UI Polish Audit",
+        stage: "code",
+        workflow,
+      },
+      "builtin",
+      { detailBudget: 20, templateId: "ux-ui-polish-audit" },
+    )
 
     expect(next.defaults?.detailBudget).toBe(20)
     expect(next.defaults?.maxParallel).toBe(20)
@@ -131,6 +166,8 @@ describe("resolveTemplateWorkflow", () => {
     expect(next.nodes[1]?.config).toMatchObject({
       maxBranches: 20,
     })
-    expect((next.nodes[1]?.config as { strategy: string }).strategy).toContain("create up to 20 parallel audit tasks")
+    expect((next.nodes[1]?.config as { strategy: string }).strategy).toContain(
+      "create up to 20 parallel audit tasks",
+    )
   })
 })

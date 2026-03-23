@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react"
-import ReactMarkdown, { type Components as MarkdownComponents } from "react-markdown"
+import ReactMarkdown, {
+  type Components as MarkdownComponents,
+} from "react-markdown"
 import rehypeHighlight from "rehype-highlight"
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize"
 import remarkGfm from "remark-gfm"
@@ -37,7 +39,10 @@ export function sanitizeMarkdownHref(href: string | undefined): string | null {
   if (MARKDOWN_PROTOCOL_PATTERN.test(trimmedHref)) {
     try {
       const protocol = new URL(trimmedHref).protocol
-      return protocol === "http:" || protocol === "https:" || protocol === "mailto:" || protocol === "tel:"
+      return protocol === "http:" ||
+        protocol === "https:" ||
+        protocol === "mailto:" ||
+        protocol === "tel:"
         ? trimmedHref
         : null
     } catch {
@@ -72,10 +77,16 @@ export const MARKDOWN_COMPONENTS: MarkdownComponents = {
 
 export const MARKDOWN_REMARK_PLUGINS = [remarkGfm]
 
-export const MARKDOWN_REHYPE_PLUGINS = [rehypeHighlight, [rehypeSanitize, MARKDOWN_SANITIZE_SCHEMA]] as const
+export const MARKDOWN_REHYPE_PLUGINS = [
+  rehypeHighlight,
+  [rehypeSanitize, MARKDOWN_SANITIZE_SCHEMA],
+] as const
 
 export const DEFAULT_MARKDOWN_PROPS = {
   remarkPlugins: MARKDOWN_REMARK_PLUGINS,
   rehypePlugins: MARKDOWN_REHYPE_PLUGINS,
   components: MARKDOWN_COMPONENTS,
-} satisfies Pick<ComponentProps<typeof ReactMarkdown>, "components" | "rehypePlugins" | "remarkPlugins">
+} satisfies Pick<
+  ComponentProps<typeof ReactMarkdown>,
+  "components" | "rehypePlugins" | "remarkPlugins"
+>

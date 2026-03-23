@@ -9,10 +9,12 @@ import {
 
 describe("result-mode-config", () => {
   it("normalizes known fields for a mode", () => {
-    expect(normalizeResultModeConfig("content", {
-      content_goal: "  30 launch posts  ",
-      extra: "ignored",
-    })).toEqual({
+    expect(
+      normalizeResultModeConfig("content", {
+        content_goal: "  30 launch posts  ",
+        extra: "ignored",
+      }),
+    ).toEqual({
       content_goal: "30 launch posts",
       channel_and_audience: "",
       tone_of_voice: "",
@@ -21,18 +23,22 @@ describe("result-mode-config", () => {
   })
 
   it("counts only filled config fields", () => {
-    expect(countResultModeConfigFields("development", {
-      project_goal: "Ship onboarding",
-      source_context: "Repo path",
-      quality_bar: "",
-    })).toBe(2)
+    expect(
+      countResultModeConfigFields("development", {
+        project_goal: "Ship onboarding",
+        source_context: "Repo path",
+        quality_bar: "",
+      }),
+    ).toBe(2)
   })
 
   it("builds labeled config sections", () => {
-    expect(buildResultModeConfigSections("courses", {
-      course_outcome: "Launch a workshop",
-      audience: "Designers moving into AI",
-    })).toEqual([
+    expect(
+      buildResultModeConfigSections("courses", {
+        course_outcome: "Launch a workshop",
+        audience: "Designers moving into AI",
+      }),
+    ).toEqual([
       { label: "Content goal", value: "Launch a workshop" },
       { label: "Audience", value: "Designers moving into AI" },
     ])

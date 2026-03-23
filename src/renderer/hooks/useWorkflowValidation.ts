@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react"
 import { useAtom, useSetAtom } from "jotai"
-import { currentWorkflowAtom, defaultProviderAtom, validationErrorsAtom } from "@/lib/store"
+import {
+  currentWorkflowAtom,
+  defaultProviderAtom,
+  validationErrorsAtom,
+} from "@/lib/store"
 import { validateWorkflow } from "@/lib/validate-workflow"
 
 export function useWorkflowValidation() {

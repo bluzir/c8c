@@ -1,4 +1,10 @@
-import { createContext, createElement, useCallback, useContext, type ReactNode } from "react"
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  type ReactNode,
+} from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
   currentWorkflowAtom,
@@ -30,7 +36,10 @@ import type { RunResult, Workflow } from "@shared/types"
 interface ExecutionActionsContextValue {
   run: (executionMode?: "plan" | "edit") => Promise<void>
   cancel: () => Promise<void>
-  rerunFrom: (fromNodeId: string, options?: { workspace?: string | null }) => Promise<void>
+  rerunFrom: (
+    fromNodeId: string,
+    options?: { workspace?: string | null },
+  ) => Promise<void>
   continueRun: (runToContinue: RunResult) => Promise<void>
   continueWithWorkflow: (
     runToContinue: RunResult,
@@ -39,14 +48,18 @@ interface ExecutionActionsContextValue {
   ) => Promise<boolean>
 }
 
-const ExecutionActionsContext = createContext<ExecutionActionsContextValue | null>(null)
+const ExecutionActionsContext =
+  createContext<ExecutionActionsContextValue | null>(null)
 
 interface ExecutionProviderProps {
   children: ReactNode
   onPreflightWarnings?: (warnings: PreflightWarning[]) => Promise<boolean>
 }
 
-export function ExecutionProvider({ children, onPreflightWarnings }: ExecutionProviderProps) {
+export function ExecutionProvider({
+  children,
+  onPreflightWarnings,
+}: ExecutionProviderProps) {
   const [runStatus] = useAtom(runStatusAtom)
   const [workspace] = useAtom(workspaceAtom)
   const setPastRuns = useSetAtom(pastRunsAtom)
@@ -56,15 +69,22 @@ export function ExecutionProvider({ children, onPreflightWarnings }: ExecutionPr
   const [requestedResult] = useAtom(requestedResultAtom)
   const [attachments] = useAtom(inputAttachmentsAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
   const [workflowExecutionStates] = useAtom(workflowExecutionStatesAtom)
-  const updateWorkflowExecutionState = useSetAtom(updateWorkflowExecutionStateAtom)
+  const updateWorkflowExecutionState = useSetAtom(
+    updateWorkflowExecutionStateAtom,
+  )
   const setActiveExecutionProvider = useSetAtom(activeExecutionProviderAtom)
 
-  const commitExecutionState = useCallback((workflowKey: string, nextState: WorkflowExecutionState) => {
-    updateWorkflowExecutionState({ key: workflowKey, update: nextState })
-  }, [updateWorkflowExecutionState])
+  const commitExecutionState = useCallback(
+    (workflowKey: string, nextState: WorkflowExecutionState) => {
+      updateWorkflowExecutionState({ key: workflowKey, update: nextState })
+    },
+    [updateWorkflowExecutionState],
+  )
 
   const controller = useExecutionController({
     workflowExecutionStates,
@@ -74,22 +94,23 @@ export function ExecutionProvider({ children, onPreflightWarnings }: ExecutionPr
     setPastRuns,
   })
 
-  const { run, cancel, rerunFrom, continueRun, continueWithWorkflow } = useExecutionCommands({
-    controller,
-    attachments,
-    inputValue,
-    requestedResult,
-    runStatus,
-    setActiveExecutionProvider,
-    selectedProject,
-    setSelectedWorkflowPath,
-    selectedWorkflowPath,
-    setCurrentWorkflow,
-    webSearchBackend,
-    workflow,
-    workspace,
-    onPreflightWarnings,
-  })
+  const { run, cancel, rerunFrom, continueRun, continueWithWorkflow } =
+    useExecutionCommands({
+      controller,
+      attachments,
+      inputValue,
+      requestedResult,
+      runStatus,
+      setActiveExecutionProvider,
+      selectedProject,
+      setSelectedWorkflowPath,
+      selectedWorkflowPath,
+      setCurrentWorkflow,
+      webSearchBackend,
+      workflow,
+      workspace,
+      onPreflightWarnings,
+    })
 
   return createElement(
     ExecutionActionsContext.Provider,

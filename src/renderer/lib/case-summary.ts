@@ -86,7 +86,11 @@ function ensureCase(
   const existing = entries.get(caseId)
   if (existing) {
     if (!existing.label) {
-      existing.label = normalizeLabel(input?.label, existing.label, "Saved work")
+      existing.label = normalizeLabel(
+        input?.label,
+        existing.label,
+        "Saved work",
+      )
     }
     if ((input?.updatedAt || 0) > existing.updatedAt) {
       existing.updatedAt = input?.updatedAt || existing.updatedAt
@@ -133,11 +137,17 @@ export function buildProjectCaseIndex({
   const caseByWorkflowPath = new Map<string, string>()
   const caseByRunId = new Map<string, string>()
   const latestArtifactByCaseId = new Map<string, ArtifactRecord>()
-  const templateById = new Map(templates.map((template) => [template.id, template]))
+  const templateById = new Map(
+    templates.map((template) => [template.id, template]),
+  )
 
   for (const state of caseStates) {
     const entry = ensureCase(entries, state.caseId, {
-      label: normalizeLabel(state.caseLabel, state.workLabel, state.workflowName),
+      label: normalizeLabel(
+        state.caseLabel,
+        state.workLabel,
+        state.workflowName,
+      ),
       updatedAt: state.updatedAt,
       factoryId: state.factoryId || null,
       factoryLabel: state.factoryLabel || null,
@@ -155,7 +165,11 @@ export function buildProjectCaseIndex({
   for (const artifact of artifacts) {
     const caseId = deriveArtifactCaseKey(artifact)
     const entry = ensureCase(entries, caseId, {
-      label: normalizeLabel(artifact.caseLabel, artifact.workflowName, artifact.title),
+      label: normalizeLabel(
+        artifact.caseLabel,
+        artifact.workflowName,
+        artifact.title,
+      ),
       updatedAt: artifact.updatedAt,
       factoryId: artifact.factoryId || null,
       factoryLabel: artifact.factoryLabel || null,
@@ -166,7 +180,10 @@ export function buildProjectCaseIndex({
     }
     entry.runIds.add(artifact.runId)
     caseByRunId.set(artifact.runId, caseId)
-    if (!entry.latestArtifact || artifact.updatedAt > entry.latestArtifact.updatedAt) {
+    if (
+      !entry.latestArtifact ||
+      artifact.updatedAt > entry.latestArtifact.updatedAt
+    ) {
       entry.latestArtifact = artifact
       latestArtifactByCaseId.set(caseId, artifact)
     }
@@ -176,14 +193,25 @@ export function buildProjectCaseIndex({
     if (!entry.factoryLabel && artifact.factoryLabel) {
       entry.factoryLabel = artifact.factoryLabel
     }
-    const template = artifact.templateId ? templateById.get(artifact.templateId) : undefined
-    pushUnique(entry.lineageLabels, template ? deriveTemplateJourneyStageLabel(template) : null)
+    const template = artifact.templateId
+      ? templateById.get(artifact.templateId)
+      : undefined
+    pushUnique(
+      entry.lineageLabels,
+      template ? deriveTemplateJourneyStageLabel(template) : null,
+    )
   }
 
-  for (const [workflowKey, context] of Object.entries(workflowTemplateContexts)) {
+  for (const [workflowKey, context] of Object.entries(
+    workflowTemplateContexts,
+  )) {
     if (!context.caseId) continue
     const entry = ensureCase(entries, context.caseId, {
-      label: normalizeLabel(context.caseLabel, context.workflowName, context.templateName),
+      label: normalizeLabel(
+        context.caseLabel,
+        context.workflowName,
+        context.templateName,
+      ),
       updatedAt: 0,
       factoryId: context.factoryId || null,
       factoryLabel: context.factoryLabel || context.pack?.label || null,
@@ -201,24 +229,29 @@ export function buildProjectCaseIndex({
     if (!entry.factoryLabel && (context.factoryLabel || context.pack?.label)) {
       entry.factoryLabel = context.factoryLabel || context.pack?.label || null
     }
-    pushUnique(entry.lineageLabels, deriveTemplateContextJourneyStageLabel(context))
+    pushUnique(
+      entry.lineageLabels,
+      deriveTemplateContextJourneyStageLabel(context),
+    )
   }
 
   const cases = Array.from(entries.values())
-    .map((entry): ProjectCaseSummaryEntry => ({
-      id: entry.id,
-      label: entry.label || "Saved work",
-      updatedAt: entry.updatedAt,
-      factoryId: entry.factoryId,
-      factoryLabel: entry.factoryLabel,
-      workflowPaths: Array.from(entry.workflowPaths),
-      runIds: Array.from(entry.runIds),
-      latestArtifact: entry.latestArtifact,
-      lineageLabels: entry.lineageLabels,
-      continuationStatus: entry.continuationStatus,
-      nextStepLabel: entry.nextStepLabel,
-      lastGate: entry.lastGate,
-    }))
+    .map(
+      (entry): ProjectCaseSummaryEntry => ({
+        id: entry.id,
+        label: entry.label || "Saved work",
+        updatedAt: entry.updatedAt,
+        factoryId: entry.factoryId,
+        factoryLabel: entry.factoryLabel,
+        workflowPaths: Array.from(entry.workflowPaths),
+        runIds: Array.from(entry.runIds),
+        latestArtifact: entry.latestArtifact,
+        lineageLabels: entry.lineageLabels,
+        continuationStatus: entry.continuationStatus,
+        nextStepLabel: entry.nextStepLabel,
+        lastGate: entry.lastGate,
+      }),
+    )
     .sort((left, right) => right.updatedAt - left.updatedAt)
 
   return {

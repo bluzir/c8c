@@ -1,4 +1,10 @@
-import { useEffect, useCallback, useRef, useState, type MutableRefObject } from "react"
+import {
+  useEffect,
+  useCallback,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   chatMessagesAtom,
@@ -16,7 +22,12 @@ import {
   type ChatMessageDisplay,
 } from "@/lib/store"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
-import type { ChatConversation, ChatSessionMessage, ChatSessionSnapshot, Workflow } from "@shared/types"
+import type {
+  ChatConversation,
+  ChatSessionMessage,
+  ChatSessionSnapshot,
+  Workflow,
+} from "@shared/types"
 import { sanitizeAssistantText } from "@shared/chat-output"
 import { toast } from "sonner"
 import { toastError } from "@/lib/toast-error"
@@ -25,7 +36,9 @@ import { useInboxNotifications } from "@/hooks/useInboxNotifications"
 import { buildGeneratedWorkflowEntryState } from "@/lib/workflow-entry"
 
 type ChatRecoveryApi = typeof window.api & {
-  chatGetActiveSession?: (workflowPath: string) => Promise<ChatSessionSnapshot | null>
+  chatGetActiveSession?: (
+    workflowPath: string,
+  ) => Promise<ChatSessionSnapshot | null>
 }
 
 let warnedMissingChatGetActiveSession = false
@@ -33,34 +46,46 @@ let warnedMissingChatGetActiveSession = false
 function isWorkflowPayload(value: unknown): value is Workflow {
   if (!value || typeof value !== "object") return false
   const candidate = value as Partial<Workflow>
-  if (typeof candidate.version !== "number" || typeof candidate.name !== "string") return false
-  if (!Array.isArray(candidate.nodes) || !Array.isArray(candidate.edges)) return false
+  if (
+    typeof candidate.version !== "number" ||
+    typeof candidate.name !== "string"
+  )
+    return false
+  if (!Array.isArray(candidate.nodes) || !Array.isArray(candidate.edges))
+    return false
   return (
-    candidate.nodes.every((node) => (
-      !!node
-      && typeof node.id === "string"
-      && typeof node.type === "string"
-      && !!node.config
-      && typeof node.config === "object"
-    ))
-    && candidate.edges.every((edge) => (
-      !!edge
-      && typeof edge.id === "string"
-      && typeof edge.source === "string"
-      && typeof edge.target === "string"
-      && typeof edge.type === "string"
-    ))
+    candidate.nodes.every(
+      (node) =>
+        !!node &&
+        typeof node.id === "string" &&
+        typeof node.type === "string" &&
+        !!node.config &&
+        typeof node.config === "object",
+    ) &&
+    candidate.edges.every(
+      (edge) =>
+        !!edge &&
+        typeof edge.id === "string" &&
+        typeof edge.source === "string" &&
+        typeof edge.target === "string" &&
+        typeof edge.type === "string",
+    )
   )
 }
 
 function hasGeneratedWorkflowSteps(workflow: Workflow): boolean {
-  return workflow.nodes.some((node) => node.type !== "input" && node.type !== "output")
+  return workflow.nodes.some(
+    (node) => node.type !== "input" && node.type !== "output",
+  )
 }
 
-function toDisplayMessage(message: ChatSessionMessage): ChatMessageDisplay | null {
-  const content = message.role === "assistant"
-    ? sanitizeAssistantText(message.content, { streaming: message.streaming })
-    : message.content
+function toDisplayMessage(
+  message: ChatSessionMessage,
+): ChatMessageDisplay | null {
+  const content =
+    message.role === "assistant"
+      ? sanitizeAssistantText(message.content, { streaming: message.streaming })
+      : message.content
 
   if (message.role === "assistant" && !message.streaming && !content.trim()) {
     return null
@@ -80,7 +105,9 @@ function toDisplayMessage(message: ChatSessionMessage): ChatMessageDisplay | nul
   }
 }
 
-function toDisplayMessages(messages: ChatSessionMessage[]): ChatMessageDisplay[] {
+function toDisplayMessages(
+  messages: ChatSessionMessage[],
+): ChatMessageDisplay[] {
   return messages.flatMap((message) => {
     const displayMessage = toDisplayMessage(message)
     return displayMessage ? [displayMessage] : []
@@ -107,7 +134,10 @@ export function resolveRecoveredWorkflow({
   if (fileWorkflow) {
     return fileWorkflow
   }
-  if (conversationLatestWorkflow && isWorkflowPayload(conversationLatestWorkflow)) {
+  if (
+    conversationLatestWorkflow &&
+    isWorkflowPayload(conversationLatestWorkflow)
+  ) {
     return conversationLatestWorkflow
   }
   return null
@@ -115,7 +145,11 @@ export function resolveRecoveredWorkflow({
 
 function restoreActiveSessionState(
   snapshot: ChatSessionSnapshot,
-  setMessages: (next: ChatMessageDisplay[] | ((prev: ChatMessageDisplay[]) => ChatMessageDisplay[])) => void,
+  setMessages: (
+    next:
+      | ChatMessageDisplay[]
+      | ((prev: ChatMessageDisplay[]) => ChatMessageDisplay[]),
+  ) => void,
   setStatus: (next: "idle" | "thinking" | "streaming" | "error") => void,
   setSessionId: (next: string | null) => void,
   setActiveToolName: (next: string | null) => void,
@@ -139,16 +173,19 @@ function restoreActiveSessionState(
   setActiveToolName(snapshot.activeToolName)
 }
 
-async function loadChatRecoveryState(
-  workflowPath: string,
-): Promise<{ conversation: ChatConversation | null; activeSession: ChatSessionSnapshot | null }> {
+async function loadChatRecoveryState(workflowPath: string): Promise<{
+  conversation: ChatConversation | null
+  activeSession: ChatSessionSnapshot | null
+}> {
   const api = window.api as ChatRecoveryApi
   const getActiveSession = api.chatGetActiveSession
 
   if (typeof getActiveSession !== "function") {
     if (!warnedMissingChatGetActiveSession) {
       warnedMissingChatGetActiveSession = true
-      console.warn("[useChatSession] preload API missing chatGetActiveSession; falling back to history-only recovery")
+      console.warn(
+        "[useChatSession] preload API missing chatGetActiveSession; falling back to history-only recovery",
+      )
     }
 
     const conversation = await window.api.chatLoadHistory(workflowPath)
@@ -172,13 +209,19 @@ export function useChatSession() {
   const setWorkflowSavedSnapshot = useSetAtom(workflowSavedSnapshotAtom)
   const [workflowPath] = useAtom(selectedWorkflowPathAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
-  const [pendingCreateEntry, setPendingCreateEntry] = useAtom(workflowCreatePendingEntryAtom)
-  const [pendingCreateMessage, setPendingCreateMessage] = useAtom(workflowCreatePendingMessageAtom)
+  const [pendingCreateEntry, setPendingCreateEntry] = useAtom(
+    workflowCreatePendingEntryAtom,
+  )
+  const [pendingCreateMessage, setPendingCreateMessage] = useAtom(
+    workflowCreatePendingMessageAtom,
+  )
   const [workflow] = useAtom(currentWorkflowAtom)
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
   const [activeToolName, setActiveToolName] = useState<string | null>(null)
-  const [historyLoadedWorkflowPath, setHistoryLoadedWorkflowPath] = useState<string | null>(null)
+  const [historyLoadedWorkflowPath, setHistoryLoadedWorkflowPath] = useState<
+    string | null
+  >(null)
   const { addNotification } = useInboxNotifications()
 
   const streamingTextRef = useRef("")
@@ -211,16 +254,22 @@ export function useChatSession() {
     setActiveToolName(null)
   }, [setSessionId, setStatus])
 
-  const applyPersistedWorkflow = useCallback((nextWorkflow: Workflow) => {
-    workflowRef.current = nextWorkflow
-    setWorkflow(nextWorkflow)
-    setWorkflowSavedSnapshot(workflowSnapshot(nextWorkflow))
-  }, [setWorkflow, setWorkflowSavedSnapshot])
+  const applyPersistedWorkflow = useCallback(
+    (nextWorkflow: Workflow) => {
+      workflowRef.current = nextWorkflow
+      setWorkflow(nextWorkflow)
+      setWorkflowSavedSnapshot(workflowSnapshot(nextWorkflow))
+    },
+    [setWorkflow, setWorkflowSavedSnapshot],
+  )
 
-  const restoreWorkflowFromUndo = useCallback((nextWorkflow: Workflow) => {
-    workflowRef.current = nextWorkflow
-    setWorkflow(nextWorkflow)
-  }, [setWorkflow])
+  const restoreWorkflowFromUndo = useCallback(
+    (nextWorkflow: Workflow) => {
+      workflowRef.current = nextWorkflow
+      setWorkflow(nextWorkflow)
+    },
+    [setWorkflow],
+  )
 
   const removeStreamingPlaceholder = useCallback(() => {
     setMessages((prev) =>
@@ -232,14 +281,16 @@ export function useChatSession() {
   useEffect(() => {
     const cleanup = window.api.onChatEvent((event) => {
       const currentWorkflowPath = workflowPathRef.current
-      if (!currentWorkflowPath || event.workflowPath !== currentWorkflowPath) return
+      if (!currentWorkflowPath || event.workflowPath !== currentWorkflowPath)
+        return
 
       const currentSessionId = sessionIdRef.current
 
       if (currentSessionId) {
         if (event.sessionId !== currentSessionId) return
       } else {
-        const canAcceptSession = statusRef.current === "thinking" || statusRef.current === "streaming"
+        const canAcceptSession =
+          statusRef.current === "thinking" || statusRef.current === "streaming"
         if (!canAcceptSession) return
 
         const pendingSessionId = pendingSessionRef.current
@@ -258,7 +309,10 @@ export function useChatSession() {
           setActiveToolName(null)
           setMessages((prev) => {
             const last = prev[prev.length - 1]
-            const displayContent = sanitizeAssistantText(streamingTextRef.current, { streaming: true })
+            const displayContent = sanitizeAssistantText(
+              streamingTextRef.current,
+              { streaming: true },
+            )
             if (last && last.role === "assistant" && last.streaming) {
               return [
                 ...prev.slice(0, -1),
@@ -328,22 +382,23 @@ export function useChatSession() {
 
           // Push current workflow to undo stack before applying mutation.
           const snapshot = structuredClone(workflowRef.current)
-          setUndoStack((prev) => [
-            ...prev.slice(-19),
-            snapshot,
-          ])
+          setUndoStack((prev) => [...prev.slice(-19), snapshot])
 
           applyPersistedWorkflow(nextWorkflow)
 
           const mutationWorkflowPath = workflowPathRef.current
-          const pendingRequest = mutationWorkflowPath ? pendingCreateEntry[mutationWorkflowPath] : null
+          const pendingRequest = mutationWorkflowPath
+            ? pendingCreateEntry[mutationWorkflowPath]
+            : null
           if (pendingRequest && mutationWorkflowPath) {
-            setWorkflowEntryState(buildGeneratedWorkflowEntryState({
-              workflow: nextWorkflow,
-              workflowPath: mutationWorkflowPath,
-              request: pendingRequest,
-              source: "agent_create",
-            }))
+            setWorkflowEntryState(
+              buildGeneratedWorkflowEntryState({
+                workflow: nextWorkflow,
+                workflowPath: mutationWorkflowPath,
+                request: pendingRequest,
+                source: "agent_create",
+              }),
+            )
             setPendingCreateEntry((prev) => {
               const next = { ...prev }
               delete next[mutationWorkflowPath]
@@ -400,14 +455,22 @@ export function useChatSession() {
             applyPersistedWorkflow(event.workflow)
           }
           const currentWorkflow = workflowPathRef.current
-          const pendingRequest = currentWorkflow ? pendingCreateEntry[currentWorkflow] : null
-          if (currentWorkflow && pendingRequest && hasGeneratedWorkflowSteps(workflowRef.current)) {
-            setWorkflowEntryState(buildGeneratedWorkflowEntryState({
-              workflow: workflowRef.current,
-              workflowPath: currentWorkflow,
-              request: pendingRequest,
-              source: "agent_create",
-            }))
+          const pendingRequest = currentWorkflow
+            ? pendingCreateEntry[currentWorkflow]
+            : null
+          if (
+            currentWorkflow &&
+            pendingRequest &&
+            hasGeneratedWorkflowSteps(workflowRef.current)
+          ) {
+            setWorkflowEntryState(
+              buildGeneratedWorkflowEntryState({
+                workflow: workflowRef.current,
+                workflowPath: currentWorkflow,
+                request: pendingRequest,
+                source: "agent_create",
+              }),
+            )
           }
           if (currentWorkflow && pendingRequest) {
             setPendingCreateEntry((prev) => {
@@ -455,7 +518,21 @@ export function useChatSession() {
     })
 
     return cleanup
-  }, [addNotification, applyPersistedWorkflow, nextLocalMessageId, pendingCreateEntry, removeStreamingPlaceholder, resetLocalSessionState, restoreWorkflowFromUndo, setMessages, setPendingCreateEntry, setSessionId, setStatus, setUndoStack, setWorkflowEntryState])
+  }, [
+    addNotification,
+    applyPersistedWorkflow,
+    nextLocalMessageId,
+    pendingCreateEntry,
+    removeStreamingPlaceholder,
+    resetLocalSessionState,
+    restoreWorkflowFromUndo,
+    setMessages,
+    setPendingCreateEntry,
+    setSessionId,
+    setStatus,
+    setUndoStack,
+    setWorkflowEntryState,
+  ])
 
   // Load history when workflow changes
   useEffect(() => {
@@ -479,80 +556,100 @@ export function useChatSession() {
             console.warn("[useChatSession] workflow file sync skipped:", error)
             return null
           }),
-    ]).then(([{ conversation, activeSession }, fileWorkflow]) => {
-      if (historyRequestRef.current !== requestId) return
+    ])
+      .then(([{ conversation, activeSession }, fileWorkflow]) => {
+        if (historyRequestRef.current !== requestId) return
 
-      const recoveredWorkflow = resolveRecoveredWorkflow({
-        activeSessionWorkflow: activeSession?.workflow && isWorkflowPayload(activeSession.workflow)
-          ? activeSession.workflow
-          : null,
-        conversationLatestWorkflow: conversation?.latestWorkflow && isWorkflowPayload(conversation.latestWorkflow)
-          ? conversation.latestWorkflow
-          : null,
-        fileWorkflow,
-        workflowDirty: workflowDirtyRef.current,
-      })
-      if (recoveredWorkflow) {
-        applyPersistedWorkflow(recoveredWorkflow)
-      }
-
-      if (activeSession) {
-        restoreActiveSessionState(
-          activeSession,
-          setMessages,
-          setStatus,
-          setSessionId,
-          setActiveToolName,
-          statusRef,
-          sessionIdRef,
-          pendingSessionRef,
-          streamingTextRef,
-        )
-      } else if (conversation && conversation.messages.length > 0) {
-        setMessages(toDisplayMessages(conversation.messages))
-      } else {
-        setMessages([])
-      }
-
-      const pendingRequest = pendingCreateEntry[workflowPath]
-      if (
-        !activeSession
-        && pendingRequest
-        && workflowPathRef.current === workflowPath
-        && hasGeneratedWorkflowSteps(workflowRef.current)
-      ) {
-        setWorkflowEntryState(buildGeneratedWorkflowEntryState({
-          workflow: workflowRef.current,
-          workflowPath,
-          request: pendingRequest,
-          source: "agent_create",
-        }))
-        setPendingCreateEntry((prev) => {
-          const next = { ...prev }
-          delete next[workflowPath]
-          return next
+        const recoveredWorkflow = resolveRecoveredWorkflow({
+          activeSessionWorkflow:
+            activeSession?.workflow && isWorkflowPayload(activeSession.workflow)
+              ? activeSession.workflow
+              : null,
+          conversationLatestWorkflow:
+            conversation?.latestWorkflow &&
+            isWorkflowPayload(conversation.latestWorkflow)
+              ? conversation.latestWorkflow
+              : null,
+          fileWorkflow,
+          workflowDirty: workflowDirtyRef.current,
         })
-      }
+        if (recoveredWorkflow) {
+          applyPersistedWorkflow(recoveredWorkflow)
+        }
 
-      setHistoryLoadedWorkflowPath(workflowPath)
-    }).catch((err) => {
-      if (historyRequestRef.current !== requestId) return
-      console.error("[useChatSession] chat session recovery failed:", err)
-      setMessages([])
-      setHistoryLoadedWorkflowPath(workflowPath)
-      toastError("Could not load Agent history")
-      addNotification({
-        title: "Could not load Agent history",
-        description: errorToUserMessage(err),
-        level: "error",
-        source: "agent",
+        if (activeSession) {
+          restoreActiveSessionState(
+            activeSession,
+            setMessages,
+            setStatus,
+            setSessionId,
+            setActiveToolName,
+            statusRef,
+            sessionIdRef,
+            pendingSessionRef,
+            streamingTextRef,
+          )
+        } else if (conversation && conversation.messages.length > 0) {
+          setMessages(toDisplayMessages(conversation.messages))
+        } else {
+          setMessages([])
+        }
+
+        const pendingRequest = pendingCreateEntry[workflowPath]
+        if (
+          !activeSession &&
+          pendingRequest &&
+          workflowPathRef.current === workflowPath &&
+          hasGeneratedWorkflowSteps(workflowRef.current)
+        ) {
+          setWorkflowEntryState(
+            buildGeneratedWorkflowEntryState({
+              workflow: workflowRef.current,
+              workflowPath,
+              request: pendingRequest,
+              source: "agent_create",
+            }),
+          )
+          setPendingCreateEntry((prev) => {
+            const next = { ...prev }
+            delete next[workflowPath]
+            return next
+          })
+        }
+
+        setHistoryLoadedWorkflowPath(workflowPath)
       })
-    })
-  }, [addNotification, applyPersistedWorkflow, pendingCreateEntry, resetLocalSessionState, setMessages, setPendingCreateEntry, setSessionId, setStatus, setUndoStack, setWorkflowEntryState, workflowPath])
+      .catch((err) => {
+        if (historyRequestRef.current !== requestId) return
+        console.error("[useChatSession] chat session recovery failed:", err)
+        setMessages([])
+        setHistoryLoadedWorkflowPath(workflowPath)
+        toastError("Could not load Agent history")
+        addNotification({
+          title: "Could not load Agent history",
+          description: errorToUserMessage(err),
+          level: "error",
+          source: "agent",
+        })
+      })
+  }, [
+    addNotification,
+    applyPersistedWorkflow,
+    pendingCreateEntry,
+    resetLocalSessionState,
+    setMessages,
+    setPendingCreateEntry,
+    setSessionId,
+    setStatus,
+    setUndoStack,
+    setWorkflowEntryState,
+    workflowPath,
+  ])
 
   const sendMessage = useCallback(
     async (message: string) => {
-      if (!workflowPath || !selectedProject || statusRef.current !== "idle") return
+      if (!workflowPath || !selectedProject || statusRef.current !== "idle")
+        return
 
       // Add user message immediately.
       const userMsg: ChatMessageDisplay = {
@@ -592,7 +689,10 @@ export function useChatSession() {
         resetLocalSessionState()
         // Remove optimistic user+streaming messages on immediate failure.
         setMessages((prev) =>
-          prev.filter((m) => m.id !== userMsg.id && !(m.role === "assistant" && m.streaming)),
+          prev.filter(
+            (m) =>
+              m.id !== userMsg.id && !(m.role === "assistant" && m.streaming),
+          ),
         )
         const msg = errorToUserMessage(err).replace(
           /^Error invoking remote method '[^']+': Error: /,
@@ -607,7 +707,16 @@ export function useChatSession() {
         })
       }
     },
-    [addNotification, nextLocalMessageId, workflowPath, selectedProject, resetLocalSessionState, setMessages, setSessionId, setStatus],
+    [
+      addNotification,
+      nextLocalMessageId,
+      workflowPath,
+      selectedProject,
+      resetLocalSessionState,
+      setMessages,
+      setSessionId,
+      setStatus,
+    ],
   )
 
   useEffect(() => {
@@ -651,7 +760,9 @@ export function useChatSession() {
 
     const activeSessionId = sessionIdRef.current || pendingSessionRef.current
     if (!activeSessionId && statusRef.current !== "idle") {
-      toastError("Please wait for the Agent session to initialize before clearing history.")
+      toastError(
+        "Please wait for the Agent session to initialize before clearing history.",
+      )
       return
     }
 
@@ -689,7 +800,14 @@ export function useChatSession() {
     removeStreamingPlaceholder()
     setMessages([])
     setUndoStack([])
-  }, [addNotification, workflowPath, resetLocalSessionState, removeStreamingPlaceholder, setMessages, setUndoStack])
+  }, [
+    addNotification,
+    workflowPath,
+    resetLocalSessionState,
+    removeStreamingPlaceholder,
+    setMessages,
+    setUndoStack,
+  ])
 
   const undo = useCallback(() => {
     if (statusRef.current !== "idle") return

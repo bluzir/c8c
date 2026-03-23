@@ -103,11 +103,18 @@ describe("workflow execution state", () => {
       },
       nodeStates: {
         input: { status: "completed" as const, attempts: 1, log: [] },
-        output: { status: "failed" as const, attempts: 1, log: [], error: "merge failed" },
+        output: {
+          status: "failed" as const,
+          attempts: 1,
+          log: [],
+          error: "merge failed",
+        },
         "branch-1": { status: "completed" as const, attempts: 1, log: [] },
       },
       evalResults: {
-        output: [{ attempt: 1, score: 0.2, reason: "merge failed", passed: false }],
+        output: [
+          { attempt: 1, score: 0.2, reason: "merge failed", passed: false },
+        ],
       },
     }
 
@@ -173,7 +180,12 @@ describe("workflow execution state", () => {
       ),
       nodeStates: {
         input: { status: "completed" as const, attempts: 1, log: [] },
-        stale: { status: "failed" as const, attempts: 1, log: [], error: "old" },
+        stale: {
+          status: "failed" as const,
+          attempts: 1,
+          log: [],
+          error: "old",
+        },
       },
     }
 
@@ -211,7 +223,10 @@ describe("workflow execution state", () => {
       ],
     })
 
-    expect(Object.keys(transition.nextState.nodeStates)).toEqual(["input", "branch-1"])
+    expect(Object.keys(transition.nextState.nodeStates)).toEqual([
+      "input",
+      "branch-1",
+    ])
     expect(transition.nextState.nodeStates["branch-1"]).toEqual({
       status: "pending",
       attempts: 0,
@@ -219,7 +234,9 @@ describe("workflow execution state", () => {
     })
     expect(transition.nextState.runtimeNodes).toHaveLength(2)
     expect(transition.nextState.runtimeEdges).toHaveLength(1)
-    expect(transition.nextState.runtimeMeta["branch-1"]?.templateId).toBe("template")
+    expect(transition.nextState.runtimeMeta["branch-1"]?.templateId).toBe(
+      "template",
+    )
   })
 
   it("marks queued nodes separately from running nodes", () => {
@@ -261,7 +278,9 @@ describe("workflow execution state", () => {
       allowEdit: true,
     })
 
-    expect(transition.nextState.nodeStates.input.status).toBe("waiting_approval")
+    expect(transition.nextState.nodeStates.input.status).toBe(
+      "waiting_approval",
+    )
     expect(transition.effects.approvalRequest).toEqual({
       runId: "run-1",
       nodeId: "input",
@@ -376,12 +395,15 @@ describe("workflow execution state", () => {
   })
 
   it("returns a separate failure message for global run errors", () => {
-    const transition = reduceWorkflowExecutionEvent(createEmptyWorkflowExecutionState(), {
-      type: "node-error",
-      runId: "run-1",
-      nodeId: "__global",
-      error: "Workflow crashed",
-    })
+    const transition = reduceWorkflowExecutionEvent(
+      createEmptyWorkflowExecutionState(),
+      {
+        type: "node-error",
+        runId: "run-1",
+        nodeId: "__global",
+        error: "Workflow crashed",
+      },
+    )
 
     expect(transition.nextState.runStatus).toBe("error")
     expect(transition.nextState.lastError).toBe("Workflow crashed")
@@ -429,7 +451,8 @@ describe("workflow execution state", () => {
     expect(nextState.surfaceNotice).toEqual({
       level: "warning",
       title: "Run cancelled",
-      description: "The flow stopped before it finished, but partial result is still available to review.",
+      description:
+        "The flow stopped before it finished, but partial result is still available to review.",
       actionLabel: "View partial result",
       actionTarget: "result",
     })
@@ -467,7 +490,8 @@ describe("workflow execution state", () => {
     expect(notice).toEqual({
       level: "warning",
       title: "Needs review",
-      description: "Approval or structured input is required before the flow can continue.",
+      description:
+        "Approval or structured input is required before the flow can continue.",
       actionLabel: "Open inbox",
       actionTarget: "inbox",
     })
@@ -546,7 +570,8 @@ describe("workflow execution state", () => {
       surfaceNotice: {
         level: "warning",
         title: "Run cancelled",
-        description: "The flow stopped before it finished, but partial result is still available to review.",
+        description:
+          "The flow stopped before it finished, but partial result is still available to review.",
         actionLabel: "View partial result",
         actionTarget: "result",
       },
@@ -570,21 +595,23 @@ describe("workflow execution state", () => {
   })
 
   it("detects inspectable output from node results", () => {
-    expect(hasWorkflowExecutionInspectableResult({
-      finalContent: "",
-      reportPath: null,
-      nodeStates: {
-        output: {
-          status: "completed",
-          attempts: 1,
-          log: [],
+    expect(
+      hasWorkflowExecutionInspectableResult({
+        finalContent: "",
+        reportPath: null,
+        nodeStates: {
           output: {
-            content: "Artifact body",
-            metadata: { source: "output" },
+            status: "completed",
+            attempts: 1,
+            log: [],
+            output: {
+              content: "Artifact body",
+              metadata: { source: "output" },
+            },
           },
         },
-      },
-    })).toBe(true)
+      }),
+    ).toBe(true)
   })
 })
 
@@ -605,14 +632,22 @@ describe("assembleInputWithAttachments", () => {
       "",
       [
         { kind: "file", path: "/tmp/file.txt", name: "file.txt" },
-        { kind: "run", runId: "run-1", workspace: "/tmp/run-1", workflowName: "Deep Research" },
+        {
+          kind: "run",
+          runId: "run-1",
+          workspace: "/tmp/run-1",
+          workflowName: "Deep Research",
+        },
         { kind: "text", label: "Notes", content: "Plain text note" },
       ],
       "/tmp/project",
       api,
     )
 
-    expect(api.readFileContent).toHaveBeenCalledWith("/tmp/file.txt", "/tmp/project")
+    expect(api.readFileContent).toHaveBeenCalledWith(
+      "/tmp/file.txt",
+      "/tmp/project",
+    )
     expect(api.loadRunResult).toHaveBeenCalledWith("/tmp/run-1")
     expect(result).toContain("Base prompt")
     expect(result).toContain("## Attached File: file.txt")

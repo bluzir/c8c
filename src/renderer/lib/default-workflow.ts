@@ -4,7 +4,12 @@ export const EMPTY_WORKFLOW: Workflow = {
   version: 1,
   name: "",
   description: "",
-  defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+  defaults: {
+    model: "sonnet",
+    maxTurns: 120,
+    timeout_minutes: 30,
+    maxParallel: 8,
+  },
   nodes: [
     {
       id: "input-1",
@@ -25,7 +30,12 @@ export const EMPTY_WORKFLOW: Workflow = {
     },
   ],
   edges: [
-    { id: "e-input-output", source: "input-1", target: "output-1", type: "default" },
+    {
+      id: "e-input-output",
+      source: "input-1",
+      target: "output-1",
+      type: "default",
+    },
   ],
 }
 

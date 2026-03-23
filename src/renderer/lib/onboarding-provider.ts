@@ -1,4 +1,7 @@
-import { getDefaultModelForProvider, modelLooksCompatible } from "@shared/provider-metadata"
+import {
+  getDefaultModelForProvider,
+  modelLooksCompatible,
+} from "@shared/provider-metadata"
 import type { ProviderDiagnostics, ProviderId } from "@shared/types"
 
 const PROVIDERS: ProviderId[] = ["claude", "codex"]

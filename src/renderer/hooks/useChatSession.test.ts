@@ -15,43 +15,51 @@ describe("useChatSession helpers", () => {
     const fileWorkflow = createWorkflow("Disk workflow")
     const conversationLatestWorkflow = createWorkflow("Chat history")
 
-    expect(resolveRecoveredWorkflow({
-      activeSessionWorkflow,
-      conversationLatestWorkflow,
-      fileWorkflow,
-      workflowDirty: false,
-    })).toEqual(activeSessionWorkflow)
+    expect(
+      resolveRecoveredWorkflow({
+        activeSessionWorkflow,
+        conversationLatestWorkflow,
+        fileWorkflow,
+        workflowDirty: false,
+      }),
+    ).toEqual(activeSessionWorkflow)
   })
 
   it("prefers the current workflow file over stale chat history when idle", () => {
     const fileWorkflow = createWorkflow("Disk workflow")
     const conversationLatestWorkflow = createWorkflow("Chat history")
 
-    expect(resolveRecoveredWorkflow({
-      activeSessionWorkflow: null,
-      conversationLatestWorkflow,
-      fileWorkflow,
-      workflowDirty: false,
-    })).toEqual(fileWorkflow)
+    expect(
+      resolveRecoveredWorkflow({
+        activeSessionWorkflow: null,
+        conversationLatestWorkflow,
+        fileWorkflow,
+        workflowDirty: false,
+      }),
+    ).toEqual(fileWorkflow)
   })
 
   it("falls back to chat history only when the file snapshot is unavailable", () => {
     const conversationLatestWorkflow = createWorkflow("Chat history")
 
-    expect(resolveRecoveredWorkflow({
-      activeSessionWorkflow: null,
-      conversationLatestWorkflow,
-      fileWorkflow: null,
-      workflowDirty: false,
-    })).toEqual(conversationLatestWorkflow)
+    expect(
+      resolveRecoveredWorkflow({
+        activeSessionWorkflow: null,
+        conversationLatestWorkflow,
+        fileWorkflow: null,
+        workflowDirty: false,
+      }),
+    ).toEqual(conversationLatestWorkflow)
   })
 
   it("does not overwrite a dirty workflow without an active session", () => {
-    expect(resolveRecoveredWorkflow({
-      activeSessionWorkflow: null,
-      conversationLatestWorkflow: createWorkflow("Chat history"),
-      fileWorkflow: createWorkflow("Disk workflow"),
-      workflowDirty: true,
-    })).toBeNull()
+    expect(
+      resolveRecoveredWorkflow({
+        activeSessionWorkflow: null,
+        conversationLatestWorkflow: createWorkflow("Chat history"),
+        fileWorkflow: createWorkflow("Disk workflow"),
+        workflowDirty: true,
+      }),
+    ).toBeNull()
   })
 })

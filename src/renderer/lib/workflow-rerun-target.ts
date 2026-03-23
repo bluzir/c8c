@@ -29,14 +29,21 @@ export function selectStageRerunNodeId({
   if (!stageNodeId) return null
 
   const stageBranchIds = stageTemplateId
-    ? runtimeBranchIds.filter((id) => runtimeMeta[id]?.templateId === stageTemplateId)
+    ? runtimeBranchIds.filter(
+        (id) => runtimeMeta[id]?.templateId === stageTemplateId,
+      )
     : stageNodeType === "splitter"
       ? runtimeBranchIds
-      : runtimeBranchIds.filter((id) => runtimeMeta[id]?.templateId === stageNodeId)
+      : runtimeBranchIds.filter(
+          (id) => runtimeMeta[id]?.templateId === stageNodeId,
+        )
 
-  const incompleteBranchId = RERUN_BRANCH_PRIORITY.flatMap((status) =>
-    stageBranchIds.filter((branchId) => (nodeStates[branchId]?.status || "pending") === status),
-  )[0] || null
+  const incompleteBranchId =
+    RERUN_BRANCH_PRIORITY.flatMap((status) =>
+      stageBranchIds.filter(
+        (branchId) => (nodeStates[branchId]?.status || "pending") === status,
+      ),
+    )[0] || null
 
   return incompleteBranchId || stageNodeId
 }

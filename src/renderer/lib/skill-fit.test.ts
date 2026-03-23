@@ -50,6 +50,8 @@ describe("skill-fit", () => {
       pluginVersion: undefined,
     }
 
-    expect(compareSkillsForStage(genericSkill, BASE_SKILL, "Review")).toBeLessThan(0)
+    expect(
+      compareSkillsForStage(genericSkill, BASE_SKILL, "Review"),
+    ).toBeLessThan(0)
   })
 })

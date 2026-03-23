@@ -30,12 +30,14 @@ describe("filterExecutionStartWarnings", () => {
   }
 
   it("keeps warnings for a normal run", () => {
-    expect(filterExecutionStartWarnings([tokenBudgetWarning], "default")).toEqual([
-      tokenBudgetWarning,
-    ])
+    expect(
+      filterExecutionStartWarnings([tokenBudgetWarning], "default"),
+    ).toEqual([tokenBudgetWarning])
   })
 
   it("suppresses token budget warnings when resuming from a selected step", () => {
-    expect(filterExecutionStartWarnings([tokenBudgetWarning], "skip_token_budget")).toEqual([])
+    expect(
+      filterExecutionStartWarnings([tokenBudgetWarning], "skip_token_budget"),
+    ).toEqual([])
   })
 })

@@ -35,19 +35,23 @@ describe("inbox notification helpers", () => {
       },
     ]
 
-    const next = appendInboxNotification(existing, {
-      title: "Updated title",
-      description: "Updated description",
-      level: "warning",
-      source: "workflow",
-      persistentKey: "approval-needed:/tmp/workspace::approval-1",
-      action: {
-        kind: "open_inbox_task",
-        taskKey: "/tmp/workspace::approval-1",
-        workflowPath: "/tmp/workflow.chain",
-        label: "Open approval",
+    const next = appendInboxNotification(
+      existing,
+      {
+        title: "Updated title",
+        description: "Updated description",
+        level: "warning",
+        source: "workflow",
+        persistentKey: "approval-needed:/tmp/workspace::approval-1",
+        action: {
+          kind: "open_inbox_task",
+          taskKey: "/tmp/workspace::approval-1",
+          workflowPath: "/tmp/workflow.chain",
+          label: "Open approval",
+        },
       },
-    }, 20)
+      20,
+    )
 
     expect(next).toEqual([
       {
@@ -72,33 +76,45 @@ describe("inbox notification helpers", () => {
   it("does not collapse different persistent approvals that share copy", () => {
     const existing: InboxNotification[] = []
 
-    const withFirst = appendInboxNotification(existing, {
-      title: "Approval needs attention",
-      description: "Open the inbox task to continue.",
-      level: "warning",
-      source: "workflow",
-      persistentKey: "approval-needed:/tmp/workspace::approval-1",
-      action: {
-        kind: "open_inbox_task",
-        taskKey: "/tmp/workspace::approval-1",
+    const withFirst = appendInboxNotification(
+      existing,
+      {
+        title: "Approval needs attention",
+        description: "Open the inbox task to continue.",
+        level: "warning",
+        source: "workflow",
+        persistentKey: "approval-needed:/tmp/workspace::approval-1",
+        action: {
+          kind: "open_inbox_task",
+          taskKey: "/tmp/workspace::approval-1",
+        },
       },
-    }, 100)
+      100,
+    )
 
-    const withSecond = appendInboxNotification(withFirst, {
-      title: "Approval needs attention",
-      description: "Open the inbox task to continue.",
-      level: "warning",
-      source: "workflow",
-      persistentKey: "approval-needed:/tmp/workspace::approval-2",
-      action: {
-        kind: "open_inbox_task",
-        taskKey: "/tmp/workspace::approval-2",
+    const withSecond = appendInboxNotification(
+      withFirst,
+      {
+        title: "Approval needs attention",
+        description: "Open the inbox task to continue.",
+        level: "warning",
+        source: "workflow",
+        persistentKey: "approval-needed:/tmp/workspace::approval-2",
+        action: {
+          kind: "open_inbox_task",
+          taskKey: "/tmp/workspace::approval-2",
+        },
       },
-    }, 101)
+      101,
+    )
 
     expect(withSecond).toHaveLength(2)
-    expect(withSecond[0]?.persistentKey).toBe("approval-needed:/tmp/workspace::approval-2")
-    expect(withSecond[1]?.persistentKey).toBe("approval-needed:/tmp/workspace::approval-1")
+    expect(withSecond[0]?.persistentKey).toBe(
+      "approval-needed:/tmp/workspace::approval-2",
+    )
+    expect(withSecond[1]?.persistentKey).toBe(
+      "approval-needed:/tmp/workspace::approval-1",
+    )
   })
 
   it("removes stale persistent notifications without touching unrelated history", () => {
@@ -122,7 +138,11 @@ describe("inbox notification helpers", () => {
       },
     ]
 
-    expect(pruneInboxNotificationsByPersistentKeys(existing, ["approval-needed:/tmp/workspace::approval-1"])).toEqual([
+    expect(
+      pruneInboxNotificationsByPersistentKeys(existing, [
+        "approval-needed:/tmp/workspace::approval-1",
+      ]),
+    ).toEqual([
       {
         id: "notif-2",
         title: "Flow completed",
@@ -147,7 +167,12 @@ describe("workflowDirtyAtom", () => {
       version: 1,
       name: "Dirty draft",
       description: "",
-      defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+      defaults: {
+        model: "sonnet",
+        maxTurns: 120,
+        timeout_minutes: 30,
+        maxParallel: 8,
+      },
       nodes: [],
       edges: [],
     })
@@ -161,7 +186,12 @@ describe("workflowDirtyAtom", () => {
       version: 1,
       name: "Saved draft",
       description: "",
-      defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+      defaults: {
+        model: "sonnet",
+        maxTurns: 120,
+        timeout_minutes: 30,
+        maxParallel: 8,
+      },
       nodes: [],
       edges: [],
     }
@@ -179,7 +209,12 @@ describe("workflowDirtyAtom", () => {
       version: 1,
       name: "Saved workflow",
       description: "",
-      defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+      defaults: {
+        model: "sonnet",
+        maxTurns: 120,
+        timeout_minutes: 30,
+        maxParallel: 8,
+      },
       nodes: [],
       edges: [],
     }

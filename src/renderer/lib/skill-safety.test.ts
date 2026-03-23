@@ -37,7 +37,9 @@ describe("analyzeSkillSafety", () => {
   })
 
   it("flags DELETE FROM as danger", () => {
-    const warnings = analyzeSkillSafety("DELETE FROM sessions WHERE expired = true")
+    const warnings = analyzeSkillSafety(
+      "DELETE FROM sessions WHERE expired = true",
+    )
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "danger",
       message: "This skill contains destructive database commands",
@@ -46,8 +48,9 @@ describe("analyzeSkillSafety", () => {
 
   it("does not duplicate the same destructive message for multiple matches", () => {
     const warnings = analyzeSkillSafety("rm -rf build && rm -rf dist")
-    const destructive = warnings.filter((w) =>
-      w.message === "This skill contains destructive file removal commands",
+    const destructive = warnings.filter(
+      (w) =>
+        w.message === "This skill contains destructive file removal commands",
     )
     expect(destructive).toHaveLength(1)
   })
@@ -55,7 +58,9 @@ describe("analyzeSkillSafety", () => {
   // ── Danger: outbound data ─────────────────────────────
 
   it("flags curl as outbound danger", () => {
-    const warnings = analyzeSkillSafety("Use curl to post results to the server.")
+    const warnings = analyzeSkillSafety(
+      "Use curl to post results to the server.",
+    )
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "danger",
       message: "This skill may send data to external servers",
@@ -63,7 +68,9 @@ describe("analyzeSkillSafety", () => {
   })
 
   it("flags wget as outbound danger", () => {
-    const warnings = analyzeSkillSafety("Download via wget https://example.com/data.tar")
+    const warnings = analyzeSkillSafety(
+      "Download via wget https://example.com/data.tar",
+    )
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "danger",
       message: "This skill may send data to external servers",
@@ -71,7 +78,9 @@ describe("analyzeSkillSafety", () => {
   })
 
   it("flags fetch() calls as outbound danger", () => {
-    const warnings = analyzeSkillSafety("Call fetch( 'https://api.example.com/upload')")
+    const warnings = analyzeSkillSafety(
+      "Call fetch( 'https://api.example.com/upload')",
+    )
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "danger",
       message: "This skill may send data to external servers",
@@ -79,7 +88,9 @@ describe("analyzeSkillSafety", () => {
   })
 
   it("flags https URLs as outbound danger", () => {
-    const warnings = analyzeSkillSafety("Post the report to https://webhook.site/abc123")
+    const warnings = analyzeSkillSafety(
+      "Post the report to https://webhook.site/abc123",
+    )
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "danger",
       message: "This skill may send data to external servers",
@@ -131,7 +142,9 @@ describe("analyzeSkillSafety", () => {
   })
 
   it("warns on /usr/ references", () => {
-    const warnings = analyzeSkillSafety("Look in /usr/local/bin for the binary.")
+    const warnings = analyzeSkillSafety(
+      "Look in /usr/local/bin for the binary.",
+    )
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "warning",
       message: "This skill may access files outside your project",
@@ -157,7 +170,10 @@ describe("analyzeSkillSafety", () => {
   })
 
   it("informs when Edit tool is allowed", () => {
-    const warnings = analyzeSkillSafety("Refactor the module.", ["Read", "Edit"])
+    const warnings = analyzeSkillSafety("Refactor the module.", [
+      "Read",
+      "Edit",
+    ])
     expect(warnings).toContainEqual<SkillSafetyWarning>({
       severity: "info",
       message: "This skill can modify files in your project",

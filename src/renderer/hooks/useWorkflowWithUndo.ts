@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef } from "react"
 import { useAtom } from "jotai"
 import { currentWorkflowAtom } from "@/lib/store"
-import { undoStackAtom, redoStackAtom, pushUndoSnapshot } from "@/lib/undo-manager"
+import {
+  undoStackAtom,
+  redoStackAtom,
+  pushUndoSnapshot,
+} from "@/lib/undo-manager"
 import type { Workflow } from "@shared/types"
 
 interface WorkflowMutationOptions {
@@ -35,19 +39,18 @@ export function useWorkflowWithUndo() {
       options: WorkflowMutationOptions = {},
     ) => {
       const previousWorkflow = workflowRef.current
-      const nextWorkflow = typeof updater === "function"
-        ? updater(previousWorkflow)
-        : updater
+      const nextWorkflow =
+        typeof updater === "function" ? updater(previousWorkflow) : updater
 
       const coalesceKey = options.coalesceKey ?? null
       const coalesceWindowMs = options.coalesceWindowMs ?? 500
       const now = Date.now()
       const shouldCoalesce = Boolean(
-        coalesceKey
-        && lastMutationRef.current
-        && lastMutationRef.current.key === coalesceKey
-        && lastMutationRef.current.baseline === previousWorkflow
-        && now - lastMutationRef.current.at < coalesceWindowMs,
+        coalesceKey &&
+        lastMutationRef.current &&
+        lastMutationRef.current.key === coalesceKey &&
+        lastMutationRef.current.baseline === previousWorkflow &&
+        now - lastMutationRef.current.at < coalesceWindowMs,
       )
 
       if (!shouldCoalesce) {

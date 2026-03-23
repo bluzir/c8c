@@ -1,4 +1,9 @@
-import type { ArtifactRecord, CreateEntryRouteResult, InputAttachment, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CreateEntryRouteResult,
+  InputAttachment,
+  WorkflowTemplate,
+} from "@shared/types"
 import {
   buildArtifactInputAttachments,
   buildTemplateRunContext,
@@ -16,15 +21,24 @@ export function buildGuidedStartSeed(
   projectPath: string | null,
   requestedResult: string,
 ): { initialInputValue: string; initialAttachments: InputAttachment[] } {
-  const inputNode = template.workflow.nodes.find((node) => node.type === "input")
-  const forcedInputType = inputNode?.type === "input" ? inputNode.config.inputType : undefined
+  const inputNode = template.workflow.nodes.find(
+    (node) => node.type === "input",
+  )
+  const forcedInputType =
+    inputNode?.type === "input" ? inputNode.config.inputType : undefined
   const cleanRequestedResult = normalizeRequestedResult(requestedResult)
 
   if (forcedInputType === "directory") {
     return {
       initialInputValue: projectPath || "",
       initialAttachments: cleanRequestedResult
-        ? [{ kind: "text", label: "Requested result", content: cleanRequestedResult }]
+        ? [
+            {
+              kind: "text",
+              label: "Requested result",
+              content: cleanRequestedResult,
+            },
+          ]
         : [],
     }
   }
@@ -50,11 +64,18 @@ export function buildTemplateStartState({
   requestedResult?: string
   source?: Extract<WorkflowEntrySource, "template" | "template_customize">
   sourceArtifacts?: ArtifactRecord[]
-  seedOverride?: { initialInputValue: string; initialAttachments: InputAttachment[] } | null
+  seedOverride?: {
+    initialInputValue: string
+    initialAttachments: InputAttachment[]
+  } | null
 }) {
   const cleanRequestedResult = normalizeRequestedResult(requestedResult || "")
-  const seed = seedOverride || buildGuidedStartSeed(template, projectPath, cleanRequestedResult)
-  const artifactAttachments = buildArtifactInputAttachments(sourceArtifacts || [])
+  const seed =
+    seedOverride ||
+    buildGuidedStartSeed(template, projectPath, cleanRequestedResult)
+  const artifactAttachments = buildArtifactInputAttachments(
+    sourceArtifacts || [],
+  )
   const baseEntryState = buildTemplateWorkflowEntryState({
     template,
     workflowPath,
@@ -64,10 +85,10 @@ export function buildTemplateStartState({
   return {
     entryState: cleanRequestedResult
       ? {
-        ...baseEntryState,
-        contractLabel: "Requested result",
-        contractText: cleanRequestedResult,
-      }
+          ...baseEntryState,
+          contractLabel: "Requested result",
+          contractText: cleanRequestedResult,
+        }
       : baseEntryState,
     templateContext: buildTemplateRunContext({
       template,

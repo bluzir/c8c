@@ -1,7 +1,10 @@
 import { useEffect, useCallback } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { currentWorkflowAtom, desktopRuntimeAtom } from "@/lib/store"
-import { isEditableKeyboardTarget, matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
+import {
+  isEditableKeyboardTarget,
+  matchesPrimaryShortcut,
+} from "@/lib/keyboard-shortcuts"
 import {
   undoStackAtom,
   redoStackAtom,
@@ -16,12 +19,22 @@ export function useUndoRedo() {
   const [desktopRuntime] = useAtom(desktopRuntimeAtom)
 
   const undo = useCallback(() => {
-    const restored = performUndo(workflow, undoStack, setUndoStack, setRedoStack)
+    const restored = performUndo(
+      workflow,
+      undoStack,
+      setUndoStack,
+      setRedoStack,
+    )
     if (restored) setWorkflow(restored)
   }, [workflow, undoStack, setUndoStack, setRedoStack, setWorkflow])
 
   const redo = useCallback(() => {
-    const restored = performRedo(workflow, redoStack, setUndoStack, setRedoStack)
+    const restored = performRedo(
+      workflow,
+      redoStack,
+      setUndoStack,
+      setRedoStack,
+    )
     if (restored) setWorkflow(restored)
   }, [workflow, redoStack, setUndoStack, setRedoStack, setWorkflow])
 
@@ -29,9 +42,17 @@ export function useUndoRedo() {
     const handler = (event: KeyboardEvent) => {
       if (isEditableKeyboardTarget(event.target as HTMLElement | null)) return
       if (
-        !matchesPrimaryShortcut(event, { key: "z", primaryModifierKey: desktopRuntime.primaryModifierKey })
-        && !matchesPrimaryShortcut(event, { key: "z", primaryModifierKey: desktopRuntime.primaryModifierKey, shift: true })
-      ) return
+        !matchesPrimaryShortcut(event, {
+          key: "z",
+          primaryModifierKey: desktopRuntime.primaryModifierKey,
+        }) &&
+        !matchesPrimaryShortcut(event, {
+          key: "z",
+          primaryModifierKey: desktopRuntime.primaryModifierKey,
+          shift: true,
+        })
+      )
+        return
 
       event.preventDefault()
       if (event.shiftKey) {

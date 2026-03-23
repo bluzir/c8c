@@ -15,7 +15,9 @@ export function selectTemplatesForResultChaining({
   sourceArtifacts: ArtifactRecord[]
   limit?: number
 }) {
-  const availableKinds = new Set(sourceArtifacts.map((artifact) => artifact.kind))
+  const availableKinds = new Set(
+    sourceArtifacts.map((artifact) => artifact.kind),
+  )
   if (availableKinds.size === 0) return []
 
   return templates
@@ -29,9 +31,13 @@ export function selectTemplatesForResultChaining({
         matchCount: contractKinds.length,
       }
     })
-    .filter((entry): entry is { template: WorkflowTemplate; matchCount: number } => Boolean(entry))
+    .filter(
+      (entry): entry is { template: WorkflowTemplate; matchCount: number } =>
+        Boolean(entry),
+    )
     .sort((left, right) => {
-      if (left.matchCount !== right.matchCount) return right.matchCount - left.matchCount
+      if (left.matchCount !== right.matchCount)
+        return right.matchCount - left.matchCount
       return left.template.name.localeCompare(right.template.name)
     })
     .slice(0, limit)

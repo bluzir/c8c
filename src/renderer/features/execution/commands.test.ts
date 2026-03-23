@@ -74,25 +74,26 @@ describe("execution commands helpers", () => {
   })
 
   it("prepares a research workflow with permission mode and backend preset", () => {
-    const { workflowForRun, workflowForExecution } = prepareWorkflowForExecution(
-      createWorkflow(),
-      "exa",
-      "edit",
-    )
+    const { workflowForRun, workflowForExecution } =
+      prepareWorkflowForExecution(createWorkflow(), "exa", "edit")
 
     expect(workflowForRun.defaults?.permissionMode).toBe("edit")
-    expect(workflowForExecution.defaults?.disallowedTools).toEqual(expect.arrayContaining([
-      "WebSearch",
-      "WebFetch",
-      "ToolSearch",
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-    ]))
-    expect(workflowForExecution.defaults?.allowedTools).toEqual(expect.arrayContaining([
-      "Read",
-      "mcp__exa__web_search_exa",
-      "mcp__exa__crawling_exa",
-    ]))
+    expect(workflowForExecution.defaults?.disallowedTools).toEqual(
+      expect.arrayContaining([
+        "WebSearch",
+        "WebFetch",
+        "ToolSearch",
+        "Bash(curl:*)",
+        "Bash(wget:*)",
+      ]),
+    )
+    expect(workflowForExecution.defaults?.allowedTools).toEqual(
+      expect.arrayContaining([
+        "Read",
+        "mcp__exa__web_search_exa",
+        "mcp__exa__crawling_exa",
+      ]),
+    )
   })
 
   it("normalizes execution start results", () => {
@@ -108,18 +109,23 @@ describe("execution commands helpers", () => {
       validationIssues: [],
     })
 
-    expect(resolveExecutionStartResult({
-      error: "2 validation errors — fix them before running.",
-      code: "validation",
-      validationIssues: [
+    expect(
+      resolveExecutionStartResult(
         {
-          nodeId: "skill-1",
-          field: "config.prompt",
-          message: "Add a prompt or select a skill reference.",
-          severity: "error",
+          error: "2 validation errors — fix them before running.",
+          code: "validation",
+          validationIssues: [
+            {
+              nodeId: "skill-1",
+              field: "config.prompt",
+              message: "Add a prompt or select a skill reference.",
+              severity: "error",
+            },
+          ],
         },
-      ],
-    }, "fallback")).toEqual({
+        "fallback",
+      ),
+    ).toEqual({
       startedRunId: null,
       errorMessage: "2 validation errors — fix them before running.",
       validationIssues: [
@@ -187,7 +193,9 @@ describe("execution commands helpers", () => {
       25,
       "Timed out waiting for main process response.",
     )
-    const rejection = expect(timed).rejects.toThrow("Timed out waiting for main process response.")
+    const rejection = expect(timed).rejects.toThrow(
+      "Timed out waiting for main process response.",
+    )
 
     await vi.advanceTimersByTimeAsync(25)
 

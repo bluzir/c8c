@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react"
 import { useAtom } from "jotai"
-import { runStatusAtom, selectedPastRunAtom, workflowHistoryRunsAtom } from "@/features/execution"
+import {
+  runStatusAtom,
+  selectedPastRunAtom,
+  workflowHistoryRunsAtom,
+} from "@/features/execution"
 import type { LoadedRunResult, RunResult } from "@shared/types"
 
 export function useSelectedRunReview(enabled: boolean) {
   const [runStatus] = useAtom(runStatusAtom)
   const [pastRuns] = useAtom(workflowHistoryRunsAtom)
   const [selectedPastRun] = useAtom(selectedPastRunAtom)
-  const [reviewedRunDetails, setReviewedRunDetails] = useState<LoadedRunResult | null>(null)
+  const [reviewedRunDetails, setReviewedRunDetails] =
+    useState<LoadedRunResult | null>(null)
   const [reviewedRunLoading, setReviewedRunLoading] = useState(false)
   const [reviewedRunError, setReviewedRunError] = useState<string | null>(null)
 
@@ -25,12 +30,15 @@ export function useSelectedRunReview(enabled: boolean) {
     setReviewedRunLoading(true)
     setReviewedRunError(null)
 
-    window.api.loadRunResult(reviewedRun.workspace)
+    window.api
+      .loadRunResult(reviewedRun.workspace)
       .then((result) => {
         if (cancelled) return
         if (!result) {
           setReviewedRunDetails(null)
-          setReviewedRunError("Saved run details are unavailable for this flow.")
+          setReviewedRunError(
+            "Saved run details are unavailable for this flow.",
+          )
           return
         }
         setReviewedRunDetails(result)

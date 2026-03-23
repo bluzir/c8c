@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest"
-import type { ArtifactRecord, CaseStateRecord, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  WorkflowTemplate,
+} from "@shared/types"
 import { buildProjectCaseIndex } from "./case-summary"
 import type { WorkflowTemplateRunContext } from "./workflow-entry"
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "requirements_spec",
@@ -28,7 +34,9 @@ function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord
   }
 }
 
-function createCaseState(overrides: Partial<CaseStateRecord> = {}): CaseStateRecord {
+function createCaseState(
+  overrides: Partial<CaseStateRecord> = {},
+): CaseStateRecord {
   return {
     version: 1,
     caseId: "case:seller-photo-upload",
@@ -56,7 +64,9 @@ function createCaseState(overrides: Partial<CaseStateRecord> = {}): CaseStateRec
   }
 }
 
-function createContext(overrides: Partial<WorkflowTemplateRunContext> = {}): WorkflowTemplateRunContext {
+function createContext(
+  overrides: Partial<WorkflowTemplateRunContext> = {},
+): WorkflowTemplateRunContext {
   return {
     templateId: "delivery-implement-phase",
     templateName: "Delivery Factory: Implement Phase",
@@ -76,7 +86,9 @@ function createContext(overrides: Partial<WorkflowTemplateRunContext> = {}): Wor
   }
 }
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-plan-phase",
     name: "Delivery Factory: Plan Phase",
@@ -123,10 +135,20 @@ describe("case-summary", () => {
       factoryLabel: "Delivery Factory",
     })
     expect(index.caseByRunId.get("run-1")).toBe("case:seller-photo-upload")
-    expect(index.caseByWorkflowPath.get("/tmp/project/review.flow.yaml")).toBe("case:seller-photo-upload")
-    expect(index.caseByWorkflowPath.get("/tmp/project/implement.flow.yaml")).toBe("case:seller-photo-upload")
-    expect(index.latestArtifactByCaseId.get("case:seller-photo-upload")?.title).toBe("Feature Spec")
-    expect(index.cases[0]?.lineageLabels).toEqual(["Review", "Plan", "Implement"])
+    expect(index.caseByWorkflowPath.get("/tmp/project/review.flow.yaml")).toBe(
+      "case:seller-photo-upload",
+    )
+    expect(
+      index.caseByWorkflowPath.get("/tmp/project/implement.flow.yaml"),
+    ).toBe("case:seller-photo-upload")
+    expect(
+      index.latestArtifactByCaseId.get("case:seller-photo-upload")?.title,
+    ).toBe("Feature Spec")
+    expect(index.cases[0]?.lineageLabels).toEqual([
+      "Review",
+      "Plan",
+      "Implement",
+    ])
     expect(index.cases[0]).toMatchObject({
       continuationStatus: "ready",
       nextStepLabel: "Apply approved changes",
@@ -139,12 +161,14 @@ describe("case-summary", () => {
   it("keeps durable case identity even when only case state is available", () => {
     const index = buildProjectCaseIndex({
       artifacts: [],
-      caseStates: [createCaseState({
-        caseId: "case:ship-approval",
-        caseLabel: "Ship seller photo upload",
-        workflowPath: "/tmp/project/ship.flow.yaml",
-        artifactIds: [],
-      })],
+      caseStates: [
+        createCaseState({
+          caseId: "case:ship-approval",
+          caseLabel: "Ship seller photo upload",
+          workflowPath: "/tmp/project/ship.flow.yaml",
+          artifactIds: [],
+        }),
+      ],
       workflowTemplateContexts: {},
     })
 
@@ -154,8 +178,12 @@ describe("case-summary", () => {
       label: "Ship seller photo upload",
       factoryId: "pack:delivery-pack",
     })
-    expect(index.caseByWorkflowPath.get("/tmp/project/ship.flow.yaml")).toBe("case:ship-approval")
-    expect(index.latestArtifactByCaseId.get("case:ship-approval")).toBeUndefined()
+    expect(index.caseByWorkflowPath.get("/tmp/project/ship.flow.yaml")).toBe(
+      "case:ship-approval",
+    )
+    expect(
+      index.latestArtifactByCaseId.get("case:ship-approval"),
+    ).toBeUndefined()
     expect(index.cases[0]?.lineageLabels).toEqual(["Review"])
   })
 })

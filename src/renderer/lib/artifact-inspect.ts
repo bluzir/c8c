@@ -1,4 +1,8 @@
-import type { ArtifactRecord, CaseStateRecord, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  WorkflowTemplate,
+} from "@shared/types"
 import {
   deriveTemplateContinuationLabel,
   deriveTemplateDisplayLabel,
@@ -22,10 +26,12 @@ function formatCompactList(labels: string[]) {
 }
 
 function labelForTemplate(template: WorkflowTemplate) {
-  return deriveTemplateContinuationLabel(template)
-    || deriveTemplateJobLabel(template)
-    || deriveTemplateDisplayLabel(template)
-    || template.name
+  return (
+    deriveTemplateContinuationLabel(template) ||
+    deriveTemplateJobLabel(template) ||
+    deriveTemplateDisplayLabel(template) ||
+    template.name
+  )
 }
 
 export function deriveArtifactInspectSummary({
@@ -39,26 +45,37 @@ export function deriveArtifactInspectSummary({
   matchingTemplates: WorkflowTemplate[]
   caseState?: CaseStateRecord | null
 }): ArtifactInspectSummary {
-  const readyNextLabels = Array.from(new Set(
-    matchingTemplates
-      .map((template) => labelForTemplate(template).trim())
-      .filter(Boolean),
-  ))
+  const readyNextLabels = Array.from(
+    new Set(
+      matchingTemplates
+        .map((template) => labelForTemplate(template).trim())
+        .filter(Boolean),
+    ),
+  )
   const sourceText = (artifact.sourceArtifactIds || [])
-    .map((sourceId) => relatedArtifacts.find((candidate) => candidate.id === sourceId)?.title)
+    .map(
+      (sourceId) =>
+        relatedArtifacts.find((candidate) => candidate.id === sourceId)?.title,
+    )
     .filter((value): value is string => Boolean(value))
 
   return {
-    statusText: readyNextLabels.length > 0
-      ? `Ready for ${readyNextLabels[0]}${readyNextLabels.length > 1 ? ` and ${readyNextLabels.length - 1} more step${readyNextLabels.length === 2 ? "" : "s"}` : ""}.`
-      : "Saved artifact. No next step is ready from this artifact alone yet.",
-    savedFromText: artifact.templateName || artifact.workflowName || "Saved from a previous run",
-    sourceText: sourceText.length > 0
-      ? sourceText.join(" · ")
-      : "No upstream artifacts were recorded for this saved artifact.",
-    readyNextText: readyNextLabels.length > 0
-      ? (formatCompactList(readyNextLabels) || "")
-      : "No next step is ready from this artifact alone yet.",
+    statusText:
+      readyNextLabels.length > 0
+        ? `Ready for ${readyNextLabels[0]}${readyNextLabels.length > 1 ? ` and ${readyNextLabels.length - 1} more step${readyNextLabels.length === 2 ? "" : "s"}` : ""}.`
+        : "Saved artifact. No next step is ready from this artifact alone yet.",
+    savedFromText:
+      artifact.templateName ||
+      artifact.workflowName ||
+      "Saved from a previous run",
+    sourceText:
+      sourceText.length > 0
+        ? sourceText.join(" · ")
+        : "No upstream artifacts were recorded for this saved artifact.",
+    readyNextText:
+      readyNextLabels.length > 0
+        ? formatCompactList(readyNextLabels) || ""
+        : "No next step is ready from this artifact alone yet.",
     readyNextLabels,
     latestCheckText: caseState?.lastGate?.summaryText || null,
   }

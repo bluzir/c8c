@@ -3,10 +3,7 @@ import type { WorkflowTemplate, WorkflowTemplateStage } from "@shared/types"
 export type TemplateCategoryKey = "all" | "product" | "marketing" | "content"
 export type TemplateLibraryFilterKey = "all" | WorkflowTemplateStage
 
-const PRODUCT_PACK_IDS = new Set([
-  "delivery-foundation",
-  "gstack-team",
-])
+const PRODUCT_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
 
 const PRODUCT_TEMPLATE_IDS = new Set([
   "full-stack-code-audit",
@@ -20,10 +17,7 @@ const PRODUCT_TEMPLATE_IDS = new Set([
   "remotion-video-director-pipeline",
 ])
 
-const MARKETING_PACK_IDS = new Set([
-  "ai-cmo",
-  "content-factory-alpha",
-])
+const MARKETING_PACK_IDS = new Set(["ai-cmo", "content-factory-alpha"])
 
 const MARKETING_TEMPLATE_IDS = new Set([
   "competitor-ad-intelligence",
@@ -64,16 +58,22 @@ const CONTENT_TEMPLATE_IDS = new Set([
   "courses-launch-assets",
 ])
 
-const PRODUCT_TEXT_RE = /\b(codebase|repository|repo|feature|implementation|verification|spec|audit|bug|architecture|frontend|ui|ux|design system|component|qa|quality assurance|test|playwright|ship|engineering|release|roadmap)\b/i
-const MARKETING_TEXT_RE = /\b(marketing|growth|seo|geo|reddit|hacker news|hacker-news|twitter|x posting|landing page|positioning|messaging|outreach|campaign|cold email|lead|prospect|editorial|distribution|go-to-market|gtm|show hn|ask hn|social media|trend|segment|audience|jtbd|competitive|ad intelligence|research)\b/i
-const CONTENT_TEXT_RE = /\b(content|post|copy|text|editorial|newsletter|draft|publish|writing|course|curriculum|lesson|module|education|workshop|cohort|training|launch asset|video|script)\b/i
+const PRODUCT_TEXT_RE =
+  /\b(codebase|repository|repo|feature|implementation|verification|spec|audit|bug|architecture|frontend|ui|ux|design system|component|qa|quality assurance|test|playwright|ship|engineering|release|roadmap)\b/i
+const MARKETING_TEXT_RE =
+  /\b(marketing|growth|seo|geo|reddit|hacker news|hacker-news|twitter|x posting|landing page|positioning|messaging|outreach|campaign|cold email|lead|prospect|editorial|distribution|go-to-market|gtm|show hn|ask hn|social media|trend|segment|audience|jtbd|competitive|ad intelligence|research)\b/i
+const CONTENT_TEXT_RE =
+  /\b(content|post|copy|text|editorial|newsletter|draft|publish|writing|course|curriculum|lesson|module|education|workshop|cohort|training|launch asset|video|script)\b/i
 
 const PRODUCT_SKILL_RE = /^(dev|frontend|design|qa|gstack)\//i
-const PRODUCT_SKILL_HINT_RE = /(code-review|frontend|playwright|ui|ux|design-review|ship)/i
+const PRODUCT_SKILL_HINT_RE =
+  /(code-review|frontend|playwright|ui|ux|design-review|ship)/i
 const MARKETING_SKILL_RE = /^(gtm|marketing)\//i
-const MARKETING_SKILL_HINT_RE = /(twitter|lead-research|competitive-ads|landing-copywriter|landing-architect|segment-researcher|indispensable)/i
+const MARKETING_SKILL_HINT_RE =
+  /(twitter|lead-research|competitive-ads|landing-copywriter|landing-architect|segment-researcher|indispensable)/i
 const CONTENT_SKILL_RE = /^(content|course|courses|writer|copy|editorial)\//i
-const CONTENT_SKILL_HINT_RE = /(copy|editorial|writer|curriculum|lesson|course|video|newsletter|content)/i
+const CONTENT_SKILL_HINT_RE =
+  /(copy|editorial|writer|curriculum|lesson|course|video|newsletter|content)/i
 
 function compactText(values: Array<string | undefined | null>): string {
   return values
@@ -92,7 +92,11 @@ function tokenizeSearchTerms(value: string): string[] {
 function getTemplateSkillRefs(template: WorkflowTemplate): string[] {
   return template.workflow.nodes
     .filter((node) => node.type === "skill")
-    .map((node) => ("skillRef" in node.config && typeof node.config.skillRef === "string" ? node.config.skillRef : ""))
+    .map((node) =>
+      "skillRef" in node.config && typeof node.config.skillRef === "string"
+        ? node.config.skillRef
+        : "",
+    )
     .filter(Boolean)
 }
 
@@ -111,7 +115,9 @@ function getTemplateMetadataText(template: WorkflowTemplate): string {
     template.executionPolicy?.summary,
     template.executionPolicy?.description,
     template.executionPolicy?.tags?.join(" "),
-    template.credits?.map((credit) => compactText([credit.label, credit.note, credit.href])).join(" "),
+    template.credits
+      ?.map((credit) => compactText([credit.label, credit.note, credit.href]))
+      .join(" "),
   ])
 }
 
@@ -123,7 +129,11 @@ export function isMarketingTemplate(template: WorkflowTemplate): boolean {
   if (MARKETING_TEXT_RE.test(metadataText)) return true
 
   const skillRefs = getTemplateSkillRefs(template)
-  return skillRefs.some((skillRef) => MARKETING_SKILL_RE.test(skillRef) || MARKETING_SKILL_HINT_RE.test(skillRef))
+  return skillRefs.some(
+    (skillRef) =>
+      MARKETING_SKILL_RE.test(skillRef) ||
+      MARKETING_SKILL_HINT_RE.test(skillRef),
+  )
 }
 
 export function isProductTemplate(template: WorkflowTemplate): boolean {
@@ -135,7 +145,10 @@ export function isProductTemplate(template: WorkflowTemplate): boolean {
   if (PRODUCT_TEXT_RE.test(metadataText)) return true
 
   const skillRefs = getTemplateSkillRefs(template)
-  return skillRefs.some((skillRef) => PRODUCT_SKILL_RE.test(skillRef) || PRODUCT_SKILL_HINT_RE.test(skillRef))
+  return skillRefs.some(
+    (skillRef) =>
+      PRODUCT_SKILL_RE.test(skillRef) || PRODUCT_SKILL_HINT_RE.test(skillRef),
+  )
 }
 
 export function isContentTemplate(template: WorkflowTemplate): boolean {
@@ -147,10 +160,16 @@ export function isContentTemplate(template: WorkflowTemplate): boolean {
   if (CONTENT_TEXT_RE.test(metadataText)) return true
 
   const skillRefs = getTemplateSkillRefs(template)
-  return skillRefs.some((skillRef) => CONTENT_SKILL_RE.test(skillRef) || CONTENT_SKILL_HINT_RE.test(skillRef))
+  return skillRefs.some(
+    (skillRef) =>
+      CONTENT_SKILL_RE.test(skillRef) || CONTENT_SKILL_HINT_RE.test(skillRef),
+  )
 }
 
-export function templateMatchesCategory(template: WorkflowTemplate, category: TemplateCategoryKey): boolean {
+export function templateMatchesCategory(
+  template: WorkflowTemplate,
+  category: TemplateCategoryKey,
+): boolean {
   if (category === "all") return true
   if (category === "product") return isProductTemplate(template)
   if (category === "marketing") return isMarketingTemplate(template)
@@ -165,7 +184,10 @@ export function buildTemplateSearchText(template: WorkflowTemplate): string {
   ]).toLowerCase()
 }
 
-function buildTemplateImplicitSearchText(template: WorkflowTemplate, sourceLabel?: string): string {
+function buildTemplateImplicitSearchText(
+  template: WorkflowTemplate,
+  sourceLabel?: string,
+): string {
   return compactText([
     template.description,
     template.how,
@@ -177,8 +199,12 @@ function buildTemplateImplicitSearchText(template: WorkflowTemplate, sourceLabel
     sourceLabel,
     template.marketplaceName,
     template.pluginName,
-    template.contractIn?.map((contract) => compactText([contract.kind, contract.title])).join(" "),
-    template.contractOut?.map((contract) => compactText([contract.kind, contract.title])).join(" "),
+    template.contractIn
+      ?.map((contract) => compactText([contract.kind, contract.title]))
+      .join(" "),
+    template.contractOut
+      ?.map((contract) => compactText([contract.kind, contract.title]))
+      .join(" "),
   ]).toLowerCase()
 }
 
@@ -186,22 +212,39 @@ function matchesQueryTokens(value: string, queryTokens: string[]): boolean {
   const valueTokens = tokenizeSearchTerms(value)
   if (valueTokens.length === 0) return false
 
-  return queryTokens.every((queryToken) => valueTokens.some((valueToken) => valueToken.startsWith(queryToken)))
+  return queryTokens.every((queryToken) =>
+    valueTokens.some((valueToken) => valueToken.startsWith(queryToken)),
+  )
 }
 
-function getContiguousQueryMatchIndex(value: string, queryTokens: string[]): number {
+function getContiguousQueryMatchIndex(
+  value: string,
+  queryTokens: string[],
+): number {
   const valueTokens = tokenizeSearchTerms(value)
-  if (queryTokens.length === 0 || valueTokens.length < queryTokens.length) return -1
+  if (queryTokens.length === 0 || valueTokens.length < queryTokens.length)
+    return -1
 
-  for (let startIndex = 0; startIndex <= valueTokens.length - queryTokens.length; startIndex += 1) {
-    const matches = queryTokens.every((queryToken, offset) => valueTokens[startIndex + offset]?.startsWith(queryToken))
+  for (
+    let startIndex = 0;
+    startIndex <= valueTokens.length - queryTokens.length;
+    startIndex += 1
+  ) {
+    const matches = queryTokens.every((queryToken, offset) =>
+      valueTokens[startIndex + offset]?.startsWith(queryToken),
+    )
     if (matches) return startIndex
   }
 
   return -1
 }
 
-function scoreSearchText(value: string, queryTokens: string[], phraseScore: number, tokenScore: number): number {
+function scoreSearchText(
+  value: string,
+  queryTokens: string[],
+  phraseScore: number,
+  tokenScore: number,
+): number {
   if (!value.trim()) return 0
 
   const phraseMatchIndex = getContiguousQueryMatchIndex(value, queryTokens)
@@ -212,21 +255,42 @@ function scoreSearchText(value: string, queryTokens: string[], phraseScore: numb
   return matchesQueryTokens(value, queryTokens) ? tokenScore : 0
 }
 
-export function getTemplateSearchScore(template: WorkflowTemplate, query: string, sourceLabel?: string): number {
+export function getTemplateSearchScore(
+  template: WorkflowTemplate,
+  query: string,
+  sourceLabel?: string,
+): number {
   const queryTokens = tokenizeSearchTerms(query)
   if (queryTokens.length === 0) return 0
 
-  const explicitScore = scoreSearchText(buildTemplateSearchText(template), queryTokens, 400, 300)
+  const explicitScore = scoreSearchText(
+    buildTemplateSearchText(template),
+    queryTokens,
+    400,
+    300,
+  )
   if (explicitScore > 0) return explicitScore
 
-  return scoreSearchText(buildTemplateImplicitSearchText(template, sourceLabel), queryTokens, 120, 60)
+  return scoreSearchText(
+    buildTemplateImplicitSearchText(template, sourceLabel),
+    queryTokens,
+    120,
+    60,
+  )
 }
 
-export function templateMatchesSearchQuery(template: WorkflowTemplate, query: string, sourceLabel?: string): boolean {
+export function templateMatchesSearchQuery(
+  template: WorkflowTemplate,
+  query: string,
+  sourceLabel?: string,
+): boolean {
   return getTemplateSearchScore(template, query, sourceLabel) > 0
 }
 
-export function templateMatchesLibraryFilter(template: WorkflowTemplate, filter: TemplateLibraryFilterKey): boolean {
+export function templateMatchesLibraryFilter(
+  template: WorkflowTemplate,
+  filter: TemplateLibraryFilterKey,
+): boolean {
   if (filter === "all") return true
   return template.stage === filter
 }

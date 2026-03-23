@@ -1,5 +1,8 @@
 import type { ResultModeId } from "@shared/types"
-import { buildWorkflowCreatePrompt, type WorkflowCreatePromptScaffold } from "@/lib/workflow-create-prompt"
+import {
+  buildWorkflowCreatePrompt,
+  type WorkflowCreatePromptScaffold,
+} from "@/lib/workflow-create-prompt"
 import type { WorkflowResultMode } from "@/lib/result-modes"
 
 export type ResultModeConfigFieldType = "text" | "textarea"
@@ -19,24 +22,28 @@ const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
     {
       id: "project_goal",
       label: "Product goal",
-      placeholder: "Ship a new onboarding loop, pressure-test a feature concept, or clean up a weak area of the product.",
+      placeholder:
+        "Ship a new onboarding loop, pressure-test a feature concept, or clean up a weak area of the product.",
     },
     {
       id: "source_context",
       label: "Product context",
-      placeholder: "Repository path, issue link, PRD, notes, screenshots, or current product state.",
+      placeholder:
+        "Repository path, issue link, PRD, notes, screenshots, or current product state.",
       type: "textarea",
     },
     {
       id: "quality_bar",
       label: "Quality bar",
-      placeholder: "Testing expectations, design bar, rollout constraints, or risks that matter here.",
+      placeholder:
+        "Testing expectations, design bar, rollout constraints, or risks that matter here.",
       type: "textarea",
     },
     {
       id: "strategist_checkpoints",
       label: "Decision checkpoints",
-      placeholder: "Scope approval, architecture review, design sign-off, or other moments where you want control.",
+      placeholder:
+        "Scope approval, architecture review, design sign-off, or other moments where you want control.",
       type: "textarea",
     },
   ],
@@ -44,24 +51,28 @@ const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
     {
       id: "content_goal",
       label: "Marketing goal",
-      placeholder: "Validate a segment, shape a GTM angle, plan SEO content, or build a launch campaign.",
+      placeholder:
+        "Validate a segment, shape a GTM angle, plan SEO content, or build a launch campaign.",
     },
     {
       id: "channel_and_audience",
       label: "Market and audience",
-      placeholder: "Who this is for, where they live, and which channels or surfaces matter most.",
+      placeholder:
+        "Who this is for, where they live, and which channels or surfaces matter most.",
       type: "textarea",
     },
     {
       id: "tone_of_voice",
       label: "Angles and constraints",
-      placeholder: "Approved angles, banned claims, tone constraints, brand rules, or no-slop requirements.",
+      placeholder:
+        "Approved angles, banned claims, tone constraints, brand rules, or no-slop requirements.",
       type: "textarea",
     },
     {
       id: "volume_and_quality",
       label: "Success signal",
-      placeholder: "What output you need first and what would make it strategically useful.",
+      placeholder:
+        "What output you need first and what would make it strategically useful.",
       type: "textarea",
     },
   ],
@@ -69,24 +80,28 @@ const RESULT_MODE_CONFIG_FIELDS: Record<string, ResultModeConfigField[]> = {
     {
       id: "course_outcome",
       label: "Content goal",
-      placeholder: "Publish a content system, produce a newsletter series, or shape a course-style asset set.",
+      placeholder:
+        "Publish a content system, produce a newsletter series, or shape a course-style asset set.",
     },
     {
       id: "audience",
       label: "Audience",
-      placeholder: "Who this is for, what they already know, and what they should walk away with.",
+      placeholder:
+        "Who this is for, what they already know, and what they should walk away with.",
       type: "textarea",
     },
     {
       id: "format_and_depth",
       label: "Format and source material",
-      placeholder: "Posts, newsletter, guide, course, workshop, lesson set, plus the raw material available.",
+      placeholder:
+        "Posts, newsletter, guide, course, workshop, lesson set, plus the raw material available.",
       type: "textarea",
     },
     {
       id: "launch_needs",
       label: "Publishing or launch needs",
-      placeholder: "Approvals, launch assets, delivery format, cadence, or other downstream needs.",
+      placeholder:
+        "Approvals, launch assets, delivery format, cadence, or other downstream needs.",
       type: "textarea",
     },
   ],
@@ -111,7 +126,9 @@ function normalize(value: string | undefined | null) {
   return (value || "").trim()
 }
 
-export function getResultModeConfigFields(modeId: ResultModeId): ResultModeConfigField[] {
+export function getResultModeConfigFields(
+  modeId: ResultModeId,
+): ResultModeConfigField[] {
   return RESULT_MODE_CONFIG_FIELDS[modeId] || []
 }
 

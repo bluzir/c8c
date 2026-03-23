@@ -7,7 +7,9 @@ import {
   selectProcessSpineFactory,
 } from "./process-spine"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-plan-phase",
     name: "Delivery Factory: Plan Phase",
@@ -35,7 +37,9 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
   }
 }
 
-function createContext(overrides: Partial<WorkflowTemplateRunContext> = {}): WorkflowTemplateRunContext {
+function createContext(
+  overrides: Partial<WorkflowTemplateRunContext> = {},
+): WorkflowTemplateRunContext {
   return {
     templateId: "delivery-plan-phase",
     templateName: "Delivery Factory: Plan Phase",
@@ -54,37 +58,53 @@ function createContext(overrides: Partial<WorkflowTemplateRunContext> = {}): Wor
 
 describe("process-spine", () => {
   it("maps core and review-oriented templates to canonical process stages", () => {
-    expect(deriveProcessSpineStageId(createTemplate({
-      id: "delivery-map-codebase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "map",
-      },
-    }))).toBe("shape_map")
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "delivery-map-codebase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "map",
+          },
+        }),
+      ),
+    ).toBe("shape_map")
 
-    expect(deriveProcessSpineStageId(createTemplate({
-      id: "delivery-review-phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "review",
-      },
-    }))).toBe("review")
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "delivery-review-phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "review",
+          },
+        }),
+      ),
+    ).toBe("review")
 
-    expect(deriveProcessSpineStageId(createTemplate({
-      id: "delivery-verify-phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "verify",
-      },
-    }))).toBe("verify")
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "delivery-verify-phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "verify",
+          },
+        }),
+      ),
+    ).toBe("verify")
 
-    expect(deriveProcessSpineStageId(createTemplate({
-      id: "ux-ui-polish-audit",
-      pack: undefined,
-    }))).toBe("review")
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "ux-ui-polish-audit",
+          pack: undefined,
+        }),
+      ),
+    ).toBe("review")
   })
 
   it("builds a compact dev spine with current and next states", () => {
@@ -200,7 +220,13 @@ describe("process-spine", () => {
           label: "Delivery Factory",
           recipe: {
             packIds: ["delivery-foundation"],
-            stageOrder: ["Shape / Map", "Plan", "Implement", "Review", "Verify"],
+            stageOrder: [
+              "Shape / Map",
+              "Plan",
+              "Implement",
+              "Review",
+              "Verify",
+            ],
           },
           createdAt: 1,
           updatedAt: 1,
@@ -211,10 +237,13 @@ describe("process-spine", () => {
       updatedAt: 1,
     }
 
-    const factory = selectProcessSpineFactory(blueprint, createContext({
-      factoryId: undefined,
-      factoryLabel: undefined,
-    }))
+    const factory = selectProcessSpineFactory(
+      blueprint,
+      createContext({
+        factoryId: undefined,
+        factoryLabel: undefined,
+      }),
+    )
 
     expect(factory?.id).toBe("factory:delivery")
   })
@@ -229,7 +258,13 @@ describe("process-spine", () => {
           label: "Delivery Factory",
           recipe: {
             packIds: ["delivery-foundation"],
-            stageOrder: ["Shape / Map", "Plan", "Implement", "Review", "Verify"],
+            stageOrder: [
+              "Shape / Map",
+              "Plan",
+              "Implement",
+              "Review",
+              "Verify",
+            ],
           },
           createdAt: 1,
           updatedAt: 1,
@@ -239,7 +274,13 @@ describe("process-spine", () => {
           label: "Checkout Delivery Factory",
           recipe: {
             packIds: ["delivery-foundation"],
-            stageOrder: ["Shape / Map", "Plan", "Implement", "Review", "Verify"],
+            stageOrder: [
+              "Shape / Map",
+              "Plan",
+              "Implement",
+              "Review",
+              "Verify",
+            ],
           },
           createdAt: 2,
           updatedAt: 2,
@@ -250,10 +291,13 @@ describe("process-spine", () => {
       updatedAt: 2,
     }
 
-    const factory = selectProcessSpineFactory(blueprint, createContext({
-      factoryId: undefined,
-      factoryLabel: undefined,
-    }))
+    const factory = selectProcessSpineFactory(
+      blueprint,
+      createContext({
+        factoryId: undefined,
+        factoryLabel: undefined,
+      }),
+    )
 
     expect(factory?.id).toBe("factory:delivery-active")
   })

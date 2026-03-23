@@ -1,4 +1,9 @@
-import type { ArtifactRecord, CaseStateRecord, HumanTaskSummary, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  HumanTaskSummary,
+  WorkflowTemplate,
+} from "@shared/types"
 import {
   areTemplateContractsSatisfied,
   deriveArtifactCaseKey,
@@ -40,7 +45,10 @@ export interface WorkflowCreateContinuationCandidate {
   action: WorkflowCreateContinuationAction
 }
 
-export type WorkflowCreateContinuationPresentation = "none" | "supporting" | "dominant"
+export type WorkflowCreateContinuationPresentation =
+  | "none"
+  | "supporting"
+  | "dominant"
 
 export interface WorkflowCreateContinuationPresentationState {
   primaryContinuation: WorkflowCreateContinuationCandidate | null
@@ -49,13 +57,15 @@ export interface WorkflowCreateContinuationPresentationState {
   reason?: string
 }
 
-function hasDominantContinuationContract(candidate: WorkflowCreateContinuationCandidate) {
+function hasDominantContinuationContract(
+  candidate: WorkflowCreateContinuationCandidate,
+) {
   return Boolean(
-    candidate.title
-    && candidate.status
-    && candidate.updatedAt > 0
-    && (candidate.latestResultLabel || candidate.readinessText)
-    && (candidate.nextStepLabel || candidate.action.kind === "open_blocked_work"),
+    candidate.title &&
+    candidate.status &&
+    candidate.updatedAt > 0 &&
+    (candidate.latestResultLabel || candidate.readinessText) &&
+    (candidate.nextStepLabel || candidate.action.kind === "open_blocked_work"),
   )
 }
 
@@ -153,19 +163,22 @@ function labelForCase({
   latestArtifact: ArtifactRecord | null
   latestTask: HumanTaskSummary | null
 }) {
-  return artifacts.find((artifact) => artifact.caseLabel)?.caseLabel
-    || latestTask?.workflowName
-    || artifacts.find((artifact) => artifact.workflowName)?.workflowName
-    || latestTask?.title
-    || latestArtifact?.title
-    || label
-    || "Saved work"
+  return (
+    artifacts.find((artifact) => artifact.caseLabel)?.caseLabel ||
+    latestTask?.workflowName ||
+    artifacts.find((artifact) => artifact.workflowName)?.workflowName ||
+    latestTask?.title ||
+    latestArtifact?.title ||
+    label ||
+    "Saved work"
+  )
 }
 
 function formatArtifactList(artifacts: ArtifactRecord[]) {
   if (artifacts.length === 0) return "saved results"
   if (artifacts.length === 1) return artifacts[0].title
-  if (artifacts.length === 2) return `${artifacts[0].title} and ${artifacts[1].title}`
+  if (artifacts.length === 2)
+    return `${artifacts[0].title} and ${artifacts[1].title}`
   return `${artifacts[0].title}, ${artifacts[1].title}, +${artifacts.length - 2} more`
 }
 
@@ -175,7 +188,12 @@ function deriveSourceStepLabel(
 ) {
   if (!artifact?.templateId) return null
   const template = templateById.get(artifact.templateId)
-  return deriveTemplateDisplayLabel(template) || template?.name || artifact.templateName || null
+  return (
+    deriveTemplateDisplayLabel(template) ||
+    template?.name ||
+    artifact.templateName ||
+    null
+  )
 }
 
 function resolveReadyContinuation(
@@ -190,15 +208,21 @@ function resolveReadyContinuation(
 
     const nextTemplate = recommendedNext
       .map((templateId) => templateById.get(templateId) || null)
-      .find((template): template is WorkflowTemplate =>
-        template !== null && areTemplateContractsSatisfied(template.contractIn, artifacts),
+      .find(
+        (template): template is WorkflowTemplate =>
+          template !== null &&
+          areTemplateContractsSatisfied(template.contractIn, artifacts),
       )
 
     if (!nextTemplate) continue
 
-    const selectedArtifacts = (nextTemplate.contractIn?.length || 0) > 0
-      ? selectArtifactsForTemplateContracts(nextTemplate.contractIn, artifacts)
-      : [artifact]
+    const selectedArtifacts =
+      (nextTemplate.contractIn?.length || 0) > 0
+        ? selectArtifactsForTemplateContracts(
+            nextTemplate.contractIn,
+            artifacts,
+          )
+        : [artifact]
 
     return {
       nextTemplate,
@@ -221,8 +245,12 @@ export function deriveWorkflowCreateContinuations({
   humanTasks: HumanTaskSummary[]
   templates: WorkflowTemplate[]
 }) {
-  const templateById = new Map(templates.map((template) => [template.id, template]))
-  const caseStateById = new Map((caseStates || []).map((state) => [state.caseId, state]))
+  const templateById = new Map(
+    templates.map((template) => [template.id, template]),
+  )
+  const caseStateById = new Map(
+    (caseStates || []).map((state) => [state.caseId, state]),
+  )
   const caseByRunId = new Map<string, string>()
   const caseByWorkflowPath = new Map<string, string>()
   const entries = new Map<string, ContinuationEntry>()
@@ -258,79 +286,101 @@ export function deriveWorkflowCreateContinuations({
   }
 
   for (const task of humanTasks.filter((entry) => entry.status === "open")) {
-    const caseId = (task.workflowPath && caseByWorkflowPath.get(task.workflowPath))
-      || caseByRunId.get(task.sourceRunId)
-      || `task:${task.workflowPath || task.sourceRunId || task.taskId}`
+    const caseId =
+      (task.workflowPath && caseByWorkflowPath.get(task.workflowPath)) ||
+      caseByRunId.get(task.sourceRunId) ||
+      `task:${task.workflowPath || task.sourceRunId || task.taskId}`
     const entry = ensureEntry(caseId, task.workflowName || task.title)
     entry.tasks.push(task)
   }
 
-  const candidates = Array.from(entries.values()).map<WorkflowCreateContinuationCandidate | null>((entry) => {
-    const caseArtifacts = [...entry.artifacts].sort((left, right) => right.updatedAt - left.updatedAt)
-    const openTasks = [...entry.tasks].sort((left, right) => right.updatedAt - left.updatedAt)
-    const latestArtifact = caseArtifacts[0] || null
-    const primaryTask = openTasks[0] || null
-    const latestStepLabel = deriveSourceStepLabel(latestArtifact, templateById)
-    const title = labelForCase({
-      label: entry.label,
-      artifacts: caseArtifacts,
-      latestArtifact,
-      latestTask: primaryTask,
-    })
-    const caseState = caseStateById.get(entry.id) || null
+  const candidates = Array.from(entries.values())
+    .map<WorkflowCreateContinuationCandidate | null>((entry) => {
+      const caseArtifacts = [...entry.artifacts].sort(
+        (left, right) => right.updatedAt - left.updatedAt,
+      )
+      const openTasks = [...entry.tasks].sort(
+        (left, right) => right.updatedAt - left.updatedAt,
+      )
+      const latestArtifact = caseArtifacts[0] || null
+      const primaryTask = openTasks[0] || null
+      const latestStepLabel = deriveSourceStepLabel(
+        latestArtifact,
+        templateById,
+      )
+      const title = labelForCase({
+        label: entry.label,
+        artifacts: caseArtifacts,
+        latestArtifact,
+        latestTask: primaryTask,
+      })
+      const caseState = caseStateById.get(entry.id) || null
 
-    if (primaryTask) {
+      if (primaryTask) {
+        return {
+          caseId: entry.id,
+          title,
+          status: "blocked" as const,
+          readinessText: deriveBlockedTaskStatusText(primaryTask),
+          supportText: deriveBlockedTaskReasonText(primaryTask),
+          lastGateText: caseState?.lastGate?.summaryText || null,
+          latestResultLabel: latestArtifact?.title || null,
+          latestStepLabel,
+          nextStepLabel: null,
+          updatedAt: Math.max(
+            primaryTask.updatedAt,
+            latestArtifact?.updatedAt || 0,
+          ),
+          action: {
+            kind: "open_blocked_work",
+            task: primaryTask,
+          } satisfies WorkflowCreateContinuationAction,
+        }
+      }
+
+      const readyContinuation = resolveReadyContinuation(
+        caseArtifacts,
+        templateById,
+      )
+      if (!readyContinuation) return null
+
+      const nextStepLabel =
+        deriveTemplateContinuationLabel(readyContinuation.nextTemplate) ||
+        deriveTemplateDisplayLabel(readyContinuation.nextTemplate) ||
+        readyContinuation.nextTemplate.name
+
       return {
         caseId: entry.id,
         title,
-        status: "blocked" as const,
-        readinessText: deriveBlockedTaskStatusText(primaryTask),
-        supportText: deriveBlockedTaskReasonText(primaryTask),
+        status: "ready" as const,
+        readinessText: `Ready to continue to ${nextStepLabel}.`,
+        supportText:
+          readyContinuation.selectedArtifacts.length > 0
+            ? `Using saved ${formatArtifactList(readyContinuation.selectedArtifacts)}${readyContinuation.sourceStepLabel ? ` from ${readyContinuation.sourceStepLabel}` : ""}.`
+            : "Ready from the saved results already attached to this work.",
         lastGateText: caseState?.lastGate?.summaryText || null,
         latestResultLabel: latestArtifact?.title || null,
-        latestStepLabel,
-        nextStepLabel: null,
-        updatedAt: Math.max(primaryTask.updatedAt, latestArtifact?.updatedAt || 0),
+        latestStepLabel: readyContinuation.sourceStepLabel || latestStepLabel,
+        nextStepLabel,
+        updatedAt: latestArtifact?.updatedAt || 0,
         action: {
-          kind: "open_blocked_work",
-          task: primaryTask,
+          kind: "launch_next_step",
+          template: readyContinuation.nextTemplate,
+          artifacts: readyContinuation.selectedArtifacts,
+          caseId: entry.id,
+          caseLabel: latestArtifact?.caseLabel,
+          factoryId: latestArtifact?.factoryId,
+          factoryLabel: latestArtifact?.factoryLabel,
         } satisfies WorkflowCreateContinuationAction,
       }
-    }
+    })
+    .filter(
+      (candidate): candidate is WorkflowCreateContinuationCandidate =>
+        candidate !== null,
+    )
 
-    const readyContinuation = resolveReadyContinuation(caseArtifacts, templateById)
-    if (!readyContinuation) return null
-
-    const nextStepLabel = deriveTemplateContinuationLabel(readyContinuation.nextTemplate)
-      || deriveTemplateDisplayLabel(readyContinuation.nextTemplate)
-      || readyContinuation.nextTemplate.name
-
-    return {
-      caseId: entry.id,
-      title,
-      status: "ready" as const,
-      readinessText: `Ready to continue to ${nextStepLabel}.`,
-      supportText: readyContinuation.selectedArtifacts.length > 0
-        ? `Using saved ${formatArtifactList(readyContinuation.selectedArtifacts)}${readyContinuation.sourceStepLabel ? ` from ${readyContinuation.sourceStepLabel}` : ""}.`
-        : "Ready from the saved results already attached to this work.",
-      lastGateText: caseState?.lastGate?.summaryText || null,
-      latestResultLabel: latestArtifact?.title || null,
-      latestStepLabel: readyContinuation.sourceStepLabel || latestStepLabel,
-      nextStepLabel,
-      updatedAt: latestArtifact?.updatedAt || 0,
-      action: {
-        kind: "launch_next_step",
-        template: readyContinuation.nextTemplate,
-        artifacts: readyContinuation.selectedArtifacts,
-        caseId: entry.id,
-        caseLabel: latestArtifact?.caseLabel,
-        factoryId: latestArtifact?.factoryId,
-        factoryLabel: latestArtifact?.factoryLabel,
-      } satisfies WorkflowCreateContinuationAction,
-    }
-  }).filter((candidate): candidate is WorkflowCreateContinuationCandidate => candidate !== null)
-
-  const priority = (candidate: WorkflowCreateContinuationCandidate) => candidate.status === "blocked" ? 0 : 1
+  const priority = (candidate: WorkflowCreateContinuationCandidate) =>
+    candidate.status === "blocked" ? 0 : 1
 
   return candidates.sort((left, right) => {
     const byPriority = priority(left) - priority(right)

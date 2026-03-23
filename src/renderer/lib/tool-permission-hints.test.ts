@@ -7,7 +7,8 @@ describe("getToolPermissionHint", () => {
     const entry: LogEntry = {
       type: "tool_result",
       tool: "WebFetch",
-      output: "WebFetch failed. Need permission to load https://nhc.works for audit.",
+      output:
+        "WebFetch failed. Need permission to load https://nhc.works for audit.",
       status: "error",
       timestamp: Date.now(),
     }
@@ -22,7 +23,8 @@ describe("getToolPermissionHint", () => {
   it("detects WebFetch permission failure from stderr/error text", () => {
     const entry: LogEntry = {
       type: "error",
-      content: "I need permission to use WebFetch. Please allow tool in settings.",
+      content:
+        "I need permission to use WebFetch. Please allow tool in settings.",
       timestamp: Date.now(),
     }
 
@@ -57,4 +59,3 @@ describe("getToolPermissionHint", () => {
     expect(getToolPermissionHint(entry)).toBeNull()
   })
 })
-

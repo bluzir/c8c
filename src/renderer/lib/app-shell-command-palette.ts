@@ -1,8 +1,15 @@
 import type { ResultModeId, WorkflowFile } from "@shared/types"
-import type { DesktopCommandId, DesktopMenuState } from "@shared/desktop-commands"
+import type {
+  DesktopCommandId,
+  DesktopMenuState,
+} from "@shared/desktop-commands"
 import type { WorkflowExecutionState } from "@/lib/workflow-execution"
 import type { OutputSurfaceCommandState } from "@/lib/output-surface-commands"
-import { formatRelativeTime, projectFolderName, workflowHasActiveRunStatus } from "@/components/sidebar/projectSidebarUtils"
+import {
+  formatRelativeTime,
+  projectFolderName,
+  workflowHasActiveRunStatus,
+} from "@/components/sidebar/projectSidebarUtils"
 
 export type AppShellCommandAction =
   | "new_process"
@@ -100,7 +107,10 @@ function normalize(value: string) {
 }
 
 function toSearchText(value: string) {
-  return normalize(value).replace(/[^a-z0-9а-яё]+/gi, " ").replace(/\s+/g, " ").trim()
+  return normalize(value)
+    .replace(/[^a-z0-9а-яё]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function truncateLabel(value: string, maxLength = 48) {
@@ -120,12 +130,12 @@ function formatStartSubtitle(
   requiresProjectSelection: boolean,
 ) {
   if (requiresProjectAdd) {
-    return "Open the guided start and add a project first."
+    return "Add a project first, then start this flow."
   }
   if (requiresProjectSelection) {
-    return "Open the guided start and choose the target project."
+    return "Choose the target project, then start this flow."
   }
-  return `Open the guided start${projectLabel ? ` in ${projectLabel}` : ""}. The system will choose the right path after submit.`
+  return `Start a new flow${projectLabel ? ` in ${projectLabel}` : ""}.`
 }
 
 function actionEntry(
@@ -166,89 +176,282 @@ export function buildAppShellActionEntries({
   includeLab?: boolean
 } = {}): AppShellActionEntry[] {
   return [
-    actionEntry("new_process", "New flow", ["new", "create", "start", "flow", "process"], "Create a flow in your project"),
-    actionEntry("add_project", "Add project", ["add", "project", "folder", "workspace"], "Open a project folder"),
-    actionEntry("runs_dashboard", "Runs dashboard", ["runs", "dashboard", "triage", "activity", "background"], "Triage active and recent flows"),
-    actionEntry("process_library", "Starting points", ["library", "template", "starting point", "flow", "process"], "Browse guided starts and templates"),
+    actionEntry(
+      "new_process",
+      "New flow",
+      ["new", "create", "start", "flow", "process"],
+      "Create a flow in your project",
+    ),
+    actionEntry(
+      "add_project",
+      "Add project",
+      ["add", "project", "folder", "workspace"],
+      "Open a project folder",
+    ),
+    actionEntry(
+      "runs_dashboard",
+      "Runs dashboard",
+      ["runs", "dashboard", "triage", "activity", "background"],
+      "Triage active and recent flows",
+    ),
+    actionEntry(
+      "process_library",
+      "Starting points",
+      ["library", "template", "starting point", "flow", "process"],
+      "Browse guided starts and templates",
+    ),
     ...(includeLab
-      ? [actionEntry("lab", "Lab", ["lab", "factory", "cases", "outcome"], "Open the lab workspace for reusable outcomes")]
+      ? [
+          actionEntry(
+            "lab",
+            "Lab",
+            ["lab", "factory", "cases", "outcome"],
+            "Open the lab workspace for reusable outcomes",
+          ),
+        ]
       : []),
-    actionEntry("skills", "Skills", ["skills", "tools", "capabilities"], "Open connected skills and local sources"),
-    actionEntry("attach_skill", "Attach skill", ["attach", "add", "skill", "tool", "step"], "Open the skill picker for the current flow"),
-    actionEntry("inbox", "Inbox", ["inbox", "approval", "tasks", "notifications"], "View approvals and pending tasks"),
-    actionEntry("settings", "Settings", ["settings", "preferences", "configuration"], "Configure providers and defaults"),
+    actionEntry(
+      "skills",
+      "Skills",
+      ["skills", "tools", "capabilities"],
+      "Open connected skills and local sources",
+    ),
+    actionEntry(
+      "attach_skill",
+      "Attach skill",
+      ["attach", "add", "skill", "tool", "step"],
+      "Open the skill picker for the current flow",
+    ),
+    actionEntry(
+      "inbox",
+      "Inbox",
+      ["inbox", "approval", "tasks", "notifications"],
+      "View approvals and pending tasks",
+    ),
+    actionEntry(
+      "settings",
+      "Settings",
+      ["settings", "preferences", "configuration"],
+      "Configure providers and defaults",
+    ),
   ]
 }
 
-export function buildOutputSurfaceActionEntries(state: OutputSurfaceCommandState): AppShellActionEntry[] {
+export function buildOutputSurfaceActionEntries(
+  state: OutputSurfaceCommandState,
+): AppShellActionEntry[] {
   const entries: AppShellActionEntry[] = []
 
   if (state.result) {
-    entries.push(actionEntry("output_view_result", "View result", ["result", "answer", "final output"], "Open the result surface"))
+    entries.push(
+      actionEntry(
+        "output_view_result",
+        "View result",
+        ["result", "answer", "final output"],
+        "Open the result surface",
+      ),
+    )
   }
   if (state.activity) {
-    entries.push(actionEntry("output_view_activity", "View summary", ["summary", "activity", "steps", "run status"], "Open the run summary surface"))
+    entries.push(
+      actionEntry(
+        "output_view_activity",
+        "View summary",
+        ["summary", "activity", "steps", "run status"],
+        "Open the run summary surface",
+      ),
+    )
   }
   if (state.log) {
-    entries.push(actionEntry("output_view_log", "View step log", ["log", "trace", "step log"], "Open the detailed log for the selected step"))
+    entries.push(
+      actionEntry(
+        "output_view_log",
+        "View step log",
+        ["log", "trace", "step log"],
+        "Open the detailed log for the selected step",
+      ),
+    )
   }
   if (state.history) {
-    entries.push(actionEntry("output_view_history", "View run history", ["history", "past runs", "saved runs"], "Open saved run history"))
+    entries.push(
+      actionEntry(
+        "output_view_history",
+        "View run history",
+        ["history", "past runs", "saved runs"],
+        "Open saved run history",
+      ),
+    )
   }
   if (state.rerunFromStep) {
-    entries.push(actionEntry("output_rerun_from_step", "Rerun from this step", ["rerun", "retry", "step"], "Start a new run from the selected step"))
+    entries.push(
+      actionEntry(
+        "output_rerun_from_step",
+        "Rerun from this step",
+        ["rerun", "retry", "step"],
+        "Start a new run from the selected step",
+      ),
+    )
   }
   if (state.useInNewFlow) {
-    entries.push(actionEntry("output_use_in_new_flow", "Continue with Agent", ["new flow", "handoff", "continue elsewhere", "agent"], "Start the next flow from this result"))
+    entries.push(
+      actionEntry(
+        "output_use_in_new_flow",
+        "Continue with Agent",
+        ["new flow", "handoff", "continue elsewhere", "agent"],
+        "Start the next flow from this result",
+      ),
+    )
   }
 
   return entries
 }
 
-export function buildDesktopCommandEntries(state: DesktopMenuState): AppShellDesktopCommandEntry[] {
+export function buildDesktopCommandEntries(
+  state: DesktopMenuState,
+): AppShellDesktopCommandEntry[] {
   const entries: AppShellDesktopCommandEntry[] = []
 
   if (state.file.save.enabled) {
-    entries.push(desktopCommandEntry("file.save", "Save flow", ["save", "file", "flow"], "Save the current flow"))
+    entries.push(
+      desktopCommandEntry(
+        "file.save",
+        "Save flow",
+        ["save", "file", "flow"],
+        "Save the current flow",
+      ),
+    )
   }
   if (state.file.saveAs.enabled) {
-    entries.push(desktopCommandEntry("file.save_as", "Save flow as...", ["save as", "duplicate", "file"], "Save to a new file"))
+    entries.push(
+      desktopCommandEntry(
+        "file.save_as",
+        "Save flow as...",
+        ["save as", "duplicate", "file"],
+        "Save to a new file",
+      ),
+    )
   }
   if (state.file.export.enabled) {
-    entries.push(desktopCommandEntry("file.export", "Export flow copy", ["export", "copy", "file"], "Export a reusable copy"))
+    entries.push(
+      desktopCommandEntry(
+        "file.export",
+        "Export flow copy",
+        ["export", "copy", "file"],
+        "Export a reusable copy",
+      ),
+    )
   }
   if (state.file.import.enabled) {
-    entries.push(desktopCommandEntry("file.import", "Import flow...", ["import", "open", "file"], "Open a flow file as a draft"))
+    entries.push(
+      desktopCommandEntry(
+        "file.import",
+        "Import flow...",
+        ["import", "open", "file"],
+        "Open a flow file as a draft",
+      ),
+    )
   }
   if (state.edit.undo.enabled) {
-    entries.push(desktopCommandEntry("edit.undo", "Undo", ["undo", "revert"], "Undo the latest workflow edit"))
+    entries.push(
+      desktopCommandEntry(
+        "edit.undo",
+        "Undo",
+        ["undo", "revert"],
+        "Undo the latest workflow edit",
+      ),
+    )
   }
   if (state.edit.redo.enabled) {
-    entries.push(desktopCommandEntry("edit.redo", "Redo", ["redo", "restore"], "Redo the latest workflow edit"))
+    entries.push(
+      desktopCommandEntry(
+        "edit.redo",
+        "Redo",
+        ["redo", "restore"],
+        "Redo the latest workflow edit",
+      ),
+    )
   }
   if (state.view.defaults.enabled) {
-    entries.push(desktopCommandEntry("view.defaults", "Flow defaults", ["defaults", "settings", "view"], "Open flow defaults"))
+    entries.push(
+      desktopCommandEntry(
+        "view.defaults",
+        "Flow defaults",
+        ["defaults", "settings", "view"],
+        "Open flow defaults",
+      ),
+    )
   }
   if (state.view.editFlow.enabled) {
-    entries.push(desktopCommandEntry("view.edit_flow", "Edit flow", ["edit", "flow", "outline"], "Open the editable flow outline"))
+    entries.push(
+      desktopCommandEntry(
+        "view.edit_flow",
+        "Edit flow",
+        ["edit", "flow", "outline"],
+        "Open the editable flow outline",
+      ),
+    )
   }
   if (state.view.toggleAgentPanel.enabled) {
-    entries.push(desktopCommandEntry("view.toggle_agent_panel", state.view.toggleAgentPanel.checked ? "Hide agent panel" : "Show agent panel", ["agent", "chat", "panel"], "Toggle the agent side panel"))
+    entries.push(
+      desktopCommandEntry(
+        "view.toggle_agent_panel",
+        state.view.toggleAgentPanel.checked
+          ? "Hide agent panel"
+          : "Show agent panel",
+        ["agent", "chat", "panel"],
+        "Toggle the agent side panel",
+      ),
+    )
   }
   if ((state.flow.run.visible ?? true) && state.flow.run.enabled) {
-    entries.push(desktopCommandEntry("flow.run", "Run flow", ["run", "start", "execute"], "Run the current flow"))
+    entries.push(
+      desktopCommandEntry(
+        "flow.run",
+        "Run flow",
+        ["run", "start", "execute"],
+        "Run the current flow",
+      ),
+    )
   }
   if (state.flow.runAgain.enabled) {
-    entries.push(desktopCommandEntry("flow.run_again", "Run again", ["run again", "retry", "new run"], "Start a new run from the previous input"))
+    entries.push(
+      desktopCommandEntry(
+        "flow.run_again",
+        "Run again",
+        ["run again", "retry", "new run"],
+        "Start a new run from the previous input",
+      ),
+    )
   }
   if ((state.flow.cancel.visible ?? true) && state.flow.cancel.enabled) {
-    entries.push(desktopCommandEntry("flow.cancel", "Cancel run", ["cancel", "stop", "abort"], "Stop the current run"))
+    entries.push(
+      desktopCommandEntry(
+        "flow.cancel",
+        "Cancel run",
+        ["cancel", "stop", "abort"],
+        "Stop the current run",
+      ),
+    )
   }
   if (state.flow.batchRun.enabled) {
-    entries.push(desktopCommandEntry("flow.batch_run", "Batch run", ["batch", "multiple", "run"], "Run this flow across many inputs"))
+    entries.push(
+      desktopCommandEntry(
+        "flow.batch_run",
+        "Batch run",
+        ["batch", "multiple", "run"],
+        "Run this flow across many inputs",
+      ),
+    )
   }
   if (state.flow.history.enabled) {
-    entries.push(desktopCommandEntry("flow.history", "Run history", ["history", "past runs", "review"], "Open saved run history"))
+    entries.push(
+      desktopCommandEntry(
+        "flow.history",
+        "Run history",
+        ["history", "past runs", "review"],
+        "Open saved run history",
+      ),
+    )
   }
 
   return entries
@@ -303,7 +506,8 @@ export function buildAppShellWorkflowEntries({
     const leftSelected = left.projectPath === selectedProject
     const rightSelected = right.projectPath === selectedProject
     if (leftSelected !== rightSelected) return leftSelected ? -1 : 1
-    if (left.updatedAt !== right.updatedAt) return right.updatedAt - left.updatedAt
+    if (left.updatedAt !== right.updatedAt)
+      return right.updatedAt - left.updatedAt
     return left.label.localeCompare(right.label)
   })
 }
@@ -318,8 +522,16 @@ function filterActionEntries(
 
   return entries.filter((entry) => {
     if (entry.label.toLowerCase().includes(normalizedQuery)) return true
-    if (normalizedSearchQuery && toSearchText(entry.label).includes(normalizedSearchQuery)) return true
-    return entry.keywords.some((keyword) => keyword.includes(normalizedQuery) || keyword.includes(normalizedSearchQuery))
+    if (
+      normalizedSearchQuery &&
+      toSearchText(entry.label).includes(normalizedSearchQuery)
+    )
+      return true
+    return entry.keywords.some(
+      (keyword) =>
+        keyword.includes(normalizedQuery) ||
+        keyword.includes(normalizedSearchQuery),
+    )
   })
 }
 
@@ -334,8 +546,16 @@ function filterWorkflowEntries(
   return entries.filter((entry) => {
     if (entry.label.toLowerCase().includes(normalizedQuery)) return true
     if (entry.projectLabel.toLowerCase().includes(normalizedQuery)) return true
-    if (normalizedSearchQuery && toSearchText(entry.label).includes(normalizedSearchQuery)) return true
-    return entry.keywords.some((keyword) => keyword.includes(normalizedQuery) || keyword.includes(normalizedSearchQuery))
+    if (
+      normalizedSearchQuery &&
+      toSearchText(entry.label).includes(normalizedSearchQuery)
+    )
+      return true
+    return entry.keywords.some(
+      (keyword) =>
+        keyword.includes(normalizedQuery) ||
+        keyword.includes(normalizedSearchQuery),
+    )
   })
 }
 
@@ -363,9 +583,13 @@ export function buildAppShellStartEntry({
     label: requiresProjectAdd
       ? `Add project to start “${promptLabel}”`
       : requiresProjectSelection
-      ? `Choose project for “${promptLabel}”`
-      : formatStartLabel(prompt),
-    subtitle: formatStartSubtitle(projectLabel, requiresProjectAdd, requiresProjectSelection),
+        ? `Choose project for “${promptLabel}”`
+        : formatStartLabel(prompt),
+    subtitle: formatStartSubtitle(
+      projectLabel,
+      requiresProjectAdd,
+      requiresProjectSelection,
+    ),
     prompt,
     projectPath,
     projectLabel,
@@ -391,11 +615,7 @@ export function buildAppShellProjectEntries({
       label,
       subtitle: selected ? "Current project" : "Switch project",
       selected,
-      keywords: [
-        normalize(label),
-        toSearchText(label),
-        normalize(projectPath),
-      ],
+      keywords: [normalize(label), toSearchText(label), normalize(projectPath)],
     }
   })
 
@@ -415,8 +635,16 @@ function filterProjectEntries(
 
   return entries.filter((entry) => {
     if (entry.label.toLowerCase().includes(normalizedQuery)) return true
-    if (normalizedSearchQuery && toSearchText(entry.label).includes(normalizedSearchQuery)) return true
-    return entry.keywords.some((keyword) => keyword.includes(normalizedQuery) || keyword.includes(normalizedSearchQuery))
+    if (
+      normalizedSearchQuery &&
+      toSearchText(entry.label).includes(normalizedSearchQuery)
+    )
+      return true
+    return entry.keywords.some(
+      (keyword) =>
+        keyword.includes(normalizedQuery) ||
+        keyword.includes(normalizedSearchQuery),
+    )
   })
 }
 
@@ -430,8 +658,16 @@ function filterDesktopCommandEntries(
 
   return entries.filter((entry) => {
     if (entry.label.toLowerCase().includes(normalizedQuery)) return true
-    if (normalizedSearchQuery && toSearchText(entry.label).includes(normalizedSearchQuery)) return true
-    return entry.keywords.some((keyword) => keyword.includes(normalizedQuery) || keyword.includes(normalizedSearchQuery))
+    if (
+      normalizedSearchQuery &&
+      toSearchText(entry.label).includes(normalizedSearchQuery)
+    )
+      return true
+    return entry.keywords.some(
+      (keyword) =>
+        keyword.includes(normalizedQuery) ||
+        keyword.includes(normalizedSearchQuery),
+    )
   })
 }
 
@@ -455,35 +691,80 @@ export function buildAppShellCommandSections({
   const normalizedQuery = normalize(query)
 
   if (!normalizedQuery) {
-    const createActions = actions.filter((entry) =>
-      entry.action === "new_process"
-      || entry.action === "add_project"
-      || entry.action === "process_library"
-      || entry.action === "attach_skill")
-    const outputActions = actions.filter((entry) =>
-      entry.action === "output_view_result"
-      || entry.action === "output_view_activity"
-      || entry.action === "output_view_log"
-      || entry.action === "output_view_history"
-      || entry.action === "output_rerun_from_step"
-      || entry.action === "output_use_in_new_flow")
-    const navigateActions = actions.filter((entry) => entry.action === "runs_dashboard" || entry.action === "lab" || entry.action === "skills" || entry.action === "inbox" || entry.action === "settings")
+    const createActions = actions.filter(
+      (entry) =>
+        entry.action === "new_process" ||
+        entry.action === "add_project" ||
+        entry.action === "process_library" ||
+        entry.action === "attach_skill",
+    )
+    const outputActions = actions.filter(
+      (entry) =>
+        entry.action === "output_view_result" ||
+        entry.action === "output_view_activity" ||
+        entry.action === "output_view_log" ||
+        entry.action === "output_view_history" ||
+        entry.action === "output_rerun_from_step" ||
+        entry.action === "output_use_in_new_flow",
+    )
+    const navigateActions = actions.filter(
+      (entry) =>
+        entry.action === "runs_dashboard" ||
+        entry.action === "lab" ||
+        entry.action === "skills" ||
+        entry.action === "inbox" ||
+        entry.action === "settings",
+    )
     const flowActions = desktopCommands.slice(0, 5)
     const recentWorkflows = workflows.slice(0, EMPTY_OPEN_RECENT_LIMIT)
-    const switchProjects = projectEntries.filter((entry) => !entry.selected).slice(0, 5)
+    const switchProjects = projectEntries
+      .filter((entry) => !entry.selected)
+      .slice(0, 5)
 
     const sections: AppShellCommandSection[] = []
-    if (createActions.length > 0) sections.push({ id: "create", label: "Start", entries: createActions })
-    if (outputActions.length > 0) sections.push({ id: "output", label: "Current output", entries: outputActions })
-    if (flowActions.length > 0) sections.push({ id: "flow_actions", label: "Flow actions", entries: flowActions })
-    if (recentWorkflows.length > 0) sections.push({ id: "recent", label: "Open recent", entries: recentWorkflows })
-    if (switchProjects.length > 0) sections.push({ id: "projects", label: "Switch project", entries: switchProjects })
-    if (navigateActions.length > 0) sections.push({ id: "navigate", label: "Navigate", entries: navigateActions })
+    if (createActions.length > 0)
+      sections.push({ id: "create", label: "Start", entries: createActions })
+    if (outputActions.length > 0)
+      sections.push({
+        id: "output",
+        label: "Current output",
+        entries: outputActions,
+      })
+    if (flowActions.length > 0)
+      sections.push({
+        id: "flow_actions",
+        label: "Flow actions",
+        entries: flowActions,
+      })
+    if (recentWorkflows.length > 0)
+      sections.push({
+        id: "recent",
+        label: "Open recent",
+        entries: recentWorkflows,
+      })
+    if (switchProjects.length > 0)
+      sections.push({
+        id: "projects",
+        label: "Switch project",
+        entries: switchProjects,
+      })
+    if (navigateActions.length > 0)
+      sections.push({
+        id: "navigate",
+        label: "Navigate",
+        entries: navigateActions,
+      })
     return sections
   }
 
-  const filteredActions = filterActionEntries(actions, query).slice(0, SEARCH_ACTION_LIMIT)
-  const filteredDesktopCommands = filterDesktopCommandEntries(desktopCommands, query).slice(0, SEARCH_DESKTOP_COMMAND_LIMIT)
+  const filteredActions = filterActionEntries(actions, query).slice(
+    0,
+    SEARCH_ACTION_LIMIT,
+  )
+  const filteredDesktopCommands = filterDesktopCommandEntries(
+    desktopCommands,
+    query,
+  ).slice(0, SEARCH_DESKTOP_COMMAND_LIMIT)
   const filteredWorkflows = filterWorkflowEntries(workflows, query)
   const filteredProjects = filterProjectEntries(projectEntries, query)
     .filter((entry) => !entry.selected)
@@ -495,14 +776,44 @@ export function buildAppShellCommandSections({
     .filter((entry) => entry.projectPath !== selectedProject)
     .slice(0, SEARCH_OTHER_PROJECT_LIMIT)
 
-  const startEntry = buildAppShellStartEntry({ query, selectedProject, projects })
+  const startEntry = buildAppShellStartEntry({
+    query,
+    selectedProject,
+    projects,
+  })
 
   const sections: AppShellCommandSection[] = []
-  if (filteredProjects.length > 0) sections.push({ id: "projects", label: "Switch project", entries: filteredProjects })
-  if (currentProjectMatches.length > 0) sections.push({ id: "current_project", label: "Open in current project", entries: currentProjectMatches })
-  if (otherProjectMatches.length > 0) sections.push({ id: "other_projects", label: "Open in other projects", entries: otherProjectMatches })
-  if (filteredDesktopCommands.length > 0) sections.push({ id: "desktop_commands", label: "Flow actions", entries: filteredDesktopCommands })
-  if (filteredActions.length > 0) sections.push({ id: "actions", label: "Actions", entries: filteredActions })
-  if (startEntry) sections.push({ id: "start_new", label: "Start new", entries: [startEntry] })
+  if (filteredProjects.length > 0)
+    sections.push({
+      id: "projects",
+      label: "Switch project",
+      entries: filteredProjects,
+    })
+  if (currentProjectMatches.length > 0)
+    sections.push({
+      id: "current_project",
+      label: "Open in current project",
+      entries: currentProjectMatches,
+    })
+  if (otherProjectMatches.length > 0)
+    sections.push({
+      id: "other_projects",
+      label: "Open in other projects",
+      entries: otherProjectMatches,
+    })
+  if (filteredDesktopCommands.length > 0)
+    sections.push({
+      id: "desktop_commands",
+      label: "Flow actions",
+      entries: filteredDesktopCommands,
+    })
+  if (filteredActions.length > 0)
+    sections.push({ id: "actions", label: "Actions", entries: filteredActions })
+  if (startEntry)
+    sections.push({
+      id: "start_new",
+      label: "Start new",
+      entries: [startEntry],
+    })
   return sections
 }

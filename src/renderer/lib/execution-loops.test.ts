@@ -1,14 +1,32 @@
 import { describe, expect, it } from "vitest"
 import type { Workflow } from "@shared/types"
-import { deriveExecutionCheckRecord, deriveExecutionLoopSummary } from "./execution-loops"
+import {
+  deriveExecutionCheckRecord,
+  deriveExecutionLoopSummary,
+} from "./execution-loops"
 
 const BASE_WORKFLOW: Workflow = {
   version: 1,
   name: "Review Phase",
   nodes: [
     { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-    { id: "skill-1", type: "skill", position: { x: 100, y: 0 }, config: { prompt: "Review code" } },
-    { id: "eval-1", type: "evaluator", position: { x: 200, y: 0 }, config: { criteria: "Quality", threshold: 8, maxRetries: 3, retryFrom: "skill-1" } },
+    {
+      id: "skill-1",
+      type: "skill",
+      position: { x: 100, y: 0 },
+      config: { prompt: "Review code" },
+    },
+    {
+      id: "eval-1",
+      type: "evaluator",
+      position: { x: 200, y: 0 },
+      config: {
+        criteria: "Quality",
+        threshold: 8,
+        maxRetries: 3,
+        retryFrom: "skill-1",
+      },
+    },
     { id: "output-1", type: "output", position: { x: 300, y: 0 }, config: {} },
   ],
   edges: [
@@ -65,7 +83,12 @@ describe("deriveExecutionLoopSummary", () => {
       },
       evalResults: {
         "eval-1": [
-          { attempt: 1, score: 5, reason: "Critical issue remains", passed: false },
+          {
+            attempt: 1,
+            score: 5,
+            reason: "Critical issue remains",
+            passed: false,
+          },
         ],
       },
       runOutcome: "running",

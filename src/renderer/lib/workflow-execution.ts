@@ -16,9 +16,20 @@ import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state
 
 export type { EvalCriterion, EvaluationResult } from "@shared/types"
 
-export type ExecutionRunStatus = "idle" | "starting" | "running" | "paused" | "cancelling" | "done" | "error"
+export type ExecutionRunStatus =
+  | "idle"
+  | "starting"
+  | "running"
+  | "paused"
+  | "cancelling"
+  | "done"
+  | "error"
 export type ArtifactPersistenceStatus = "idle" | "saving" | "saved" | "error"
-export type ExecutionSurfaceNoticeLevel = "success" | "warning" | "error" | "info"
+export type ExecutionSurfaceNoticeLevel =
+  | "success"
+  | "warning"
+  | "error"
+  | "info"
 export type ExecutionSurfaceNoticeActionTarget = "result" | "activity" | "inbox"
 
 export interface ExecutionSurfaceNotice {
@@ -81,7 +92,10 @@ export interface WorkflowExecutionTransition {
 }
 
 export interface WorkflowInputAttachmentApi {
-  readFileContent: (path: string, projectPath: string) => Promise<{ content: string; truncated?: boolean }>
+  readFileContent: (
+    path: string,
+    projectPath: string,
+  ) => Promise<{ content: string; truncated?: boolean }>
   loadRunResult: (workspace: string) => Promise<LoadedRunResult | null>
 }
 
@@ -133,20 +147,33 @@ export function toWorkflowExecutionKey(workflowPath: string | null): string {
   return workflowPath?.trim() || DRAFT_WORKFLOW_EXECUTION_KEY
 }
 
-export function isRunInFlight(status: WorkflowExecutionState["runStatus"]): boolean {
-  return status === "starting" || status === "running" || status === "paused" || status === "cancelling"
+export function isRunInFlight(
+  status: WorkflowExecutionState["runStatus"],
+): boolean {
+  return (
+    status === "starting" ||
+    status === "running" ||
+    status === "paused" ||
+    status === "cancelling"
+  )
 }
 
-export function hasWorkflowExecutionInspectableResult(state: Pick<
-  WorkflowExecutionState,
-  "finalContent" | "reportPath" | "nodeStates"
->): boolean {
+export function hasWorkflowExecutionInspectableResult(
+  state: Pick<
+    WorkflowExecutionState,
+    "finalContent" | "reportPath" | "nodeStates"
+  >,
+): boolean {
   if (state.finalContent.trim().length > 0) return true
   if (state.reportPath !== null) return true
-  return Object.values(state.nodeStates).some((nodeState) => typeof nodeState.output?.content === "string")
+  return Object.values(state.nodeStates).some(
+    (nodeState) => typeof nodeState.output?.content === "string",
+  )
 }
 
-export function buildExecutionSurfaceNotice(state: WorkflowExecutionState): ExecutionSurfaceNotice | null {
+export function buildExecutionSurfaceNotice(
+  state: WorkflowExecutionState,
+): ExecutionSurfaceNotice | null {
   const hasResult = hasWorkflowExecutionInspectableResult(state)
   const runDisplayState = resolveWorkflowRunDisplayState({
     runStatus: state.runStatus,
@@ -170,7 +197,8 @@ export function buildExecutionSurfaceNotice(state: WorkflowExecutionState): Exec
     return {
       level: "warning",
       title: "Needs review",
-      description: "Approval or structured input is required before the flow can continue.",
+      description:
+        "Approval or structured input is required before the flow can continue.",
       actionLabel: "Open inbox",
       actionTarget: "inbox",
     }
@@ -192,7 +220,9 @@ export function buildExecutionSurfaceNotice(state: WorkflowExecutionState): Exec
     return {
       level: "error",
       title: "Run needs attention",
-      description: state.lastError || "The flow did not finish successfully. Inspect summary to review the failure.",
+      description:
+        state.lastError ||
+        "The flow did not finish successfully. Inspect summary to review the failure.",
       actionLabel: "Open summary",
       actionTarget: "activity",
     }
@@ -205,7 +235,10 @@ function createPendingNodeState(): NodeState {
   return { status: "pending", attempts: 0, log: [] }
 }
 
-function getNodeState(previousState: WorkflowExecutionState, nodeId: string): NodeState {
+function getNodeState(
+  previousState: WorkflowExecutionState,
+  nodeId: string,
+): NodeState {
   return previousState.nodeStates[nodeId] ?? createPendingNodeState()
 }
 
@@ -242,7 +275,9 @@ export function createExecutionStartState(
     workflowSnapshot: structuredClone(workflow),
     nodeStates,
     activeNodeId: null,
-    inspectedNodeId: preserveExecutionSnapshot ? previousState.inspectedNodeId : null,
+    inspectedNodeId: preserveExecutionSnapshot
+      ? previousState.inspectedNodeId
+      : null,
     evalResults: preserveExecutionSnapshot ? previousState.evalResults : {},
     finalContent: "",
     reportPath: null,
@@ -263,7 +298,11 @@ export function createCancelledExecutionState(
 ): WorkflowExecutionState {
   const nodeStates = { ...previousState.nodeStates }
   for (const [nodeId, nodeState] of Object.entries(nodeStates)) {
-    if (nodeState.status === "running" || nodeState.status === "queued" || nodeState.status === "waiting_approval") {
+    if (
+      nodeState.status === "running" ||
+      nodeState.status === "queued" ||
+      nodeState.status === "waiting_approval"
+    ) {
       nodeStates[nodeId] = { ...nodeState, status: "skipped" }
     } else if (nodeState.status === "waiting_human") {
       nodeStates[nodeId] = { ...nodeState, status: "skipped" }
@@ -305,20 +344,33 @@ export function resetWorkflowExecutionState(
     surfaceNotice: null,
     runOutcome: preserveCompletedWork ? previousState.runOutcome : null,
     completedAt: preserveCompletedWork ? previousState.completedAt : null,
-    runWorkflowPath: preserveCompletedWork ? previousState.runWorkflowPath : null,
+    runWorkflowPath: preserveCompletedWork
+      ? previousState.runWorkflowPath
+      : null,
     lastError: preserveCompletedWork ? previousState.lastError : null,
     nodeStates: preserveCompletedWork ? previousState.nodeStates : {},
-    inspectedNodeId: preserveCompletedWork ? previousState.inspectedNodeId : null,
+    inspectedNodeId: preserveCompletedWork
+      ? previousState.inspectedNodeId
+      : null,
     evalResults: preserveCompletedWork ? previousState.evalResults : {},
     finalContent: preserveCompletedWork ? previousState.finalContent : "",
-    reportPath: preserveCompletedWork && !clearReportPath ? previousState.reportPath : null,
-    selectedPastRun: clearSelectedPastRun ? null : previousState.selectedPastRun,
+    reportPath:
+      preserveCompletedWork && !clearReportPath
+        ? previousState.reportPath
+        : null,
+    selectedPastRun: clearSelectedPastRun
+      ? null
+      : previousState.selectedPastRun,
     runtimeNodes: preserveCompletedWork ? previousState.runtimeNodes : [],
     runtimeEdges: preserveCompletedWork ? previousState.runtimeEdges : [],
     runtimeMeta: preserveCompletedWork ? previousState.runtimeMeta : {},
     artifactRecords: preserveCompletedWork ? previousState.artifactRecords : [],
-    artifactPersistenceStatus: preserveCompletedWork ? previousState.artifactPersistenceStatus : "idle",
-    artifactPersistenceError: preserveCompletedWork ? previousState.artifactPersistenceError : null,
+    artifactPersistenceStatus: preserveCompletedWork
+      ? previousState.artifactPersistenceStatus
+      : "idle",
+    artifactPersistenceError: preserveCompletedWork
+      ? previousState.artifactPersistenceError
+      : null,
     evalOverrideNodeIds: new Set(),
   }
 }
@@ -349,7 +401,8 @@ export function reduceWorkflowExecutionEvent(
       return {
         nextState: {
           ...previousState,
-          runStatus: previousState.runStatus === "cancelling" ? "cancelling" : "running",
+          runStatus:
+            previousState.runStatus === "cancelling" ? "cancelling" : "running",
           activeNodeId: event.nodeId,
           nodeStates: {
             ...previousState.nodeStates,
@@ -370,7 +423,10 @@ export function reduceWorkflowExecutionEvent(
             ...previousState.nodeStates,
             [event.nodeId]: {
               ...getNodeState(previousState, event.nodeId),
-              log: [...getNodeState(previousState, event.nodeId).log, event.entry],
+              log: [
+                ...getNodeState(previousState, event.nodeId).log,
+                event.entry,
+              ],
             },
           },
         },
@@ -378,11 +434,17 @@ export function reduceWorkflowExecutionEvent(
       }
 
     case "node-done": {
-      const isOutputNode = workflowSnapshot?.nodes.some((node) => node.id === event.nodeId && node.type === "output") ?? false
+      const isOutputNode =
+        workflowSnapshot?.nodes.some(
+          (node) => node.id === event.nodeId && node.type === "output",
+        ) ?? false
       return {
         nextState: {
           ...previousState,
-          finalContent: isOutputNode && event.output?.content ? event.output.content : previousState.finalContent,
+          finalContent:
+            isOutputNode && event.output?.content
+              ? event.output.content
+              : previousState.finalContent,
           nodeStates: {
             ...previousState.nodeStates,
             [event.nodeId]: {
@@ -558,7 +620,10 @@ export function reduceWorkflowExecutionEvent(
               ...getNodeState(previousState, event.nodeId),
               humanTask: {
                 taskId: event.taskId,
-                status: event.resolution === "submitted" ? "answered" : event.resolution,
+                status:
+                  event.resolution === "submitted"
+                    ? "answered"
+                    : event.resolution,
               },
             },
           },
@@ -589,7 +654,12 @@ export function reduceWorkflowExecutionEvent(
     case "run-done":
       const nextState: WorkflowExecutionState = {
         ...previousState,
-        runStatus: event.status === "completed" || event.status === "cancelled" || event.status === "blocked" ? "done" : "error",
+        runStatus:
+          event.status === "completed" ||
+          event.status === "cancelled" ||
+          event.status === "blocked"
+            ? "done"
+            : "error",
         runOutcome: event.status,
         runStartedAt: null,
         completedAt,
@@ -622,9 +692,16 @@ export async function assembleInputWithAttachments(
 ): Promise<string> {
   const normalizedRequestedResult = requestedResult.trim()
   const effectiveAttachments = normalizedRequestedResult
-    ? attachments.filter((attachment) => !(attachment.kind === "text" && attachment.label.trim().toLowerCase() === "requested result"))
+    ? attachments.filter(
+        (attachment) =>
+          !(
+            attachment.kind === "text" &&
+            attachment.label.trim().toLowerCase() === "requested result"
+          ),
+      )
     : attachments
-  if (effectiveAttachments.length === 0 && !normalizedRequestedResult) return baseValue
+  if (effectiveAttachments.length === 0 && !normalizedRequestedResult)
+    return baseValue
 
   const sections = await Promise.all(
     effectiveAttachments.map(async (attachment) => {
@@ -633,7 +710,10 @@ export async function assembleInputWithAttachments(
           return `## Attached File: ${attachment.name}\n\n[Cannot read file: no project selected]`
         }
         try {
-          const result = await api.readFileContent(attachment.path, selectedProject)
+          const result = await api.readFileContent(
+            attachment.path,
+            selectedProject,
+          )
           return `## Attached File: ${attachment.name}\nPath: ${attachment.path}\n\`\`\`\n${result.content}${result.truncated ? "\n[truncated]" : ""}\n\`\`\``
         } catch {
           return `## Attached File: ${attachment.name}\n\n[Could not read file]`

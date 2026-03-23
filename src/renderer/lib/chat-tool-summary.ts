@@ -16,11 +16,18 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined
 }
 
-function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+function pluralize(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
   return `${count} ${count === 1 ? singular : plural}`
 }
 
-function compactText(value: string | undefined, maxLen = 120): string | undefined {
+function compactText(
+  value: string | undefined,
+  maxLen = 120,
+): string | undefined {
   if (!value) return undefined
   const normalized = value.replace(/\s+/g, " ").trim()
   if (!normalized) return undefined
@@ -28,7 +35,10 @@ function compactText(value: string | undefined, maxLen = 120): string | undefine
   return `${normalized.slice(0, maxLen - 1)}…`
 }
 
-function extractSectionItems(body: string, section: "Subcategories" | "Skills"): string[] {
+function extractSectionItems(
+  body: string,
+  section: "Subcategories" | "Skills",
+): string[] {
   const match = body.match(new RegExp(`${section}:\\n([\\s\\S]*?)(?:\\n\\n|$)`))
   if (!match) return []
   return match[1]
@@ -38,7 +48,9 @@ function extractSectionItems(body: string, section: "Subcategories" | "Skills"):
     .map((line) => line.replace(/^[-*]\s+/, "").replace(/\/\s+\(/, " ("))
 }
 
-function summarizeDefaults(defaults: Record<string, unknown>): string | undefined {
+function summarizeDefaults(
+  defaults: Record<string, unknown>,
+): string | undefined {
   const keys = Object.keys(defaults).filter(Boolean)
   if (keys.length === 0) return undefined
   return keys.slice(0, 3).join(", ")
@@ -52,22 +64,34 @@ function summarizeFlowCounts(value: unknown): string | undefined {
   return `${pluralize(nodes, "step")}, ${pluralize(edges, "connection")}`
 }
 
-function canonicalizeFlowSummary(value: string | undefined): string | undefined {
+function canonicalizeFlowSummary(
+  value: string | undefined,
+): string | undefined {
   if (!value) return undefined
   return value
-    .replace(/\b(\d+)\s+nodes?\b/g, (_match, count: string) => pluralize(Number(count), "step"))
-    .replace(/\b(\d+)\s+edges?\b/g, (_match, count: string) => pluralize(Number(count), "connection"))
+    .replace(/\b(\d+)\s+nodes?\b/g, (_match, count: string) =>
+      pluralize(Number(count), "step"),
+    )
+    .replace(/\b(\d+)\s+edges?\b/g, (_match, count: string) =>
+      pluralize(Number(count), "connection"),
+    )
 }
 
-function summarizeGenericInput(input: Record<string, unknown> | undefined): string | undefined {
+function summarizeGenericInput(
+  input: Record<string, unknown> | undefined,
+): string | undefined {
   if (!input) return undefined
   const entries = Object.entries(input)
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .slice(0, 3)
     .map(([key, value]) => {
       if (typeof value === "string") return `${key}: ${value}`
-      if (typeof value === "number" || typeof value === "boolean") return `${key}: ${String(value)}`
-      if (Array.isArray(value)) return `${key}: ${pluralize(value.length, "item")}`
+      if (typeof value === "number" || typeof value === "boolean")
+        return `${key}: ${String(value)}`
+      if (Array.isArray(value))
+        return `${key}: ${pluralize(value.length, "item")}`
       if (isRecord(value)) return `${key}: ${Object.keys(value).length} fields`
       return key
     })
@@ -87,7 +111,10 @@ function summarizeGenericOutput(body: string): ToolCardSummary {
   }
 }
 
-function parseJsonObjectSuffix(prefix: string, body: string): Record<string, unknown> | null {
+function parseJsonObjectSuffix(
+  prefix: string,
+  body: string,
+): Record<string, unknown> | null {
   if (!body.startsWith(prefix)) return null
   const suffix = body.slice(prefix.length).trim()
   if (!suffix) return null
@@ -99,7 +126,10 @@ function parseJsonObjectSuffix(prefix: string, body: string): Record<string, unk
   }
 }
 
-export function isToolResultError(body: string | undefined, explicitError?: string): boolean {
+export function isToolResultError(
+  body: string | undefined,
+  explicitError?: string,
+): boolean {
   if (explicitError) return true
   const normalized = body?.trim()
   if (!normalized) return false
@@ -138,7 +168,9 @@ export function summarizeToolCall(
     case "add_node": {
       const node = isRecord(input?.node) ? input.node : undefined
       const nodeType = asString(node?.type)
-      const skillRef = isRecord(node?.config) ? asString(node.config.skillRef) : undefined
+      const skillRef = isRecord(node?.config)
+        ? asString(node.config.skillRef)
+        : undefined
       const afterNodeId = asString(input?.after_node_id)
       return {
         title: nodeType ? `Add ${nodeType} step` : "Add step",
@@ -167,7 +199,10 @@ export function summarizeToolCall(
       const target = asString(input?.target)
       const type = asString(input?.type)
       return {
-        title: source && target ? `Connect ${source} -> ${target}` : "Add connection",
+        title:
+          source && target
+            ? `Connect ${source} -> ${target}`
+            : "Add connection",
         detail: type && type !== "default" ? `${type} connection` : undefined,
       }
     }
@@ -196,7 +231,9 @@ export function summarizeToolCall(
 
     default:
       return {
-        title: toolName ? compactText(toolName.replace(/_/g, " "), 60) || toolName : "Run tool",
+        title: toolName
+          ? compactText(toolName.replace(/_/g, " "), 60) || toolName
+          : "Run tool",
         detail: summarizeGenericInput(input),
       }
   }
@@ -222,17 +259,27 @@ export function summarizeToolResult(
       return {
         title: match ? `Category ${match[1]}` : "Category loaded",
         detail: match ? pluralize(Number(match[2]), "skill") : undefined,
-        preview: compactText([
-          subcategories.length > 0 ? pluralize(subcategories.length, "subcategory", "subcategories") : "",
-          skills.length > 0 ? skills.slice(0, 2).join(", ") : "",
-        ].filter(Boolean).join(" • ")),
+        preview: compactText(
+          [
+            subcategories.length > 0
+              ? pluralize(subcategories.length, "subcategory", "subcategories")
+              : "",
+            skills.length > 0 ? skills.slice(0, 2).join(", ") : "",
+          ]
+            .filter(Boolean)
+            .join(" • "),
+        ),
       }
     }
 
     case "search_skills": {
-      const foundMatch = body.match(/^Found\s+(\d+)\s+skills?\s+matching\s+"([^"]+)"/m)
+      const foundMatch = body.match(
+        /^Found\s+(\d+)\s+skills?\s+matching\s+"([^"]+)"/m,
+      )
       if (foundMatch) {
-        const skills = Array.from(body.matchAll(/^- ([^:]+):/gm)).map((match) => match[1])
+        const skills = Array.from(body.matchAll(/^- ([^:]+):/gm)).map(
+          (match) => match[1],
+        )
         return {
           title: `Found ${pluralize(Number(foundMatch[1]), "skill")}`,
           detail: `"${foundMatch[2]}"`,
@@ -262,7 +309,8 @@ export function summarizeToolResult(
             ? `${pluralize(errorCount, "error")} in flow`
             : "Flow has issues",
         detail: canonicalizeFlowSummary(summaryMatch?.[1]),
-        preview: warningCount > 0 ? pluralize(warningCount, "warning") : undefined,
+        preview:
+          warningCount > 0 ? pluralize(warningCount, "warning") : undefined,
       }
     }
 
@@ -298,10 +346,14 @@ export function summarizeToolResult(
     }
 
     case "add_node": {
-      const match = body.match(/^Added node "([^"]+)" \(([^)]+)\)(?: after "([^"]+)")?/m)
+      const match = body.match(
+        /^Added node "([^"]+)" \(([^)]+)\)(?: after "([^"]+)")?/m,
+      )
       return {
         title: match ? `Added ${match[1]}` : "Added step",
-        detail: match ? `${match[2]} step${match[3] ? ` after ${match[3]}` : ""}` : undefined,
+        detail: match
+          ? `${match[2]} step${match[3] ? ` after ${match[3]}` : ""}`
+          : undefined,
       }
     }
 
@@ -321,9 +373,13 @@ export function summarizeToolResult(
     }
 
     case "add_edge": {
-      const match = body.match(/^Added edge "([^"]+)" \((.+?) → (.+?), type: ([^)]+)\)/m)
+      const match = body.match(
+        /^Added edge "([^"]+)" \((.+?) → (.+?), type: ([^)]+)\)/m,
+      )
       return {
-        title: match ? `Connected ${match[2]} -> ${match[3]}` : "Added connection",
+        title: match
+          ? `Connected ${match[2]} -> ${match[3]}`
+          : "Added connection",
         detail: match ? `${match[4]} connection` : undefined,
       }
     }

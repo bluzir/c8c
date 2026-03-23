@@ -38,33 +38,58 @@ describe("keyboard-shortcuts", () => {
   })
 
   it("matches exact primary shortcuts without cross-platform modifier bleed", () => {
-    expect(matchesPrimaryShortcut(event({ key: "s", metaKey: true, shiftKey: true }), {
-      key: "s",
-      primaryModifierKey: "meta",
-      shift: true,
-    })).toBe(true)
+    expect(
+      matchesPrimaryShortcut(
+        event({ key: "s", metaKey: true, shiftKey: true }),
+        {
+          key: "s",
+          primaryModifierKey: "meta",
+          shift: true,
+        },
+      ),
+    ).toBe(true)
 
-    expect(matchesPrimaryShortcut(event({ key: "s", ctrlKey: true, shiftKey: true }), {
-      key: "s",
-      primaryModifierKey: "meta",
-      shift: true,
-    })).toBe(false)
+    expect(
+      matchesPrimaryShortcut(
+        event({ key: "s", ctrlKey: true, shiftKey: true }),
+        {
+          key: "s",
+          primaryModifierKey: "meta",
+          shift: true,
+        },
+      ),
+    ).toBe(false)
 
-    expect(matchesPrimaryShortcut(event({ key: "s", ctrlKey: true }), {
-      key: "s",
-      primaryModifierKey: "ctrl",
-    })).toBe(true)
+    expect(
+      matchesPrimaryShortcut(event({ key: "s", ctrlKey: true }), {
+        key: "s",
+        primaryModifierKey: "ctrl",
+      }),
+    ).toBe(true)
   })
 
   it("matches only plain shortcuts with no modifiers", () => {
     expect(matchesPlainShortcut(event({ key: "Delete" }), "Delete")).toBe(true)
-    expect(matchesPlainShortcut(event({ key: "Delete", altKey: true }), "Delete")).toBe(false)
-    expect(matchesPlainShortcut(event({ key: "a", ctrlKey: true }), "a")).toBe(false)
+    expect(
+      matchesPlainShortcut(event({ key: "Delete", altKey: true }), "Delete"),
+    ).toBe(false)
+    expect(matchesPlainShortcut(event({ key: "a", ctrlKey: true }), "a")).toBe(
+      false,
+    )
   })
 
   it("matches exact alt shortcuts", () => {
-    expect(matchesAltShortcut(event({ key: "ArrowUp", altKey: true }), { key: "ArrowUp" })).toBe(true)
-    expect(matchesAltShortcut(event({ key: "ArrowUp", altKey: true, shiftKey: true }), { key: "ArrowUp" })).toBe(false)
+    expect(
+      matchesAltShortcut(event({ key: "ArrowUp", altKey: true }), {
+        key: "ArrowUp",
+      }),
+    ).toBe(true)
+    expect(
+      matchesAltShortcut(
+        event({ key: "ArrowUp", altKey: true, shiftKey: true }),
+        { key: "ArrowUp" },
+      ),
+    ).toBe(false)
   })
 
   it("detects editable keyboard targets", () => {
@@ -83,7 +108,8 @@ describe("keyboard-shortcuts", () => {
     const nestedEditor = {
       isContentEditable: false,
       tagName: "DIV",
-      closest: (selector: string) => selector === "[contenteditable=true]" ? {} : null,
+      closest: (selector: string) =>
+        selector === "[contenteditable=true]" ? {} : null,
     } as unknown as HTMLElement
 
     expect(isEditableKeyboardTarget(editableDiv)).toBe(true)

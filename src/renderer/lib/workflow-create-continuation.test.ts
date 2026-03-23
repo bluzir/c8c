@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest"
-import type { ArtifactRecord, CaseStateRecord, HumanTaskSummary, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  HumanTaskSummary,
+  WorkflowTemplate,
+} from "@shared/types"
 import {
   deriveWorkflowCreateContinuations,
   resolveWorkflowCreateContinuationPresentation,
 } from "./workflow-create-continuation"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-shape-project",
     name: "Delivery Factory: Shape Project",
@@ -23,12 +30,8 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
       journeyStage: "shape",
       recommendedNext: ["delivery-plan-phase"],
     },
-    contractIn: [
-      { kind: "project_brief", title: "Project Brief" },
-    ],
-    contractOut: [
-      { kind: "requirements_spec", title: "Feature Spec" },
-    ],
+    contractIn: [{ kind: "project_brief", title: "Project Brief" }],
+    contractOut: [{ kind: "requirements_spec", title: "Feature Spec" }],
     workflow: {
       version: 1,
       name: "Delivery Factory: Shape Project",
@@ -39,7 +42,9 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "requirements_spec",
@@ -62,7 +67,9 @@ function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord
   }
 }
 
-function createTask(overrides: Partial<HumanTaskSummary> = {}): HumanTaskSummary {
+function createTask(
+  overrides: Partial<HumanTaskSummary> = {},
+): HumanTaskSummary {
   return {
     task: "Review feature spec",
     taskId: "task-1",
@@ -86,7 +93,9 @@ function createTask(overrides: Partial<HumanTaskSummary> = {}): HumanTaskSummary
   }
 }
 
-function createCaseState(overrides: Partial<CaseStateRecord> = {}): CaseStateRecord {
+function createCaseState(
+  overrides: Partial<CaseStateRecord> = {},
+): CaseStateRecord {
   return {
     version: 1,
     caseId: "case:seller-photo-upload",
@@ -213,8 +222,12 @@ describe("workflow-create-continuation", () => {
         label: "Delivery Factory",
         journeyStage: "verify",
       },
-      contractIn: [{ kind: "verification_report", title: "Verification Report" }],
-      contractOut: [{ kind: "verification_report", title: "Verification Report" }],
+      contractIn: [
+        { kind: "verification_report", title: "Verification Report" },
+      ],
+      contractOut: [
+        { kind: "verification_report", title: "Verification Report" },
+      ],
       workflow: {
         version: 1,
         name: "Delivery Factory: Verify Phase",
@@ -256,7 +269,8 @@ describe("workflow-create-continuation", () => {
     expect(candidates[0]).toMatchObject({
       title: "Seller photo upload",
       status: "blocked",
-      readinessText: "Blocked: awaiting your approval before the flow can continue.",
+      readinessText:
+        "Blocked: awaiting your approval before the flow can continue.",
       supportText: "Approval is blocking the next step.",
     })
   })

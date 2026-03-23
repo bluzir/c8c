@@ -1,8 +1,6 @@
 import { useCallback } from "react"
 import { useSetAtom } from "jotai"
-import {
-  selectedWorkflowExecutionAtom,
-} from "@/features/execution"
+import { selectedWorkflowExecutionAtom } from "@/features/execution"
 import { resetWorkflowExecutionState } from "@/lib/workflow-execution"
 
 interface UseExecutionResetOptions {

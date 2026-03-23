@@ -17,7 +17,9 @@ function getListValidationFieldId(
     case "skillRef":
       return `skill-ref-${nodeId}`
     case "prompt":
-      return nodeType === "merger" ? `merge-prompt-${nodeId}` : `prompt-${nodeId}`
+      return nodeType === "merger"
+        ? `merge-prompt-${nodeId}`
+        : `prompt-${nodeId}`
     case "outputMode":
       return `skill-output-mode-${nodeId}`
     case "maxTurns":
@@ -107,10 +109,16 @@ export function resolveValidationNavigationTarget(
     }
   }
 
-  const node = workflow.nodes.find((candidate) => candidate.id === error.nodeId) || null
+  const node =
+    workflow.nodes.find((candidate) => candidate.id === error.nodeId) || null
   return {
     viewMode: "list",
     nodeId: error.nodeId,
-    fieldId: getValidationFieldId(error.nodeId, error.field, "list", node?.type ?? null),
+    fieldId: getValidationFieldId(
+      error.nodeId,
+      error.field,
+      "list",
+      node?.type ?? null,
+    ),
   }
 }

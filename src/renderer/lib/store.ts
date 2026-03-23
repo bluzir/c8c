@@ -1,7 +1,13 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
-import { createDefaultDesktopMenuState, type DesktopMenuState } from "@shared/desktop-commands"
-import { createDefaultOutputSurfaceCommandState, type OutputSurfaceCommandState } from "@/lib/output-surface-commands"
+import {
+  createDefaultDesktopMenuState,
+  type DesktopMenuState,
+} from "@shared/desktop-commands"
+import {
+  createDefaultOutputSurfaceCommandState,
+  type OutputSurfaceCommandState,
+} from "@/lib/output-surface-commands"
 import { SIDEBAR_DEFAULT_WIDTH } from "@/lib/sidebar-layout"
 import type { TemplateLibraryContextState } from "./template-library-context"
 import {
@@ -36,7 +42,10 @@ import type {
   SafetyProfile,
 } from "@shared/types"
 import type { WebSearchBackend } from "./web-search-backend"
-import type { WorkflowEntryState, WorkflowTemplateRunContext } from "./workflow-entry"
+import type {
+  WorkflowEntryState,
+  WorkflowTemplateRunContext,
+} from "./workflow-entry"
 
 // Re-export shared types for convenience
 export type {
@@ -114,18 +123,31 @@ export const selectedProjectAtom = atomWithStorage<string | null>(
   "c8c:selected-project",
   null,
 )
-export const expandedProjectsAtom = atomWithStorage<string[]>("c8c:expanded-projects", [])
+export const expandedProjectsAtom = atomWithStorage<string[]>(
+  "c8c:expanded-projects",
+  [],
+)
 export const workflowsAtom = atom<WorkflowFile[]>([])
-export const projectWorkflowsCacheAtom = atom<Record<string, WorkflowFile[]>>({})
-export const projectLatestRunsCacheAtom = atom<Record<string, Record<string, RunResult>>>({})
-export const projectWorkflowsLoadingAtom = atom<Record<string, boolean>>({})
-export const workflowSidebarSeenRunIdsAtom = atomWithStorage<Record<string, string>>(
-  "c8c:workflow-sidebar-seen-run-ids",
+export const projectWorkflowsCacheAtom = atom<Record<string, WorkflowFile[]>>(
   {},
 )
+export const projectLatestRunsCacheAtom = atom<
+  Record<string, Record<string, RunResult>>
+>({})
+export const projectWorkflowsLoadingAtom = atom<Record<string, boolean>>({})
+export const workflowSidebarSeenRunIdsAtom = atomWithStorage<
+  Record<string, string>
+>("c8c:workflow-sidebar-seen-run-ids", {})
 export const markWorkflowSidebarRunSeenAtom = atom(
   null,
-  (get, set, payload: { workflowPath: string | null | undefined; runId: string | null | undefined }) => {
+  (
+    get,
+    set,
+    payload: {
+      workflowPath: string | null | undefined
+      runId: string | null | undefined
+    },
+  ) => {
     const workflowPath = payload.workflowPath?.trim()
     const runId = payload.runId?.trim()
     if (!workflowPath || !runId) return
@@ -137,30 +159,48 @@ export const markWorkflowSidebarRunSeenAtom = atom(
     })
   },
 )
-export const selectedWorkflowPathAtom = atomWithStorage<string | null>("c8c:selectedWorkflowPath", null)
+export const selectedWorkflowPathAtom = atomWithStorage<string | null>(
+  "c8c:selectedWorkflowPath",
+  null,
+)
 export const projectSidebarWidthAtom = atomWithStorage<number>(
   "c8c:sidebar-width",
   SIDEBAR_DEFAULT_WIDTH,
 )
-export const projectSidebarOpenAtom = atomWithStorage<boolean>("c8c:sidebar-open", true)
+export const projectSidebarOpenAtom = atomWithStorage<boolean>(
+  "c8c:sidebar-open",
+  true,
+)
 
 // Active workflow
 export const currentWorkflowAtom = atom<Workflow>({
   version: 1,
   name: "",
   description: "",
-  defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+  defaults: {
+    model: "sonnet",
+    maxTurns: 120,
+    timeout_minutes: 30,
+    maxParallel: 8,
+  },
   nodes: [],
   edges: [],
 })
-export const workflowSavedSnapshotAtom = atom(workflowSnapshot({
-  version: 1,
-  name: "",
-  description: "",
-  defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
-  nodes: [],
-  edges: [],
-}))
+export const workflowSavedSnapshotAtom = atom(
+  workflowSnapshot({
+    version: 1,
+    name: "",
+    description: "",
+    defaults: {
+      model: "sonnet",
+      maxTurns: 120,
+      timeout_minutes: 30,
+      maxParallel: 8,
+    },
+    nodes: [],
+    edges: [],
+  }),
+)
 export const workflowDirtyAtom = atom((get) => {
   const selectedWorkflowPath = get(selectedWorkflowPathAtom)
   const workflow = get(currentWorkflowAtom)
@@ -209,7 +249,8 @@ export interface ValidationNavigationTarget {
   fieldId: string
   requestId: number
 }
-export const validationNavigationTargetAtom = atom<ValidationNavigationTarget | null>(null)
+export const validationNavigationTargetAtom =
+  atom<ValidationNavigationTarget | null>(null)
 
 // Input
 export const inputValueAtom = atom("")
@@ -217,9 +258,15 @@ export const inputAttachmentsAtom = atom<InputAttachment[]>([])
 export const selectedNodeIdAtom = atom<string | null>(null)
 
 // Desktop runtime
-export const desktopRuntimeAtom = atom<DesktopRuntimeInfo>(defaultDesktopRuntime())
-export const desktopMenuStateAtom = atom<DesktopMenuState>(createDefaultDesktopMenuState())
-export const outputSurfaceCommandStateAtom = atom<OutputSurfaceCommandState>(createDefaultOutputSurfaceCommandState())
+export const desktopRuntimeAtom = atom<DesktopRuntimeInfo>(
+  defaultDesktopRuntime(),
+)
+export const desktopMenuStateAtom = atom<DesktopMenuState>(
+  createDefaultDesktopMenuState(),
+)
+export const outputSurfaceCommandStateAtom = atom<OutputSurfaceCommandState>(
+  createDefaultOutputSurfaceCommandState(),
+)
 
 // Global execution defaults (applied to new/generated workflows)
 export const globalExecutionDefaultsAtom = atomWithStorage<{
@@ -227,7 +274,12 @@ export const globalExecutionDefaultsAtom = atomWithStorage<{
   maxTurns: number
   timeout_minutes: number
   maxParallel: number
-}>("c8c:global-execution-defaults", { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 })
+}>("c8c:global-execution-defaults", {
+  model: "sonnet",
+  maxTurns: 120,
+  timeout_minutes: 30,
+  maxParallel: 8,
+})
 export const globalDetailBudgetAtom = atomWithStorage<number>(
   "c8c:global-detail-budget",
   DEFAULT_DETAIL_BUDGET,
@@ -243,20 +295,30 @@ export const providerSettingsAtom = atom<ProviderSettings>({
 export const defaultProviderAtom = atom(
   (get) => get(providerSettingsAtom).defaultProvider,
   (get, set, next: ProviderId) => {
-    set(providerSettingsAtom, { ...get(providerSettingsAtom), defaultProvider: next })
+    set(providerSettingsAtom, {
+      ...get(providerSettingsAtom),
+      defaultProvider: next,
+    })
   },
 )
 export const safetyProfileAtom = atom(
   (get) => get(providerSettingsAtom).safetyProfile,
   (get, set, next: SafetyProfile) => {
-    set(providerSettingsAtom, { ...get(providerSettingsAtom), safetyProfile: next })
+    set(providerSettingsAtom, {
+      ...get(providerSettingsAtom),
+      safetyProfile: next,
+    })
   },
 )
-export const providerAvailabilityAtom = atom<Record<ProviderId, ProviderHealth | null>>({
+export const providerAvailabilityAtom = atom<
+  Record<ProviderId, ProviderHealth | null>
+>({
   claude: null,
   codex: null,
 })
-export const providerAuthStatusAtom = atom<Record<ProviderId, ProviderAuthStatus | null>>({
+export const providerAuthStatusAtom = atom<
+  Record<ProviderId, ProviderAuthStatus | null>
+>({
   claude: null,
   codex: null,
 })
@@ -284,7 +346,10 @@ function sanitizeViewMode(value: unknown): ViewMode {
   return value === "settings" ? "settings" : "list"
 }
 
-const viewModeStorageAtom = atomWithStorage<LegacyStoredViewMode>("c8c:view-mode", "list")
+const viewModeStorageAtom = atomWithStorage<LegacyStoredViewMode>(
+  "c8c:view-mode",
+  "list",
+)
 export const viewModeAtom = atom(
   (get) => sanitizeViewMode(get(viewModeStorageAtom)),
   (_get, set, next: ViewMode) => {
@@ -292,7 +357,10 @@ export const viewModeAtom = atom(
   },
 )
 export type FlowSurfaceMode = "outline" | "edit"
-export const flowSurfaceModeAtom = atomWithStorage<FlowSurfaceMode>("c8c:flow-surface-mode", "edit")
+export const flowSurfaceModeAtom = atomWithStorage<FlowSurfaceMode>(
+  "c8c:flow-surface-mode",
+  "edit",
+)
 export const workflowReviewModeAtom = atom(false)
 export const workflowRunBlockReasonAtom = atom<string | null>(null)
 export type WorkflowOpenStatus = "idle" | "loading" | "error"
@@ -313,7 +381,10 @@ const DEFAULT_FIRST_LAUNCH = IS_TEST_MODE ? false : true
 export const firstLaunchAtom = IS_TEST_MODE
   ? atom(DEFAULT_FIRST_LAUNCH)
   : atomWithStorage("c8c:firstLaunch", DEFAULT_FIRST_LAUNCH)
-export const hasCompletedFirstFlowAtom = atomWithStorage("c8c:has-completed-first-flow", false)
+export const hasCompletedFirstFlowAtom = atomWithStorage(
+  "c8c:has-completed-first-flow",
+  false,
+)
 
 // App pages
 export type MainView =
@@ -374,7 +445,10 @@ export interface InboxNotification {
   read: boolean
 }
 
-export type CreateInboxNotification = Omit<InboxNotification, "id" | "createdAt" | "read">
+export type CreateInboxNotification = Omit<
+  InboxNotification,
+  "id" | "createdAt" | "read"
+>
 
 const MAX_INBOX_NOTIFICATIONS = 150
 const INBOX_DEDUPE_WINDOW_MS = 15_000
@@ -399,22 +473,29 @@ function areInboxActionsEqual(
     )
   }
   if (left.kind === "open_inbox_task" && right.kind === "open_inbox_task") {
-    return left.taskKey === right.taskKey
-      && left.workflowPath === right.workflowPath
-      && left.label === right.label
+    return (
+      left.taskKey === right.taskKey &&
+      left.workflowPath === right.workflowPath &&
+      left.label === right.label
+    )
   }
   return false
 }
 
-function areInboxNotificationsEqual(left: InboxNotification, right: InboxNotification): boolean {
-  return left.title === right.title
-    && left.description === right.description
-    && left.level === right.level
-    && left.source === right.source
-    && left.persistentKey === right.persistentKey
-    && left.read === right.read
-    && left.createdAt === right.createdAt
-    && areInboxActionsEqual(left.action, right.action)
+function areInboxNotificationsEqual(
+  left: InboxNotification,
+  right: InboxNotification,
+): boolean {
+  return (
+    left.title === right.title &&
+    left.description === right.description &&
+    left.level === right.level &&
+    left.source === right.source &&
+    left.persistentKey === right.persistentKey &&
+    left.read === right.read &&
+    left.createdAt === right.createdAt &&
+    areInboxActionsEqual(left.action, right.action)
+  )
 }
 
 export function appendInboxNotification(
@@ -423,7 +504,9 @@ export function appendInboxNotification(
   now = Date.now(),
 ): InboxNotification[] {
   if (notification.persistentKey) {
-    const existingIndex = existing.findIndex((entry) => entry.persistentKey === notification.persistentKey)
+    const existingIndex = existing.findIndex(
+      (entry) => entry.persistentKey === notification.persistentKey,
+    )
     if (existingIndex >= 0) {
       const current = existing[existingIndex]
       const updated: InboxNotification = {
@@ -440,13 +523,15 @@ export function appendInboxNotification(
     }
   }
 
-  const duplicate = existing.find((entry) =>
-    (!notification.persistentKey || entry.persistentKey === notification.persistentKey)
-    && entry.title === notification.title
-    && entry.description === notification.description
-    && entry.level === notification.level
-    && entry.source === notification.source
-    && (now - entry.createdAt) < INBOX_DEDUPE_WINDOW_MS,
+  const duplicate = existing.find(
+    (entry) =>
+      (!notification.persistentKey ||
+        entry.persistentKey === notification.persistentKey) &&
+      entry.title === notification.title &&
+      entry.description === notification.description &&
+      entry.level === notification.level &&
+      entry.source === notification.source &&
+      now - entry.createdAt < INBOX_DEDUPE_WINDOW_MS,
   )
   if (duplicate) return existing
 
@@ -465,21 +550,21 @@ export function pruneInboxNotificationsByPersistentKeys(
 ): InboxNotification[] {
   const keySet = new Set(persistentKeys.filter((value) => value.length > 0))
   if (keySet.size === 0) return existing
-  const next = existing.filter((entry) => !entry.persistentKey || !keySet.has(entry.persistentKey))
+  const next = existing.filter(
+    (entry) => !entry.persistentKey || !keySet.has(entry.persistentKey),
+  )
   return next.length === existing.length ? existing : next
 }
 
-export const unreadInboxCountAtom = atom((get) =>
-  get(inboxNotificationsAtom).filter((notification) => !notification.read).length,
+export const unreadInboxCountAtom = atom(
+  (get) =>
+    get(inboxNotificationsAtom).filter((notification) => !notification.read)
+      .length,
 )
 
 export const addInboxNotificationAtom = atom(
   null,
-  (
-    get,
-    set,
-    notification: CreateInboxNotification,
-  ) => {
+  (get, set, notification: CreateInboxNotification) => {
     const existing = get(inboxNotificationsAtom)
     const next = appendInboxNotification(existing, notification)
     if (next !== existing) {
@@ -492,7 +577,10 @@ export const removeInboxNotificationsByPersistentKeysAtom = atom(
   null,
   (get, set, persistentKeys: readonly string[]) => {
     const existing = get(inboxNotificationsAtom)
-    const next = pruneInboxNotificationsByPersistentKeys(existing, persistentKeys)
+    const next = pruneInboxNotificationsByPersistentKeys(
+      existing,
+      persistentKeys,
+    )
     if (next !== existing) {
       set(inboxNotificationsAtom, next)
     }
@@ -513,24 +601,18 @@ export const markInboxNotificationReadAtom = atom(
   },
 )
 
-export const markAllInboxNotificationsReadAtom = atom(
-  null,
-  (get, set) => {
-    set(
-      inboxNotificationsAtom,
-      get(inboxNotificationsAtom).map((notification) =>
-        notification.read ? notification : { ...notification, read: true },
-      ),
-    )
-  },
-)
+export const markAllInboxNotificationsReadAtom = atom(null, (get, set) => {
+  set(
+    inboxNotificationsAtom,
+    get(inboxNotificationsAtom).map((notification) =>
+      notification.read ? notification : { ...notification, read: true },
+    ),
+  )
+})
 
-export const clearInboxNotificationsAtom = atom(
-  null,
-  (_get, set) => {
-    set(inboxNotificationsAtom, [])
-  },
-)
+export const clearInboxNotificationsAtom = atom(null, (_get, set) => {
+  set(inboxNotificationsAtom, [])
+})
 
 // Templates & generation
 export const templateBrowserOpenAtom = atom(false)
@@ -542,19 +624,18 @@ export const workflowCreateContextAtom = atom<{
   projectPath: null,
   locked: false,
 })
-export const templateLibraryContextAtom = atom<TemplateLibraryContextState | null>(null)
+export const templateLibraryContextAtom =
+  atom<TemplateLibraryContextState | null>(null)
 export const selectedResultModeIdAtom = atomWithStorage<ResultModeId>(
   "c8c:selected-result-mode-id",
   "development",
 )
-export const workflowCreateModeConfigsAtom = atomWithStorage<Record<string, Record<string, string>>>(
-  "c8c:workflow-create-mode-configs",
-  {},
-)
+export const workflowCreateModeConfigsAtom = atomWithStorage<
+  Record<string, Record<string, string>>
+>("c8c:workflow-create-mode-configs", {})
 export const workflowCreateDraftPromptAtom = atom("")
-export const workflowCreatePromptScaffoldAtom = atom<WorkflowCreatePromptScaffold>(
-  EMPTY_WORKFLOW_CREATE_SCAFFOLD,
-)
+export const workflowCreatePromptScaffoldAtom =
+  atom<WorkflowCreatePromptScaffold>(EMPTY_WORKFLOW_CREATE_SCAFFOLD)
 export const workflowCreateSourceArtifactsAtom = atom<ArtifactRecord[]>([])
 export const workflowCreateSourceAttachmentsAtom = atom<InputAttachment[]>([])
 export const workflowCreatePendingMessageAtom = atom<Record<string, string>>({})
@@ -566,7 +647,10 @@ export const requestedResultAtom = atom(
   (get) => {
     const workflowPath = get(selectedWorkflowPathAtom)
     if (!workflowPath) return ""
-    return get(workflowRequestedResultsAtom)[toWorkflowExecutionKey(workflowPath)] ?? ""
+    return (
+      get(workflowRequestedResultsAtom)[toWorkflowExecutionKey(workflowPath)] ??
+      ""
+    )
   },
   (get, set, next: string) => {
     const workflowPath = get(selectedWorkflowPathAtom)
@@ -630,9 +714,14 @@ export const clearWorkflowRequestedResultForKeyAtom = atom(
     set(workflowRequestedResultsAtom, updated)
   },
 )
-export const workflowTemplateContextsAtom = atom<Record<string, WorkflowTemplateRunContext>>({})
+export const workflowTemplateContextsAtom = atom<
+  Record<string, WorkflowTemplateRunContext>
+>({})
 export const selectedWorkflowTemplateContextAtom = atom(
-  (get) => get(workflowTemplateContextsAtom)[toWorkflowExecutionKey(get(selectedWorkflowPathAtom))] ?? null,
+  (get) =>
+    get(workflowTemplateContextsAtom)[
+      toWorkflowExecutionKey(get(selectedWorkflowPathAtom))
+    ] ?? null,
   (get, set, context: WorkflowTemplateRunContext | null) => {
     const key = toWorkflowExecutionKey(get(selectedWorkflowPathAtom))
     const contexts = get(workflowTemplateContextsAtom)
@@ -651,7 +740,14 @@ export const selectedWorkflowTemplateContextAtom = atom(
 )
 export const setWorkflowTemplateContextForKeyAtom = atom(
   null,
-  (get, set, { key, context }: { key: string; context: WorkflowTemplateRunContext | null }) => {
+  (
+    get,
+    set,
+    {
+      key,
+      context,
+    }: { key: string; context: WorkflowTemplateRunContext | null },
+  ) => {
     const contexts = get(workflowTemplateContextsAtom)
     if (!context) {
       if (!(key in contexts)) return
@@ -710,10 +806,15 @@ export interface ChatMessageDisplay {
   streaming?: boolean
 }
 
-export const chatPanelOpenAtom = atomWithStorage<boolean>("c8c:chat-open", false)
+export const chatPanelOpenAtom = atomWithStorage<boolean>(
+  "c8c:chat-open",
+  false,
+)
 export const chatPanelWidthAtom = atomWithStorage<number>("c8c:chat-width", 380)
 export const chatMessagesAtom = atom<ChatMessageDisplay[]>([])
-export const chatStatusAtom = atom<"idle" | "thinking" | "streaming" | "error">("idle")
+export const chatStatusAtom = atom<"idle" | "thinking" | "streaming" | "error">(
+  "idle",
+)
 export const chatSessionIdAtom = atom<string | null>(null)
 export const chatUndoStackAtom = atom<Workflow[]>([])
 export const chatDraftByWorkflowAtom = atom<Record<string, string>>({})
@@ -729,7 +830,11 @@ export const batchIdAtom = atom<string | null>(null)
 export const batchErrorAtom = atom<string | null>(null)
 export const batchItemsAtom = atom<BatchItemResult[]>([])
 export const batchSummaryAtom = atom<BatchSummary | null>(null)
-export const batchProgressAtom = atom<{ completed: number; total: number; running: number }>({
+export const batchProgressAtom = atom<{
+  completed: number
+  total: number
+  running: number
+}>({
   completed: 0,
   total: 0,
   running: 0,

@@ -29,28 +29,37 @@ describe("selectStageRerunNodeId", () => {
     }
     const nodeStates: Record<string, NodeState> = {
       "branch-a": { status: "completed", attempts: 1, log: [] },
-      "branch-b": { status: "failed", attempts: 1, log: [], error: "merge failed" },
+      "branch-b": {
+        status: "failed",
+        attempts: 1,
+        log: [],
+        error: "merge failed",
+      },
       "branch-c": { status: "completed", attempts: 1, log: [] },
     }
 
-    expect(selectStageRerunNodeId({
-      stageNodeId: "repo-auditor",
-      stageNodeType: "skill",
-      stageTemplateId: null,
-      runtimeBranchIds: ["branch-a", "branch-b", "branch-c"],
-      runtimeMeta,
-      nodeStates,
-    })).toBe("branch-b")
+    expect(
+      selectStageRerunNodeId({
+        stageNodeId: "repo-auditor",
+        stageNodeType: "skill",
+        stageTemplateId: null,
+        runtimeBranchIds: ["branch-a", "branch-b", "branch-c"],
+        runtimeMeta,
+        nodeStates,
+      }),
+    ).toBe("branch-b")
   })
 
   it("falls back to the stage node when there is no incomplete branch", () => {
-    expect(selectStageRerunNodeId({
-      stageNodeId: "summary",
-      stageNodeType: "merger",
-      stageTemplateId: null,
-      runtimeBranchIds: [],
-      runtimeMeta: {},
-      nodeStates: {},
-    })).toBe("summary")
+    expect(
+      selectStageRerunNodeId({
+        stageNodeId: "summary",
+        stageNodeType: "merger",
+        stageTemplateId: null,
+        runtimeBranchIds: [],
+        runtimeMeta: {},
+        nodeStates: {},
+      }),
+    ).toBe("summary")
   })
 })

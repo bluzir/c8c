@@ -48,103 +48,122 @@ export function useBlankWorkflowCreation({
   const [, setMainView] = useAtom(mainViewAtom)
   const [, setViewMode] = useAtom(viewModeAtom)
   const [workflowDirty] = useAtom(workflowDirtyAtom)
-  const clearWorkflowExecutionState = useSetAtom(clearWorkflowExecutionStateAtom)
-  const clearWorkflowTemplateContextForKey = useSetAtom(clearWorkflowTemplateContextForKeyAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const clearWorkflowExecutionState = useSetAtom(
+    clearWorkflowExecutionStateAtom,
+  )
+  const clearWorkflowTemplateContextForKey = useSetAtom(
+    clearWorkflowTemplateContextForKeyAtom,
+  )
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const [creatingBlankWorkflow, setCreatingBlankWorkflow] = useState(false)
 
-  const createBlankWorkflow = useCallback(async (
-    options: CreateBlankWorkflowOptions = {},
-  ) => {
-    if (creatingBlankWorkflow) return null
-    if (confirmDiscard && !(await confirmDiscard("create a blank flow", workflowDirty))) {
-      return null
-    }
-
-    setCreatingBlankWorkflow(true)
-    try {
-      let projectPath: string | null = options.projectPath ?? selectedProject ?? projects[0] ?? null
-      if (!projectPath) {
-        projectPath = await window.api.addProject()
-        if (!projectPath) return null
-      }
-      const resolvedProjectPath = projectPath
-
-      if (!projects.includes(resolvedProjectPath)) {
-        setProjects((previous) => (previous.includes(resolvedProjectPath) ? previous : [...previous, resolvedProjectPath]))
+  const createBlankWorkflow = useCallback(
+    async (options: CreateBlankWorkflowOptions = {}) => {
+      if (creatingBlankWorkflow) return null
+      if (
+        confirmDiscard &&
+        !(await confirmDiscard("create a blank flow", workflowDirty))
+      ) {
+        return null
       }
 
-      setSelectedProject(resolvedProjectPath)
-      setWorkflowOpenState({
-        status: "loading",
-        targetPath: "Blank flow",
-        message: null,
-      })
+      setCreatingBlankWorkflow(true)
+      try {
+        let projectPath: string | null =
+          options.projectPath ?? selectedProject ?? projects[0] ?? null
+        if (!projectPath) {
+          projectPath = await window.api.addProject()
+          if (!projectPath) return null
+        }
+        const resolvedProjectPath = projectPath
 
-      const nextWorkflow = createEmptyWorkflow()
-      const filePath = await window.api.createWorkflow(resolvedProjectPath, "new-flow", nextWorkflow)
-      const [loadedWorkflow, refreshedWorkflows] = await Promise.all([
-        window.api.loadWorkflow(filePath),
-        window.api.listProjectWorkflows(resolvedProjectPath),
-      ])
+        if (!projects.includes(resolvedProjectPath)) {
+          setProjects((previous) =>
+            previous.includes(resolvedProjectPath)
+              ? previous
+              : [...previous, resolvedProjectPath],
+          )
+        }
 
-      clearWorkflowExecutionState(toWorkflowExecutionKey(null))
-      clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(null))
-      setWorkflowTemplateContextForKey({
-        key: toWorkflowExecutionKey(filePath),
-        context: null,
-      })
-      setWorkflows(refreshedWorkflows)
-      setSelectedWorkflowPath(filePath)
-      setCurrentWorkflow(loadedWorkflow)
-      setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
-      setSelectedInboxTaskKey(null)
-      setSelectedPastRun(null)
-      setViewMode("list")
-      setMainView("thread")
-      setWorkflowOpenState({
-        status: "idle",
-        targetPath: null,
-        message: null,
-      })
+        setSelectedProject(resolvedProjectPath)
+        setWorkflowOpenState({
+          status: "loading",
+          targetPath: "Blank flow",
+          message: null,
+        })
 
-      toast.success("Blank flow ready", {
-        description: "Start by adding a skill in Edit flow.",
-      })
-      return filePath
-    } catch (error) {
-      setWorkflowOpenState({
-        status: "error",
-        targetPath: "Blank flow",
-        message: errorToUserMessage(error),
-      })
-      toastErrorFromCatch("Could not create blank flow", error)
-      return null
-    } finally {
-      setCreatingBlankWorkflow(false)
-    }
-  }, [
-    clearWorkflowExecutionState,
-    clearWorkflowTemplateContextForKey,
-    confirmDiscard,
-    creatingBlankWorkflow,
-    projects,
-    selectedProject,
-    setCurrentWorkflow,
-    setSelectedInboxTaskKey,
-    setSelectedPastRun,
-    setMainView,
-    setProjects,
-    setSelectedProject,
-    setSelectedWorkflowPath,
-    setViewMode,
-    setWorkflowOpenState,
-    setWorkflowSavedSnapshot,
-    setWorkflowTemplateContextForKey,
-    setWorkflows,
-    workflowDirty,
-  ])
+        const nextWorkflow = createEmptyWorkflow()
+        const filePath = await window.api.createWorkflow(
+          resolvedProjectPath,
+          "new-flow",
+          nextWorkflow,
+        )
+        const [loadedWorkflow, refreshedWorkflows] = await Promise.all([
+          window.api.loadWorkflow(filePath),
+          window.api.listProjectWorkflows(resolvedProjectPath),
+        ])
+
+        clearWorkflowExecutionState(toWorkflowExecutionKey(null))
+        clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(null))
+        setWorkflowTemplateContextForKey({
+          key: toWorkflowExecutionKey(filePath),
+          context: null,
+        })
+        setWorkflows(refreshedWorkflows)
+        setSelectedWorkflowPath(filePath)
+        setCurrentWorkflow(loadedWorkflow)
+        setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
+        setSelectedInboxTaskKey(null)
+        setSelectedPastRun(null)
+        setViewMode("list")
+        setMainView("thread")
+        setWorkflowOpenState({
+          status: "idle",
+          targetPath: null,
+          message: null,
+        })
+
+        toast.success("Blank flow ready", {
+          description: "Start by adding a skill in Edit flow.",
+        })
+        return filePath
+      } catch (error) {
+        setWorkflowOpenState({
+          status: "error",
+          targetPath: "Blank flow",
+          message: errorToUserMessage(error),
+        })
+        toastErrorFromCatch("Could not create blank flow", error)
+        return null
+      } finally {
+        setCreatingBlankWorkflow(false)
+      }
+    },
+    [
+      clearWorkflowExecutionState,
+      clearWorkflowTemplateContextForKey,
+      confirmDiscard,
+      creatingBlankWorkflow,
+      projects,
+      selectedProject,
+      setCurrentWorkflow,
+      setSelectedInboxTaskKey,
+      setSelectedPastRun,
+      setMainView,
+      setProjects,
+      setSelectedProject,
+      setSelectedWorkflowPath,
+      setViewMode,
+      setWorkflowOpenState,
+      setWorkflowSavedSnapshot,
+      setWorkflowTemplateContextForKey,
+      setWorkflows,
+      workflowDirty,
+    ],
+  )
 
   return {
     createBlankWorkflow,

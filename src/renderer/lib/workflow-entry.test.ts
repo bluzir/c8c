@@ -17,7 +17,9 @@ import {
   selectArtifactsForTemplateContracts,
 } from "./workflow-entry"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-plan-phase",
     name: "Delivery Factory: Plan Phase",
@@ -39,9 +41,7 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
       { kind: "project_brief", title: "Project Brief" },
       { kind: "roadmap", title: "Roadmap", required: false },
     ],
-    contractOut: [
-      { kind: "phase_plan", title: "Phase Plan" },
-    ],
+    contractOut: [{ kind: "phase_plan", title: "Phase Plan" }],
     workflow: {
       version: 1,
       name: "Delivery Factory: Plan Phase",
@@ -112,9 +112,14 @@ describe("workflow-entry factory helpers", () => {
       },
     ]
 
-    expect(areTemplateContractsSatisfied(template.contractIn, artifacts)).toBe(true)
-    expect(selectArtifactsForTemplateContracts(template.contractIn, artifacts).map((artifact) => artifact.id))
-      .toEqual(["artifact-1", "artifact-2"])
+    expect(areTemplateContractsSatisfied(template.contractIn, artifacts)).toBe(
+      true,
+    )
+    expect(
+      selectArtifactsForTemplateContracts(template.contractIn, artifacts).map(
+        (artifact) => artifact.id,
+      ),
+    ).toEqual(["artifact-1", "artifact-2"])
 
     const context = buildTemplateRunContext({
       template,
@@ -123,7 +128,11 @@ describe("workflow-entry factory helpers", () => {
     })
     expect(context.factoryId).toBeUndefined()
     expect(context.caseId).toBeUndefined()
-    expect(context.sourceArtifactIds).toEqual(["artifact-1", "artifact-1b", "artifact-2"])
+    expect(context.sourceArtifactIds).toEqual([
+      "artifact-1",
+      "artifact-1b",
+      "artifact-2",
+    ])
   })
 
   it("creates factory and case identity only when workflow launch is explicitly factory-scoped", () => {
@@ -142,46 +151,52 @@ describe("workflow-entry factory helpers", () => {
   })
 
   it("extracts requested result only from request-style entry contracts", () => {
-    expect(getRequestedResultFromEntryState({
-      workflowPath: "/tmp/flow.chain",
-      workflowName: "Flow",
-      source: "generated",
-      title: "Flow",
-      summary: "Summary",
-      contractLabel: "Requested result",
-      contractText: "Audit the repo.",
-      inputText: "",
-      outputText: "",
-      readinessText: "",
-    })).toBe("Audit the repo.")
+    expect(
+      getRequestedResultFromEntryState({
+        workflowPath: "/tmp/flow.chain",
+        workflowName: "Flow",
+        source: "generated",
+        title: "Flow",
+        summary: "Summary",
+        contractLabel: "Requested result",
+        contractText: "Audit the repo.",
+        inputText: "",
+        outputText: "",
+        readinessText: "",
+      }),
+    ).toBe("Audit the repo.")
 
-    expect(getRequestedResultFromEntryState({
-      workflowPath: "/tmp/flow.chain",
-      workflowName: "Flow",
-      source: "generated",
-      title: "Flow",
-      summary: "Summary",
-      contractLabel: "What you asked for",
-      contractText: "Ship the plan.",
-      inputText: "",
-      outputText: "",
-      readinessText: "",
-    })).toBe("Ship the plan.")
+    expect(
+      getRequestedResultFromEntryState({
+        workflowPath: "/tmp/flow.chain",
+        workflowName: "Flow",
+        source: "generated",
+        title: "Flow",
+        summary: "Summary",
+        contractLabel: "What you asked for",
+        contractText: "Ship the plan.",
+        inputText: "",
+        outputText: "",
+        readinessText: "",
+      }),
+    ).toBe("Ship the plan.")
   })
 
   it("ignores non-request entry contracts", () => {
-    expect(getRequestedResultFromEntryState({
-      workflowPath: "/tmp/flow.chain",
-      workflowName: "Flow",
-      source: "template",
-      title: "Flow",
-      summary: "Summary",
-      contractLabel: "Use this when",
-      contractText: "You need a code review.",
-      inputText: "",
-      outputText: "",
-      readinessText: "",
-    })).toBe("")
+    expect(
+      getRequestedResultFromEntryState({
+        workflowPath: "/tmp/flow.chain",
+        workflowName: "Flow",
+        source: "template",
+        title: "Flow",
+        summary: "Summary",
+        contractLabel: "Use this when",
+        contractText: "You need a code review.",
+        inputText: "",
+        outputText: "",
+        readinessText: "",
+      }),
+    ).toBe("")
   })
 
   it("inherits case identity from source artifacts when available", () => {
@@ -229,8 +244,10 @@ describe("workflow-entry factory helpers", () => {
           workspace: "/tmp/workspace",
           runId: "run-1",
           relativePath: ".c8c/artifacts/run-1-editorial-calendar.md",
-          contentPath: "/tmp/project/.c8c/artifacts/run-1-editorial-calendar.md",
-          metadataPath: "/tmp/project/.c8c/artifacts/run-1-editorial-calendar.json",
+          contentPath:
+            "/tmp/project/.c8c/artifacts/run-1-editorial-calendar.md",
+          metadataPath:
+            "/tmp/project/.c8c/artifacts/run-1-editorial-calendar.json",
           createdAt: 1,
           updatedAt: 1,
         },
@@ -252,51 +269,79 @@ describe("workflow-entry factory helpers", () => {
 
   it("builds seed copy for artifact-driven stages", () => {
     expect(buildArtifactAttachmentSeedInput([])).toContain("Add the context")
-    expect(buildArtifactAttachmentSeedInput([
-      { kind: "file", path: ".c8c/artifacts/project-brief.md", name: "Project Brief" },
-    ])).toContain("attached result as the primary context")
-    expect(buildArtifactAttachmentSeedInput([
-      { kind: "file", path: ".c8c/artifacts/project-brief.md", name: "Project Brief" },
-      { kind: "file", path: ".c8c/artifacts/roadmap.md", name: "Roadmap" },
-    ])).toContain("attached results as the primary context")
+    expect(
+      buildArtifactAttachmentSeedInput([
+        {
+          kind: "file",
+          path: ".c8c/artifacts/project-brief.md",
+          name: "Project Brief",
+        },
+      ]),
+    ).toContain("attached result as the primary context")
+    expect(
+      buildArtifactAttachmentSeedInput([
+        {
+          kind: "file",
+          path: ".c8c/artifacts/project-brief.md",
+          name: "Project Brief",
+        },
+        { kind: "file", path: ".c8c/artifacts/roadmap.md", name: "Roadmap" },
+      ]),
+    ).toContain("attached results as the primary context")
   })
 
   it("maps core development templates to user-facing stage families", () => {
-    expect(deriveTemplateJourneyStageLabel(createTemplate({
-      id: "delivery-map-codebase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "map",
-      },
-    }))).toBe("Shape / Map")
+    expect(
+      deriveTemplateJourneyStageLabel(
+        createTemplate({
+          id: "delivery-map-codebase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "map",
+          },
+        }),
+      ),
+    ).toBe("Shape / Map")
 
-    expect(deriveTemplateJourneyStageLabel(createTemplate({
-      id: "delivery-review-phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "review",
-      },
-    }))).toBe("Review")
+    expect(
+      deriveTemplateJourneyStageLabel(
+        createTemplate({
+          id: "delivery-review-phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "review",
+          },
+        }),
+      ),
+    ).toBe("Review")
 
-    expect(deriveTemplateJourneyStageLabel(createTemplate({
-      id: "delivery-verify-phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "verify",
-      },
-    }))).toBe("Verify")
+    expect(
+      deriveTemplateJourneyStageLabel(
+        createTemplate({
+          id: "delivery-verify-phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "verify",
+          },
+        }),
+      ),
+    ).toBe("Verify")
 
-    expect(deriveTemplateJourneyStageLabel(createTemplate({
-      id: "delivery-implement-phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "execute",
-      },
-    }))).toBe("Implement")
+    expect(
+      deriveTemplateJourneyStageLabel(
+        createTemplate({
+          id: "delivery-implement-phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "execute",
+          },
+        }),
+      ),
+    ).toBe("Implement")
 
     const entryState = buildTemplateWorkflowEntryState({
       template: createTemplate({
@@ -311,103 +356,137 @@ describe("workflow-entry factory helpers", () => {
       workflowPath: "/tmp/plan-phase.chain",
     })
 
-    expect(entryState.summary).toContain("helps you prepare the implementation plan")
+    expect(entryState.summary).toContain(
+      "helps you prepare the implementation plan",
+    )
     expect(entryState.summary.toLowerCase()).not.toContain("stage")
 
-    expect(deriveTemplateContextJourneyStageLabel({
-      templateId: "gstack-preflight-gate",
-      workflowPath: "/tmp/preflight.chain",
-      workflowName: "Preflight",
-      source: "template",
-      pack: {
-        id: "gstack-team",
-        label: "Gstack Team",
-        journeyStage: "verify",
-      },
-    })).toBe("Verify")
+    expect(
+      deriveTemplateContextJourneyStageLabel({
+        templateId: "gstack-preflight-gate",
+        workflowPath: "/tmp/preflight.chain",
+        workflowName: "Preflight",
+        source: "template",
+        pack: {
+          id: "gstack-team",
+          label: "Gstack Team",
+          journeyStage: "verify",
+        },
+      }),
+    ).toBe("Verify")
 
-    expect(deriveTemplateDisplayLabel(createTemplate({
-      id: "delivery-plan-phase",
-      name: "Delivery Factory: Plan Phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "plan",
-      },
-    }))).toBe("Plan")
+    expect(
+      deriveTemplateDisplayLabel(
+        createTemplate({
+          id: "delivery-plan-phase",
+          name: "Delivery Factory: Plan Phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "plan",
+          },
+        }),
+      ),
+    ).toBe("Plan")
 
-    expect(deriveTemplateContextDisplayLabel({
-      templateId: "gstack-preflight-gate",
-      templateName: "Gstack Team: Preflight Gate",
-      workflowPath: "/tmp/preflight.chain",
-      workflowName: "Preflight",
-      source: "template",
-      pack: {
-        id: "gstack-team",
-        label: "Gstack Team",
-        journeyStage: "verify",
-      },
-    })).toBe("Verify")
+    expect(
+      deriveTemplateContextDisplayLabel({
+        templateId: "gstack-preflight-gate",
+        templateName: "Gstack Team: Preflight Gate",
+        workflowPath: "/tmp/preflight.chain",
+        workflowName: "Preflight",
+        source: "template",
+        pack: {
+          id: "gstack-team",
+          label: "Gstack Team",
+          journeyStage: "verify",
+        },
+      }),
+    ).toBe("Verify")
 
-    expect(deriveTemplateJobLabel(createTemplate({
-      id: "delivery-plan-phase",
-      name: "Delivery Factory: Plan Phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "plan",
-      },
-    }))).toBe("Prepare the implementation plan")
+    expect(
+      deriveTemplateJobLabel(
+        createTemplate({
+          id: "delivery-plan-phase",
+          name: "Delivery Factory: Plan Phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "plan",
+          },
+        }),
+      ),
+    ).toBe("Prepare the implementation plan")
 
-    expect(deriveTemplateJobLabel(createTemplate({
-      id: "delivery-review-phase",
-      name: "Delivery Factory: Review Phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "review",
-      },
-    }))).toBe("Review before ship")
+    expect(
+      deriveTemplateJobLabel(
+        createTemplate({
+          id: "delivery-review-phase",
+          name: "Delivery Factory: Review Phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "review",
+          },
+        }),
+      ),
+    ).toBe("Review before ship")
 
-    expect(deriveTemplateJobLabel(createTemplate({
-      id: "delivery-verify-phase",
-      name: "Delivery Factory: Verify Phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "verify",
-      },
-    }))).toBe("Verify completion")
+    expect(
+      deriveTemplateJobLabel(
+        createTemplate({
+          id: "delivery-verify-phase",
+          name: "Delivery Factory: Verify Phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "verify",
+          },
+        }),
+      ),
+    ).toBe("Verify completion")
 
-    expect(deriveTemplateContinuationLabel(createTemplate({
-      id: "delivery-verify-phase",
-      name: "Delivery Factory: Verify Phase",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "verify",
-      },
-    }))).toBe("Check completion")
+    expect(
+      deriveTemplateContinuationLabel(
+        createTemplate({
+          id: "delivery-verify-phase",
+          name: "Delivery Factory: Verify Phase",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "verify",
+          },
+        }),
+      ),
+    ).toBe("Check completion")
 
-    expect(deriveTemplateContinuationLabel(createTemplate({
-      id: "delivery-shape-project",
-      name: "Delivery Factory: Shape Project",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "shape",
-      },
-    }))).toBe("Define the change")
+    expect(
+      deriveTemplateContinuationLabel(
+        createTemplate({
+          id: "delivery-shape-project",
+          name: "Delivery Factory: Shape Project",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "shape",
+          },
+        }),
+      ),
+    ).toBe("Define the change")
 
-    expect(deriveTemplateContinuationDescription(createTemplate({
-      id: "delivery-plan-phase",
-      description: "Plan the next implementation phase.",
-      pack: {
-        id: "delivery-foundation",
-        label: "Delivery Factory",
-        journeyStage: "plan",
-      },
-    }))).toBe("Turn the scoped change into an execution-ready plan.")
+    expect(
+      deriveTemplateContinuationDescription(
+        createTemplate({
+          id: "delivery-plan-phase",
+          description: "Plan the next implementation phase.",
+          pack: {
+            id: "delivery-foundation",
+            label: "Delivery Factory",
+            journeyStage: "plan",
+          },
+        }),
+      ),
+    ).toBe("Turn the scoped change into an execution-ready plan.")
   })
 
   it("keeps same-work artifacts in the pool but promotes the latest usable result first", () => {
@@ -423,7 +502,8 @@ describe("workflow-entry factory helpers", () => {
           runId: "run-current",
           relativePath: ".c8c/artifacts/run-current-phase-plan.md",
           contentPath: "/tmp/project/.c8c/artifacts/run-current-phase-plan.md",
-          metadataPath: "/tmp/project/.c8c/artifacts/run-current-phase-plan.json",
+          metadataPath:
+            "/tmp/project/.c8c/artifacts/run-current-phase-plan.json",
           createdAt: 5,
           updatedAt: 5,
         },
@@ -439,7 +519,8 @@ describe("workflow-entry factory helpers", () => {
           runId: "run-case-new",
           relativePath: ".c8c/artifacts/run-case-new-phase-plan.md",
           contentPath: "/tmp/project/.c8c/artifacts/run-case-new-phase-plan.md",
-          metadataPath: "/tmp/project/.c8c/artifacts/run-case-new-phase-plan.json",
+          metadataPath:
+            "/tmp/project/.c8c/artifacts/run-case-new-phase-plan.json",
           createdAt: 8,
           updatedAt: 8,
         },
@@ -466,8 +547,10 @@ describe("workflow-entry factory helpers", () => {
           workspace: "/tmp/workspace",
           runId: "run-source",
           relativePath: ".c8c/artifacts/run-source-project-brief.md",
-          contentPath: "/tmp/project/.c8c/artifacts/run-source-project-brief.md",
-          metadataPath: "/tmp/project/.c8c/artifacts/run-source-project-brief.json",
+          contentPath:
+            "/tmp/project/.c8c/artifacts/run-source-project-brief.md",
+          metadataPath:
+            "/tmp/project/.c8c/artifacts/run-source-project-brief.json",
           createdAt: 3,
           updatedAt: 3,
         },
@@ -517,7 +600,8 @@ describe("workflow-entry factory helpers", () => {
           runId: "run-current",
           relativePath: ".c8c/artifacts/run-current-phase-plan.md",
           contentPath: "/tmp/project/.c8c/artifacts/run-current-phase-plan.md",
-          metadataPath: "/tmp/project/.c8c/artifacts/run-current-phase-plan.json",
+          metadataPath:
+            "/tmp/project/.c8c/artifacts/run-current-phase-plan.json",
           createdAt: 1,
           updatedAt: 1,
         },
@@ -538,6 +622,8 @@ describe("workflow-entry factory helpers", () => {
       ],
     )
 
-    expect(selected.map((artifact) => artifact.id)).toEqual(["artifact-current-plan"])
+    expect(selected.map((artifact) => artifact.id)).toEqual([
+      "artifact-current-plan",
+    ])
   })
 })

@@ -7,7 +7,9 @@ import {
   splitGuidedTemplateEntryContracts,
 } from "@/lib/entry-state-contracts"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-map-codebase",
     name: "Delivery: Map Codebase",
@@ -62,7 +64,9 @@ describe("guided entry contracts", () => {
   it("treats explicit pack entrypoints as guided entries", () => {
     const template = createTemplate()
 
-    expect(resolveGuidedTemplateEntryContract(template, [template])).toMatchObject({
+    expect(
+      resolveGuidedTemplateEntryContract(template, [template]),
+    ).toMatchObject({
       entryKind: "guided",
       jobLabel: "Change the current app",
       primaryActionLabel: "Start first stage",
@@ -80,7 +84,9 @@ describe("guided entry contracts", () => {
       pack: undefined,
     })
 
-    expect(resolveGuidedTemplateEntryContract(template, [template])).toMatchObject({
+    expect(
+      resolveGuidedTemplateEntryContract(template, [template]),
+    ).toMatchObject({
       entryKind: "isolated",
       primaryActionLabel: "Start this flow",
       stagePath: [],
@@ -96,10 +102,17 @@ describe("guided entry contracts", () => {
       pack: undefined,
     })
 
-    const split = splitGuidedTemplateEntryContracts([guided, isolated], [guided, isolated])
+    const split = splitGuidedTemplateEntryContracts(
+      [guided, isolated],
+      [guided, isolated],
+    )
 
-    expect(split.guidedEntries.map((entry) => entry.template.id)).toEqual(["delivery-map-codebase"])
-    expect(split.isolatedEntries.map((entry) => entry.template.id)).toEqual(["ux-ui-polish-audit"])
+    expect(split.guidedEntries.map((entry) => entry.template.id)).toEqual([
+      "delivery-map-codebase",
+    ])
+    expect(split.isolatedEntries.map((entry) => entry.template.id)).toEqual([
+      "ux-ui-polish-audit",
+    ])
   })
 })
 
@@ -115,6 +128,8 @@ describe("demoted destination access contracts", () => {
       commandPaletteAccessible: true,
       commandPaletteLabel: "Skills",
     })
-    expect(DEMOTED_DESTINATION_ACCESS_CONTRACTS.settings.keyboardShortcutLabel).toBe("Cmd/Ctrl+,")
+    expect(
+      DEMOTED_DESTINATION_ACCESS_CONTRACTS.settings.keyboardShortcutLabel,
+    ).toBe("Cmd/Ctrl+,")
   })
 })

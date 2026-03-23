@@ -29,17 +29,21 @@ function normalizeField(value: string): string {
 export function countWorkflowCreateScaffoldFields(
   scaffold: WorkflowCreatePromptScaffold,
 ): number {
-  return SCAFFOLD_SECTIONS.reduce((count, section) => (
-    normalizeField(scaffold[section.key]).length > 0 ? count + 1 : count
-  ), 0)
+  return SCAFFOLD_SECTIONS.reduce(
+    (count, section) =>
+      normalizeField(scaffold[section.key]).length > 0 ? count + 1 : count,
+    0,
+  )
 }
 
 export function hasWorkflowCreatePromptContent(
   draftPrompt: string,
   scaffold: WorkflowCreatePromptScaffold,
 ): boolean {
-  return normalizeField(draftPrompt).length > 0
-    || countWorkflowCreateScaffoldFields(scaffold) > 0
+  return (
+    normalizeField(draftPrompt).length > 0 ||
+    countWorkflowCreateScaffoldFields(scaffold) > 0
+  )
 }
 
 export function buildWorkflowCreatePrompt(
@@ -47,12 +51,10 @@ export function buildWorkflowCreatePrompt(
   scaffold: WorkflowCreatePromptScaffold,
 ): string {
   const normalizedDraft = normalizeField(draftPrompt)
-  const scaffoldSections = SCAFFOLD_SECTIONS
-    .map((section) => ({
-      label: section.label,
-      value: normalizeField(scaffold[section.key]),
-    }))
-    .filter((section) => section.value.length > 0)
+  const scaffoldSections = SCAFFOLD_SECTIONS.map((section) => ({
+    label: section.label,
+    value: normalizeField(scaffold[section.key]),
+  })).filter((section) => section.value.length > 0)
 
   if (scaffoldSections.length === 0) {
     return normalizedDraft

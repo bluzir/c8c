@@ -53,7 +53,10 @@ import {
   multiRunDashboardOpenAtom,
 } from "@/lib/store"
 import { cn } from "@/lib/cn"
-import { selectedPastRunAtom, workflowExecutionStatesAtom } from "@/features/execution"
+import {
+  selectedPastRunAtom,
+  workflowExecutionStatesAtom,
+} from "@/features/execution"
 import { resolveAppShellShortcutIntent } from "@/lib/app-shell-shortcuts"
 import { isEditableKeyboardTarget } from "@/lib/keyboard-shortcuts"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
@@ -66,7 +69,9 @@ const AppShell = memo(function AppShell() {
   const [desktopRuntime, setDesktopRuntime] = useAtom(desktopRuntimeAtom)
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const [firstLaunch] = useAtom(firstLaunchAtom)
-  const [deepLinkTemplate, setDeepLinkTemplate] = useAtom(deepLinkPendingTemplateAtom)
+  const [deepLinkTemplate, setDeepLinkTemplate] = useAtom(
+    deepLinkPendingTemplateAtom,
+  )
   const [workflow, setWorkflow] = useAtom(currentWorkflowAtom)
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
   const [factoryBetaEnabled] = useAtom(factoryBetaEnabledAtom)
@@ -74,15 +79,25 @@ const AppShell = memo(function AppShell() {
   const [projectWorkflowsCache] = useAtom(projectWorkflowsCacheAtom)
   const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
   const [workflows, setWorkflows] = useAtom(workflowsAtom)
-  const [workflowCreateContext, setWorkflowCreateContext] = useAtom(workflowCreateContextAtom)
+  const [workflowCreateContext, setWorkflowCreateContext] = useAtom(
+    workflowCreateContextAtom,
+  )
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
-  const [selectedWorkflowTemplateContext] = useAtom(selectedWorkflowTemplateContextAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
+  const [selectedWorkflowTemplateContext] = useAtom(
+    selectedWorkflowTemplateContextAtom,
+  )
   const setSelectedFactoryId = useSetAtom(selectedFactoryIdAtom)
   const setSelectedFactoryCaseId = useSetAtom(selectedFactoryCaseIdAtom)
-  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
+  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
+    selectedInboxTaskKeyAtom,
+  )
   const [selectedPastRun, setSelectedPastRun] = useAtom(selectedPastRunAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const [, setProviderSettings] = useAtom(providerSettingsAtom)
   const [, setProviderAvailability] = useAtom(providerAvailabilityAtom)
@@ -96,20 +111,24 @@ const AppShell = memo(function AppShell() {
   const outputSurfaceCommandState = useAtomValue(outputSurfaceCommandStateAtom)
   const sidebarShellRef = useRef<HTMLDivElement | null>(null)
   const sidebarToggleRef = useRef<HTMLButtonElement | null>(null)
-  const showDragRegion = desktopRuntime.titlebarHeight > 0 && !desktopRuntime.isFullscreen
+  const showDragRegion =
+    desktopRuntime.titlebarHeight > 0 && !desktopRuntime.isFullscreen
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
-  const toggleSidebar = useCallback((nextOpen = !sidebarOpen) => {
-    if (!nextOpen) {
-      const activeElement = document.activeElement as HTMLElement | null
-      if (activeElement && sidebarShellRef.current?.contains(activeElement)) {
-        window.requestAnimationFrame(() => {
-          sidebarToggleRef.current?.focus()
-        })
+  const toggleSidebar = useCallback(
+    (nextOpen = !sidebarOpen) => {
+      if (!nextOpen) {
+        const activeElement = document.activeElement as HTMLElement | null
+        if (activeElement && sidebarShellRef.current?.contains(activeElement)) {
+          window.requestAnimationFrame(() => {
+            sidebarToggleRef.current?.focus()
+          })
+        }
       }
-    }
-    setSidebarOpen(nextOpen)
-  }, [setSidebarOpen, sidebarOpen])
+      setSidebarOpen(nextOpen)
+    },
+    [setSidebarOpen, sidebarOpen],
+  )
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
@@ -194,13 +213,24 @@ const AppShell = memo(function AppShell() {
     if (mainView === "factory") {
       setMainView("thread")
     }
-  }, [factoryBetaEnabled, mainView, setMainView, setSelectedFactoryCaseId, setSelectedFactoryId])
+  }, [
+    factoryBetaEnabled,
+    mainView,
+    setMainView,
+    setSelectedFactoryCaseId,
+    setSelectedFactoryId,
+  ])
 
   useEffect(() => {
     document.documentElement.dataset.platform = desktopRuntime.platform
-    document.documentElement.dataset.windowFullscreen = desktopRuntime.isFullscreen ? "true" : "false"
-    document.documentElement.dataset.windowMaximized = desktopRuntime.isMaximized ? "true" : "false"
-    document.documentElement.style.setProperty("--titlebar-height", `${desktopRuntime.titlebarHeight}px`)
+    document.documentElement.dataset.windowFullscreen =
+      desktopRuntime.isFullscreen ? "true" : "false"
+    document.documentElement.dataset.windowMaximized =
+      desktopRuntime.isMaximized ? "true" : "false"
+    document.documentElement.style.setProperty(
+      "--titlebar-height",
+      `${desktopRuntime.titlebarHeight}px`,
+    )
   }, [desktopRuntime])
 
   useEffect(() => {
@@ -208,8 +238,14 @@ const AppShell = memo(function AppShell() {
 
     const applyFallbackRuntime = () => {
       if (cancelled) return
-      const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
-      const platform = (nav.userAgentData?.platform || navigator.platform || "").toLowerCase()
+      const nav = navigator as Navigator & {
+        userAgentData?: { platform?: string }
+      }
+      const platform = (
+        nav.userAgentData?.platform ||
+        navigator.platform ||
+        ""
+      ).toLowerCase()
       const fallbackPlatform = platform.includes("mac")
         ? "macos"
         : platform.includes("win")
@@ -225,10 +261,13 @@ const AppShell = memo(function AppShell() {
       })
     }
 
-    void window.api.getDesktopRuntime().then((runtime) => {
-      if (cancelled) return
-      setDesktopRuntime(runtime)
-    }).catch(applyFallbackRuntime)
+    void window.api
+      .getDesktopRuntime()
+      .then((runtime) => {
+        if (cancelled) return
+        setDesktopRuntime(runtime)
+      })
+      .catch(applyFallbackRuntime)
 
     const unsubscribeRuntime = window.api.onDesktopRuntimeChange((runtime) => {
       if (cancelled) return
@@ -253,7 +292,9 @@ const AppShell = memo(function AppShell() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      const isEditable = isEditableKeyboardTarget(event.target as HTMLElement | null)
+      const isEditable = isEditableKeyboardTarget(
+        event.target as HTMLElement | null,
+      )
       const intent = resolveAppShellShortcutIntent({
         event,
         primaryModifierKey: desktopRuntime.primaryModifierKey,
@@ -311,14 +352,27 @@ const AppShell = memo(function AppShell() {
     return () => {
       window.removeEventListener("keydown", handler)
     }
-  }, [desktopRuntime.primaryModifierKey, mainView, openSkillPicker, openWorkflowCreate, openWorkflowFromPalette, quickSwitchTargets, setChatPanelOpen, setMainView, toggleSidebar])
+  }, [
+    desktopRuntime.primaryModifierKey,
+    mainView,
+    openSkillPicker,
+    openWorkflowCreate,
+    openWorkflowFromPalette,
+    quickSwitchTargets,
+    setChatPanelOpen,
+    setMainView,
+    toggleSidebar,
+  ])
 
   useEffect(() => {
-    window.api.getProviderDiagnostics().then((diagnostics) => {
-      setProviderSettings(diagnostics.settings)
-      setProviderAvailability(diagnostics.health)
-      setProviderAuthStatus(diagnostics.auth)
-    }).catch(() => {})
+    window.api
+      .getProviderDiagnostics()
+      .then((diagnostics) => {
+        setProviderSettings(diagnostics.settings)
+        setProviderAvailability(diagnostics.health)
+        setProviderAuthStatus(diagnostics.auth)
+      })
+      .catch(() => {})
   }, [setProviderAuthStatus, setProviderAvailability, setProviderSettings])
 
   useEffect(() => {
@@ -331,8 +385,11 @@ const AppShell = memo(function AppShell() {
   }, [workflowDirty])
 
   return (
-    <div role="application" aria-label="c8c" className="flex h-full w-full overflow-hidden bg-background text-foreground">
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:m-2">
+    <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:m-2"
+      >
         Skip to main content
       </a>
       {showDragRegion && (
@@ -353,7 +410,9 @@ const AppShell = memo(function AppShell() {
         <RendererSmokeBridge
           commandPaletteOpen={commandPaletteOpen}
           sidebarOpen={sidebarOpen}
-          availableWorkflowNames={workflowCommandEntries.map((entry) => entry.label)}
+          availableWorkflowNames={workflowCommandEntries.map(
+            (entry) => entry.label,
+          )}
         />
       )}
 
@@ -389,7 +448,7 @@ const AppShell = memo(function AppShell() {
         </div>
       </SectionErrorBoundary>
 
-      <div id="main-content" className="min-w-0 min-h-0 flex-1 flex flex-col">
+      <main id="main-content" className="min-w-0 min-h-0 flex-1 flex flex-col">
         <CliBanner />
         {/* Main area — workflow editor */}
         <SectionErrorBoundary sectionName="flow view">
@@ -401,7 +460,7 @@ const AppShell = memo(function AppShell() {
         <SectionErrorBoundary sectionName="runs dashboard">
           <MultiRunDashboard />
         </SectionErrorBoundary>
-      </div>
+      </main>
 
       <DeepLinkTemplateDialog
         template={deepLinkTemplate}
@@ -415,7 +474,14 @@ const AppShell = memo(function AppShell() {
         targetProject={deepLinkTargetProject}
         onTargetProjectChange={setDeepLinkTargetProject}
         onCreateInProject={() => void createDeepLinkTemplate()}
-        onReplaceCurrent={applyDeepLinkTemplate}
+        onReplaceCurrent={async () => {
+          if (
+            !(await confirmDiscard("replace the current draft", workflowDirty))
+          ) {
+            return
+          }
+          applyDeepLinkTemplate()
+        }}
       />
       <ApprovalDialog />
       {unsavedChangesDialog}

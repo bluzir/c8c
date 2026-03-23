@@ -35,26 +35,34 @@ export function resolveChainBuilderShortcutIntent({
   if (flowCardMode || isEditable) return null
 
   if (
-    matchesPlainShortcut(event, "a")
-    || matchesPrimaryShortcut(event, { key: "a", primaryModifierKey, shift: true })
+    matchesPlainShortcut(event, "a") ||
+    matchesPrimaryShortcut(event, { key: "a", primaryModifierKey, shift: true })
   ) {
     return { type: "open_skill_picker" }
   }
 
   if (orderedNodeIds.length > 0) {
-    const currentIndex = orderedNodeIds.findIndex((nodeId) => nodeId === resolvedSelectedNodeId)
+    const currentIndex = orderedNodeIds.findIndex(
+      (nodeId) => nodeId === resolvedSelectedNodeId,
+    )
     if (matchesPlainShortcut(event, "Home")) {
       return { type: "select", nodeId: orderedNodeIds[0] }
     }
     if (matchesPlainShortcut(event, "End")) {
-      return { type: "select", nodeId: orderedNodeIds[orderedNodeIds.length - 1] }
+      return {
+        type: "select",
+        nodeId: orderedNodeIds[orderedNodeIds.length - 1],
+      }
     }
     if (matchesPlainShortcut(event, "ArrowUp")) {
       const nextIndex = currentIndex < 0 ? 0 : Math.max(currentIndex - 1, 0)
       return { type: "select", nodeId: orderedNodeIds[nextIndex] }
     }
     if (matchesPlainShortcut(event, "ArrowDown")) {
-      const nextIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, orderedNodeIds.length - 1)
+      const nextIndex =
+        currentIndex < 0
+          ? 0
+          : Math.min(currentIndex + 1, orderedNodeIds.length - 1)
       return { type: "select", nodeId: orderedNodeIds[nextIndex] }
     }
   }
@@ -62,7 +70,10 @@ export function resolveChainBuilderShortcutIntent({
   if (!selectedNodeId || !selectedNodeType) return null
   if (selectedNodeType === "input" || selectedNodeType === "output") return null
 
-  if (matchesPlainShortcut(event, "Delete") || matchesPlainShortcut(event, "Backspace")) {
+  if (
+    matchesPlainShortcut(event, "Delete") ||
+    matchesPlainShortcut(event, "Backspace")
+  ) {
     return { type: "remove_selected", nodeId: selectedNodeId }
   }
 

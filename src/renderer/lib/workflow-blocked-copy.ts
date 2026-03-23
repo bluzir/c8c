@@ -1,6 +1,11 @@
-import type { ArtifactRecord, HumanTaskSnapshot, HumanTaskSummary } from "@shared/types"
+import type {
+  ArtifactRecord,
+  HumanTaskSnapshot,
+  HumanTaskSummary,
+} from "@shared/types"
 
-type BlockedTaskLike = Pick<HumanTaskSummary, "kind" | "summary" | "instructions" | "title">
+type BlockedTaskLike =
+  | Pick<HumanTaskSummary, "kind" | "summary" | "instructions" | "title">
   | Pick<HumanTaskSnapshot, "kind" | "summary" | "instructions" | "title">
 
 function compactText(value: string | null | undefined, maxLength = 160) {
@@ -40,6 +45,8 @@ export function deriveBlockedTaskReasonText(
     : "This flow is waiting for the missing input before it can continue."
 }
 
-export function deriveBlockedTaskLatestResultText(artifact: ArtifactRecord | null) {
+export function deriveBlockedTaskLatestResultText(
+  artifact: ArtifactRecord | null,
+) {
   return artifact ? `Latest result: ${artifact.title}.` : null
 }

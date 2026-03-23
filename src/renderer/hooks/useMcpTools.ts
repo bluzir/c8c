@@ -26,7 +26,11 @@ export function useMcpTools(): {
     latestRequestRef.current = requestId
     setLoading(true)
     try {
-      const discovered = await window.api.mcpDiscoverTools(provider, undefined, selectedProject ?? undefined)
+      const discovered = await window.api.mcpDiscoverTools(
+        provider,
+        undefined,
+        selectedProject ?? undefined,
+      )
       if (latestRequestRef.current !== requestId) return
       setTools(discovered)
     } catch (error) {

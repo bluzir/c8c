@@ -8,15 +8,25 @@ describe("mergeLogEntriesForDisplay", () => {
       { type: "thinking", content: "thinking...\n to", timestamp: 1 },
       { type: "thinking", content: "\n the", timestamp: 2 },
       { type: "text", content: "[", timestamp: 3 },
-      { type: "text", content: "{\"name\":\"Security\"", timestamp: 4 },
-      { type: "tool_use", tool: "Read", input: { file_path: "a.md" }, timestamp: 5 },
+      { type: "text", content: '{"name":"Security"', timestamp: 4 },
+      {
+        type: "tool_use",
+        tool: "Read",
+        input: { file_path: "a.md" },
+        timestamp: 5,
+      },
       { type: "text", content: " after tool", timestamp: 6 },
     ]
 
     expect(mergeLogEntriesForDisplay(log)).toEqual([
       { type: "thinking", content: "thinking...\n to\n the", timestamp: 2 },
-      { type: "text", content: "[{\"name\":\"Security\"", timestamp: 4 },
-      { type: "tool_use", tool: "Read", input: { file_path: "a.md" }, timestamp: 5 },
+      { type: "text", content: '[{"name":"Security"', timestamp: 4 },
+      {
+        type: "tool_use",
+        tool: "Read",
+        input: { file_path: "a.md" },
+        timestamp: 5,
+      },
       { type: "text", content: " after tool", timestamp: 6 },
     ])
   })
@@ -37,7 +47,11 @@ describe("mergeLogEntriesForDisplay", () => {
   it("keeps progress text entries separate from normal text chunks", () => {
     const log: LogEntry[] = [
       { type: "text", content: "assistant prefix ", timestamp: 1 },
-      { type: "text", content: "[progress] Read is still running (15s)", timestamp: 2 },
+      {
+        type: "text",
+        content: "[progress] Read is still running (15s)",
+        timestamp: 2,
+      },
       { type: "text", content: "assistant suffix", timestamp: 3 },
     ]
 

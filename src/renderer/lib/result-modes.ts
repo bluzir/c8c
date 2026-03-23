@@ -6,7 +6,11 @@ import type {
   WorkflowTemplateStage,
 } from "@shared/types"
 import type { WorkflowCreatePromptScaffold } from "@/lib/workflow-create-prompt"
-import { isContentTemplate, isMarketingTemplate, isProductTemplate } from "@/lib/template-filters"
+import {
+  isContentTemplate,
+  isMarketingTemplate,
+  isProductTemplate,
+} from "@/lib/template-filters"
 
 export interface WorkflowResultMode extends ResultModeDefinition {
   packIds?: string[]
@@ -32,10 +36,7 @@ export interface ResolvedWorkflowResultModeQuickStart extends WorkflowResultMode
   template: WorkflowTemplate
 }
 
-const DEVELOPMENT_PACK_IDS = new Set([
-  "delivery-foundation",
-  "gstack-team",
-])
+const DEVELOPMENT_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
 
 const DEVELOPMENT_TEMPLATE_IDS = new Set([
   "delivery-map-codebase",
@@ -58,9 +59,7 @@ const DEVELOPMENT_TEMPLATE_IDS = new Set([
   "gstack-web-quality-board",
 ])
 
-const CONTENT_PACK_IDS = new Set([
-  "ai-cmo",
-])
+const CONTENT_PACK_IDS = new Set(["ai-cmo"])
 
 const COURSES_PACK_IDS = new Set([
   "content-factory-alpha",
@@ -107,34 +106,43 @@ const COURSES_TEMPLATE_IDS = new Set([
   "courses-launch-assets",
 ])
 
-const DEVELOPMENT_TEXT_RE = /\b(codebase|repository|repo|feature|implementation|verification|spec|audit|bug|architecture|ui audit|design system|roadmap|qa|test|ship)\b/i
-const CONTENT_TEXT_RE = /\b(marketing|growth|seo|geo|reddit|hacker news|trend|campaign|landing page|positioning|messaging|outreach|lead|prospect|segment|audience|jtbd|competitive|ads?)\b/i
-const COURSES_TEXT_RE = /\b(content|post|copy|editorial|newsletter|draft|publish|course|curriculum|lesson|module|education|workshop|cohort|training|launch bundle|transformation|video|script)\b/i
+const DEVELOPMENT_TEXT_RE =
+  /\b(codebase|repository|repo|feature|implementation|verification|spec|audit|bug|architecture|ui audit|design system|roadmap|qa|test|ship)\b/i
+const CONTENT_TEXT_RE =
+  /\b(marketing|growth|seo|geo|reddit|hacker news|trend|campaign|landing page|positioning|messaging|outreach|lead|prospect|segment|audience|jtbd|competitive|ads?)\b/i
+const COURSES_TEXT_RE =
+  /\b(content|post|copy|editorial|newsletter|draft|publish|course|curriculum|lesson|module|education|workshop|cohort|training|launch bundle|transformation|video|script)\b/i
 
-const QUICK_STARTS_BY_MODE: Partial<Record<ResultModeId, WorkflowResultModeQuickStart[]>> = {
+const QUICK_STARTS_BY_MODE: Partial<
+  Record<ResultModeId, WorkflowResultModeQuickStart[]>
+> = {
   development: [
     {
       templateId: "delivery-map-codebase",
       label: "Explore this project",
-      summary: "Start from the current codebase, understand it fast, then shape the change.",
+      summary:
+        "Start from the current codebase, understand it fast, then shape the change.",
       intentLabel: "Do it",
     },
     {
       templateId: "delivery-shape-project",
       label: "Build from brief",
-      summary: "Turn a feature brief or messy context into a scoped build path.",
+      summary:
+        "Turn a feature brief or messy context into a scoped build path.",
       intentLabel: "Do it",
     },
     {
       templateId: "delivery-plan-phase",
       label: "Plan the change",
-      summary: "Turn the desired outcome into a concrete plan without jumping straight to implementation.",
+      summary:
+        "Turn the desired outcome into a concrete plan without jumping straight to implementation.",
       intentLabel: "Plan it",
     },
     {
       templateId: "delivery-review-phase",
       label: "Review before ship",
-      summary: "Check the current work, surface concrete gaps, and prepare it for final verification.",
+      summary:
+        "Check the current work, surface concrete gaps, and prepare it for final verification.",
       intentLabel: "Review it",
     },
   ],
@@ -143,21 +151,26 @@ const QUICK_STARTS_BY_MODE: Partial<Record<ResultModeId, WorkflowResultModeQuick
 function getDevelopmentCreateQuickStartPresentation(
   templateId: string,
   projectKind?: ProjectInspectionKind | null,
-): Pick<WorkflowResultModeQuickStart, "label" | "summary" | "intentLabel"> | null {
+): Pick<
+  WorkflowResultModeQuickStart,
+  "label" | "summary" | "intentLabel"
+> | null {
   switch (projectKind) {
     case "greenfield_empty":
     case "greenfield_scaffold":
       if (templateId === "delivery-shape-project") {
         return {
           label: "Build from brief",
-          summary: "Turn the brief into a scoped build path and move toward a working result.",
+          summary:
+            "Turn the brief into a scoped build path and move toward a working result.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-plan-phase") {
         return {
           label: "Plan from brief",
-          summary: "Turn the brief into a concrete plan without forcing implementation.",
+          summary:
+            "Turn the brief into a concrete plan without forcing implementation.",
           intentLabel: "Plan it",
         }
       }
@@ -166,21 +179,24 @@ function getDevelopmentCreateQuickStartPresentation(
       if (templateId === "delivery-map-codebase") {
         return {
           label: "Explore this project",
-          summary: "Start from the current codebase, understand it fast, then shape the change.",
+          summary:
+            "Start from the current codebase, understand it fast, then shape the change.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-shape-project") {
         return {
           label: "Change the app",
-          summary: "Turn the repo context and desired outcome into a concrete change plan.",
+          summary:
+            "Turn the repo context and desired outcome into a concrete change plan.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-plan-phase") {
         return {
           label: "Plan the change",
-          summary: "Take the scoped work and turn it into an execution-ready plan.",
+          summary:
+            "Take the scoped work and turn it into an execution-ready plan.",
           intentLabel: "Plan it",
         }
       }
@@ -189,28 +205,32 @@ function getDevelopmentCreateQuickStartPresentation(
       if (templateId === "delivery-review-phase") {
         return {
           label: "Review before ship",
-          summary: "Check the current work, surface gaps, and decide what must change before verification.",
+          summary:
+            "Check the current work, surface gaps, and decide what must change before verification.",
           intentLabel: "Review it",
         }
       }
       if (templateId === "delivery-map-codebase") {
         return {
           label: "Explore this project",
-          summary: "Start from the current codebase, understand it fast, then shape the change.",
+          summary:
+            "Start from the current codebase, understand it fast, then shape the change.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-shape-project") {
         return {
           label: "Change the app",
-          summary: "Turn the repo context and desired outcome into a concrete change plan.",
+          summary:
+            "Turn the repo context and desired outcome into a concrete change plan.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-plan-phase") {
         return {
           label: "Plan the change",
-          summary: "Turn the reviewed context into a concrete execution plan before implementation starts.",
+          summary:
+            "Turn the reviewed context into a concrete execution plan before implementation starts.",
           intentLabel: "Plan it",
         }
       }
@@ -219,28 +239,32 @@ function getDevelopmentCreateQuickStartPresentation(
       if (templateId === "delivery-shape-project") {
         return {
           label: "Build from brief",
-          summary: "Turn the desired outcome into a scoped build path with visible checkpoints.",
+          summary:
+            "Turn the desired outcome into a scoped build path with visible checkpoints.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-map-codebase") {
         return {
           label: "Explore this project",
-          summary: "Start from the current codebase, understand it fast, then shape the change.",
+          summary:
+            "Start from the current codebase, understand it fast, then shape the change.",
           intentLabel: "Do it",
         }
       }
       if (templateId === "delivery-plan-phase") {
         return {
           label: "Plan the change",
-          summary: "Turn the desired outcome into a concrete plan without jumping straight to implementation.",
+          summary:
+            "Turn the desired outcome into a concrete plan without jumping straight to implementation.",
           intentLabel: "Plan it",
         }
       }
       if (templateId === "delivery-review-phase") {
         return {
           label: "Review before ship",
-          summary: "Review the current work, surface concrete gaps, and prepare it for final verification.",
+          summary:
+            "Review the current work, surface concrete gaps, and prepare it for final verification.",
           intentLabel: "Review it",
         }
       }
@@ -248,54 +272,57 @@ function getDevelopmentCreateQuickStartPresentation(
   }
 }
 
-export function getResultModeQuickStartOptions(modeId: ResultModeId): WorkflowResultModeQuickStart[] {
+export function getResultModeQuickStartOptions(
+  modeId: ResultModeId,
+): WorkflowResultModeQuickStart[] {
   return [...(QUICK_STARTS_BY_MODE[modeId] || [])]
 }
 
-export function prioritizeDevelopmentCreateQuickStarts<T extends { templateId: string }>(
-  quickStarts: T[],
-  projectKind?: ProjectInspectionKind | null,
-): T[] {
+export function prioritizeDevelopmentCreateQuickStarts<
+  T extends { templateId: string },
+>(quickStarts: T[], projectKind?: ProjectInspectionKind | null): T[] {
   if (quickStarts.length === 0) return []
 
   const templateIds =
     projectKind === "review_ready"
       ? [
-        "delivery-review-phase",
-        "delivery-map-codebase",
-        "delivery-shape-project",
-        "delivery-plan-phase",
-      ]
-      : projectKind === "existing_repo"
-        ? [
+          "delivery-review-phase",
           "delivery-map-codebase",
           "delivery-shape-project",
           "delivery-plan-phase",
         ]
-        : projectKind === "greenfield_empty" || projectKind === "greenfield_scaffold"
-          ? [
-            "delivery-shape-project",
-            "delivery-plan-phase",
-          ]
-          : [
-            "delivery-shape-project",
+      : projectKind === "existing_repo"
+        ? [
             "delivery-map-codebase",
+            "delivery-shape-project",
             "delivery-plan-phase",
           ]
+        : projectKind === "greenfield_empty" ||
+            projectKind === "greenfield_scaffold"
+          ? ["delivery-shape-project", "delivery-plan-phase"]
+          : [
+              "delivery-shape-project",
+              "delivery-map-codebase",
+              "delivery-plan-phase",
+            ]
 
-  const quickStartById = new Map(quickStarts.map((quickStart) => [quickStart.templateId, quickStart]))
+  const quickStartById = new Map(
+    quickStarts.map((quickStart) => [quickStart.templateId, quickStart]),
+  )
   return templateIds.flatMap((templateId) => {
     const quickStart = quickStartById.get(templateId)
     return quickStart ? [quickStart] : []
   })
 }
 
-export function presentDevelopmentCreateQuickStarts<T extends WorkflowResultModeQuickStart>(
-  quickStarts: T[],
-  projectKind?: ProjectInspectionKind | null,
-): T[] {
+export function presentDevelopmentCreateQuickStarts<
+  T extends WorkflowResultModeQuickStart,
+>(quickStarts: T[], projectKind?: ProjectInspectionKind | null): T[] {
   return quickStarts.map((quickStart) => {
-    const presentation = getDevelopmentCreateQuickStartPresentation(quickStart.templateId, projectKind)
+    const presentation = getDevelopmentCreateQuickStartPresentation(
+      quickStart.templateId,
+      projectKind,
+    )
     if (!presentation) return quickStart
     return {
       ...quickStart,
@@ -304,12 +331,14 @@ export function presentDevelopmentCreateQuickStarts<T extends WorkflowResultMode
   })
 }
 
-export function presentDevelopmentCreateRouteOptions<T extends { templateId: string, label: string, intentLabel?: string }>(
-  options: T[],
-  projectKind?: ProjectInspectionKind | null,
-): T[] {
+export function presentDevelopmentCreateRouteOptions<
+  T extends { templateId: string; label: string; intentLabel?: string },
+>(options: T[], projectKind?: ProjectInspectionKind | null): T[] {
   return options.map((option) => {
-    const presentation = getDevelopmentCreateQuickStartPresentation(option.templateId, projectKind)
+    const presentation = getDevelopmentCreateQuickStartPresentation(
+      option.templateId,
+      projectKind,
+    )
     if (!presentation) return option
     return {
       ...option,
@@ -349,11 +378,14 @@ export const RESULT_MODES: WorkflowResultMode[] = [
     id: "development",
     label: "Dev",
     emoji: "🧩",
-    summary: "Start from the result you want, then let the system route through the right dev path with visible checkpoints.",
-    useFor: "Build from brief, change the current app, plan the next change, review current work, and verify completion.",
+    summary:
+      "Start from the result you want, then let the system route through the right dev path with visible checkpoints.",
+    useFor:
+      "Build from brief, change the current app, plan the next change, review current work, and verify completion.",
     youProvide: "A repo, feature brief, bug, PRD, or delivery goal.",
     youGetFirst: "Codebase map, project shape, or build plan.",
-    userRole: "Approve scope, risky execution, and quality at a few high-leverage checkpoints.",
+    userRole:
+      "Approve scope, risky execution, and quality at a few high-leverage checkpoints.",
     packIds: ["delivery-foundation", "gstack-team"],
     templateIds: Array.from(DEVELOPMENT_TEMPLATE_IDS),
     stagePreferences: ["research", "strategy", "code", "operations"],
@@ -361,23 +393,30 @@ export const RESULT_MODES: WorkflowResultMode[] = [
     startActionLabel: "Start from request",
     guidedPath: ["Shape / Map", "Plan", "Implement", "Review", "Verify"],
     runtimeLine: "Chooses the right path after you submit.",
-    composerPlaceholder: "Describe what you want by the end. Add repo context and delivery constraints if they matter...",
+    composerPlaceholder:
+      "Describe what you want by the end. Add repo context and delivery constraints if they matter...",
     scaffoldPlaceholders: {
       goal: "What product or feature outcome should this flow drive?",
       input: "Repository path, issue, PRD, user flow, or technical context.",
-      constraints: "Stack constraints, deadlines, rollout risks, testing bar, design constraints, or delivery realities.",
-      successCriteria: "What would make this feel genuinely ready to ship, verify, or review?",
+      constraints:
+        "Stack constraints, deadlines, rollout risks, testing bar, design constraints, or delivery realities.",
+      successCriteria:
+        "What would make this feel genuinely ready to ship, verify, or review?",
     },
   },
   {
     id: "content",
     label: "Marketing",
     emoji: "📣",
-    summary: "Research a market, choose angles, and turn them into campaigns, pages, or growth loops.",
-    useFor: "Research, positioning, trends, SEO, messaging, outreach, and marketing audits.",
-    youProvide: "A product, market, audience, channel, competitor set, or growth question.",
+    summary:
+      "Research a market, choose angles, and turn them into campaigns, pages, or growth loops.",
+    useFor:
+      "Research, positioning, trends, SEO, messaging, outreach, and marketing audits.",
+    youProvide:
+      "A product, market, audience, channel, competitor set, or growth question.",
     youGetFirst: "Segment map, growth thesis, or campaign plan.",
-    userRole: "Approve audience choice, angle, and sample quality before scaling.",
+    userRole:
+      "Approve audience choice, angle, and sample quality before scaling.",
     packIds: ["ai-cmo"],
     templateIds: Array.from(CONTENT_TEMPLATE_IDS),
     stagePreferences: ["research", "strategy", "content", "outreach"],
@@ -385,36 +424,52 @@ export const RESULT_MODES: WorkflowResultMode[] = [
     startActionLabel: "Start guided path",
     guidedPath: ["Research the market", "Choose the angle", "Ship the assets"],
     runtimeLine: "Approves angle and sample quality before scaling.",
-    composerPlaceholder: "Describe the marketing result, audience, channel, and any brand constraints...",
+    composerPlaceholder:
+      "Describe the marketing result, audience, channel, and any brand constraints...",
     scaffoldPlaceholders: {
       goal: "What marketing outcome should this flow create?",
-      input: "Product context, market notes, competitors, audience signals, links, or campaign context.",
-      constraints: "Channels, brand rules, approved angles, no-slop rules, timing, or budget realities.",
-      successCriteria: "What would make the strategy or assets clearly useful, grounded, and worth shipping?",
+      input:
+        "Product context, market notes, competitors, audience signals, links, or campaign context.",
+      constraints:
+        "Channels, brand rules, approved angles, no-slop rules, timing, or budget realities.",
+      successCriteria:
+        "What would make the strategy or assets clearly useful, grounded, and worth shipping?",
     },
   },
   {
     id: "courses",
     label: "Content",
     emoji: "✍️",
-    summary: "Turn ideas or expertise into publishable text systems, lessons, and launch-ready assets.",
-    useFor: "Texts, newsletters, post systems, course material, lesson production, and content operations.",
-    youProvide: "A topic, source material, audience, offer, or expertise you want packaged.",
+    summary:
+      "Turn ideas or expertise into publishable text systems, lessons, and launch-ready assets.",
+    useFor:
+      "Texts, newsletters, post systems, course material, lesson production, and content operations.",
+    youProvide:
+      "A topic, source material, audience, offer, or expertise you want packaged.",
     youGetFirst: "Draft plan, publishing system, or curriculum direction.",
-    userRole: "Approve voice, structure, and sample quality before output scales.",
+    userRole:
+      "Approve voice, structure, and sample quality before output scales.",
     packIds: ["content-factory-alpha", "courses-factory-alpha"],
     templateIds: Array.from(COURSES_TEMPLATE_IDS),
     stagePreferences: ["strategy", "content", "research"],
     startTemplateId: "content-trend-watch",
     startActionLabel: "Start guided path",
-    guidedPath: ["Clarify audience", "Plan the structure", "Produce the assets"],
+    guidedPath: [
+      "Clarify audience",
+      "Plan the structure",
+      "Produce the assets",
+    ],
     runtimeLine: "Approves voice and sample quality before output scales.",
-    composerPlaceholder: "Describe the content result, audience, and what good looks like...",
+    composerPlaceholder:
+      "Describe the content result, audience, and what good looks like...",
     scaffoldPlaceholders: {
       goal: "What content or education outcome should this flow create?",
-      input: "Source docs, notes, transcripts, audience context, offer material, or existing drafts.",
-      constraints: "Format, tone, no-slop rules, lesson length, publishing cadence, or launch needs.",
-      successCriteria: "What would make the drafts, structure, or lesson assets feel strong and usable?",
+      input:
+        "Source docs, notes, transcripts, audience context, offer material, or existing drafts.",
+      constraints:
+        "Format, tone, no-slop rules, lesson length, publishing cadence, or launch needs.",
+      successCriteria:
+        "What would make the drafts, structure, or lesson assets feel strong and usable?",
     },
   },
 ]
@@ -435,8 +490,10 @@ export function inferResultModeFromText(text: string): ResultModeId {
   const contentScore = CONTENT_TEXT_RE.test(normalized) ? 2 : 0
   const coursesScore = COURSES_TEXT_RE.test(normalized) ? 2 : 0
 
-  if (contentScore > developmentScore && contentScore >= coursesScore) return "content"
-  if (coursesScore > developmentScore && coursesScore > contentScore) return "courses"
+  if (contentScore > developmentScore && contentScore >= coursesScore)
+    return "content"
+  if (coursesScore > developmentScore && coursesScore > contentScore)
+    return "courses"
   return "development"
 }
 
@@ -447,52 +504,84 @@ export function getResultModeQuickStarts(
   const quickStarts = getResultModeQuickStartOptions(modeId)
   if (quickStarts.length === 0) return []
 
-  const templatesById = new Map(templates.map((template) => [template.id, template]))
+  const templatesById = new Map(
+    templates.map((template) => [template.id, template]),
+  )
   return quickStarts.flatMap((quickStart) => {
     const template = templatesById.get(quickStart.templateId)
     return template ? [{ ...quickStart, template }] : []
   })
 }
 
-function templateScoreForMode(template: WorkflowTemplate, modeId: ResultModeId): number {
+function templateScoreForMode(
+  template: WorkflowTemplate,
+  modeId: ResultModeId,
+): number {
   const text = metadataText(template)
 
   if (modeId === "development") {
     let score = 0
-    if (template.pack?.id && DEVELOPMENT_PACK_IDS.has(template.pack.id)) score += 100
+    if (template.pack?.id && DEVELOPMENT_PACK_IDS.has(template.pack.id))
+      score += 100
     if (DEVELOPMENT_TEMPLATE_IDS.has(template.id)) score += 80
     if (isProductTemplate(template)) score += 35
     if (template.stage === "code") score += 30
-    if ((template.stage === "research" || template.stage === "strategy" || template.stage === "operations") && DEVELOPMENT_TEXT_RE.test(text)) score += 20
+    if (
+      (template.stage === "research" ||
+        template.stage === "strategy" ||
+        template.stage === "operations") &&
+      DEVELOPMENT_TEXT_RE.test(text)
+    )
+      score += 20
     if (DEVELOPMENT_TEXT_RE.test(text)) score += 10
     return score
   }
 
   if (modeId === "content") {
     let score = 0
-    if (template.pack?.id && CONTENT_PACK_IDS.has(template.pack.id)) score += 100
+    if (template.pack?.id && CONTENT_PACK_IDS.has(template.pack.id))
+      score += 100
     if (CONTENT_TEMPLATE_IDS.has(template.id)) score += 80
     if (isMarketingTemplate(template)) score += 35
-    if (template.stage === "research" || template.stage === "strategy" || template.stage === "outreach") score += 30
-    if ((template.stage === "strategy" || template.stage === "research") && CONTENT_TEXT_RE.test(text)) score += 20
+    if (
+      template.stage === "research" ||
+      template.stage === "strategy" ||
+      template.stage === "outreach"
+    )
+      score += 30
+    if (
+      (template.stage === "strategy" || template.stage === "research") &&
+      CONTENT_TEXT_RE.test(text)
+    )
+      score += 20
     if (CONTENT_TEXT_RE.test(text)) score += 10
     return score
   }
 
   if (modeId === "courses") {
     let score = 0
-    if (template.pack?.id && COURSES_PACK_IDS.has(template.pack.id)) score += 100
+    if (template.pack?.id && COURSES_PACK_IDS.has(template.pack.id))
+      score += 100
     if (COURSES_TEMPLATE_IDS.has(template.id)) score += 90
     if (isContentTemplate(template)) score += 35
     if (COURSES_TEXT_RE.test(text)) score += 60
-    if ((template.stage === "strategy" || template.stage === "content") && /(audience|positioning|offer|lesson|curriculum|launch|draft|publish)/i.test(text)) score += 20
+    if (
+      (template.stage === "strategy" || template.stage === "content") &&
+      /(audience|positioning|offer|lesson|curriculum|launch|draft|publish)/i.test(
+        text,
+      )
+    )
+      score += 20
     return score
   }
 
   return 0
 }
 
-export function templateMatchesResultMode(template: WorkflowTemplate, modeId: ResultModeId): boolean {
+export function templateMatchesResultMode(
+  template: WorkflowTemplate,
+  modeId: ResultModeId,
+): boolean {
   return templateScoreForMode(template, modeId) > 0
 }
 
@@ -500,7 +589,9 @@ export function filterTemplatesForResultMode(
   templates: WorkflowTemplate[],
   modeId: ResultModeId,
 ): WorkflowTemplate[] {
-  return templates.filter((template) => templateMatchesResultMode(template, modeId))
+  return templates.filter((template) =>
+    templateMatchesResultMode(template, modeId),
+  )
 }
 
 export function prioritizeTemplatesForResultMode(
@@ -525,11 +616,20 @@ export function splitTemplatesForResultMode(
   templates: WorkflowTemplate[],
   modeId: ResultModeId,
 ) {
-  const prioritizedModeTemplates = prioritizeTemplatesForResultMode(templates, modeId)
+  const prioritizedModeTemplates = prioritizeTemplatesForResultMode(
+    templates,
+    modeId,
+  )
   const quickStarts = getResultModeQuickStarts(prioritizedModeTemplates, modeId)
-  const quickStartIds = new Set(quickStarts.map((quickStart) => quickStart.template.id))
-  const modeTemplates = prioritizedModeTemplates.filter((template) => !quickStartIds.has(template.id))
-  const otherTemplates = templates.filter((template) => !templateMatchesResultMode(template, modeId))
+  const quickStartIds = new Set(
+    quickStarts.map((quickStart) => quickStart.template.id),
+  )
+  const modeTemplates = prioritizedModeTemplates.filter(
+    (template) => !quickStartIds.has(template.id),
+  )
+  const otherTemplates = templates.filter(
+    (template) => !templateMatchesResultMode(template, modeId),
+  )
 
   return {
     quickStarts,

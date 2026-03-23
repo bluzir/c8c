@@ -1,8 +1,16 @@
 import type { ExecutionStartError, ExecutionStartResult } from "@shared/c8c-api"
 import { resolveWorkflowInput } from "@/lib/input-type"
-import { applyWebSearchBackendPreset, type WebSearchBackend } from "@/lib/web-search-backend"
+import {
+  applyWebSearchBackendPreset,
+  type WebSearchBackend,
+} from "@/lib/web-search-backend"
 import type { WorkflowConfigIssue } from "@shared/workflow-config-validation"
-import type { InputNodeConfig, PermissionMode, RunResult, Workflow } from "@shared/types"
+import type {
+  InputNodeConfig,
+  PermissionMode,
+  RunResult,
+  Workflow,
+} from "@shared/types"
 
 export interface ResolvedExecutionStart {
   startedRunId: string | null
@@ -26,13 +34,22 @@ function isResearchLikeWorkflow(workflow: {
   if (header.includes("research")) return true
   return workflow.nodes.some((node) => {
     if (node.type !== "skill") return false
-    const skillRef = typeof node.config.skillRef === "string" ? node.config.skillRef.toLowerCase() : ""
-    const prompt = typeof node.config.prompt === "string" ? node.config.prompt.toLowerCase() : ""
+    const skillRef =
+      typeof node.config.skillRef === "string"
+        ? node.config.skillRef.toLowerCase()
+        : ""
+    const prompt =
+      typeof node.config.prompt === "string"
+        ? node.config.prompt.toLowerCase()
+        : ""
     return skillRef.includes("research") || prompt.includes("research")
   })
 }
 
-function withExecutionMode(workflow: Workflow, executionMode: PermissionMode): Workflow {
+function withExecutionMode(
+  workflow: Workflow,
+  executionMode: PermissionMode,
+): Workflow {
   return {
     ...workflow,
     defaults: {
@@ -60,11 +77,13 @@ export function prepareWorkflowForExecution(
   const workflowForRun = executionMode
     ? withExecutionMode(workflow, executionMode)
     : workflow
-  const looksResearch = isResearchLikeWorkflow(workflowForRun as unknown as {
-    name: string
-    description?: string
-    nodes: Array<{ type: string; config: Record<string, unknown> }>
-  })
+  const looksResearch = isResearchLikeWorkflow(
+    workflowForRun as unknown as {
+      name: string
+      description?: string
+      nodes: Array<{ type: string; config: Record<string, unknown> }>
+    },
+  )
 
   return {
     workflowForRun,
@@ -125,13 +144,15 @@ export function withIpcTimeout<T>(
       reject(new Error(message))
     }, timeoutMs)
 
-    promise.then((value) => {
-      globalThis.clearTimeout(timeoutHandle)
-      resolve(value)
-    }).catch((error) => {
-      globalThis.clearTimeout(timeoutHandle)
-      reject(error)
-    })
+    promise
+      .then((value) => {
+        globalThis.clearTimeout(timeoutHandle)
+        resolve(value)
+      })
+      .catch((error) => {
+        globalThis.clearTimeout(timeoutHandle)
+        reject(error)
+      })
   })
 }
 
