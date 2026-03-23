@@ -91,7 +91,11 @@ import {
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { Tabs } from "@/components/ui/tabs"
 import { buildCreateEntryRouteSeed } from "@shared/create-entry-routing"
-import type { CreateEntryRouteResult, Workflow } from "@shared/types"
+import type {
+  CreateEntryRouteResult,
+  Workflow,
+  WorkflowTemplate,
+} from "@shared/types"
 import { ProcessSpine } from "@/components/ui/process-spine"
 import { useWorkflowPanelResources } from "./workflow-panel/useWorkflowPanelResources"
 import { useWorkflowBlockedResumeTask } from "./workflow-panel/useWorkflowBlockedResumeTask"
@@ -111,6 +115,18 @@ import {
 import { resolveWorkflowListSurfaceIntent } from "./workflow-panel/screen-state"
 import { WorkflowBlockedTaskPanel } from "./workflow-panel/WorkflowBlockedTaskPanel"
 import { WorkflowPanelDialogs } from "./workflow-panel/WorkflowPanelDialogs"
+
+function mergeTemplatesById(
+  catalogs: WorkflowTemplate[][],
+): WorkflowTemplate[] {
+  const templatesById = new Map<string, WorkflowTemplate>()
+  for (const catalog of catalogs) {
+    for (const template of catalog) {
+      templatesById.set(template.id, template)
+    }
+  }
+  return Array.from(templatesById.values())
+}
 
 export function WorkflowPanel() {
   const [selectedProject] = useAtom(selectedProjectAtom)
@@ -201,6 +217,9 @@ export function WorkflowPanel() {
     pendingRouteAlternativeTemplateId,
     setPendingRouteAlternativeTemplateId,
   ] = useState<string | null>(null)
+  const [routeAlternativeCatalog, setRouteAlternativeCatalog] = useState<
+    WorkflowTemplate[]
+  >([])
 
   const LONG_RUNNING_THRESHOLD_MS = 2 * 60 * 1000
 
@@ -651,21 +670,74 @@ export function WorkflowPanel() {
     setWorkflowContinuationEntryState,
     setWorkflowEntryState,
   })
+  const routeAlternativeTemplateIds =
+    effectiveEntryState?.routing?.alternateTemplateIds || []
+  const routeAlternativeTemplateIdsKey = routeAlternativeTemplateIds.join("|")
+  const routeAlternativeCatalogTemplates = useMemo(
+    () => mergeTemplatesById([packTemplates, routeAlternativeCatalog]),
+    [packTemplates, routeAlternativeCatalog],
+  )
+  const missingRouteAlternativeTemplateIds = useMemo(
+    () =>
+      routeAlternativeTemplateIds.filter(
+        (templateId) =>
+          !routeAlternativeCatalogTemplates.some(
+            (template) => template.id === templateId,
+          ),
+      ),
+    [routeAlternativeCatalogTemplates, routeAlternativeTemplateIds],
+  )
+  const missingRouteAlternativeTemplateIdsKey =
+    missingRouteAlternativeTemplateIds.join("|")
+
+  useEffect(() => {
+    if (routeAlternativeTemplateIds.length === 0) {
+      setRouteAlternativeCatalog([])
+      return
+    }
+    if (missingRouteAlternativeTemplateIds.length === 0) {
+      return
+    }
+
+    let cancelled = false
+    void window.api
+      .listTemplates()
+      .then((templates) => {
+        if (cancelled) return
+        setRouteAlternativeCatalog(templates)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        console.error(
+          "[WorkflowPanel] failed to load route alternative templates:",
+          error,
+        )
+        toastErrorFromCatch("Could not load other starts", error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [missingRouteAlternativeTemplateIdsKey, routeAlternativeTemplateIdsKey])
+
   const routeAlternativeOptions = useMemo(() => {
-    const alternateTemplateIds =
-      effectiveEntryState?.routing?.alternateTemplateIds || []
-    if (alternateTemplateIds.length === 0 || packTemplates.length === 0) {
+    if (
+      routeAlternativeTemplateIds.length === 0 ||
+      routeAlternativeCatalogTemplates.length === 0
+    ) {
       return []
     }
 
-    return alternateTemplateIds.flatMap((templateId) => {
+    return routeAlternativeTemplateIds.flatMap((templateId) => {
       const template =
-        packTemplates.find((candidate) => candidate.id === templateId) || null
+        routeAlternativeCatalogTemplates.find(
+          (candidate) => candidate.id === templateId,
+        ) || null
       if (!template) return []
 
       const preview = buildTemplateRoutingPreview({
         template,
-        templates: packTemplates,
+        templates: routeAlternativeCatalogTemplates,
       })
       return [
         {
@@ -676,7 +748,7 @@ export function WorkflowPanel() {
         },
       ]
     })
-  }, [effectiveEntryState?.routing?.alternateTemplateIds, packTemplates])
+  }, [routeAlternativeCatalogTemplates, routeAlternativeTemplateIds])
   const canShowRouteAlternatives = Boolean(
     selectedProject &&
     effectiveEntryState?.routing?.source === "agent" &&
@@ -731,7 +803,7 @@ export function WorkflowPanel() {
         selectedWorkflowTemplateContext?.templateId || null
       const nextAlternateTemplateIds = [
         ...(currentTemplateId ? [currentTemplateId] : []),
-        ...routeAlternativeOptions.map((option) => option.templateId),
+        ...routeAlternativeTemplateIds,
       ].filter(
         (candidate, index, values) =>
           candidate !== templateId && values.indexOf(candidate) === index,
@@ -740,9 +812,11 @@ export function WorkflowPanel() {
       setPendingRouteAlternativeTemplateId(templateId)
       try {
         const availableTemplates =
-          packTemplates.length > 0
-            ? packTemplates
-            : await window.api.listTemplates()
+          routeAlternativeCatalogTemplates.length > 0
+            ? routeAlternativeCatalogTemplates
+            : packTemplates.length > 0
+              ? packTemplates
+              : await window.api.listTemplates()
         const nextTemplate =
           availableTemplates.find((template) => template.id === templateId) ||
           null
@@ -813,7 +887,8 @@ export function WorkflowPanel() {
       effectiveEntryState,
       packTemplates,
       pendingRouteAlternativeTemplateId,
-      routeAlternativeOptions,
+      routeAlternativeCatalogTemplates,
+      routeAlternativeTemplateIds,
       selectedProject,
       selectedWorkflowTemplateContext?.templateId,
       setChatOpen,
