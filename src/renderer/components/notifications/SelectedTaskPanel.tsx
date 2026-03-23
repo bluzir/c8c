@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, Loader2 } from "lucide-react"
+import { ArrowRight, ArrowUpRight, Check, Loader2 } from "lucide-react"
 import type { HumanTaskField, HumanTaskSnapshot } from "@shared/types"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -13,6 +13,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import {
   deriveTaskCardContext,
+  missingRequiredTaskFieldLabels,
   normalizeHumanFieldValue,
   taskActionCopy,
   type TaskStageMeta,
@@ -47,7 +48,12 @@ function compactBlockedStatus(kind: HumanTaskSnapshot["kind"]) {
 
 function compactSavedContext(value: string | null | undefined) {
   if (!value) return null
-  return value.replace(/^Latest result:\s*/i, "").replace(/\.$/, "").trim() || null
+  return (
+    value
+      .replace(/^Latest result:\s*/i, "")
+      .replace(/\.$/, "")
+      .trim() || null
+  )
 }
 
 interface SelectedTaskPanelProps {
@@ -69,9 +75,9 @@ interface SelectedTaskPanelProps {
   showOpenWorkflowButton?: boolean
   inspectLabel?: string | null
   className?: string
-  onOpenWorkflow: () => void
+  onOpenWorkflow?: (() => void) | null
   onFieldChange: (field: HumanTaskField, value: unknown) => void
-  onSubmit: () => void
+  onSubmit?: (() => void) | null
   onSubmitAndContinue: () => void
   onReject: () => void
   onInspect?: (() => void) | null
@@ -88,34 +94,45 @@ export function SelectedTaskPanel({
   showOpenWorkflowButton = true,
   inspectLabel = null,
   className,
-  onOpenWorkflow,
+  onOpenWorkflow = null,
   onFieldChange,
-  onSubmit,
+  onSubmit = null,
   onSubmitAndContinue,
   onReject,
   onInspect = null,
 }: SelectedTaskPanelProps) {
   const taskContext = selectedTask
-    ? deriveTaskCardContext(selectedTask, { stageLabel: selectedTaskStageMeta?.title || null })
+    ? deriveTaskCardContext(selectedTask, {
+        stageLabel: selectedTaskStageMeta?.title || null,
+      })
     : null
-  const currentStepLabel = selectedTaskStageMeta?.title || selectedTask?.title || "Current step"
+  const currentStepLabel =
+    selectedTaskStageMeta?.title || selectedTask?.title || "Current step"
   const panelStatusText = selectedTask
     ? blockedSummary
       ? compactBlockedStatus(selectedTask.kind)
       : taskContext?.statusText || taskActionCopy(selectedTask)
     : ""
   const panelReasonText = selectedTask
-    ? blockedSummary?.reasonText || selectedTask.summary || selectedTask.instructions || "This flow is waiting for your decision."
+    ? blockedSummary?.reasonText ||
+      selectedTask.summary ||
+      selectedTask.instructions ||
+      "This flow is waiting for your decision."
     : ""
   const findingLines = selectedTask
-    ? (blockedSummary?.findings && blockedSummary.findings.length > 0
-        ? blockedSummary.findings
-        : collectFindingLines(
+    ? blockedSummary?.findings && blockedSummary.findings.length > 0
+      ? blockedSummary.findings
+      : collectFindingLines(
           selectedTask.summary,
           selectedTask.instructions,
           selectedTask.request.summary,
           selectedTask.request.instructions,
-        ).filter((line) => normalizePanelLine(line) !== normalizePanelLine(panelReasonText)).slice(0, 3))
+        )
+          .filter(
+            (line) =>
+              normalizePanelLine(line) !== normalizePanelLine(panelReasonText),
+          )
+          .slice(0, 3)
     : []
   const primaryActionLabel = selectedTask
     ? selectedTask.workflowPath
@@ -126,14 +143,49 @@ export function SelectedTaskPanel({
         ? "Approve"
         : "Submit response"
     : "Continue"
+  const missingRequiredLabels = selectedTask
+    ? missingRequiredTaskFieldLabels(selectedTask, taskAnswers)
+    : []
+  const hasMissingRequiredFields = missingRequiredLabels.length > 0
   const savedContextText = compactSavedContext(blockedSummary?.latestResultText)
   const showSavedContext = Boolean(
-    savedContextText
-    && savedContextText.toLowerCase() !== (blockedSummary?.inputText || "").trim().toLowerCase(),
+    savedContextText &&
+    savedContextText.toLowerCase() !==
+      (blockedSummary?.inputText || "").trim().toLowerCase(),
   )
+  const primaryOutcomeLabel =
+    selectedTask?.kind === "approval" ? "On approve" : "On submit"
+  const primaryOutcomeText =
+    blockedSummary?.approveText ||
+    (selectedTask?.kind === "approval"
+      ? "Continue this flow from the blocked step."
+      : "Submit the requested input and continue the flow.")
+  const rejectOutcomeText =
+    blockedSummary?.rejectText || "Stop the flow and keep the current results."
+  const visibleMissingLabels = missingRequiredLabels.slice(0, 3)
+  const hiddenMissingCount = Math.max(
+    0,
+    missingRequiredLabels.length - visibleMissingLabels.length,
+  )
+  const requiredFieldsCopy = hasMissingRequiredFields
+    ? `Complete required fields: ${visibleMissingLabels.join(", ")}${hiddenMissingCount > 0 ? `, +${hiddenMissingCount} more` : ""}.`
+    : null
+  const handlePrimaryAction = () => {
+    if (selectedTask?.workflowPath) {
+      onSubmitAndContinue()
+      return
+    }
+    onSubmit?.()
+  }
+  const panelAriaLabel = selectedTask
+    ? `${currentStepLabel} task details`
+    : "Task details"
 
   return (
-    <article className={className || "rounded-lg bg-surface-1 px-4 py-4"}>
+    <section
+      aria-label={panelAriaLabel}
+      className={className || "surface-figure px-4 py-4"}
+    >
       {taskLoading ? (
         <div className="flex min-h-[260px] items-center justify-center text-muted-foreground">
           <Loader2 size={18} className="mr-2 animate-spin" />
@@ -149,41 +201,63 @@ export function SelectedTaskPanel({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <p className="ui-meta-label text-muted-foreground">Flow</p>
-                <p className="text-body-sm font-medium text-foreground">{selectedTask.workflowName}</p>
+                <p className="text-body-sm font-medium text-foreground">
+                  {selectedTask.workflowName}
+                </p>
               </div>
-              {showOpenWorkflowButton && selectedTask.workflowPath && (
-                <Button type="button" variant="ghost" size="sm" onClick={onOpenWorkflow}>
-                  <ArrowUpRight size={14} />
-                  Open flow
-                </Button>
-              )}
+              {showOpenWorkflowButton &&
+                selectedTask.workflowPath &&
+                onOpenWorkflow && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onOpenWorkflow}
+                  >
+                    <ArrowUpRight size={14} />
+                    Open flow
+                  </Button>
+                )}
             </div>
 
             <div className="grid gap-3 border-t border-hairline pt-2 sm:grid-cols-2">
               <div className="space-y-1">
                 <p className="ui-meta-label text-muted-foreground">Step</p>
-                <p className="text-body-sm text-foreground">{currentStepLabel}</p>
-                {selectedTask.title && selectedTask.title !== currentStepLabel && (
-                  <p className="ui-meta-text text-muted-foreground">{selectedTask.title}</p>
-                )}
+                <p className="text-body-sm text-foreground">
+                  {currentStepLabel}
+                </p>
+                {selectedTask.title &&
+                  selectedTask.title !== currentStepLabel && (
+                    <p className="ui-meta-text text-muted-foreground">
+                      {selectedTask.title}
+                    </p>
+                  )}
               </div>
               <div className="space-y-1">
                 <p className="ui-meta-label text-muted-foreground">Status</p>
-                <p className="text-body-sm text-foreground">{panelStatusText}</p>
+                <p className="text-body-sm text-foreground">
+                  {panelStatusText}
+                </p>
                 {selectedTaskStageMeta?.group && (
-                  <p className="ui-meta-text text-muted-foreground">{selectedTaskStageMeta.group}</p>
+                  <p className="ui-meta-text text-muted-foreground">
+                    {selectedTaskStageMeta.group}
+                  </p>
                 )}
               </div>
             </div>
 
             <div className="space-y-1 border-t border-hairline pt-2">
               <p className="ui-meta-label text-muted-foreground">Reason</p>
-              <p className="text-body-sm text-foreground whitespace-pre-wrap">{panelReasonText}</p>
+              <p className="text-body-sm text-foreground whitespace-pre-wrap">
+                {panelReasonText}
+              </p>
             </div>
 
             {findingLines.length > 0 && (
               <div className="space-y-1 border-t border-hairline pt-2">
-                <p className="ui-meta-label text-muted-foreground">Top findings</p>
+                <p className="ui-meta-label text-muted-foreground">
+                  Top findings
+                </p>
                 <div className="space-y-1">
                   {findingLines.map((finding) => (
                     <p key={finding} className="text-body-sm text-foreground">
@@ -194,63 +268,92 @@ export function SelectedTaskPanel({
               </div>
             )}
 
-            {(blockedSummary?.inputText || blockedSummary?.latestResultText) && (
+            {(blockedSummary?.inputText ||
+              blockedSummary?.latestResultText) && (
               <div className="space-y-2 border-t border-hairline pt-2">
                 <div className="space-y-1">
-                  <p className="ui-meta-label text-muted-foreground">Step input</p>
+                  <p className="ui-meta-label text-muted-foreground">
+                    Step input
+                  </p>
                   <p className="text-body-sm text-foreground">
-                    {blockedSummary?.inputText || "Saved work context is already tied to this step."}
+                    {blockedSummary?.inputText ||
+                      "Saved work context is already tied to this step."}
                   </p>
                 </div>
                 {showSavedContext && (
                   <div className="space-y-1">
-                    <p className="ui-meta-label text-muted-foreground">Saved context</p>
-                    <p className="text-body-sm text-muted-foreground">{savedContextText}</p>
+                    <p className="ui-meta-label text-muted-foreground">
+                      Saved context
+                    </p>
+                    <p className="text-body-sm text-muted-foreground">
+                      {savedContextText}
+                    </p>
                   </div>
                 )}
               </div>
             )}
 
-            {selectedTask.kind === "approval" && (
-              <div className="grid gap-3 border-t border-hairline pt-2 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="ui-meta-label text-muted-foreground">On approve</p>
-                  <p className="text-body-sm text-foreground">
-                    {blockedSummary?.approveText || "Continue this flow from the blocked step."}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="ui-meta-label text-muted-foreground">On reject</p>
-                  <p className="text-body-sm text-foreground">
-                    {blockedSummary?.rejectText || "Stop the flow and keep the current results."}
-                  </p>
-                </div>
+            <div className="grid gap-3 border-t border-hairline pt-2 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="ui-meta-label text-muted-foreground">
+                  {primaryOutcomeLabel}
+                </p>
+                <p className="text-body-sm text-foreground">
+                  {primaryOutcomeText}
+                </p>
               </div>
-            )}
+              <div className="space-y-1">
+                <p className="ui-meta-label text-muted-foreground">On reject</p>
+                <p className="text-body-sm text-foreground">
+                  {rejectOutcomeText}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2.5">
             {selectedTask.request.fields.map((field) => {
-              const value = normalizeHumanFieldValue(field, taskAnswers[field.id])
+              const value = normalizeHumanFieldValue(
+                field,
+                taskAnswers[field.id],
+              )
               const fieldControlId = `selected-task-field-${field.id}`
-              const fieldDescriptionId = field.description ? `${fieldControlId}-description` : undefined
+              const fieldDescriptionId = field.description
+                ? `${fieldControlId}-description`
+                : undefined
               const requiredMark = field.required ? (
                 <>
-                  <span className="ml-0.5 text-label-xs text-status-danger" aria-hidden="true">*</span>
+                  <span
+                    className="ml-0.5 text-label-xs text-status-danger"
+                    aria-hidden="true"
+                  >
+                    *
+                  </span>
                   <span className="sr-only"> (required)</span>
                 </>
               ) : null
 
               if (field.type === "boolean") {
                 return (
-                  <div key={field.id} className="flex items-start justify-between gap-4 border-t border-hairline pt-2">
+                  <div
+                    key={field.id}
+                    className="flex items-start justify-between gap-4 border-t border-hairline pt-2"
+                  >
                     <div className="min-w-0">
-                      <label htmlFor={fieldControlId} className="text-body-sm font-medium text-foreground">
+                      <label
+                        htmlFor={fieldControlId}
+                        className="text-body-sm font-medium text-foreground"
+                      >
                         {field.label}
                         {requiredMark}
                       </label>
                       {field.description && (
-                        <p id={fieldDescriptionId} className="mt-1 text-body-sm text-muted-foreground">{field.description}</p>
+                        <p
+                          id={fieldDescriptionId}
+                          className="mt-1 text-body-sm text-muted-foreground"
+                        >
+                          {field.description}
+                        </p>
                       )}
                     </div>
                     <Checkbox
@@ -265,17 +368,30 @@ export function SelectedTaskPanel({
 
               if (field.type === "select") {
                 return (
-                  <div key={field.id} className="space-y-2">
-                    <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">
+                  <div
+                    key={field.id}
+                    className="space-y-2 border-t border-hairline pt-2"
+                  >
+                    <label
+                      htmlFor={fieldControlId}
+                      className="text-body-sm font-medium text-foreground"
+                    >
                       {field.label}
                       {requiredMark}
                     </label>
                     {field.description && (
-                      <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
+                      <p
+                        id={fieldDescriptionId}
+                        className="text-body-sm text-muted-foreground"
+                      >
+                        {field.description}
+                      </p>
                     )}
                     <Select
                       value={String(value)}
-                      onValueChange={(nextValue) => onFieldChange(field, nextValue)}
+                      onValueChange={(nextValue) =>
+                        onFieldChange(field, nextValue)
+                      }
                     >
                       <SelectTrigger
                         id={fieldControlId}
@@ -286,7 +402,10 @@ export function SelectedTaskPanel({
                       </SelectTrigger>
                       <SelectContent>
                         {(field.options || []).map((option) => (
-                          <SelectItem key={option.value} value={String(option.value)}>
+                          <SelectItem
+                            key={option.value}
+                            value={String(option.value)}
+                          >
                             {option.label}
                           </SelectItem>
                         ))}
@@ -299,20 +418,32 @@ export function SelectedTaskPanel({
               if (field.type === "multiselect") {
                 const selectedValues = Array.isArray(value) ? value : []
                 return (
-                  <fieldset key={field.id} className="space-y-2 border-t border-hairline pt-2">
-                    <legend className="ui-meta-text text-muted-foreground">
+                  <fieldset
+                    key={field.id}
+                    className="space-y-2 border-t border-hairline pt-2"
+                  >
+                    <legend className="text-body-sm font-medium text-foreground">
                       {field.label}
                       {requiredMark}
                     </legend>
                     {field.description && (
-                      <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
+                      <p
+                        id={fieldDescriptionId}
+                        className="text-body-sm text-muted-foreground"
+                      >
+                        {field.description}
+                      </p>
                     )}
                     <div className="space-y-2">
                       {(field.options || []).map((option) => {
                         const checked = selectedValues.includes(option.value)
                         const optionId = `${fieldControlId}-${String(option.value).replace(/[^a-zA-Z0-9_-]/g, "-")}`
                         return (
-                          <label key={option.value} htmlFor={optionId} className="flex items-center gap-2 text-body-sm text-foreground">
+                          <label
+                            key={option.value}
+                            htmlFor={optionId}
+                            className="flex items-center gap-2 text-body-sm text-foreground"
+                          >
                             <Checkbox
                               id={optionId}
                               checked={checked}
@@ -320,7 +451,9 @@ export function SelectedTaskPanel({
                               onChange={(e) => {
                                 const nextValues = e.target.checked
                                   ? [...selectedValues, option.value]
-                                  : selectedValues.filter((item) => item !== option.value)
+                                  : selectedValues.filter(
+                                      (item) => item !== option.value,
+                                    )
                                 onFieldChange(field, nextValues)
                               }}
                             />
@@ -335,13 +468,24 @@ export function SelectedTaskPanel({
 
               if (field.type === "textarea" || field.type === "json") {
                 return (
-                  <div key={field.id} className="space-y-2">
-                    <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">
+                  <div
+                    key={field.id}
+                    className="space-y-2 border-t border-hairline pt-2"
+                  >
+                    <label
+                      htmlFor={fieldControlId}
+                      className="text-body-sm font-medium text-foreground"
+                    >
                       {field.label}
                       {requiredMark}
                     </label>
                     {field.description && (
-                      <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
+                      <p
+                        id={fieldDescriptionId}
+                        className="text-body-sm text-muted-foreground"
+                      >
+                        {field.description}
+                      </p>
                     )}
                     <Textarea
                       id={fieldControlId}
@@ -349,20 +493,33 @@ export function SelectedTaskPanel({
                       placeholder={field.placeholder}
                       className="min-h-[120px]"
                       aria-describedby={fieldDescriptionId}
-                      onChange={(event) => onFieldChange(field, event.target.value)}
+                      onChange={(event) =>
+                        onFieldChange(field, event.target.value)
+                      }
                     />
                   </div>
                 )
               }
 
               return (
-                <div key={field.id} className="space-y-2">
-                  <label htmlFor={fieldControlId} className="ui-meta-text text-muted-foreground">
+                <div
+                  key={field.id}
+                  className="space-y-2 border-t border-hairline pt-2"
+                >
+                  <label
+                    htmlFor={fieldControlId}
+                    className="text-body-sm font-medium text-foreground"
+                  >
                     {field.label}
                     {requiredMark}
                   </label>
                   {field.description && (
-                    <p id={fieldDescriptionId} className="text-body-sm text-muted-foreground">{field.description}</p>
+                    <p
+                      id={fieldDescriptionId}
+                      className="text-body-sm text-muted-foreground"
+                    >
+                      {field.description}
+                    </p>
                   )}
                   <Input
                     id={fieldControlId}
@@ -370,10 +527,14 @@ export function SelectedTaskPanel({
                     value={String(value)}
                     placeholder={field.placeholder}
                     aria-describedby={fieldDescriptionId}
-                    onChange={(event) => onFieldChange(
-                      field,
-                      field.type === "number" ? Number(event.target.value) : event.target.value,
-                    )}
+                    onChange={(event) =>
+                      onFieldChange(
+                        field,
+                        field.type === "number"
+                          ? Number(event.target.value)
+                          : event.target.value,
+                      )
+                    }
                   />
                 </div>
               )
@@ -384,23 +545,35 @@ export function SelectedTaskPanel({
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                onClick={selectedTask.workflowPath ? onSubmitAndContinue : onSubmit}
-                disabled={taskSubmitting}
+                onClick={handlePrimaryAction}
+                disabled={taskSubmitting || hasMissingRequiredFields}
                 isLoading={taskSubmitting}
+                autoFocus={selectedTask.request.fields.length === 0}
               >
-                {!taskSubmitting && (selectedTask.workflowPath ? <ArrowUpRight size={14} /> : <Check size={14} />)}
+                {!taskSubmitting &&
+                  (selectedTask.kind === "approval" ? (
+                    <Check size={14} />
+                  ) : selectedTask.workflowPath ? (
+                    <ArrowRight size={14} />
+                  ) : (
+                    <Check size={14} />
+                  ))}
                 {primaryActionLabel}
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive"
                 onClick={onReject}
                 disabled={taskSubmitting}
               >
-                {selectedTask.kind === "approval" ? "Reject" : "Reject task"}
+                Reject & stop
               </Button>
             </div>
-            {primaryActionShortcutLabel ? (
+            {requiredFieldsCopy ? (
+              <p className="mt-2 ui-meta-text text-status-warning">
+                {requiredFieldsCopy}
+              </p>
+            ) : primaryActionShortcutLabel ? (
               <p className="mt-2 ui-meta-text text-muted-foreground">
                 {primaryActionShortcutLabel}
               </p>
@@ -421,6 +594,6 @@ export function SelectedTaskPanel({
           </div>
         </div>
       )}
-    </article>
+    </section>
   )
 }

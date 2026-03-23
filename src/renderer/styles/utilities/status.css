@@ -1,0 +1,89 @@
+/* ────────────────────────────────────────────────────────
+   Status utilities — alert containers, status badges,
+   status halos, and empty state layout.
+   ──────────────────────────────────────────────────────── */
+
+.ui-alert-info {
+  border-radius: var(--radius-control);
+  border: 1px solid hsl(var(--status-info) / 0.15);
+  background: hsl(var(--status-info) / 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.ui-alert-warning {
+  border-radius: var(--radius-control);
+  border: 1px solid hsl(var(--status-warning) / 0.15);
+  background: hsl(var(--status-warning) / 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.ui-alert-danger {
+  border-radius: var(--radius-control);
+  border: 1px solid hsl(var(--status-danger) / 0.15);
+  background: hsl(var(--status-danger) / 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.ui-alert-success {
+  border-radius: var(--radius-control);
+  border: 1px solid hsl(var(--status-success) / 0.15);
+  background: hsl(var(--status-success) / 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.ui-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: var(--radius-control);
+  border-width: 1px;
+  padding: 0.125rem 0.5rem;
+}
+
+.ui-status-badge-success {
+  border-color: hsl(var(--status-success) / 0.2);
+  background: hsl(var(--status-success) / 0.06);
+  color: hsl(var(--status-success));
+}
+
+.ui-status-badge-warning {
+  border-color: hsl(var(--status-warning) / 0.2);
+  background: hsl(var(--status-warning) / 0.06);
+  color: hsl(var(--status-warning));
+}
+
+.ui-status-badge-danger {
+  border-color: hsl(var(--status-danger) / 0.2);
+  background: hsl(var(--status-danger) / 0.06);
+  color: hsl(var(--status-danger));
+}
+
+.ui-status-badge-info {
+  border-color: hsl(var(--status-info) / 0.2);
+  background: hsl(var(--status-info) / 0.06);
+  color: hsl(var(--status-info));
+}
+
+.ui-status-halo-danger {
+  border: 1px solid hsl(var(--status-danger) / 0.12);
+  background: hsl(var(--status-danger) / 0.05);
+  color: hsl(var(--status-danger));
+}
+
+.ui-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-block: 2rem;
+  text-align: center;
+}

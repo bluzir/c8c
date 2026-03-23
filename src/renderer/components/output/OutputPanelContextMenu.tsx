@@ -7,8 +7,8 @@ import { CursorMenu } from "@/components/ui/cursor-menu"
 import type { ArtifactRecord } from "@shared/types"
 
 export type OutputPanelContextMenuState =
-  | { x: number, y: number, scope: "result" }
-  | { x: number, y: number, scope: "artifact", artifact: ArtifactRecord }
+  | { x: number; y: number; scope: "result" }
+  | { x: number; y: number; scope: "artifact"; artifact: ArtifactRecord }
   | null
 
 export function OutputPanelContextMenu({

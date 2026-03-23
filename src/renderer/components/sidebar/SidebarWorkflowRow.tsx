@@ -40,13 +40,14 @@ export function SidebarWorkflowRow({
   onRename,
   onContextMenu,
 }: SidebarWorkflowRowProps) {
-  const unreadDotClass = unreadNotification === "success"
-    ? "bg-status-success"
-    : unreadNotification === "warning"
-      ? "bg-status-warning"
-      : unreadNotification === "error"
-        ? "bg-status-danger"
-        : "bg-transparent"
+  const unreadDotClass =
+    unreadNotification === "success"
+      ? "bg-status-success"
+      : unreadNotification === "warning"
+        ? "bg-status-warning"
+        : unreadNotification === "error"
+          ? "bg-status-danger"
+          : "bg-transparent"
 
   return (
     <div
@@ -73,9 +74,7 @@ export function SidebarWorkflowRow({
           }}
           className={cn(
             "ui-pressable min-w-0 flex-1 rounded-md px-1 py-0.5 text-left ui-transition-colors ui-motion-fast focus-visible:outline-none",
-            isSelected
-              ? "hover:bg-transparent"
-              : "hover:bg-sidebar-hover/80",
+            isSelected ? "hover:bg-transparent" : "hover:bg-sidebar-hover/80",
           )}
         >
           <span className="flex min-w-0 items-center gap-1.5">
@@ -107,7 +106,10 @@ export function SidebarWorkflowRow({
                 title={unreadNotificationTitle || undefined}
                 aria-label={unreadNotificationTitle || undefined}
                 role="img"
-                className={cn("inline-flex h-2 w-2 shrink-0 rounded-full ui-transition-colors ui-motion-fast", unreadDotClass)}
+                className={cn(
+                  "inline-flex h-2 w-2 shrink-0 rounded-full ui-transition-colors ui-motion-fast",
+                  unreadDotClass,
+                )}
               />
             )}
             {statusLabel && statusBadgeClass && (
@@ -117,7 +119,13 @@ export function SidebarWorkflowRow({
                   statusBadgeClass,
                 )}
               >
-                {showStatusSpinner ? <Loader2 size={11} className="animate-spin" aria-hidden="true" /> : null}
+                {showStatusSpinner ? (
+                  <Loader2
+                    size={11}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : null}
                 <span>{statusLabel}</span>
               </span>
             )}
@@ -154,7 +162,9 @@ export function SidebarWorkflowRow({
               progressBarClass,
               runStatus === "running" && "ui-running-pulse",
             )}
-            style={{ transform: `scaleX(${showProgressTrack ? progress / 100 : 0})` }}
+            style={{
+              transform: `scaleX(${showProgressTrack ? progress / 100 : 0})`,
+            }}
           />
         </div>
       </div>

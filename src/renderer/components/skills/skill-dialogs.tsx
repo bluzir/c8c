@@ -1,7 +1,4 @@
-import type {
-  InstalledPlugin,
-  MarketplaceSource,
-} from "@shared/types"
+import type { InstalledPlugin, MarketplaceSource } from "@shared/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,18 +52,21 @@ function DependencyWarningDialog({
 
         {refs.length > 0 && (
           <div className="ui-alert-warning space-y-2">
-            <p className="text-body-sm text-status-warning">
-              {warning}
-            </p>
+            <p className="text-body-sm text-status-warning">{warning}</p>
             <div className="flex flex-wrap gap-1">
               {refs.slice(0, 6).map((skillRef) => (
-                <Badge key={skillRef} variant="outline" className="font-mono">{skillRef}</Badge>
+                <Badge key={skillRef} variant="outline" className="font-mono">
+                  {skillRef}
+                </Badge>
               ))}
               {refs.length > 6 && (
                 <Badge variant="outline">+{refs.length - 6} more</Badge>
               )}
             </div>
-            <Label htmlFor={acknowledgeId} className="text-body-sm flex items-center gap-2 cursor-pointer">
+            <Label
+              htmlFor={acknowledgeId}
+              className="text-body-sm flex items-center gap-2 cursor-pointer"
+            >
               <Switch
                 id={acknowledgeId}
                 checked={acknowledgeBrokenRefs}
@@ -81,7 +81,11 @@ function DependencyWarningDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={refs.length > 0 && !acknowledgeBrokenRefs}>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={refs.length > 0 && !acknowledgeBrokenRefs}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>
@@ -125,7 +129,9 @@ export function SkillsPageDialogs({
   onCommitDisablePlugin: () => void
   pendingRemoveMarketplace: MarketplaceSource | null
   pendingRemoveMarketplaceRefs: string[]
-  onPendingRemoveMarketplaceChange: (marketplace: MarketplaceSource | null) => void
+  onPendingRemoveMarketplaceChange: (
+    marketplace: MarketplaceSource | null,
+  ) => void
   onCommitRemoveMarketplace: () => void
   acknowledgeBrokenRefs: boolean
   onAcknowledgeBrokenRefsChange: (nextChecked: boolean) => void
@@ -183,10 +189,15 @@ export function SkillsPageDialogs({
         onConfirm={onCommitRemoveMarketplace}
       />
 
-      <Dialog open={previewLibrary !== null} onOpenChange={(open) => !open && onPreviewLibraryChange(null)}>
+      <Dialog
+        open={previewLibrary !== null}
+        onOpenChange={(open) => !open && onPreviewLibraryChange(null)}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{previewLibrary?.name || "Library"} preview</DialogTitle>
+            <DialogTitle>
+              {previewLibrary?.name || "Library"} preview
+            </DialogTitle>
             <DialogDescription>
               {previewLibrary?.installed
                 ? "Detected skills from this installed library."
@@ -198,16 +209,28 @@ export function SkillsPageDialogs({
             {previewLibrary?.installed && previewItems.length > 0 ? (
               <div className="surface-inset-card max-h-56 space-y-1 overflow-y-auto p-2 ui-scroll-region">
                 {previewItems.slice(0, 20).map((item) => (
-                  <div key={item} className="ui-meta-text font-mono text-foreground-subtle">{item}</div>
+                  <div
+                    key={item}
+                    className="ui-meta-text font-mono text-foreground-subtle"
+                  >
+                    {item}
+                  </div>
                 ))}
                 {previewItems.length > 20 && (
-                  <div className="ui-meta-text text-muted-foreground">+{previewItems.length - 20} more</div>
+                  <div className="ui-meta-text text-muted-foreground">
+                    +{previewItems.length - 20} more
+                  </div>
                 )}
               </div>
             ) : previewHints.length > 0 ? (
               <div className="surface-inset-card space-y-1 p-2">
                 {previewHints.map((item) => (
-                  <div key={item} className="text-body-sm text-foreground-subtle">{item}</div>
+                  <div
+                    key={item}
+                    className="text-body-sm text-foreground-subtle"
+                  >
+                    {item}
+                  </div>
                 ))}
               </div>
             ) : (
@@ -224,19 +247,26 @@ export function SkillsPageDialogs({
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => onPreviewLibraryChange(null)}>
+            <Button
+              variant="ghost"
+              onClick={() => onPreviewLibraryChange(null)}
+            >
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={previewPlugin !== null} onOpenChange={(open) => !open && onPreviewPluginChange(null)}>
+      <Dialog
+        open={previewPlugin !== null}
+        onOpenChange={(open) => !open && onPreviewPluginChange(null)}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{previewPlugin?.name || "Plugin"} preview</DialogTitle>
             <DialogDescription>
-              Packaged skills, library flows, and MCP packs discovered from this installed plugin.
+              Packaged skills, library flows, and MCP packs discovered from this
+              installed plugin.
             </DialogDescription>
           </DialogHeader>
 
@@ -256,13 +286,22 @@ export function SkillsPageDialogs({
 
             {previewPluginSkills.length > 0 && (
               <div className="space-y-1">
-                <p className="ui-body-text-medium text-foreground">Skills</p>
+                <p className="text-body-md font-medium text-foreground">
+                  Skills
+                </p>
                 <div className="surface-inset-card max-h-56 space-y-1 overflow-y-auto p-2 ui-scroll-region">
                   {previewPluginSkills.slice(0, 20).map((item) => (
-                    <div key={item} className="ui-meta-text font-mono text-foreground-subtle">{item}</div>
+                    <div
+                      key={item}
+                      className="ui-meta-text font-mono text-foreground-subtle"
+                    >
+                      {item}
+                    </div>
                   ))}
                   {previewPluginSkills.length > 20 && (
-                    <div className="ui-meta-text text-muted-foreground">+{previewPluginSkills.length - 20} more</div>
+                    <div className="ui-meta-text text-muted-foreground">
+                      +{previewPluginSkills.length - 20} more
+                    </div>
                   )}
                 </div>
               </div>
@@ -270,10 +309,17 @@ export function SkillsPageDialogs({
 
             {previewPluginMcpServers.length > 0 && (
               <div className="space-y-1">
-                <p className="ui-body-text-medium text-foreground">MCP packs</p>
+                <p className="text-body-md font-medium text-foreground">
+                  MCP packs
+                </p>
                 <div className="surface-inset-card space-y-1 p-2">
                   {previewPluginMcpServers.map((serverName) => (
-                    <div key={serverName} className="ui-meta-text font-mono text-foreground-subtle">{serverName}</div>
+                    <div
+                      key={serverName}
+                      className="ui-meta-text font-mono text-foreground-subtle"
+                    >
+                      {serverName}
+                    </div>
                   ))}
                 </div>
               </div>

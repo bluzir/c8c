@@ -75,43 +75,51 @@ const CanvasDialogContent = React.forwardRef<
     showCloseButton?: boolean
     size?: "sm" | "md" | "lg" | "xl"
   }
->(({ className, children, showCloseButton = true, size = "md", ...props }, ref) => {
-  const sizeClass =
-    size === "sm" ? "w-[360px] max-w-[calc(100%-2rem)]"
-    : size === "lg" ? "w-[600px] max-w-[calc(100%-2rem)]"
-    : size === "xl" ? "w-[min(100%-2rem,72rem)]"
-    : "w-[420px] max-w-[calc(100%-2rem)]"
+>(
+  (
+    { className, children, showCloseButton = true, size = "md", ...props },
+    ref,
+  ) => {
+    const sizeClass =
+      size === "sm"
+        ? "w-[360px] max-w-[calc(100%-2rem)]"
+        : size === "lg"
+          ? "w-[600px] max-w-[calc(100%-2rem)]"
+          : size === "xl"
+            ? "w-[min(100%-2rem,72rem)]"
+            : "w-[420px] max-w-[calc(100%-2rem)]"
 
-  return (
-    <DialogPortal>
-      <DialogPrimitive.Overlay
-        className={cn(
-          "fixed inset-0 z-50 ui-overlay-scrim",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        )}
-      />
-      <DialogPrimitive.Content
-        ref={ref}
-        data-canvas-dialog
-        className={cn(
-          "fixed left-[50%] top-[50%] z-50 max-h-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-lg surface-elevated overflow-hidden",
-          sizeClass,
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/10 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/10 data-[state=open]:slide-in-from-top-[48%]",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close className="ui-focus-managed absolute right-3 top-3 h-control-sm w-control-sm rounded-md flex items-center justify-center text-muted-foreground ui-transition-colors ui-motion-fast hover:bg-surface-3 hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/14">
-            <Cross2Icon className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
-    </DialogPortal>
-  )
-})
+    return (
+      <DialogPortal>
+        <DialogPrimitive.Overlay
+          className={cn(
+            "fixed inset-0 z-50 ui-overlay-scrim",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          )}
+        />
+        <DialogPrimitive.Content
+          ref={ref}
+          data-canvas-dialog
+          className={cn(
+            "fixed left-[50%] top-[50%] z-50 max-h-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-lg surface-elevated overflow-hidden",
+            sizeClass,
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/10 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/10 data-[state=open]:slide-in-from-top-[48%]",
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close className="ui-focus-managed absolute right-3 top-3 h-control-sm w-control-sm rounded-md flex items-center justify-center text-muted-foreground ui-transition-colors ui-motion-fast hover:bg-surface-3 hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/14">
+              <Cross2Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    )
+  },
+)
 CanvasDialogContent.displayName = "CanvasDialogContent"
 
 const CanvasDialogHeader = ({
@@ -149,10 +157,7 @@ const DialogHeader = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      "flex flex-col space-y-2 text-left",
-      className,
-    )}
+    className={cn("flex flex-col space-y-2 text-left", className)}
     {...props}
   />
 )
@@ -163,10 +168,7 @@ const DialogFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      "flex items-center justify-end gap-2",
-      className,
-    )}
+    className={cn("flex items-center justify-end gap-2", className)}
     {...props}
   />
 )
@@ -178,10 +180,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-title-md",
-      className,
-    )}
+    className={cn("text-title-md", className)}
     {...props}
   />
 ))

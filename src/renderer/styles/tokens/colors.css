@@ -1,0 +1,94 @@
+/* ── Color tokens ──
+   HSL channel values for light/dark mode switching.
+   Used via hsl(var(--token)) in utilities and components.
+*/
+
+@layer base {
+  :root {
+    --background: 220 6% 91%;
+    --foreground: 220 10% 10%;
+    --card: var(--surface-1);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface-1);
+    --popover-foreground: var(--foreground);
+    --primary: 220 6% 8%;
+    --primary-foreground: 0 0% 99%;
+    --secondary: 220 6% 94%;
+    --secondary-foreground: 220 8% 16%;
+    --muted: 220 6% 93%;
+    --muted-foreground: 220 5% 36%;
+    --accent: 220 6% 91%;
+    --accent-foreground: 220 8% 16%;
+    --destructive: 0 55% 46%;
+    --destructive-foreground: 0 0% 99%;
+    --border: 220 6% 84%;
+    --input: 220 6% 82%;
+    --input-background: var(--surface-2);
+    --ring: 220 6% 8%;
+    --hairline: 220 6% 76%;
+    --surface-1: 220 6% 99%;
+    --surface-2: 220 6% 95%;
+    --surface-3: 220 6% 91%;
+    --sidebar-bg: 220 6% 93%;
+    --sidebar-active: 220 6% 99%;
+    --sidebar-hover: 220 6% 90%;
+    --focus-strong: 0 0% 8%;
+    --status-success: 145 30% 36%;
+    --status-warning: 31 79% 35%;
+    --status-danger: 0 60% 45%;
+    --status-info: 215 26% 37%;
+    --selection: 0 0% 9% / 0.14;
+
+    --hljs-keyword: 280 60% 48%;
+    --hljs-string: 140 45% 38%;
+    --hljs-number: 30 65% 45%;
+    --hljs-title: 210 60% 45%;
+    --hljs-built-in: 180 45% 38%;
+    --hljs-attr: 45 65% 42%;
+    --hljs-deletion: 0 55% 45%;
+  }
+
+  .dark {
+    --background: 226 17% 9%;
+    --foreground: 0 0% 97%;
+    --card: var(--surface-1);
+    --card-foreground: var(--foreground);
+    --popover: var(--surface-1);
+    --popover-foreground: var(--foreground);
+    --primary: 0 0% 98%;
+    --primary-foreground: 222 17% 10%;
+    --secondary: 226 12% 15%;
+    --secondary-foreground: 0 0% 97%;
+    --muted: 226 10% 15%;
+    --muted-foreground: 220 10% 67%;
+    --accent: 226 11% 18%;
+    --accent-foreground: 0 0% 97%;
+    --destructive: 0 55% 42%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 226 11% 23%;
+    --input: 226 10% 24%;
+    --input-background: var(--surface-2);
+    --ring: 0 0% 98%;
+    --hairline: 226 10% 28%;
+    --surface-1: 226 16% 10%;
+    --surface-2: 226 14% 12%;
+    --surface-3: 226 12% 15%;
+    --sidebar-bg: 226 14% 11%;
+    --sidebar-active: 226 10% 18%;
+    --sidebar-hover: 226 10% 16%;
+    --focus-strong: 0 0% 98%;
+    --status-success: 145 33% 45%;
+    --status-warning: 35 72% 58%;
+    --status-danger: 0 65% 56%;
+    --status-info: 215 35% 62%;
+    --selection: 0 0% 98% / 0.2;
+
+    --hljs-keyword: 280 80% 72%;
+    --hljs-string: 140 60% 65%;
+    --hljs-number: 30 80% 70%;
+    --hljs-title: 210 80% 72%;
+    --hljs-built-in: 180 60% 65%;
+    --hljs-attr: 45 80% 70%;
+    --hljs-deletion: 0 70% 65%;
+  }
+}

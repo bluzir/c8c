@@ -14,7 +14,11 @@ import {
 import { cn } from "@/lib/cn"
 import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume"
 import type { WorkflowResumeEntrySummary } from "@/lib/workflow-resume-entry"
-import type { ArtifactContract, ArtifactRecord, PersistedRunSnapshot } from "@shared/types"
+import type {
+  ArtifactContract,
+  ArtifactRecord,
+  PersistedRunSnapshot,
+} from "@shared/types"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
 import type { ExecutionSurfaceNotice } from "@/lib/workflow-execution"
 
@@ -30,7 +34,10 @@ export function WorkflowSettingsTab({
   onDismissSurfaceNotice,
 }: WorkflowSettingsTabProps) {
   return (
-    <TabsContent value="settings" className="mt-0 ui-scroll-region flex-1 min-h-0 overflow-y-auto ui-fade-slide-in">
+    <TabsContent
+      value="settings"
+      className="mt-0 ui-scroll-region flex-1 min-h-0 overflow-y-auto ui-fade-slide-in"
+    >
       <div className="ui-content-shell py-6 space-y-6">
         {surfaceNotice && (
           <ExecutionSurfaceNoticeBanner
@@ -128,7 +135,8 @@ export function WorkflowListTab({
   outputPanelRef,
   outputPanelProps,
 }: WorkflowListTabProps) {
-  const reviewOutputPanelClassName = "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col"
+  const reviewOutputPanelClassName =
+    "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col"
   const liveOutputPanelClassName = cn(
     "scroll-mt-4 flex min-h-[var(--output-panel-min-height)] flex-col",
     !terminalResultOwnsLayout && "flex-1",
@@ -149,7 +157,11 @@ export function WorkflowListTab({
               <>
                 <WorkflowResumeHeader
                   entry={activeEntryState}
-                  displayTitle={resumeEntrySummary?.workLabel || activeEntryState.title || workflowName}
+                  displayTitle={
+                    resumeEntrySummary?.workLabel ||
+                    activeEntryState.title ||
+                    workflowName
+                  }
                   readyToRun={readyToRun}
                   startApprovalRequired={startApprovalRequired}
                   stageLabel={entryStageLabel}
@@ -158,7 +170,12 @@ export function WorkflowListTab({
                   nextStepLabel={entryNextStepLabel}
                   inputLabels={stageStartInputLabels}
                   onPrimaryAction={onPrimaryEntryAction}
-                  primaryActionLabel={blockedResumeSummary?.primaryActionLabel || (readyToRun ? (resumeEntrySummary?.continueLabel || "Run") : "Add input")}
+                  primaryActionLabel={
+                    blockedResumeSummary?.primaryActionLabel ||
+                    (readyToRun
+                      ? resumeEntrySummary?.continueLabel || "Run"
+                      : "Add input")
+                  }
                 />
                 {!blockedResumeSummary && (
                   <StageInputSection
@@ -175,7 +192,9 @@ export function WorkflowListTab({
               </>
             )}
             {blockedTaskPanel}
-            {showIdleStageContract && !terminalResultOwnsLayout && idleStageContract && (
+            {showIdleStageContract &&
+              !terminalResultOwnsLayout &&
+              idleStageContract && (
                 <WorkflowIdleStageContract
                   title={idleStageContract.title}
                   resultLabel={idleStageContract.resultLabel}
@@ -185,7 +204,12 @@ export function WorkflowListTab({
                   inputLabels={idleStageContract.inputLabels}
                   showNeeds={idleStageContract.showNeeds}
                   onPrimaryAction={onPrimaryEntryAction}
-                  primaryActionLabel={blockedResumeSummary?.primaryActionLabel || (readyToRun ? (resumeEntrySummary?.continueLabel || "Run") : "Add input")}
+                  primaryActionLabel={
+                    blockedResumeSummary?.primaryActionLabel ||
+                    (readyToRun
+                      ? resumeEntrySummary?.continueLabel || "Run"
+                      : "Add input")
+                  }
                 />
               )}
             {showIdleInputPanel && !terminalResultOwnsLayout && (
@@ -228,7 +252,10 @@ export function WorkflowListTab({
                 className={liveOutputPanelClassName}
               >
                 <SectionErrorBoundary sectionName="output panel">
-                  <OutputPanel {...outputPanelProps} fillHeight={!terminalResultOwnsLayout} />
+                  <OutputPanel
+                    {...outputPanelProps}
+                    fillHeight={!terminalResultOwnsLayout}
+                  />
                 </SectionErrorBoundary>
               </div>
             )}

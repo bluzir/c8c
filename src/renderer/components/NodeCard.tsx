@@ -1,4 +1,12 @@
-import { Eye, Pencil, AlertCircle, ArrowDown, ArrowUp, ChevronDown, X } from "lucide-react"
+import {
+  Eye,
+  Pencil,
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  X,
+} from "lucide-react"
 
 import { cn } from "@/lib/cn"
 import type {
@@ -13,7 +21,11 @@ import type {
   ApprovalNodeConfig,
   HumanNodeConfig,
 } from "@shared/types"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { NODE_ICON_TONES } from "@/lib/node-ui-config"
@@ -49,7 +61,17 @@ interface NodeCardProps {
   onMoveDown?: () => void
   moveUpDisabledReason?: string | null
   moveDownDisabledReason?: string | null
-  onConfigChange: (config: InputNodeConfig | OutputNodeConfig | SkillNodeConfig | EvaluatorNodeConfig | SplitterNodeConfig | MergerNodeConfig | ApprovalNodeConfig | HumanNodeConfig) => void
+  onConfigChange: (
+    config:
+      | InputNodeConfig
+      | OutputNodeConfig
+      | SkillNodeConfig
+      | EvaluatorNodeConfig
+      | SplitterNodeConfig
+      | MergerNodeConfig
+      | ApprovalNodeConfig
+      | HumanNodeConfig,
+  ) => void
   onSelect: () => void
   resolveNodeLabel?: (nodeId: string) => string
   runtimeMode?: boolean
@@ -148,8 +170,7 @@ export function NodeCard({
   return (
     <div
       className={cn(
-        "ui-fade-slide-in surface-panel overflow-hidden transition-[border-color,box-shadow] ui-motion-fast",
-        compact ? "rounded-md" : "rounded-lg",
+        "ui-fade-slide-in overflow-hidden rounded-lg border border-hairline transition-[border-color] ui-motion-fast",
         isActive && "ring-2 ring-primary/20",
         hasValidationErrors && !isActive && "ring-2 ring-status-danger/40",
         statusClass,
@@ -158,7 +179,7 @@ export function NodeCard({
       {/* Header */}
       <div
         className={cn(
-          "group flex items-start bg-gradient-to-b from-surface-1 to-surface-2/60",
+          "group flex items-start",
           compact ? "gap-2 px-2.5 py-1.5" : "gap-3 px-3 py-2.5",
         )}
       >
@@ -180,18 +201,28 @@ export function NodeCard({
             className={cn(
               "shrink-0 rounded-md border flex items-center justify-center ui-elevation-inset",
               compact ? "h-6 w-6 mt-0" : "h-control-sm w-control-sm mt-0.5",
-              NODE_ICON_TONES[node.type] || "border-hairline bg-surface-1 text-muted-foreground",
+              NODE_ICON_TONES[node.type] ||
+                "border-hairline bg-surface-1 text-muted-foreground",
             )}
           >
-            <Icon
-              size={compact ? 13 : 14}
-              className="flex-shrink-0"
-            />
+            <Icon size={compact ? 13 : 14} className="flex-shrink-0" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className={cn("min-w-0", compact ? "space-y-0.5 pt-0" : "space-y-1 pt-0.5")}>
-              <span className={cn("block font-medium truncate", compact ? "text-body-sm leading-5" : "text-body-md")}>{title}</span>
+            <div
+              className={cn(
+                "min-w-0",
+                compact ? "space-y-0.5 pt-0" : "space-y-1 pt-0.5",
+              )}
+            >
+              <span
+                className={cn(
+                  "block font-medium truncate",
+                  compact ? "text-body-sm leading-5" : "text-body-md",
+                )}
+              >
+                {title}
+              </span>
               {isSkill && !expanded && skillConfig?.prompt && (
                 <p className={previewTextClass}>
                   {skillConfig.prompt.slice(0, 80)}
@@ -200,7 +231,8 @@ export function NodeCard({
               )}
               {isEvaluator && !expanded && evalConfig && (
                 <p className={previewTextClass}>
-                  Threshold: {evalConfig.threshold}/10 · Max {evalConfig.maxRetries} retries
+                  Threshold: {evalConfig.threshold}/10 · Max{" "}
+                  {evalConfig.maxRetries} retries
                   {retryLabel ? ` · Retry: ${retryLabel}` : ""}
                 </p>
               )}
@@ -216,7 +248,8 @@ export function NodeCard({
               )}
               {isInput && !expanded && inputConfig && !compact && (
                 <p className={previewTextClass}>
-                  {inputConfig.required === false ? "Optional" : "Required"} · {inputConfig.inputType || "auto"} input
+                  {inputConfig.required === false ? "Optional" : "Required"} ·{" "}
+                  {inputConfig.inputType || "auto"} input
                 </p>
               )}
               {isOutput && !expanded && outputConfig && (
@@ -235,7 +268,9 @@ export function NodeCard({
                 </p>
               )}
               {isSkill && skillConfig?.permissionMode && (
-                <div className={cn("ui-badge-row", compact ? "pt-0" : "pt-0.5")}>
+                <div
+                  className={cn("ui-badge-row", compact ? "pt-0" : "pt-0.5")}
+                >
                   <Badge
                     variant="outline"
                     className={cn(
@@ -245,14 +280,23 @@ export function NodeCard({
                         : "text-status-warning border-status-warning/30",
                     )}
                   >
-                    {skillConfig.permissionMode === "plan" ? <Eye size={10} /> : <Pencil size={10} />}
+                    {skillConfig.permissionMode === "plan" ? (
+                      <Eye size={10} />
+                    ) : (
+                      <Pencil size={10} />
+                    )}
                     {skillConfig.permissionMode === "plan" ? "Plan" : "Edit"}
                   </Badge>
                 </div>
               )}
               {showStatusBadge && (
-                <div className={cn("ui-badge-row", compact ? "pt-0" : "pt-0.5")}>
-                  <Badge variant="outline" className="px-1.5 py-0 ui-meta-text text-muted-foreground">
+                <div
+                  className={cn("ui-badge-row", compact ? "pt-0" : "pt-0.5")}
+                >
+                  <Badge
+                    variant="outline"
+                    className="px-1.5 py-0 ui-meta-text text-muted-foreground"
+                  >
                     {statusLabel}
                   </Badge>
                 </div>
@@ -293,7 +337,9 @@ export function NodeCard({
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{moveUpDisabledReason || "Move up (Alt+Up)"}</TooltipContent>
+              <TooltipContent>
+                {moveUpDisabledReason || "Move up (Alt+Up)"}
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -308,7 +354,9 @@ export function NodeCard({
                     disabled={Boolean(moveDownDisabledReason)}
                     variant="ghost"
                     size="icon"
-                    title={moveDownDisabledReason || "Move step down (Alt+Down)"}
+                    title={
+                      moveDownDisabledReason || "Move step down (Alt+Down)"
+                    }
                     className={cn(
                       "ui-pressable rounded-md text-muted-foreground hover:bg-surface-3 disabled:text-muted-foreground/70",
                       compact ? "h-6 w-6" : "h-control-sm w-control-sm",
@@ -318,7 +366,9 @@ export function NodeCard({
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{moveDownDisabledReason || "Move down (Alt+Down)"}</TooltipContent>
+              <TooltipContent>
+                {moveDownDisabledReason || "Move down (Alt+Down)"}
+              </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -373,7 +423,9 @@ export function NodeCard({
                 "ui-pressable rounded-md text-muted-foreground hover:bg-surface-3",
                 compact ? "h-6 w-6 mt-0" : "h-control-sm w-control-sm mt-0.5",
               )}
-              aria-label={expanded ? "Collapse node settings" : "Expand node settings"}
+              aria-label={
+                expanded ? "Collapse node settings" : "Expand node settings"
+              }
               aria-expanded={expanded}
             >
               <ChevronDown
@@ -401,14 +453,21 @@ export function NodeCard({
 
       {/* Validation errors */}
       <div
-        data-open={!runtimeMode && remainingValidationErrors.length > 0 ? "true" : "false"}
+        data-open={
+          !runtimeMode && remainingValidationErrors.length > 0
+            ? "true"
+            : "false"
+        }
         className="ui-collapsible"
         aria-live="polite"
       >
         <div className="ui-collapsible-inner">
           <div className="px-3 pb-2 pt-1 border-t border-status-danger/20 bg-status-danger/10 space-y-1">
             {remainingValidationErrors.map((err) => (
-              <p key={`${err.field}-${err.severity}`} className="ui-meta-text text-status-danger">
+              <p
+                key={`${err.field}-${err.severity}`}
+                className="ui-meta-text text-status-danger"
+              >
                 {err.message}
               </p>
             ))}
@@ -418,15 +477,25 @@ export function NodeCard({
 
       {/* Expanded node-type editors */}
       <div
-        data-open={!runtimeMode && expanded && hasExpandedPanel ? "true" : "false"}
+        data-open={
+          !runtimeMode && expanded && hasExpandedPanel ? "true" : "false"
+        }
         className="ui-collapsible"
       >
         <div className="ui-collapsible-inner">
           {isInput && inputConfig && (
-            <InputNodeEditor nodeId={node.id} config={inputConfig} onConfigChange={onConfigChange} />
+            <InputNodeEditor
+              nodeId={node.id}
+              config={inputConfig}
+              onConfigChange={onConfigChange}
+            />
           )}
           {isOutput && outputConfig && (
-            <OutputNodeEditor nodeId={node.id} config={outputConfig} onConfigChange={onConfigChange} />
+            <OutputNodeEditor
+              nodeId={node.id}
+              config={outputConfig}
+              onConfigChange={onConfigChange}
+            />
           )}
           {isSkill && skillConfig && (
             <SkillNodeEditor
@@ -461,10 +530,18 @@ export function NodeCard({
             />
           )}
           {isApproval && approvalConfig && (
-            <ApprovalNodeEditor nodeId={node.id} config={approvalConfig} onConfigChange={onConfigChange} />
+            <ApprovalNodeEditor
+              nodeId={node.id}
+              config={approvalConfig}
+              onConfigChange={onConfigChange}
+            />
           )}
           {isHuman && humanConfig && (
-            <HumanNodeEditor nodeId={node.id} config={humanConfig} onConfigChange={onConfigChange} />
+            <HumanNodeEditor
+              nodeId={node.id}
+              config={humanConfig}
+              onConfigChange={onConfigChange}
+            />
           )}
         </div>
       </div>

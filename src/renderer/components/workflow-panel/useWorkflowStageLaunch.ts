@@ -2,14 +2,20 @@ import { useCallback, useEffect, useState } from "react"
 
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
+import { contextAutoRunsOnContinue } from "@/lib/stage-run-policy"
 import {
-  contextAutoRunsOnContinue,
-} from "@/lib/stage-run-policy"
-import { deriveTemplateContinuationLabel, deriveTemplateDisplayLabel, deriveTemplateJobLabel } from "@/lib/workflow-entry"
+  deriveTemplateContinuationLabel,
+  deriveTemplateDisplayLabel,
+  deriveTemplateJobLabel,
+} from "@/lib/workflow-entry"
 import { toastErrorFromCatch } from "@/lib/toast-error"
 import type { WorkflowTemplateRunContext } from "@/lib/workflow-entry"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
-import type { ArtifactRecord, PermissionMode, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  PermissionMode,
+  WorkflowTemplate,
+} from "@shared/types"
 
 interface OpenPreparedTemplateStageOptions {
   autoRunIfAllowed: boolean
@@ -49,69 +55,95 @@ export function useWorkflowStageLaunch({
 }) {
   const [stageStartGateOpen, setStageStartGateOpen] = useState(false)
   const [pendingRunMode, setPendingRunMode] = useState<PermissionMode>("edit")
-  const [pendingAutoRunPath, setPendingAutoRunPath] = useState<string | null>(null)
+  const [pendingAutoRunPath, setPendingAutoRunPath] = useState<string | null>(
+    null,
+  )
   const [launchingNextStage, setLaunchingNextStage] = useState(false)
+  const [runLaunchPending, setRunLaunchPending] = useState(false)
 
-  const handleRunRequest = useCallback(async (mode: PermissionMode = "edit") => {
-    if (startApprovalRequired) {
-      setPendingRunMode(mode)
-      setStageStartGateOpen(true)
-      return
-    }
-    await run(mode)
-  }, [run, startApprovalRequired])
+  const handleRunRequest = useCallback(
+    async (mode: PermissionMode = "edit") => {
+      if (runLaunchPending) return
+      if (startApprovalRequired) {
+        setPendingRunMode(mode)
+        setStageStartGateOpen(true)
+        return
+      }
+      setRunLaunchPending(true)
+      try {
+        await run(mode)
+      } finally {
+        setRunLaunchPending(false)
+      }
+    },
+    [run, runLaunchPending, startApprovalRequired],
+  )
 
   const handleApproveStageStart = useCallback(async () => {
+    if (runLaunchPending) return
     const mode = pendingRunMode
     setStageStartGateOpen(false)
-    await run(mode)
-  }, [pendingRunMode, run])
+    setRunLaunchPending(true)
+    try {
+      await run(mode)
+    } finally {
+      setRunLaunchPending(false)
+    }
+  }, [pendingRunMode, run, runLaunchPending])
 
   const handleCancelStageStart = useCallback(() => {
     setStageStartGateOpen(false)
     setPendingRunMode("edit")
   }, [])
 
-  const queuePreparedStageAutoRun = useCallback(({
-    filePath,
-    autoRunIfAllowed,
-    requiresApproval,
-  }: {
-    filePath: string
-    autoRunIfAllowed: boolean
-    requiresApproval: boolean
-  }) => {
-    setPendingAutoRunPath(autoRunIfAllowed && !requiresApproval ? filePath : null)
-  }, [])
+  const queuePreparedStageAutoRun = useCallback(
+    ({
+      filePath,
+      autoRunIfAllowed,
+      requiresApproval,
+    }: {
+      filePath: string
+      autoRunIfAllowed: boolean
+      requiresApproval: boolean
+    }) => {
+      setPendingAutoRunPath(
+        autoRunIfAllowed && !requiresApproval ? filePath : null,
+      )
+    },
+    [],
+  )
 
-  const runNextStage = useCallback(async (openPreparedTemplateStage: OpenPreparedTemplateStage) => {
-    if (!selectedProject || !nextStageTemplate || launchingNextStage) return
+  const runNextStage = useCallback(
+    async (openPreparedTemplateStage: OpenPreparedTemplateStage) => {
+      if (!selectedProject || !nextStageTemplate || launchingNextStage) return
 
-    setLaunchingNextStage(true)
-    try {
-      const launch = await prepareTemplateStageLaunch({
-        projectPath: selectedProject,
-        template: nextStageTemplate,
-        webSearchBackend,
-        artifacts: nextStageArtifacts,
-      })
-      openPreparedTemplateStage(launch, {
-        autoRunIfAllowed: true,
-        successMessage: `Continuing to ${deriveTemplateContinuationLabel(nextStageTemplate) || deriveTemplateJobLabel(nextStageTemplate) || deriveTemplateDisplayLabel(nextStageTemplate) || nextStageTemplate.name}`,
-        approvalMessage: `Opened step awaiting approval: ${deriveTemplateContinuationLabel(nextStageTemplate) || deriveTemplateJobLabel(nextStageTemplate) || deriveTemplateDisplayLabel(nextStageTemplate) || nextStageTemplate.name}`,
-      })
-    } catch (error) {
-      toastErrorFromCatch("Could not open the next step", error)
-    } finally {
-      setLaunchingNextStage(false)
-    }
-  }, [
-    launchingNextStage,
-    nextStageArtifacts,
-    nextStageTemplate,
-    selectedProject,
-    webSearchBackend,
-  ])
+      setLaunchingNextStage(true)
+      try {
+        const launch = await prepareTemplateStageLaunch({
+          projectPath: selectedProject,
+          template: nextStageTemplate,
+          webSearchBackend,
+          artifacts: nextStageArtifacts,
+        })
+        openPreparedTemplateStage(launch, {
+          autoRunIfAllowed: true,
+          successMessage: `Continuing to ${deriveTemplateContinuationLabel(nextStageTemplate) || deriveTemplateJobLabel(nextStageTemplate) || deriveTemplateDisplayLabel(nextStageTemplate) || nextStageTemplate.name}`,
+          approvalMessage: `Opened step awaiting approval: ${deriveTemplateContinuationLabel(nextStageTemplate) || deriveTemplateJobLabel(nextStageTemplate) || deriveTemplateDisplayLabel(nextStageTemplate) || nextStageTemplate.name}`,
+        })
+      } catch (error) {
+        toastErrorFromCatch("Could not open the next step", error)
+      } finally {
+        setLaunchingNextStage(false)
+      }
+    },
+    [
+      launchingNextStage,
+      nextStageArtifacts,
+      nextStageTemplate,
+      selectedProject,
+      webSearchBackend,
+    ],
+  )
 
   useEffect(() => {
     if (runStatus === "idle") return
@@ -133,7 +165,13 @@ export function useWorkflowStageLaunch({
 
     setPendingAutoRunPath(null)
     void handleRunRequest()
-  }, [handleRunRequest, pendingAutoRunPath, runStatus, selectedWorkflowPath, selectedWorkflowTemplateContext])
+  }, [
+    handleRunRequest,
+    pendingAutoRunPath,
+    runStatus,
+    selectedWorkflowPath,
+    selectedWorkflowTemplateContext,
+  ])
 
   useEffect(() => {
     if (!queuedAutoRunPath || !selectedWorkflowPath) return
@@ -167,5 +205,6 @@ export function useWorkflowStageLaunch({
     queuePreparedStageAutoRun,
     runNextStage,
     launchingNextStage,
+    runLaunchPending,
   }
 }

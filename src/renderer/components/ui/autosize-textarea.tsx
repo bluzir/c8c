@@ -7,34 +7,41 @@ function resizeTextarea(element: HTMLTextAreaElement, maxHeight: number) {
   element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`
 }
 
-export interface AutosizeTextareaProps extends React.ComponentProps<typeof Textarea> {
+export interface AutosizeTextareaProps extends React.ComponentProps<
+  typeof Textarea
+> {
   maxHeight?: number
 }
 
-export const AutosizeTextarea = React.forwardRef<HTMLTextAreaElement, AutosizeTextareaProps>(
-  ({ maxHeight = 240, onChange, value, style, ...props }, forwardedRef) => {
-    const innerRef = React.useRef<HTMLTextAreaElement | null>(null)
+export const AutosizeTextarea = React.forwardRef<
+  HTMLTextAreaElement,
+  AutosizeTextareaProps
+>(({ maxHeight = 240, onChange, value, style, ...props }, forwardedRef) => {
+  const innerRef = React.useRef<HTMLTextAreaElement | null>(null)
 
-    React.useImperativeHandle(forwardedRef, () => innerRef.current as HTMLTextAreaElement, [])
+  React.useImperativeHandle(
+    forwardedRef,
+    () => innerRef.current as HTMLTextAreaElement,
+    [],
+  )
 
-    React.useEffect(() => {
-      if (!innerRef.current) return
-      resizeTextarea(innerRef.current, maxHeight)
-    }, [maxHeight, value])
+  React.useEffect(() => {
+    if (!innerRef.current) return
+    resizeTextarea(innerRef.current, maxHeight)
+  }, [maxHeight, value])
 
-    return (
-      <Textarea
-        {...props}
-        ref={innerRef}
-        value={value}
-        style={style}
-        onChange={(event) => {
-          resizeTextarea(event.currentTarget, maxHeight)
-          onChange?.(event)
-        }}
-      />
-    )
-  },
-)
+  return (
+    <Textarea
+      {...props}
+      ref={innerRef}
+      value={value}
+      style={style}
+      onChange={(event) => {
+        resizeTextarea(event.currentTarget, maxHeight)
+        onChange?.(event)
+      }}
+    />
+  )
+})
 
 AutosizeTextarea.displayName = "AutosizeTextarea"

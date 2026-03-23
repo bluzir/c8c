@@ -7,7 +7,11 @@ import {
 } from "react"
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "@/lib/sidebar-layout"
 
-export { SIDEBAR_DEFAULT_WIDTH, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "@/lib/sidebar-layout"
+export {
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+} from "@/lib/sidebar-layout"
 
 export function clampSidebarWidth(width: number): number {
   return Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, width))
@@ -28,7 +32,9 @@ export function useSidebarResize(
     setResizing(true)
 
     const handleMove = (moveEvent: PointerEvent) => {
-      setSidebarWidth(clampSidebarWidth(startWidth + (moveEvent.clientX - startX)))
+      setSidebarWidth(
+        clampSidebarWidth(startWidth + (moveEvent.clientX - startX)),
+      )
     }
 
     const stopResize = () => {
@@ -45,7 +51,10 @@ export function useSidebarResize(
 
   const handleResizeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const baseStep = event.shiftKey ? 24 : 12
-    const keyStep = (event.key === "PageUp" || event.key === "PageDown") ? baseStep * 2 : baseStep
+    const keyStep =
+      event.key === "PageUp" || event.key === "PageDown"
+        ? baseStep * 2
+        : baseStep
     let nextWidth = sidebarWidth
 
     if (event.key === "ArrowLeft" || event.key === "PageUp") {

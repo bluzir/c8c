@@ -1,10 +1,7 @@
 import { useRef, useEffect } from "react"
 import { File } from "lucide-react"
 import { cn } from "@/lib/cn"
-import {
-  overlayContent,
-  overlayItem,
-} from "@/lib/overlay-styles"
+import { overlayContent, overlayItem } from "@/lib/overlay-styles"
 
 interface AtMentionDropdownProps {
   files: { name: string; relativePath: string }[]

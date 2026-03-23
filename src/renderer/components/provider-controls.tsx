@@ -34,13 +34,18 @@ export function ProviderSelect({
 }) {
   const labels = labelMode === "short" ? PROVIDER_SHORT_LABELS : PROVIDER_LABELS
   return (
-    <Select value={value} onValueChange={(next) => onValueChange(next as ProviderId)}>
+    <Select
+      value={value}
+      onValueChange={(next) => onValueChange(next as ProviderId)}
+    >
       <SelectTrigger id={id} className={className} aria-label={ariaLabel}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="claude">{labels.claude}</SelectItem>
-        <SelectItem value="codex" disabled={!codexEnabled}>{labels.codex}</SelectItem>
+        <SelectItem value="codex" disabled={!codexEnabled}>
+          {labels.codex}
+        </SelectItem>
       </SelectContent>
     </Select>
   )
@@ -102,9 +107,10 @@ export function ProviderModelSelect({
 }) {
   const models = getProviderModels(provider)
   const selectedValue = value.trim()
-  const options = selectedValue && !models.includes(selectedValue)
-    ? [selectedValue, ...models]
-    : models
+  const options =
+    selectedValue && !models.includes(selectedValue)
+      ? [selectedValue, ...models]
+      : models
 
   return (
     <Select value={selectedValue} onValueChange={onValueChange}>
@@ -118,7 +124,9 @@ export function ProviderModelSelect({
       <SelectContent>
         {options.map((model) => (
           <SelectItem key={model} value={model}>
-            <span className={cn(monospace && "font-mono tracking-[-0.01em]")}>{model}</span>
+            <span className={cn(monospace && "font-mono tracking-[-0.01em]")}>
+              {model}
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

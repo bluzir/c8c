@@ -20,7 +20,9 @@ export function CancelFlowConfirmDialog({
   runStartedAt,
   onConfirmCancel,
 }: CancelFlowConfirmDialogProps) {
-  const [displayMinutes, setDisplayMinutes] = useState(() => formatRunningMinutes(runStartedAt))
+  const [displayMinutes, setDisplayMinutes] = useState(() =>
+    formatRunningMinutes(runStartedAt),
+  )
 
   useEffect(() => {
     if (!open) return
@@ -32,12 +34,12 @@ export function CancelFlowConfirmDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Cancel this flow?"
-      description={(
+      description={
         <>
-          This flow has been running for {displayMinutes} minutes.
-          {" "}Cancelling will stop all remaining steps but keep any partial results.
+          This flow has been running for {displayMinutes} minutes. Cancelling
+          will stop all remaining steps but keep any partial results.
         </>
-      )}
+      }
       confirmLabel="Cancel flow"
       cancelLabel="Keep running"
       onConfirm={onConfirmCancel}

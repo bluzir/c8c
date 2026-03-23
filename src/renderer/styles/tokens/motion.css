@@ -1,0 +1,14 @@
+/* ── Motion and easing tokens ── */
+
+@layer base {
+  :root {
+    --motion-fast: 140ms;
+    --motion-base: 170ms;
+    --motion-slow: 220ms;
+    --motion-press-scale: 0.982;
+    --motion-press-shift: 0.5px;
+    --motion-reveal-distance: 0.375rem;
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}

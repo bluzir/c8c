@@ -10,7 +10,11 @@ import {
   PanelLeftClose,
 } from "lucide-react"
 import { SidebarNavItem } from "@/components/sidebar/SidebarNavItem"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { ReactNode } from "react"
 
 type ProjectSidebarChromeProps = {
@@ -82,7 +86,9 @@ export function ProjectSidebarChrome({
         </div>
       ) : null}
 
-      <div className="px-2.5 pt-2.5 pb-1 section-kicker text-muted-foreground">Workspace</div>
+      <div className="px-2.5 pt-2.5 pb-1 section-kicker text-muted-foreground">
+        Workspace
+      </div>
       <div className="space-y-px px-1.5 pb-2">
         <SidebarNavItem
           icon={Workflow}
@@ -92,7 +98,9 @@ export function ProjectSidebarChrome({
         />
       </div>
 
-      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">Browse</div>
+      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">
+        Browse
+      </div>
       <div className="space-y-px px-1.5 pb-2">
         <SidebarNavItem
           icon={LayoutTemplate}
@@ -114,7 +122,9 @@ export function ProjectSidebarChrome({
         />
       </div>
 
-      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">Review</div>
+      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">
+        Review
+      </div>
       <div className="space-y-px px-1.5 pb-1">
         <SidebarNavItem
           icon={Activity}

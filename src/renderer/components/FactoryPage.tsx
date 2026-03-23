@@ -44,10 +44,17 @@ import {
   type FactoryRunEntry,
 } from "@/components/factory/factory-page-helpers"
 import { Button } from "@/components/ui/button"
-import { PageHeader, PageShell, SectionHeading } from "@/components/ui/page-shell"
+import {
+  PageHeader,
+  PageShell,
+  SectionHeading,
+} from "@/components/ui/page-shell"
 import { SummaryRail } from "@/components/ui/summary-rail"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatRelativeTime, projectFolderName } from "@/components/sidebar/projectSidebarUtils"
+import {
+  formatRelativeTime,
+  projectFolderName,
+} from "@/components/sidebar/projectSidebarUtils"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import {
@@ -68,7 +75,11 @@ import {
   webSearchBackendAtom,
   workflowsAtom,
 } from "@/lib/store"
-import { workflowExecutionStatesAtom, pastRunsAtom, selectedPastRunAtom } from "@/features/execution"
+import {
+  workflowExecutionStatesAtom,
+  pastRunsAtom,
+  selectedPastRunAtom,
+} from "@/features/execution"
 import { formatResultModeLabel } from "@/lib/result-mode-factory"
 import { buildRunProgressSummary, formatElapsedTime } from "@/lib/run-progress"
 import {
@@ -91,7 +102,9 @@ import type {
 export function FactoryPage() {
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [, setMainView] = useAtom(mainViewAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
   const [, setWorkflow] = useAtom(currentWorkflowAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [, setWorkflows] = useAtom(workflowsAtom)
@@ -101,7 +114,9 @@ export function FactoryPage() {
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const [workflowExecutionStates] = useAtom(workflowExecutionStatesAtom)
   const [pastRuns] = useAtom(pastRunsAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
@@ -132,11 +147,17 @@ export function FactoryPage() {
   } = useFactoryResources(selectedProject)
   const [factoryBlueprintSaving, setFactoryBlueprintSaving] = useState(false)
   const [editingFactoryBlueprint, setEditingFactoryBlueprint] = useState(false)
-  const [blueprintDraft, setBlueprintDraft] = useState<FactoryBlueprintDraft>(createEmptyBlueprintDraft())
+  const [blueprintDraft, setBlueprintDraft] = useState<FactoryBlueprintDraft>(
+    createEmptyBlueprintDraft(),
+  )
   const [spawningCases, setSpawningCases] = useState(false)
   const [draftFactoryId, setDraftFactoryId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"operations" | "setup">("operations")
-  const [selectedFactoryId, setSelectedFactoryId] = useAtom(selectedFactoryIdAtom)
+  const [activeTab, setActiveTab] = useState<"operations" | "setup">(
+    "operations",
+  )
+  const [selectedFactoryId, setSelectedFactoryId] = useAtom(
+    selectedFactoryIdAtom,
+  )
   const [selectedCaseId, setSelectedCaseId] = useAtom(selectedFactoryCaseIdAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
 
@@ -192,23 +213,36 @@ export function FactoryPage() {
     workflowTemplateContexts,
   })
 
-  const focusCase = useCallback((caseId: string) => {
-    setSelectedCaseId(caseId)
-  }, [setSelectedCaseId])
+  const focusCase = useCallback(
+    (caseId: string) => {
+      setSelectedCaseId(caseId)
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector("[data-factory-case-shell='true']")
+          ?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          })
+      })
+    },
+    [setSelectedCaseId],
+  )
   useEffect(() => {
     if (editingFactoryBlueprint) return
-    setBlueprintDraft(buildBlueprintDraft(selectedFactoryDefinition, selectedPackRecipes))
+    setBlueprintDraft(
+      buildBlueprintDraft(selectedFactoryDefinition, selectedPackRecipes),
+    )
   }, [editingFactoryBlueprint, selectedFactoryDefinition, selectedPackRecipes])
 
-  const handleFactoryBlueprintFieldChange = useCallback((
-    key: keyof FactoryBlueprintDraft,
-    value: string,
-  ) => {
-    setBlueprintDraft((previous) => ({
-      ...previous,
-      [key]: value,
-    }))
-  }, [])
+  const handleFactoryBlueprintFieldChange = useCallback(
+    (key: keyof FactoryBlueprintDraft, value: string) => {
+      setBlueprintDraft((previous) => ({
+        ...previous,
+        [key]: value,
+      }))
+    },
+    [],
+  )
 
   const saveFactoryBlueprint = useCallback(async () => {
     if (!selectedProject) return
@@ -222,13 +256,25 @@ export function FactoryPage() {
       ])
       const targetCount = blueprintDraft.targetCount.trim()
       const fallbackId = `factory:${Date.now().toString(36)}`
-      const persistedFactoryId = selectedFactoryDefinition?.id
-        || (effectiveSelectedFactoryId?.startsWith("factory:") ? effectiveSelectedFactoryId : null)
-        || buildFactoryIdFromLabel(blueprintDraft.factoryLabel || blueprintDraft.outcomeTitle || "factory", fallbackId)
+      const persistedFactoryId =
+        selectedFactoryDefinition?.id ||
+        (effectiveSelectedFactoryId?.startsWith("factory:")
+          ? effectiveSelectedFactoryId
+          : null) ||
+        buildFactoryIdFromLabel(
+          blueprintDraft.factoryLabel ||
+            blueprintDraft.outcomeTitle ||
+            "factory",
+          fallbackId,
+        )
       const nextFactory: ProjectFactoryDefinition = {
         id: persistedFactoryId,
         modeId: selectedFactoryDefinition?.modeId,
-        label: blueprintDraft.factoryLabel.trim() || blueprintDraft.outcomeTitle.trim() || selectedFactoryOption?.label || "Untitled lab",
+        label:
+          blueprintDraft.factoryLabel.trim() ||
+          blueprintDraft.outcomeTitle.trim() ||
+          selectedFactoryOption?.label ||
+          "Untitled lab",
         outcome: {
           title: blueprintDraft.outcomeTitle,
           statement: blueprintDraft.outcomeStatement,
@@ -247,13 +293,19 @@ export function FactoryPage() {
           stageOrder: splitLines(blueprintDraft.stageOrderText),
           artifactContracts: splitLines(blueprintDraft.artifactContractsText),
           qualityPolicy: splitLines(blueprintDraft.qualityPolicyText),
-          strategistCheckpoints: splitLines(blueprintDraft.strategistCheckpointsText),
-          caseGenerationRules: splitLines(blueprintDraft.caseGenerationRulesText),
+          strategistCheckpoints: splitLines(
+            blueprintDraft.strategistCheckpointsText,
+          ),
+          caseGenerationRules: splitLines(
+            blueprintDraft.caseGenerationRulesText,
+          ),
         },
         createdAt: selectedFactoryDefinition?.createdAt || Date.now(),
         updatedAt: Date.now(),
       }
-      const existingFactories = (factoryBlueprint?.factories || []).filter((factory) => factory.id !== selectedFactoryDefinition?.id)
+      const existingFactories = (factoryBlueprint?.factories || []).filter(
+        (factory) => factory.id !== selectedFactoryDefinition?.id,
+      )
       const saved = await window.api.saveProjectFactoryBlueprint({
         projectPath: selectedProject,
         blueprint: {
@@ -293,7 +345,17 @@ export function FactoryPage() {
   }, [setSelectedFactoryId])
 
   const spawnPlannedCases = useCallback(async () => {
-    if (!selectedProject || !effectiveSelectedFactoryId || !spawnCandidateArtifact || !spawnTemplateCandidate) return
+    if (
+      !selectedProject ||
+      !effectiveSelectedFactoryId ||
+      !spawnCandidateArtifact ||
+      !spawnTemplateCandidate
+    )
+      return
+    const confirmed = window.confirm(
+      `Create new tracks from "${spawnCandidateArtifact.title}"? Existing tracks will stay in place.`,
+    )
+    if (!confirmed) return
 
     setSpawningCases(true)
     setFactoryStateError(null)
@@ -307,10 +369,13 @@ export function FactoryPage() {
       setFactoryState(result.state)
       if (result.plannedCases.length === 0) {
         toast.message("No new tracks were added", {
-          description: "This planning result already spawned the current tracks.",
+          description:
+            "This planning result already spawned the current tracks.",
         })
       } else {
-        toast.success(`Spawned ${result.plannedCases.length} track${result.plannedCases.length === 1 ? "" : "s"}`)
+        toast.success(
+          `Spawned ${result.plannedCases.length} track${result.plannedCases.length === 1 ? "" : "s"}`,
+        )
       }
     } catch (error) {
       const message = errorToUserMessage(error)
@@ -366,12 +431,16 @@ export function FactoryPage() {
           <PageHeader
             title="Lab"
             subtitle="Choose a project in the sidebar to see live work, approvals, reusable artifacts, and next steps."
-            actions={(
-              <Button variant="outline" size="sm" onClick={() => setMainView("thread")}>
+            actions={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMainView("thread")}
+              >
                 <FolderOpen size={14} />
                 Back to flow
               </Button>
-            )}
+            }
           />
         </PageShell>
         {unsavedChangesDialog}
@@ -384,35 +453,58 @@ export function FactoryPage() {
       <PageShell>
         <PageHeader
           title="Lab"
-          subtitle={`Advanced project view for outcomes, results, live work, and approvals in ${projectFolderName(selectedProject)}.`}
-          actions={(
+          subtitle={`Advanced project view for outcomes, results, live work, and approvals in ${projectFolderName(selectedProject)}. Lab is in beta.`}
+          actions={
             <>
-              <Button variant="outline" size="sm" onClick={() => setMainView("artifacts")}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMainView("artifacts")}
+              >
                 <FileStack size={14} />
                 Open results
               </Button>
-              <Button variant="outline" size="sm" onClick={() => {
-                setSelectedInboxTaskKey(null)
-                setMainView("inbox")
-              }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedInboxTaskKey(null)
+                  setMainView("inbox")
+                }}
+              >
                 <Inbox size={14} />
                 Open inbox
               </Button>
-              <Button variant="outline" size="sm" onClick={() => void refreshFactoryData()} disabled={humanTasksLoading || artifactsLoading}>
-                {(humanTasksLoading || artifactsLoading) ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void refreshFactoryData()}
+                disabled={humanTasksLoading || artifactsLoading}
+              >
+                {humanTasksLoading || artifactsLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={14} />
+                )}
                 Refresh
               </Button>
             </>
-          )}
+          }
         />
 
         <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-surface-2/30 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 ui-slab px-4 py-3">
             <div className="space-y-0.5">
               <p className="ui-meta-label text-muted-foreground">Project</p>
-              <p className="text-body-md font-medium text-foreground">{projectFolderName(selectedProject)}</p>
+              <p className="text-body-md font-medium text-foreground">
+                {projectFolderName(selectedProject)}
+              </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setMainView("templates")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMainView("templates")}
+            >
               <Rocket size={14} />
               Library
             </Button>
@@ -436,11 +528,16 @@ export function FactoryPage() {
 
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as "operations" | "setup")}
+            onValueChange={(value) =>
+              setActiveTab(value as "operations" | "setup")
+            }
             className="space-y-4"
           >
             <TabsList className="h-control-md">
-              <TabsTrigger value="operations" className="px-3 py-1 text-body-sm">
+              <TabsTrigger
+                value="operations"
+                className="px-3 py-1 text-body-sm"
+              >
                 Operations
               </TabsTrigger>
               <TabsTrigger value="setup" className="px-3 py-1 text-body-sm">
@@ -460,7 +557,12 @@ export function FactoryPage() {
                 selectedPackRecipes={selectedPackRecipes}
                 onCancelEditing={() => {
                   setEditingFactoryBlueprint(false)
-                  setBlueprintDraft(buildBlueprintDraft(selectedFactoryDefinition, selectedPackRecipes))
+                  setBlueprintDraft(
+                    buildBlueprintDraft(
+                      selectedFactoryDefinition,
+                      selectedPackRecipes,
+                    ),
+                  )
                   setDraftFactoryId(null)
                 }}
                 onFieldChange={handleFactoryBlueprintFieldChange}

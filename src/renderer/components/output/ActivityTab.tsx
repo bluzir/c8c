@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SelectedStepSummaryPanel } from "@/components/output/SelectedStepSummaryPanel"
@@ -23,21 +24,26 @@ interface SummaryBranchAggregate {
 }
 
 function compactLine(items: Array<string | null | undefined>) {
-  return items.filter((item): item is string => Boolean(item && item.trim())).join(" · ")
+  return items
+    .filter((item): item is string => Boolean(item && item.trim()))
+    .join(" · ")
 }
 
 function formatBranchAggregate(summary: SummaryBranchAggregate) {
-  const lead = summary.running > 0
-    ? `${summary.running}/${summary.total} active`
-    : summary.waitingApproval > 0
-      ? `${summary.waitingApproval}/${summary.total} blocked`
-      : summary.completed > 0
-        ? `${summary.completed}/${summary.total} done`
-        : `${summary.total} branches`
+  const lead =
+    summary.running > 0
+      ? `${summary.running}/${summary.total} active`
+      : summary.waitingApproval > 0
+        ? `${summary.waitingApproval}/${summary.total} blocked`
+        : summary.completed > 0
+          ? `${summary.completed}/${summary.total} done`
+          : `${summary.total} branches`
 
   return compactLine([
     lead,
-    summary.failed > 0 ? `${summary.failed} issue${summary.failed === 1 ? "" : "s"}` : null,
+    summary.failed > 0
+      ? `${summary.failed} issue${summary.failed === 1 ? "" : "s"}`
+      : null,
   ])
 }
 
@@ -50,7 +56,8 @@ function formatBranchStatus(status: string) {
 }
 
 function branchStatusBadgeClass(status: string) {
-  if (status === "waiting_approval" || status === "waiting_human") return "ui-status-badge-warning"
+  if (status === "waiting_approval" || status === "waiting_human")
+    return "ui-status-badge-warning"
   if (status === "running") return "ui-status-badge-info"
   if (status === "failed") return "ui-status-badge-danger"
   if (status === "completed") return "ui-status-badge-success"
@@ -75,22 +82,43 @@ function SummaryRow({
   children?: ReactNode
 }) {
   return (
-    <div className="border-b border-hairline px-1 py-3 first:pt-0 last:border-b-0 last:pb-0">
+    <div className="border-b border-hairline py-4 first:pt-0 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className={cn("ui-meta-label", toneClassName || "text-muted-foreground")}>{kicker}</div>
-          <div className="mt-1 text-body-sm font-medium text-foreground">{headline}</div>
-          {detail ? <div className={cn("mt-1 ui-meta-text text-muted-foreground", detailClassName)}>{detail}</div> : null}
+          <div
+            className={cn(
+              "ui-meta-label",
+              toneClassName || "text-muted-foreground",
+            )}
+          >
+            {kicker}
+          </div>
+          <div className="mt-1 text-body-sm font-medium text-foreground">
+            {headline}
+          </div>
+          {detail ? (
+            <div
+              className={cn(
+                "mt-1 ui-meta-text text-muted-foreground",
+                detailClassName,
+              )}
+            >
+              {detail}
+            </div>
+          ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {children ? <div className="mt-2 flex flex-wrap gap-2">{children}</div> : null}
+      {children ? (
+        <div className="mt-2 flex flex-wrap gap-2">{children}</div>
+      ) : null}
     </div>
   )
 }
 
 export function ActivityTab({
   showIdleState,
+  isStartingState,
   selectedStagePresentation,
   selectedStageContextLabelClass,
   selectedStageContextLabel,
@@ -107,6 +135,7 @@ export function ActivityTab({
   runAttentionNotice,
 }: {
   showIdleState: boolean
+  isStartingState: boolean
   selectedStagePresentation: RuntimeStagePresentation | null
   selectedStageContextLabelClass: string
   selectedStageContextLabel: string
@@ -126,14 +155,43 @@ export function ActivityTab({
     return (
       <div className="space-y-2 px-1 py-1">
         <div className="ui-meta-text text-muted-foreground">
-          No summary yet. Run this flow to review progress, fan-out status, and result readiness here.
+          No summary yet. Run this flow to review progress, fan-out status, and
+          result readiness here.
+        </div>
+      </div>
+    )
+  }
+
+  const showStartingPlaceholder =
+    isStartingState &&
+    !selectedStagePresentation &&
+    runProgressItems.length === 0 &&
+    !resultReadyLabel &&
+    !selectedStageBranchSummary &&
+    !runAttentionNotice
+
+  if (showStartingPlaceholder) {
+    return (
+      <div className="flex items-start gap-3 py-1">
+        <Loader2
+          size={16}
+          className="mt-0.5 shrink-0 animate-spin text-muted-foreground"
+        />
+        <div className="min-w-0">
+          <div className="ui-meta-label text-muted-foreground">Starting</div>
+          <div className="mt-1 text-body-sm font-medium text-foreground">
+            Preparing your flow
+          </div>
+          <div className="mt-1 ui-meta-text text-muted-foreground">
+            Waiting for the first step to begin.
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-0">
       {selectedStagePresentation && (
         <SelectedStepSummaryPanel
           selectedStagePresentation={selectedStagePresentation}
@@ -141,17 +199,19 @@ export function ActivityTab({
           selectedStageContextLabel={selectedStageContextLabel}
           selectedStageBranchLabel={selectedStageBranchLabel}
           selectedStageBranchDetail={selectedStageBranchDetail}
-          action={onViewStepLog ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
-              onClick={onViewStepLog}
-            >
-              View step log
-            </Button>
-          ) : null}
+          action={
+            onViewStepLog ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+                onClick={onViewStepLog}
+              >
+                View step log
+              </Button>
+            ) : null
+          }
         />
       )}
 
@@ -168,18 +228,24 @@ export function ActivityTab({
       <SummaryRow
         kicker="Result"
         headline={resultReadyLabel ? "Ready to inspect" : "No result yet"}
-        detail={resultReadyLabel ? `${resultReadyLabel}. Open the result surface to inspect or copy the latest artifact.` : "A result link will appear here as soon as the run produces one."}
-        action={resultReadyLabel && onViewResult ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
-            onClick={onViewResult}
-          >
-            View result
-          </Button>
-        ) : null}
+        detail={
+          resultReadyLabel
+            ? `${resultReadyLabel}. Open the result surface to inspect or copy the latest artifact.`
+            : "A result link will appear here as soon as the run produces one."
+        }
+        action={
+          resultReadyLabel && onViewResult ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+              onClick={onViewResult}
+            >
+              View result
+            </Button>
+          ) : null
+        }
       />
 
       {selectedStageBranchSummary ? (
@@ -192,7 +258,9 @@ export function ActivityTab({
             const content = (
               <>
                 <span className="truncate">{preview.label}</span>
-                <span className="opacity-70">{formatBranchStatus(preview.status)}</span>
+                <span className="opacity-70">
+                  {formatBranchStatus(preview.status)}
+                </span>
               </>
             )
 
@@ -229,7 +297,9 @@ export function ActivityTab({
         </SummaryRow>
       ) : null}
 
-      {runAttentionNotice}
+      {runAttentionNotice ? (
+        <div className="py-4">{runAttentionNotice}</div>
+      ) : null}
     </div>
   )
 }

@@ -1,0 +1,36 @@
+/* ── Spacing, sizing, and radius tokens ── */
+
+@layer base {
+  :root {
+    --titlebar-height: 0px;
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-7: 2rem;
+    --space-8: 2.5rem;
+    --rhythm-1: 0.5rem;
+    --rhythm-2: 0.8125rem;
+    --rhythm-3: 1.3125rem;
+    --rhythm-4: 2.125rem;
+    --content-gutter: 1.5rem;
+    --output-panel-min-height: 12.5rem;
+    --content-max-width: 72rem;
+    --dialog-gutter: var(--content-gutter);
+
+    --control-xs: 1.25rem;
+    --control-sm: 1.75rem;
+    --control-md: 2.25rem;
+    --control-lg: 2.5rem;
+
+    --radius-control: 0.5rem;
+    --radius-container: 0.75rem;
+  }
+
+  :root[data-platform="macos"] {
+    --titlebar-height: 2rem;
+  }
+}

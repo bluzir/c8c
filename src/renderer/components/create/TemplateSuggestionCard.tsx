@@ -26,7 +26,9 @@ export function TemplateSuggestionCard({
       onClick={() => onSelect(template)}
       className="h-auto w-full !items-start gap-3 rounded-xl px-2 py-2 text-left !whitespace-normal ui-transition-colors ui-motion-fast hover:bg-surface-2/45"
     >
-      <span className="mt-0.5 text-base leading-none" aria-hidden>{template.emoji}</span>
+      <span className="mt-0.5 text-base leading-none" aria-hidden>
+        {template.emoji}
+      </span>
       <div className="min-w-0 flex-1 space-y-1">
         {eyebrow || recommended ? (
           <div className="flex flex-wrap items-center gap-1.5 text-body-xs text-muted-foreground">
@@ -56,7 +58,7 @@ export function PendingTemplateDetails({
   if (!intentLabel && !executionSummary) return null
 
   return (
-    <div className="space-y-3 border-t border-hairline/70 pt-4">
+    <div className="space-y-3 ui-section-divider pt-4">
       <div className="flex flex-wrap gap-3">
         {intentLabel ? (
           <div className="space-y-1">

@@ -26,8 +26,16 @@ const SEVERITY_STYLES: Record<
   SkillSafetyWarning["severity"],
   { surface: string; text: string; icon: LucideIcon }
 > = {
-  danger: { surface: "surface-danger-soft", text: "text-status-danger", icon: ShieldAlert },
-  warning: { surface: "surface-warning-soft", text: "text-status-warning", icon: AlertTriangle },
+  danger: {
+    surface: "surface-danger-soft",
+    text: "text-status-danger",
+    icon: ShieldAlert,
+  },
+  warning: {
+    surface: "surface-warning-soft",
+    text: "text-status-warning",
+    icon: AlertTriangle,
+  },
   info: { surface: "surface-info-soft", text: "text-status-info", icon: Info },
 }
 
@@ -67,7 +75,8 @@ export function SkillDetailPanel({
     void loadContent()
   }, [loadContent])
 
-  const metaItems: Array<{ icon: LucideIcon; label: string; value: string }> = []
+  const metaItems: Array<{ icon: LucideIcon; label: string; value: string }> =
+    []
   const sourceKind = getSkillSourceKind(skill)
   const sourceLabel = getSkillSourceLabel(skill)
 
@@ -75,22 +84,40 @@ export function SkillDetailPanel({
     metaItems.push({ icon: Cpu, label: "Model", value: skill.model })
   }
   if (skill.maxTurns != null) {
-    metaItems.push({ icon: RotateCw, label: "Max turns", value: String(skill.maxTurns) })
+    metaItems.push({
+      icon: RotateCw,
+      label: "Max turns",
+      value: String(skill.maxTurns),
+    })
   }
   if (sourceKind === "library") {
-    metaItems.push({ icon: Library, label: "Library", value: skill.library || "library" })
+    metaItems.push({
+      icon: Library,
+      label: "Library",
+      value: skill.library || "library",
+    })
   }
   if (sourceKind === "plugin") {
     metaItems.push({ icon: Package, label: "Plugin", value: sourceLabel })
     if (skill.marketplaceName) {
-      metaItems.push({ icon: Library, label: "Marketplace", value: skill.marketplaceName })
+      metaItems.push({
+        icon: Library,
+        label: "Marketplace",
+        value: skill.marketplaceName,
+      })
     }
   }
 
   const toolsList = skill.tools ?? skill.allowedTools ?? []
 
   const safetyWarnings = useMemo(
-    () => (content ? analyzeSkillSafety(content, toolsList.length > 0 ? toolsList : undefined) : []),
+    () =>
+      content
+        ? analyzeSkillSafety(
+            content,
+            toolsList.length > 0 ? toolsList : undefined,
+          )
+        : [],
     [content, toolsList],
   )
 
@@ -104,7 +131,7 @@ export function SkillDetailPanel({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="ui-title-text">{skill.name}</h2>
+              <h2 className="text-title-lg">{skill.name}</h2>
               <Badge variant="outline" size="compact">
                 {skill.type}
               </Badge>
@@ -137,10 +164,15 @@ export function SkillDetailPanel({
           {metaItems.length > 0 && (
             <div className="space-y-2.5">
               {metaItems.map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-center gap-2 text-body-sm">
+                <div
+                  key={label}
+                  className="flex items-center gap-2 text-body-sm"
+                >
                   <Icon size={14} className="text-muted-foreground shrink-0" />
                   <span className="ui-meta-label">{label}:</span>
-                  <span className="text-body-sm text-foreground font-medium">{value}</span>
+                  <span className="text-body-sm text-foreground font-medium">
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
@@ -148,12 +180,20 @@ export function SkillDetailPanel({
 
           {toolsList.length > 0 && (
             <div className="flex items-start gap-2 text-body-sm">
-              <Wrench size={14} className="text-muted-foreground shrink-0 mt-0.5" />
+              <Wrench
+                size={14}
+                className="text-muted-foreground shrink-0 mt-0.5"
+              />
               <div>
                 <span className="ui-meta-label">Tools:</span>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {toolsList.map((tool) => (
-                    <Badge key={tool} variant="secondary" size="compact" className="font-mono">
+                    <Badge
+                      key={tool}
+                      variant="secondary"
+                      size="compact"
+                      className="font-mono"
+                    >
                       {tool}
                     </Badge>
                   ))}
@@ -178,15 +218,22 @@ export function SkillDetailPanel({
               {skill.path}
             </button>
           </div>
-          {(sourceKind === "library" || sourceKind === "plugin" || sourceKind === "user") && (
+          {(sourceKind === "library" ||
+            sourceKind === "plugin" ||
+            sourceKind === "user") && (
             <div className="flex items-center gap-2 text-body-sm">
               {sourceKind === "plugin" ? (
                 <Package size={14} className="text-muted-foreground shrink-0" />
               ) : (
-                <FolderOpen size={14} className="text-muted-foreground shrink-0" />
+                <FolderOpen
+                  size={14}
+                  className="text-muted-foreground shrink-0"
+                />
               )}
               <span className="ui-meta-label">Source:</span>
-              <span className="text-body-sm text-foreground">{sourceLabel}</span>
+              <span className="text-body-sm text-foreground">
+                {sourceLabel}
+              </span>
             </div>
           )}
         </div>
@@ -214,7 +261,10 @@ export function SkillDetailPanel({
                       key={index}
                       className={`flex items-start gap-2 rounded-lg px-3 py-2 text-body-sm ${style.surface}`}
                     >
-                      <WarnIcon size={14} className={`${style.text} mt-0.5 shrink-0`} />
+                      <WarnIcon
+                        size={14}
+                        className={`${style.text} mt-0.5 shrink-0`}
+                      />
                       <span className={style.text}>{warning.message}</span>
                     </div>
                   )
@@ -241,7 +291,9 @@ export function SkillDetailPanel({
             size="sm"
             onClick={onAddToWorkflow}
             disabled={!canAddToWorkflow}
-            title={addDisabledReason || "Attach this skill to the current flow."}
+            title={
+              addDisabledReason || "Attach this skill to the current flow."
+            }
             className="w-full"
           >
             Attach to flow

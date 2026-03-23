@@ -39,7 +39,10 @@ import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import { selectedPastRunAtom } from "@/features/execution"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
 import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
-import { applyWorkflowDetailBudget, clampDetailBudget } from "@/lib/workflow-detail-budget"
+import {
+  applyWorkflowDetailBudget,
+  clampDetailBudget,
+} from "@/lib/workflow-detail-budget"
 import {
   EMPTY_WORKFLOW_CREATE_SCAFFOLD,
   hasWorkflowCreatePromptContent,
@@ -49,11 +52,7 @@ import { projectFolderName } from "@/components/sidebar/projectSidebarUtils"
 import { toast } from "sonner"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { errorToUserMessage } from "@/lib/error-message"
-import {
-  ArrowUp,
-  Check,
-  Loader2,
-} from "lucide-react"
+import { ArrowUp, Check, Loader2 } from "lucide-react"
 import type {
   CreateEntryRouteClarification,
   CreateEntryHelpModeHint,
@@ -75,17 +74,18 @@ import {
   normalizeResultModeConfig,
 } from "@/lib/result-mode-config"
 import { getResultMode } from "@/lib/result-modes"
-import {
-  sanitizeDirectCreateFallbackTemplateId,
-} from "@shared/create-entry-routing"
+import { sanitizeDirectCreateFallbackTemplateId } from "@shared/create-entry-routing"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
-import { buildTemplateStartState, buildTemplateStartStateFromRoute } from "@/lib/template-start"
+import {
+  buildTemplateStartState,
+  buildTemplateStartStateFromRoute,
+} from "@/lib/template-start"
 import { shouldAutoRunCreateStart } from "@/lib/workflow-create-start-policy"
 import {
-  PendingTemplateDialog,
   RouteClarificationDialog,
+  WorkflowCreatePendingTemplateDialog,
   type RouteClarificationSelection,
 } from "@/components/create/WorkflowCreateDialogs"
 import { WorkflowCreateProjectPicker } from "@/components/create/WorkflowCreateProjectPicker"
@@ -96,12 +96,16 @@ import { WorkflowCreateComposerFooter } from "@/components/create/WorkflowCreate
 import { useWorkflowCreateContinuation } from "@/components/create/useWorkflowCreateContinuation"
 import { useWorkflowCreateDerivedState } from "@/components/create/useWorkflowCreateDerivedState"
 import { useWorkflowCreateResources } from "@/components/create/useWorkflowCreateResources"
-import { taskSelectionKey, toContinuationRun } from "@/components/notifications/task-ui"
+import {
+  taskSelectionKey,
+  toContinuationRun,
+} from "@/components/notifications/task-ui"
 import type { WorkflowCreateContinuationCandidate } from "@/lib/workflow-create-continuation"
 
 const POPULAR_TEMPLATE_LIMIT = 12
 const CREATE_SURFACE_MAX_WIDTH = "max-w-5xl"
 const DEVELOPMENT_ROUTING_MIN_VISIBLE_MS = 550
+type WorkflowCreateRoutingPhase = "inspecting" | "opening"
 
 function waitForMs(ms: number) {
   return new Promise<void>((resolve) => {
@@ -111,35 +115,29 @@ function waitForMs(ms: number) {
 
 function WorkflowCreateRoutingState({
   targetProjectName,
+  phase,
 }: {
   targetProjectName: string | null
+  phase: WorkflowCreateRoutingPhase
 }) {
   const steps = [
     "Read your goal",
-    targetProjectName ? `Inspect ${targetProjectName}` : "Inspect project context",
-    "Open the best first flow",
+    targetProjectName
+      ? `Inspect ${targetProjectName}`
+      : "Inspect project context",
+    "Open the best starting point",
   ]
-  const [activeStepIndex, setActiveStepIndex] = useState(0)
-
-  useEffect(() => {
-    setActiveStepIndex(0)
-    if (steps.length <= 1) return
-
-    const timeouts = steps.slice(1).map((_, index) => window.setTimeout(() => {
-      setActiveStepIndex(index + 1)
-    }, 900 * (index + 1)))
-
-    return () => {
-      timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId))
-    }
-  }, [steps.length, targetProjectName])
+  const activeStepIndex = phase === "opening" ? 2 : 1
 
   return (
-    <div className="rounded-[1.35rem] border border-hairline/80 surface-panel px-4 py-4 ui-fade-slide-in">
+    <div className="space-y-3 ui-fade-slide-in px-4 py-4">
       <div className="min-w-0">
-        <p className="text-body-sm font-medium text-foreground">Choosing the best start</p>
+        <p className="text-body-sm font-medium text-foreground">
+          Choosing the best start
+        </p>
         <p className="mt-1 text-body-sm text-muted-foreground">
-          Using your request and project context to pick the first flow. This only chooses the start. It does not run anything yet.
+          Using your request and project context to pick the first flow. This
+          only chooses the start. It does not run anything yet.
         </p>
       </div>
       <div className="mt-4 space-y-0" aria-live="polite">
@@ -148,7 +146,7 @@ function WorkflowCreateRoutingState({
             key={step}
             className={cn(
               "flex items-center gap-3 py-3",
-              index > 0 && "border-t border-hairline/70",
+              index > 0 && "ui-section-divider",
             )}
           >
             {index < activeStepIndex ? (
@@ -156,11 +154,27 @@ function WorkflowCreateRoutingState({
                 <Check size={11} aria-hidden="true" />
               </span>
             ) : index === activeStepIndex ? (
-              <Loader2 size={14} className="animate-spin text-status-info" aria-hidden="true" />
+              <Loader2
+                size={14}
+                className="animate-spin text-status-info"
+                aria-hidden="true"
+              />
             ) : (
-              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-muted-foreground/30" aria-hidden="true" />
+              <span
+                className="inline-flex h-2.5 w-2.5 rounded-full bg-muted-foreground/30"
+                aria-hidden="true"
+              />
             )}
-            <div className={cn("text-body-sm", index < activeStepIndex ? "text-muted-foreground" : "text-foreground")}>{step}</div>
+            <div
+              className={cn(
+                "text-body-sm",
+                index < activeStepIndex
+                  ? "text-muted-foreground"
+                  : "text-foreground",
+              )}
+            >
+              {step}
+            </div>
           </div>
         ))}
       </div>
@@ -168,7 +182,10 @@ function WorkflowCreateRoutingState({
   )
 }
 
-function buildTemplateCustomizationPrompt(template: WorkflowTemplate, requestedResult?: string): string {
+function buildTemplateCustomizationPrompt(
+  template: WorkflowTemplate,
+  requestedResult?: string,
+): string {
   const lines = [
     `Use the existing "${getWorkflowTemplateDisplayName(template)}" flow as the base flow.`,
     template.how,
@@ -183,13 +200,18 @@ function buildTemplateCustomizationPrompt(template: WorkflowTemplate, requestedR
   return lines.join(" ")
 }
 
-async function resolveHubTemplate(template: WorkflowTemplate): Promise<WorkflowTemplate> {
-  if (template.source !== "hub" || template.workflow.nodes.length > 0) return template
+async function resolveHubTemplate(
+  template: WorkflowTemplate,
+): Promise<WorkflowTemplate> {
+  if (template.source !== "hub" || template.workflow.nodes.length > 0)
+    return template
   const full = await window.api.fetchHubTemplate(template.id)
   return { ...template, ...full, source: "hub" }
 }
 
-function normalizeTemplateForWorkflowUse(template: WorkflowTemplate): WorkflowTemplate {
+function normalizeTemplateForWorkflowUse(
+  template: WorkflowTemplate,
+): WorkflowTemplate {
   const name = getWorkflowTemplateDisplayName(template)
   if (name === template.name) return template
   return { ...template, name }
@@ -199,7 +221,9 @@ export function WorkflowCreatePage() {
   const [projects, setProjects] = useAtom(projectsAtom)
   const [, setInputAttachments] = useAtom(inputAttachmentsAtom)
   const [, setInputValue] = useAtom(inputValueAtom)
-  const [selectedResultModeId, setSelectedResultModeId] = useAtom(selectedResultModeIdAtom)
+  const [selectedResultModeId, setSelectedResultModeId] = useAtom(
+    selectedResultModeIdAtom,
+  )
   const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
   const [, setWorkflows] = useAtom(workflowsAtom)
   const [, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
@@ -215,29 +239,46 @@ export function WorkflowCreatePage() {
   const [detailBudget, setDetailBudget] = useAtom(globalDetailBudgetAtom)
   const [workflowDirty] = useAtom(workflowDirtyAtom)
   const [createContext, setCreateContext] = useAtom(workflowCreateContextAtom)
-  const [developmentHelpModeHint, setDevelopmentHelpModeHint] = useState<CreateEntryHelpModeHint | null>(null)
+  const [developmentHelpModeHint, setDevelopmentHelpModeHint] =
+    useState<CreateEntryHelpModeHint | null>(null)
   const [draftPrompt, setDraftPrompt] = useAtom(workflowCreateDraftPromptAtom)
   const [modeConfigs, setModeConfigs] = useAtom(workflowCreateModeConfigsAtom)
-  const [promptScaffold, setPromptScaffold] = useAtom(workflowCreatePromptScaffoldAtom)
-  const [sourceArtifacts, setSourceArtifacts] = useAtom(workflowCreateSourceArtifactsAtom)
-  const [sourceAttachments, setSourceAttachments] = useAtom(workflowCreateSourceAttachmentsAtom)
+  const [promptScaffold, setPromptScaffold] = useAtom(
+    workflowCreatePromptScaffoldAtom,
+  )
+  const [sourceArtifacts, setSourceArtifacts] = useAtom(
+    workflowCreateSourceArtifactsAtom,
+  )
+  const [sourceAttachments, setSourceAttachments] = useAtom(
+    workflowCreateSourceAttachmentsAtom,
+  )
   const [, setPendingCreateEntry] = useAtom(workflowCreatePendingEntryAtom)
   const [, setPendingCreateMessage] = useAtom(workflowCreatePendingMessageAtom)
   const [, setQueuedAutoRunPath] = useAtom(workflowQueuedAutoRunPathAtom)
   const [, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
-  const setWorkflowRequestedResultForKey = useSetAtom(setWorkflowRequestedResultForKeyAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const setWorkflowRequestedResultForKey = useSetAtom(
+    setWorkflowRequestedResultForKeyAtom,
+  )
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const [promptHelperOpen, setPromptHelperOpen] = useState(false)
   const [preferNewFlow, setPreferNewFlow] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [openingProject, setOpeningProject] = useState(false)
   const [projectPickerOpen, setProjectPickerOpen] = useState(false)
-  const [pendingTemplate, setPendingTemplate] = useState<WorkflowTemplate | null>(null)
-  const [routeClarification, setRouteClarification] = useState<CreateEntryRouteClarification | null>(null)
-  const [templateAction, setTemplateAction] = useState<"create" | "customize" | null>(null)
+  const [pendingTemplate, setPendingTemplate] =
+    useState<WorkflowTemplate | null>(null)
+  const [routeClarification, setRouteClarification] =
+    useState<CreateEntryRouteClarification | null>(null)
+  const [templateAction, setTemplateAction] = useState<
+    "create" | "customize" | null
+  >(null)
   const [continuationPending, setContinuationPending] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [routingPhase, setRoutingPhase] =
+    useState<WorkflowCreateRoutingPhase>("inspecting")
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const composerRef = useRef<HTMLDivElement | null>(null)
   const promptHelperRef = useRef<HTMLDivElement | null>(null)
@@ -259,10 +300,10 @@ export function WorkflowCreatePage() {
 
   useEffect(() => {
     if (
-      !createContext.locked
-      && selectedProject
-      && projects.includes(selectedProject)
-      && selectedProject !== targetProjectPath
+      !createContext.locked &&
+      selectedProject &&
+      projects.includes(selectedProject) &&
+      selectedProject !== targetProjectPath
     ) {
       setCreateContext({ projectPath: selectedProject, locked: false })
       return
@@ -299,10 +340,6 @@ export function WorkflowCreatePage() {
   ])
 
   useEffect(() => {
-    textareaRef.current?.style.setProperty("height", "auto")
-  }, [draftPrompt])
-
-  useEffect(() => {
     setPreferNewFlow(false)
   }, [targetProjectPath])
 
@@ -332,11 +369,19 @@ export function WorkflowCreatePage() {
     setMainView("templates")
   }
   const preSelectedResultMode = getResultMode(selectedResultModeId)
-  const preSelectedModeConfig = normalizeResultModeConfig(selectedResultModeId, modeConfigs[selectedResultModeId])
-  const preSelectedModeConfigFieldCount = countResultModeConfigFields(selectedResultModeId, preSelectedModeConfig)
-  const preCanSubmitPrompt = hasWorkflowCreatePromptContent(draftPrompt, promptScaffold)
-    || preSelectedModeConfigFieldCount > 0
-  const preRoutingActive = submitting && preSelectedResultMode.id === "development"
+  const preSelectedModeConfig = normalizeResultModeConfig(
+    selectedResultModeId,
+    modeConfigs[selectedResultModeId],
+  )
+  const preSelectedModeConfigFieldCount = countResultModeConfigFields(
+    selectedResultModeId,
+    preSelectedModeConfig,
+  )
+  const preCanSubmitPrompt =
+    hasWorkflowCreatePromptContent(draftPrompt, promptScaffold) ||
+    preSelectedModeConfigFieldCount > 0
+  const preRoutingActive =
+    submitting && preSelectedResultMode.id === "development"
   const {
     loading: continuationLoading,
     primaryContinuation,
@@ -403,6 +448,7 @@ export function WorkflowCreatePage() {
     setSubmitError(null)
     setSourceArtifacts([])
     setSourceAttachments([])
+    setRoutingPhase("inspecting")
   }
 
   const openWorkflowFile = async (
@@ -419,16 +465,17 @@ export function WorkflowCreatePage() {
     },
   ) => {
     const loadedWorkflow = await window.api.loadWorkflow(filePath)
-    const refreshedWorkflows = await window.api.listProjectWorkflows(projectPath)
+    const refreshedWorkflows =
+      await window.api.listProjectWorkflows(projectPath)
     const nextEntryState =
-      options?.entryState
-      ?? (options?.pendingEntryRequest
+      options?.entryState ??
+      (options?.pendingEntryRequest
         ? buildGeneratedWorkflowEntryState({
-          workflow: loadedWorkflow,
-          workflowPath: filePath,
-          request: options.pendingEntryRequest,
-          source: "agent_create",
-        })
+            workflow: loadedWorkflow,
+            workflowPath: filePath,
+            request: options.pendingEntryRequest,
+            source: "agent_create",
+          })
         : null)
 
     setSelectedProject(projectPath)
@@ -446,16 +493,16 @@ export function WorkflowCreatePage() {
     if (Array.isArray(options?.initialAttachments)) {
       setInputAttachments(options.initialAttachments)
     }
-    setPendingCreateMessage((prev) => (
+    setPendingCreateMessage((prev) =>
       options?.pendingMessage
         ? { ...prev, [filePath]: options.pendingMessage }
-        : prev
-    ))
-    setPendingCreateEntry((prev) => (
+        : prev,
+    )
+    setPendingCreateEntry((prev) =>
       options?.pendingEntryRequest
         ? { ...prev, [filePath]: options.pendingEntryRequest }
-        : prev
-    ))
+        : prev,
+    )
     setWorkflowEntryState(nextEntryState)
     setWorkflowRequestedResultForKey({
       key: toWorkflowExecutionKey(filePath),
@@ -480,7 +527,8 @@ export function WorkflowCreatePage() {
   ) => {
     const loadedWorkflow = await window.api.loadWorkflow(filePath)
     if (projectPath) {
-      const refreshedWorkflows = await window.api.listProjectWorkflows(projectPath)
+      const refreshedWorkflows =
+        await window.api.listProjectWorkflows(projectPath)
       setSelectedProject(projectPath)
       setWorkflows(refreshedWorkflows)
     }
@@ -497,7 +545,9 @@ export function WorkflowCreatePage() {
     return loadedWorkflow
   }
 
-  const handleContinueSavedWork = async (continuation: WorkflowCreateContinuationCandidate) => {
+  const handleContinueSavedWork = async (
+    continuation: WorkflowCreateContinuationCandidate,
+  ) => {
     if (continuationPending) return
     if (!(await confirmDiscard("continue saved work", workflowDirty))) {
       return
@@ -526,20 +576,27 @@ export function WorkflowCreatePage() {
       }
 
       if (projectRequired.projectRequired) {
-        toastError(`${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`)
+        toastError(
+          `${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`,
+        )
+        return
+      }
+      const ensuredProjectPath = targetProjectPath
+      if (!ensuredProjectPath) {
+        toastError("Choose a project before continuing saved work.")
         return
       }
 
       const launch = await prepareTemplateStageLaunch({
-        projectPath: targetProjectPath,
+        projectPath: ensuredProjectPath,
         template: continuation.action.template,
         webSearchBackend,
         artifacts: continuation.action.artifacts,
         factory: continuation.action.factoryId
           ? {
-            id: continuation.action.factoryId,
-            label: continuation.action.factoryLabel || "Lab",
-          }
+              id: continuation.action.factoryId,
+              label: continuation.action.factoryLabel || "Lab",
+            }
           : null,
         caseOverride: {
           caseId: continuation.action.caseId,
@@ -547,7 +604,7 @@ export function WorkflowCreatePage() {
         },
       })
 
-      await openWorkflowFile(launch.filePath, targetProjectPath, {
+      await openWorkflowFile(launch.filePath, ensuredProjectPath, {
         entryState: launch.entryState,
         templateContext: launch.templateContext,
         initialInputValue: launch.inputSeed,
@@ -566,7 +623,9 @@ export function WorkflowCreatePage() {
     try {
       const projectPath = await window.api.addProject()
       if (!projectPath) return
-      setProjects((prev) => (prev.includes(projectPath) ? prev : [...prev, projectPath]))
+      setProjects((prev) =>
+        prev.includes(projectPath) ? prev : [...prev, projectPath],
+      )
       setSelectedProject(projectPath)
       setCreateContext({ projectPath, locked: false })
     } catch (error) {
@@ -605,7 +664,9 @@ export function WorkflowCreatePage() {
 
   const handleCreateFromTemplate = async (template: WorkflowTemplate) => {
     if (!targetProjectPath || templateAction) return
-    if (!(await confirmDiscard("create a flow from the library", workflowDirty))) {
+    if (
+      !(await confirmDiscard("create a flow from the library", workflowDirty))
+    ) {
       return
     }
 
@@ -613,11 +674,19 @@ export function WorkflowCreatePage() {
     try {
       const resolved = await resolveHubTemplate(template)
       const templateForWorkflowUse = normalizeTemplateForWorkflowUse(resolved)
-      const nextWorkflow = resolveTemplateWorkflow(templateForWorkflowUse, webSearchBackend, {
-        detailBudget,
-        templateId: templateForWorkflowUse.id,
-      })
-      const filePath = await window.api.createWorkflow(targetProjectPath, templateForWorkflowUse.name, nextWorkflow)
+      const nextWorkflow = resolveTemplateWorkflow(
+        templateForWorkflowUse,
+        webSearchBackend,
+        {
+          detailBudget,
+          templateId: templateForWorkflowUse.id,
+        },
+      )
+      const filePath = await window.api.createWorkflow(
+        targetProjectPath,
+        templateForWorkflowUse.name,
+        nextWorkflow,
+      )
       const templateStartState = buildTemplateStartState({
         template: {
           ...templateForWorkflowUse,
@@ -628,15 +697,26 @@ export function WorkflowCreatePage() {
         requestedResult: createSeedMessage,
         sourceArtifacts,
       })
-      await window.api.recordProjectTemplateUsage(targetProjectPath, template.id).catch(() => undefined)
-      const loadedWorkflow = await openWorkflowFile(filePath, targetProjectPath, {
-        entryState: templateStartState.entryState,
-        templateContext: templateStartState.templateContext,
-        initialInputValue: templateStartState.initialInputValue,
-        initialAttachments: mergeInputAttachments(sourceAttachments, templateStartState.initialAttachments),
-      })
+      await window.api
+        .recordProjectTemplateUsage(targetProjectPath, template.id)
+        .catch(() => undefined)
+      const loadedWorkflow = await openWorkflowFile(
+        filePath,
+        targetProjectPath,
+        {
+          entryState: templateStartState.entryState,
+          templateContext: templateStartState.templateContext,
+          initialInputValue: templateStartState.initialInputValue,
+          initialAttachments: mergeInputAttachments(
+            sourceAttachments,
+            templateStartState.initialAttachments,
+          ),
+        },
+      )
       setPendingTemplate(null)
-      toast.success(`"${loadedWorkflow.name || templateForWorkflowUse.name}" is ready in ${targetProjectName || "your project"}`)
+      toast.success(
+        `"${loadedWorkflow.name || templateForWorkflowUse.name}" is ready in ${targetProjectName || "your project"}`,
+      )
     } catch (error) {
       toastErrorFromCatch("Could not create flow", error)
     } finally {
@@ -646,7 +726,12 @@ export function WorkflowCreatePage() {
 
   const handleCustomizeTemplate = async (template: WorkflowTemplate) => {
     if (!targetProjectPath || templateAction) return
-    if (!(await confirmDiscard("customize a library flow with agent", workflowDirty))) {
+    if (
+      !(await confirmDiscard(
+        "customize a library flow with agent",
+        workflowDirty,
+      ))
+    ) {
       return
     }
 
@@ -654,11 +739,19 @@ export function WorkflowCreatePage() {
     try {
       const resolved = await resolveHubTemplate(template)
       const templateForWorkflowUse = normalizeTemplateForWorkflowUse(resolved)
-      const nextWorkflow = resolveTemplateWorkflow(templateForWorkflowUse, webSearchBackend, {
-        detailBudget,
-        templateId: templateForWorkflowUse.id,
-      })
-      const filePath = await window.api.createWorkflow(targetProjectPath, templateForWorkflowUse.name, nextWorkflow)
+      const nextWorkflow = resolveTemplateWorkflow(
+        templateForWorkflowUse,
+        webSearchBackend,
+        {
+          detailBudget,
+          templateId: templateForWorkflowUse.id,
+        },
+      )
+      const filePath = await window.api.createWorkflow(
+        targetProjectPath,
+        templateForWorkflowUse.name,
+        nextWorkflow,
+      )
       const templateStartState = buildTemplateStartState({
         template: {
           ...templateForWorkflowUse,
@@ -670,16 +763,26 @@ export function WorkflowCreatePage() {
         source: "template_customize",
         sourceArtifacts,
       })
-      await window.api.recordProjectTemplateUsage(targetProjectPath, template.id).catch(() => undefined)
+      await window.api
+        .recordProjectTemplateUsage(targetProjectPath, template.id)
+        .catch(() => undefined)
       await openWorkflowFile(filePath, targetProjectPath, {
-        pendingMessage: buildTemplateCustomizationPrompt(templateForWorkflowUse, createSeedMessage),
+        pendingMessage: buildTemplateCustomizationPrompt(
+          templateForWorkflowUse,
+          createSeedMessage,
+        ),
         entryState: templateStartState.entryState,
         templateContext: templateStartState.templateContext,
         initialInputValue: templateStartState.initialInputValue,
-        initialAttachments: mergeInputAttachments(sourceAttachments, templateStartState.initialAttachments),
+        initialAttachments: mergeInputAttachments(
+          sourceAttachments,
+          templateStartState.initialAttachments,
+        ),
       })
       setPendingTemplate(null)
-      toast.success(`"${templateForWorkflowUse.name}" is ready for agent refinement`)
+      toast.success(
+        `"${templateForWorkflowUse.name}" is ready for agent refinement`,
+      )
     } catch (error) {
       toastErrorFromCatch("Could not customize flow", error)
     } finally {
@@ -706,8 +809,18 @@ export function WorkflowCreatePage() {
       toastError(errorMessage)
       return
     }
+    const ensuredProjectPath = targetProjectPath
+    if (!ensuredProjectPath) {
+      const errorMessage = "Choose a project before starting a new flow."
+      setSubmitError(errorMessage)
+      toastError(errorMessage)
+      return
+    }
 
-    if (!skipDiscardConfirm && !(await confirmDiscard("start a new flow", workflowDirty))) {
+    if (
+      !skipDiscardConfirm &&
+      !(await confirmDiscard("start a new flow", workflowDirty))
+    ) {
       return
     }
 
@@ -715,15 +828,19 @@ export function WorkflowCreatePage() {
     setSubmitError(null)
     setRouteClarification(null)
     const isDevelopmentRouting = selectedResultMode.id === "development"
+    if (isDevelopmentRouting) {
+      setRoutingPhase("inspecting")
+    }
     const submitStartedAt = Date.now()
     let minimumRoutingVisibilityPromise: Promise<void> | null = null
     const ensureMinimumRoutingVisibility = () => {
       if (!isDevelopmentRouting) return Promise.resolve()
       if (!minimumRoutingVisibilityPromise) {
         const elapsed = Date.now() - submitStartedAt
-        minimumRoutingVisibilityPromise = elapsed >= DEVELOPMENT_ROUTING_MIN_VISIBLE_MS
-          ? Promise.resolve()
-          : waitForMs(DEVELOPMENT_ROUTING_MIN_VISIBLE_MS - elapsed)
+        minimumRoutingVisibilityPromise =
+          elapsed >= DEVELOPMENT_ROUTING_MIN_VISIBLE_MS
+            ? Promise.resolve()
+            : waitForMs(DEVELOPMENT_ROUTING_MIN_VISIBLE_MS - elapsed)
       }
       return minimumRoutingVisibilityPromise
     }
@@ -731,88 +848,128 @@ export function WorkflowCreatePage() {
     try {
       const effectiveHelpModeHint =
         selectedResultMode.id === "development"
-          ? (helpModeOverride ?? (useCurrentHelpMode ? developmentHelpModeHint : null) ?? undefined)
+          ? (helpModeOverride ??
+            (useCurrentHelpMode ? developmentHelpModeHint : null) ??
+            undefined)
           : undefined
       const routeCreateEntry = isDevelopmentRouting
-        ? (window.api as typeof window.api & {
-          routeCreateEntry?: typeof window.api.routeCreateEntry
-        }).routeCreateEntry
+        ? (
+            window.api as typeof window.api & {
+              routeCreateEntry?: typeof window.api.routeCreateEntry
+            }
+          ).routeCreateEntry
         : null
       if (isDevelopmentRouting && !routeCreateEntry) {
         throw new Error("The AI router is not available in this build.")
       }
       const routeResult = routeCreateEntry
         ? await routeCreateEntry({
-          modeId: selectedResultMode.id,
-          projectPath: targetProjectPath,
-          fallbackTemplateId: sanitizeDirectCreateFallbackTemplateId(
-            selectedResultMode.id,
-            selectedResultMode.startTemplateId,
-          ),
-          draftPrompt,
-          requestedResult: message,
-          helpModeHint: effectiveHelpModeHint,
-          templateConstraintId: templateConstraintId || undefined,
-          modeConfig: selectedModeConfig,
-          promptScaffold,
-          allowedOptions: routeOptions,
-        })
+            modeId: selectedResultMode.id,
+            projectPath: ensuredProjectPath,
+            fallbackTemplateId: sanitizeDirectCreateFallbackTemplateId(
+              selectedResultMode.id,
+              selectedResultMode.startTemplateId,
+            ),
+            draftPrompt,
+            requestedResult: message,
+            helpModeHint: effectiveHelpModeHint,
+            templateConstraintId: templateConstraintId || undefined,
+            modeConfig: selectedModeConfig,
+            promptScaffold,
+            allowedOptions: routeOptions,
+          })
         : null
       await ensureMinimumRoutingVisibility()
       if (routeResult?.clarification) {
         setRouteClarification(routeResult.clarification)
         return
       }
-      const catalog = availableTemplates.length > 0 ? availableTemplates : await window.api.listTemplates()
-      const startTemplate = (routeResult
-        ? catalog.find((template) => template.id === routeResult.recommendedTemplateId)
-        : null)
-        || catalog.find((template) => template.id === selectedResultMode.startTemplateId)
-        || null
+      if (isDevelopmentRouting) {
+        setRoutingPhase("opening")
+      }
+      const catalog =
+        availableTemplates.length > 0
+          ? availableTemplates
+          : await window.api.listTemplates()
+      const startTemplate =
+        (routeResult
+          ? catalog.find(
+              (template) => template.id === routeResult.recommendedTemplateId,
+            )
+          : null) ||
+        catalog.find(
+          (template) => template.id === selectedResultMode.startTemplateId,
+        ) ||
+        null
 
       if (startTemplate) {
         const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
-        const templateForWorkflowUse = normalizeTemplateForWorkflowUse(resolvedStartTemplate)
-        const nextWorkflow = resolveTemplateWorkflow(templateForWorkflowUse, webSearchBackend, {
-          detailBudget,
-          templateId: templateForWorkflowUse.id,
-        })
-        const filePath = await window.api.createWorkflow(targetProjectPath, templateForWorkflowUse.name, nextWorkflow)
+        const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
+          resolvedStartTemplate,
+        )
+        const nextWorkflow = resolveTemplateWorkflow(
+          templateForWorkflowUse,
+          webSearchBackend,
+          {
+            detailBudget,
+            templateId: templateForWorkflowUse.id,
+          },
+        )
+        const filePath = await window.api.createWorkflow(
+          ensuredProjectPath,
+          templateForWorkflowUse.name,
+          nextWorkflow,
+        )
         const template = {
           ...templateForWorkflowUse,
           workflow: nextWorkflow,
         }
         const templateStartState = routeResult
           ? buildTemplateStartStateFromRoute({
-            template,
-            workflowPath: filePath,
-            projectPath: targetProjectPath,
-            requestedResult: message,
-            routeResult,
-            sourceArtifacts,
-          })
+              template,
+              workflowPath: filePath,
+              projectPath: ensuredProjectPath,
+              requestedResult: message,
+              routeResult,
+              sourceArtifacts,
+            })
           : buildTemplateStartState({
-            template,
-            workflowPath: filePath,
-            projectPath: targetProjectPath,
-            requestedResult: message,
-            sourceArtifacts,
-          })
+              template,
+              workflowPath: filePath,
+              projectPath: ensuredProjectPath,
+              requestedResult: message,
+              sourceArtifacts,
+            })
 
-        await window.api.recordProjectTemplateUsage(targetProjectPath, startTemplate.id).catch(() => undefined)
-        await openWorkflowFile(filePath, targetProjectPath, {
+        await window.api
+          .recordProjectTemplateUsage(ensuredProjectPath, startTemplate.id)
+          .catch(() => undefined)
+        await openWorkflowFile(filePath, ensuredProjectPath, {
           entryState: templateStartState.entryState,
           templateContext: templateStartState.templateContext,
           initialInputValue: templateStartState.initialInputValue,
-          initialAttachments: mergeInputAttachments(sourceAttachments, templateStartState.initialAttachments),
+          initialAttachments: mergeInputAttachments(
+            sourceAttachments,
+            templateStartState.initialAttachments,
+          ),
           autoRunIfAllowed: shouldAutoRunCreateStart(routeResult, template),
         })
         return
       }
 
-      const draftWorkflow = applyWorkflowDetailBudget(createEmptyWorkflow(), detailBudget)
-      const filePath = await window.api.createWorkflow(targetProjectPath, "new-flow", draftWorkflow)
-      await openWorkflowFile(filePath, targetProjectPath, {
+      const draftWorkflow = applyWorkflowDetailBudget(
+        createEmptyWorkflow(),
+        detailBudget,
+      )
+      if (isDevelopmentRouting) {
+        setRoutingPhase("opening")
+      }
+      const filePath = await window.api.createWorkflow(
+        ensuredProjectPath,
+        "new-flow",
+        draftWorkflow,
+      )
+      await openWorkflowFile(filePath, ensuredProjectPath, {
         pendingMessage: message,
         pendingEntryRequest: message,
         initialInputValue: message,
@@ -832,13 +989,20 @@ export function WorkflowCreatePage() {
   }
 
   const handleTextareaKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey: desktopRuntime.primaryModifierKey })) {
+    if (
+      matchesPrimaryShortcut(event, {
+        key: "Enter",
+        primaryModifierKey: desktopRuntime.primaryModifierKey,
+      })
+    ) {
       event.preventDefault()
       void handleSend()
     }
   }
 
-  const handleClarificationSelect = (selection: RouteClarificationSelection) => {
+  const handleClarificationSelect = (
+    selection: RouteClarificationSelection,
+  ) => {
     setRouteClarification(null)
     if (selection.kind === "job_route") {
       void handleSend({
@@ -859,7 +1023,7 @@ export function WorkflowCreatePage() {
     <PageShell className="flex min-h-full flex-col space-y-6">
       <PageHeader
         title="Start a flow"
-        actions={(
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             <WorkflowCreateProjectPicker
               open={projectPickerOpen}
@@ -869,19 +1033,30 @@ export function WorkflowCreatePage() {
               targetProjectPath={targetProjectPath}
               openingProject={openingProject}
               projectNameForPath={projectFolderName}
-              onSelectProject={(projectPath) => setCreateContext({ projectPath, locked: false })}
-              onAddProject={() => { void handleOpenProject() }}
+              onSelectProject={(projectPath) =>
+                setCreateContext({ projectPath, locked: false })
+              }
+              onAddProject={() => {
+                void handleOpenProject()
+              }}
             />
           </div>
-        )}
+        }
       />
 
-      <div className={cn("mx-auto flex w-full flex-1 flex-col gap-5 pb-8", CREATE_SURFACE_MAX_WIDTH)}>
+      <div
+        className={cn(
+          "mx-auto flex w-full flex-1 flex-col gap-5 pb-8",
+          CREATE_SURFACE_MAX_WIDTH,
+        )}
+      >
         <div ref={composerRef} className="mx-auto w-full space-y-4">
           {figureOwner === "no_project" ? (
             <div className="space-y-3">
-              <div className="rounded-[1.35rem] border border-hairline/80 surface-panel px-4 py-4 ui-fade-slide-in">
-                <p className="text-body-sm font-medium text-foreground">Choose project</p>
+              <div className="rounded-xl border border-hairline surface-panel px-4 py-4 ui-fade-slide-in">
+                <p className="text-body-sm font-medium text-foreground">
+                  Choose project
+                </p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
                   {projectRequired.blockerStatement}
                 </p>
@@ -889,8 +1064,15 @@ export function WorkflowCreatePage() {
                   {projectRequired.actionInstruction}
                 </p>
                 <div className="mt-4">
-                  <Button type="button" size="sm" onClick={() => void handleOpenProject()} disabled={openingProject}>
-                    {openingProject ? <Loader2 size={14} className="animate-spin" /> : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void handleOpenProject()}
+                    disabled={openingProject}
+                  >
+                    {openingProject ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : null}
                     {projectRequired.primaryActionLabel}
                   </Button>
                 </div>
@@ -903,12 +1085,6 @@ export function WorkflowCreatePage() {
 
           {showComposer ? (
             <>
-              {sourceAttachmentSummary && (
-                <div className="border-b border-hairline/70 px-1 pb-3 ui-fade-slide-in">
-                  <div className="ui-meta-label text-muted-foreground">Using result</div>
-                  <div className="mt-1 text-body-sm text-foreground">{sourceAttachmentSummary}</div>
-                </div>
-              )}
               <PromptComposer
                 ref={textareaRef}
                 aria-label="Flow request"
@@ -928,9 +1104,21 @@ export function WorkflowCreatePage() {
                 placeholder={selectedResultMode.composerPlaceholder}
                 rows={1}
                 maxHeight={220}
-                shellClassName="rounded-[1.875rem]"
+                shellClassName="rounded-2xl"
                 textareaClassName="min-h-28 text-[1.02rem] leading-7"
-                action={(
+                header={
+                  sourceAttachmentSummary ? (
+                    <div className="ui-fade-slide-in">
+                      <div className="ui-meta-label text-muted-foreground">
+                        Using result
+                      </div>
+                      <div className="mt-1 text-body-sm text-foreground">
+                        {sourceAttachmentSummary}
+                      </div>
+                    </div>
+                  ) : null
+                }
+                action={
                   <Button
                     type="button"
                     onClick={() => void handleSend()}
@@ -938,7 +1126,9 @@ export function WorkflowCreatePage() {
                     variant="send"
                     size="icon"
                     className="h-11 w-11 rounded-full"
-                    aria-label={selectedResultMode.startActionLabel || "Start flow"}
+                    aria-label={
+                      selectedResultMode.startActionLabel || "Start flow"
+                    }
                     title={`${selectedResultMode.startActionLabel || "Start flow"} (${primaryActionShortcutLabel})`}
                   >
                     {submitting ? (
@@ -947,63 +1137,77 @@ export function WorkflowCreatePage() {
                       <ArrowUp size={16} />
                     )}
                   </Button>
-                )}
-                footer={(
-                  <WorkflowCreateComposerFooter
-                    selectedResultMode={selectedResultMode}
-                    developmentHelpModeHint={developmentHelpModeHint}
-                    showSupportControls={showComposer}
-                    shortcutHint={createShortcutHint}
-                    onSelectMode={(modeId) => {
-                      setPreferNewFlow(true)
-                      setSelectedResultModeId(modeId)
-                    }}
-                    onToggleHelpMode={(helpMode) => {
-                      setPreferNewFlow(true)
-                      setRouteClarification(null)
-                      setDevelopmentHelpModeHint(helpMode)
-                    }}
-                    promptHelperOpen={promptHelperOpen}
-                    onTogglePromptHelper={() => {
-                      setPreferNewFlow(true)
-                      setPromptHelperOpen((prev) => !prev)
-                    }}
-                    optionalDetailCount={optionalDetailCount}
-                    detailBudget={detailBudget}
-                    onDetailBudgetChange={(value) => {
-                      setPreferNewFlow(true)
-                      setDetailBudget(clampDetailBudget(value))
-                    }}
-                  />
-                )}
-              />
-
-              <WorkflowCreateDetailsPanel
-                open={showDetailsPanel}
-                helperRef={promptHelperRef}
-                scrollRef={promptHelperScrollRef}
-                optionalDetailCount={optionalDetailCount}
-                modeConfigFields={selectedModeConfigFields}
-                modeConfig={selectedModeConfig}
-                onModeConfigChange={handleModeConfigChange}
-                promptScaffold={promptScaffold}
-                scaffoldPlaceholders={selectedResultMode.scaffoldPlaceholders}
-                onPromptScaffoldChange={setPromptScaffold}
-                onClearOptionalDetails={clearOptionalDetails}
+                }
+                footer={
+                  <>
+                    <WorkflowCreateComposerFooter
+                      selectedResultMode={selectedResultMode}
+                      developmentHelpModeHint={developmentHelpModeHint}
+                      showSupportControls={showComposer}
+                      shortcutHint={createShortcutHint}
+                      onSelectMode={(modeId) => {
+                        setPreferNewFlow(true)
+                        setSelectedResultModeId(modeId)
+                      }}
+                      onToggleHelpMode={(helpMode) => {
+                        setPreferNewFlow(true)
+                        setRouteClarification(null)
+                        setDevelopmentHelpModeHint(helpMode)
+                      }}
+                      promptHelperOpen={promptHelperOpen}
+                      onTogglePromptHelper={() => {
+                        setPreferNewFlow(true)
+                        setPromptHelperOpen((prev) => !prev)
+                      }}
+                      optionalDetailCount={optionalDetailCount}
+                      detailBudget={detailBudget}
+                      onDetailBudgetChange={(value) => {
+                        setPreferNewFlow(true)
+                        setDetailBudget(clampDetailBudget(value))
+                      }}
+                    />
+                    <WorkflowCreateDetailsPanel
+                      open={showDetailsPanel}
+                      helperRef={promptHelperRef}
+                      scrollRef={promptHelperScrollRef}
+                      optionalDetailCount={optionalDetailCount}
+                      modeConfigFields={selectedModeConfigFields}
+                      modeConfig={selectedModeConfig}
+                      onModeConfigChange={handleModeConfigChange}
+                      promptScaffold={promptScaffold}
+                      scaffoldPlaceholders={
+                        selectedResultMode.scaffoldPlaceholders
+                      }
+                      onPromptScaffoldChange={setPromptScaffold}
+                      onClearOptionalDetails={clearOptionalDetails}
+                    />
+                  </>
+                }
               />
             </>
           ) : null}
 
           {showRoutingState ? (
-            <WorkflowCreateRoutingState targetProjectName={targetProjectName} />
+            <WorkflowCreateRoutingState
+              targetProjectName={targetProjectName}
+              phase={routingPhase}
+            />
           ) : null}
 
           {showStartError ? (
-            <div className="rounded-[1.35rem] border border-status-danger/20 bg-status-danger/5 px-4 py-4 ui-fade-slide-in">
-              <p className="text-body-sm font-medium text-status-danger">Could not start this flow</p>
-              <p className="mt-1 text-body-sm text-status-danger/90">{submitError}</p>
+            <div className="ui-alert-danger ui-fade-slide-in">
+              <p className="text-body-sm font-medium text-status-danger">
+                Could not start this flow
+              </p>
+              <p className="mt-1 text-body-sm text-status-danger/90">
+                {submitError}
+              </p>
               <div className="mt-4">
-                <Button type="button" size="sm" onClick={() => void handleSend()}>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void handleSend()}
+                >
                   Try again
                 </Button>
               </div>
@@ -1028,6 +1232,7 @@ export function WorkflowCreatePage() {
             loading={loadingTemplates}
             title={suggestedTemplatesTitle}
             suggestions={visibleSuggestions}
+            emptyPrompt={`Describe what you want to accomplish above, then press ${primaryActionShortcutLabel}.`}
             onBrowseLibrary={openTemplateLibrary}
             onSelectTemplate={handleTemplateSelect}
           />
@@ -1040,20 +1245,26 @@ export function WorkflowCreatePage() {
         onClose={() => setRouteClarification(null)}
         onSelect={handleClarificationSelect}
       />
-      <PendingTemplateDialog
+      <WorkflowCreatePendingTemplateDialog
         pendingTemplate={pendingTemplate}
         pendingQuickStartLabel={pendingQuickStart?.label || null}
         targetProjectPath={targetProjectPath}
         targetProjectName={targetProjectName}
-        pendingTemplateIntentLabel={pendingQuickStart?.intentLabel || pendingTemplateCategoryLabel}
+        pendingTemplateIntentLabel={
+          pendingQuickStart?.intentLabel || pendingTemplateCategoryLabel
+        }
         pendingTemplateExecutionSummary={pendingTemplateExecutionSummary}
         openingProject={openingProject}
         templateAction={templateAction}
         pendingPrimaryActionLabel={pendingPrimaryActionLabel}
         onClose={() => setPendingTemplate(null)}
         onOpenProject={() => void handleOpenProject()}
-        onCustomize={(template) => { void handleCustomizeTemplate(template) }}
-        onCreate={(template) => { void handleCreateFromTemplate(template) }}
+        onCustomize={(template) => {
+          void handleCustomizeTemplate(template)
+        }}
+        onCreate={(template) => {
+          void handleCreateFromTemplate(template)
+        }}
       />
     </PageShell>
   )

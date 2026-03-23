@@ -3,7 +3,10 @@ import { Check, Copy } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 
-interface CopyButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label" | "onClick" | "title"> {
+interface CopyButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "aria-label" | "onClick" | "title"
+> {
   text: string
   iconOnly?: boolean
   idleLabel?: string
@@ -58,11 +61,15 @@ export function CopyButton({
     <button
       type="button"
       className={cn(
-        iconOnly ? "ui-icon-button" : buttonVariants({ variant: "outline", size: "sm" }),
+        iconOnly
+          ? "ui-icon-button"
+          : buttonVariants({ variant: "outline", size: "sm" }),
         !iconOnly && "gap-1.5",
         className,
       )}
-      aria-label={copied ? (copiedAriaLabel || copiedLabel) : (idleAriaLabel || idleLabel)}
+      aria-label={
+        copied ? copiedAriaLabel || copiedLabel : idleAriaLabel || idleLabel
+      }
       title={copied ? copiedLabel : idleLabel}
       disabled={isDisabled}
       onClick={() => {
@@ -70,14 +77,19 @@ export function CopyButton({
       }}
       {...props}
     >
-      <span className="ui-crossfade-stack h-3.5 w-3.5 shrink-0" aria-hidden="true">
+      <span
+        className="ui-crossfade-stack h-3.5 w-3.5 shrink-0"
+        aria-hidden="true"
+      >
         <Copy size={12} data-active={!copied} />
         <Check size={12} data-active={copied} className="text-status-success" />
       </span>
       {!iconOnly && (
         <span className="ui-crossfade-stack min-w-[5.5rem] text-left">
           <span data-active={!copied}>{idleLabel}</span>
-          <span data-active={copied} className="text-status-success">{copiedLabel}</span>
+          <span data-active={copied} className="text-status-success">
+            {copiedLabel}
+          </span>
         </span>
       )}
     </button>

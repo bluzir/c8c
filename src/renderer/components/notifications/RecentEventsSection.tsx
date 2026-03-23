@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { ArrowUpRight, Check, Inbox } from "lucide-react"
+import { ArrowUpRight, Check } from "lucide-react"
 import type { InboxNotification } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/ui/page-shell"
@@ -18,11 +18,17 @@ interface RecentEventsSectionProps {
   unreadCount: number
   visibleNotifications: InboxNotification[]
   sourceFilter: "all" | InboxNotification["source"]
-  emphasized?: boolean
   onSourceFilterChange: (value: "all" | InboxNotification["source"]) => void
   onNotificationAction: (notification: InboxNotification) => void
   onMarkRead: (id: string) => void
-  levelMeta: Record<InboxNotification["level"], { icon: ComponentType<{ size?: number; className?: string }>; tone: string; badgeClass: string }>
+  levelMeta: Record<
+    InboxNotification["level"],
+    {
+      icon: ComponentType<{ size?: number; className?: string }>
+      tone: string
+      badgeClass: string
+    }
+  >
 }
 
 export function RecentEventsSection({
@@ -30,53 +36,58 @@ export function RecentEventsSection({
   unreadCount,
   visibleNotifications,
   sourceFilter,
-  emphasized = false,
   onSourceFilterChange,
   onNotificationAction,
   onMarkRead,
   levelMeta,
 }: RecentEventsSectionProps) {
+  const availableSources = (
+    ["workflow", "batch", "agent", "system"] as const
+  ).filter((value) =>
+    notifications.some((notification) => notification.source === value),
+  )
+  const filterValues: Array<"all" | InboxNotification["source"]> = [
+    "all",
+    ...availableSources,
+  ]
+
   return (
-    <section className={cn("rounded-xl p-5 space-y-4", emphasized ? "surface-panel" : "border border-hairline/70 bg-surface-1/50")}>
+    <section className="space-y-4">
       <SectionHeading
         title="Recent events"
-        meta={(
+        meta={
           <span className="control-badge border border-hairline bg-surface-2/70 ui-meta-text text-muted-foreground">
             {notifications.length} total · {unreadCount} unread
           </span>
-        )}
+        }
       />
 
-      <div className="flex flex-wrap gap-2">
-        {(["all", "workflow", "batch", "agent", "system"] as const).map((value) => {
-          const active = sourceFilter === value
-          const label = value === "all" ? "All" : SOURCE_LABELS[value]
-          return (
-            <Button
-              key={value}
-              type="button"
-              variant={active ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => onSourceFilterChange(value)}
-            >
-              {label}
-            </Button>
-          )
-        })}
-      </div>
+      {availableSources.length > 1 ? (
+        <div className="flex flex-wrap gap-2">
+          {filterValues.map((value) => {
+            const active = sourceFilter === value
+            const label = value === "all" ? "All" : SOURCE_LABELS[value]
+            return (
+              <Button
+                key={value}
+                type="button"
+                variant={active ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => onSourceFilterChange(value)}
+              >
+                {label}
+              </Button>
+            )
+          })}
+        </div>
+      ) : null}
 
       {visibleNotifications.length === 0 ? (
-        <article className="rounded-lg border border-dashed border-hairline bg-surface-2/30 px-5 py-10 text-center">
-          <div className="mx-auto flex h-control-lg w-control-lg items-center justify-center rounded-lg border border-hairline bg-surface-2/80">
-            <Inbox size={20} className="text-muted-foreground" />
-          </div>
-          <p className="mt-4 text-body-md font-medium text-foreground">Inbox is clear</p>
-          <p className="mt-1 text-body-sm text-muted-foreground">
-            Important confirmations and errors will accumulate here as you work.
-          </p>
+        <article className="ui-inset-well px-4 py-4 text-body-sm text-muted-foreground">
+          No recent events match this filter.
         </article>
       ) : (
-        <div className="overflow-hidden rounded-lg surface-soft">
+        <div className="ui-slab overflow-hidden">
           {visibleNotifications.map((notification) => {
             const level = levelMeta[notification.level]
             const LevelIcon = level.icon
@@ -86,18 +97,32 @@ export function RecentEventsSection({
                 key={notification.id}
                 className={cn(
                   "border-b border-hairline px-4 py-3 last:border-b-0",
-                  !notification.read ? "bg-surface-1" : "bg-transparent",
+                  !notification.read
+                    ? "ui-selected-row-tint"
+                    : "bg-transparent",
                 )}
               >
                 <div className="flex items-start gap-3">
-                  <div className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-2/80", level.tone)}>
+                  <div
+                    className={cn(
+                      "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-2/80",
+                      level.tone,
+                    )}
+                  >
                     <LevelIcon size={16} />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-body-md font-semibold text-foreground">{notification.title}</p>
-                      <span className={cn("ui-status-badge ui-meta-text", level.badgeClass)}>
+                      <p className="text-body-md font-semibold text-foreground">
+                        {notification.title}
+                      </p>
+                      <span
+                        className={cn(
+                          "ui-status-badge ui-meta-text",
+                          level.badgeClass,
+                        )}
+                      >
                         {SOURCE_LABELS[notification.source]}
                       </span>
                       <span className="ui-meta-text text-muted-foreground">

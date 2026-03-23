@@ -2,8 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { RunStatus } from "@shared/types"
 
-import type { OutputTabRequest, OutputTabValue } from "@/components/output/outputPanelTypes"
-import type { ExecutionRunStatus, ExecutionSurfaceNotice } from "@/lib/workflow-execution"
+import type {
+  OutputTabRequest,
+  OutputTabValue,
+} from "@/components/output/outputPanelTypes"
+import type {
+  ExecutionRunStatus,
+  ExecutionSurfaceNotice,
+} from "@/lib/workflow-execution"
 
 export function useOutputPanelSurfaceState({
   requestedTab,
@@ -68,23 +74,30 @@ export function useOutputPanelSurfaceState({
     }, 2800)
   }, [cancelResultReadyPulse])
 
-  const openNodeDetails = useCallback((nodeId: string) => {
-    setInspectedNodeId(nodeId)
-    setActiveTab("nodes")
-  }, [setInspectedNodeId])
+  const openNodeDetails = useCallback(
+    (nodeId: string) => {
+      setInspectedNodeId(nodeId)
+      setActiveTab("nodes")
+    },
+    [setInspectedNodeId],
+  )
 
-  const focusStageSurface = useCallback((tab: "nodes" | "log") => {
-    const fallbackNodeId = selectedStageId
-      || selectedResultNodeId
-      || displayNodeIds[displayNodeIds.length - 1]
-      || displayNodeIds[0]
-      || null
+  const focusStageSurface = useCallback(
+    (tab: "nodes" | "log") => {
+      const fallbackNodeId =
+        selectedStageId ||
+        selectedResultNodeId ||
+        displayNodeIds[displayNodeIds.length - 1] ||
+        displayNodeIds[0] ||
+        null
 
-    if (fallbackNodeId) {
-      setInspectedNodeId(fallbackNodeId)
-    }
-    setActiveTab(tab)
-  }, [displayNodeIds, selectedResultNodeId, selectedStageId, setInspectedNodeId])
+      if (fallbackNodeId) {
+        setInspectedNodeId(fallbackNodeId)
+      }
+      setActiveTab(tab)
+    },
+    [displayNodeIds, selectedResultNodeId, selectedStageId, setInspectedNodeId],
+  )
 
   const activateResultSurface = useCallback(() => {
     setResultReadyPulse(false)
@@ -127,19 +140,18 @@ export function useOutputPanelSurfaceState({
   useEffect(() => {
     if (activeTab !== "log") return
     if (canInspectLog) return
-    setActiveTab(canInspectActivity ? "nodes" : showResultSurface ? "result" : "nodes")
+    setActiveTab(
+      canInspectActivity ? "nodes" : showResultSurface ? "result" : "nodes",
+    )
   }, [activeTab, canInspectActivity, canInspectLog, showResultSurface])
 
-  const preferredTopLevelTab = (
-    showResultSurface
-    && (
-      reviewingRunHistory
-      || runStatus === "error"
-      || (runStatus === "done" && effectiveRunOutcome !== "blocked")
-    )
-  )
-    ? "result"
-    : "nodes"
+  const preferredTopLevelTab =
+    showResultSurface &&
+    (reviewingRunHistory ||
+      runStatus === "error" ||
+      (runStatus === "done" && effectiveRunOutcome !== "blocked"))
+      ? "result"
+      : "nodes"
   const surfaceIdentityKey = reviewingRunHistory
     ? "review"
     : `live:${runId || "none"}`
@@ -155,7 +167,12 @@ export function useOutputPanelSurfaceState({
     }
 
     setActiveTab("nodes")
-  }, [preferredTopLevelTab, requestedTab, showResultSurface, surfaceIdentityKey])
+  }, [
+    preferredTopLevelTab,
+    requestedTab,
+    showResultSurface,
+    surfaceIdentityKey,
+  ])
 
   useEffect(() => {
     if (!requestedTab) return
@@ -173,7 +190,11 @@ export function useOutputPanelSurfaceState({
     const wasTerminal = previousStatus === "done" || previousStatus === "error"
     const justEnteredTerminal = reachedTerminal && !wasTerminal
 
-    if (!showResultSurface || !reachedTerminal || effectiveRunOutcome === "blocked") {
+    if (
+      !showResultSurface ||
+      !reachedTerminal ||
+      effectiveRunOutcome === "blocked"
+    ) {
       resultSignalShownRef.current = false
       clearResultReadyPulse()
       previousRunStatusRef.current = runStatus
@@ -197,7 +218,14 @@ export function useOutputPanelSurfaceState({
 
     resultSignalShownRef.current = true
     queueResultReadyPulse()
-  }, [activeTab, clearResultReadyPulse, effectiveRunOutcome, queueResultReadyPulse, runStatus, showResultSurface])
+  }, [
+    activeTab,
+    clearResultReadyPulse,
+    effectiveRunOutcome,
+    queueResultReadyPulse,
+    runStatus,
+    showResultSurface,
+  ])
 
   useEffect(() => {
     return () => {

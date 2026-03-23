@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { FlowRenameDialog } from "@/components/FlowRenameDialog"
 import {
   CanvasDialogBody,
   CanvasDialogContent,
@@ -49,35 +50,26 @@ export function WorkflowToolbarDialogs({
 }: WorkflowToolbarDialogsProps) {
   return (
     <>
-      <Dialog open={renameDialogOpen} onOpenChange={onRenameDialogOpenChange}>
-        <CanvasDialogContent showCloseButton={false}>
-          <CanvasDialogHeader>
-            <DialogTitle>Rename flow</DialogTitle>
-            <DialogDescription>Enter a new name for this flow.</DialogDescription>
-          </CanvasDialogHeader>
-          <CanvasDialogBody>
-            <Input
-              value={renameInput}
-              onChange={(event) => onRenameInputChange(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && onCommitRename()}
-              autoFocus
-            />
-          </CanvasDialogBody>
-          <CanvasDialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
-            </DialogClose>
-            <Button size="sm" onClick={onCommitRename}>Rename</Button>
-          </CanvasDialogFooter>
-        </CanvasDialogContent>
-      </Dialog>
+      <FlowRenameDialog
+        open={renameDialogOpen}
+        onOpenChange={onRenameDialogOpenChange}
+        value={renameInput}
+        onValueChange={onRenameInputChange}
+        onCommit={onCommitRename}
+      />
 
       <SingleDecisionDialog
         open={deleteDialogOpen}
         onOpenChange={onDeleteDialogOpenChange}
         title="Delete flow"
         description={
-          <>Delete &ldquo;{deleteLabel}&rdquo;?{workflowDirty ? " You have unsaved changes that will be lost." : ""} The flow file will be permanently removed.</>
+          <>
+            Delete &ldquo;{deleteLabel}&rdquo;?
+            {workflowDirty
+              ? " You have unsaved changes that will be lost."
+              : ""}{" "}
+            The flow file will be permanently removed.
+          </>
         }
         note="This cannot be undone."
         noteTone="danger"
@@ -86,26 +78,39 @@ export function WorkflowToolbarDialogs({
         confirmVariant="destructive"
       />
 
-      <Dialog open={templateDialogOpen} onOpenChange={onTemplateDialogOpenChange}>
+      <Dialog
+        open={templateDialogOpen}
+        onOpenChange={onTemplateDialogOpenChange}
+      >
         <CanvasDialogContent showCloseButton={false}>
           <CanvasDialogHeader>
             <DialogTitle>Save to library</DialogTitle>
-            <DialogDescription>Enter a name so you can start from this flow again.</DialogDescription>
+            <DialogDescription>
+              Enter a name so you can start from this flow again.
+            </DialogDescription>
           </CanvasDialogHeader>
           <CanvasDialogBody>
             <Input
               value={templateNameInput}
-              onChange={(event) => onTemplateNameInputChange(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && onCommitSaveAsTemplate()}
+              onChange={(event) =>
+                onTemplateNameInputChange(event.target.value)
+              }
+              onKeyDown={(event) =>
+                event.key === "Enter" && onCommitSaveAsTemplate()
+              }
               placeholder="Library name"
               autoFocus
             />
           </CanvasDialogBody>
           <CanvasDialogFooter>
             <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
+              <Button variant="ghost" size="sm">
+                Cancel
+              </Button>
             </DialogClose>
-            <Button size="sm" onClick={onCommitSaveAsTemplate}>Save</Button>
+            <Button size="sm" onClick={onCommitSaveAsTemplate}>
+              Save
+            </Button>
           </CanvasDialogFooter>
         </CanvasDialogContent>
       </Dialog>

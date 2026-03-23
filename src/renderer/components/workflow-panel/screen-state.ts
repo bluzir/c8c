@@ -51,9 +51,9 @@ export function resolveWorkflowPrimaryScreenState({
   }
 
   if (
-    runDisplayState.state === "starting"
-    || runDisplayState.state === "running"
-    || runDisplayState.state === "cancelling"
+    runDisplayState.state === "starting" ||
+    runDisplayState.state === "running" ||
+    runDisplayState.state === "cancelling"
   ) {
     return "running"
   }
@@ -63,13 +63,11 @@ export function resolveWorkflowPrimaryScreenState({
   }
 
   if (
-    !prepareNewRun
-    && canShowTerminalResultSurface
-    && (
-      runDisplayState.state === "failed"
-      || runDisplayState.state === "completed"
-      || runDisplayState.state === "cancelled"
-    )
+    !prepareNewRun &&
+    canShowTerminalResultSurface &&
+    (runDisplayState.state === "failed" ||
+      runDisplayState.state === "completed" ||
+      runDisplayState.state === "cancelled")
   ) {
     return nextStageTemplate ? "auto_chain_gate" : "one_off_done"
   }
@@ -78,13 +76,17 @@ export function resolveWorkflowPrimaryScreenState({
 }
 
 export function shouldShowProcessSpine(state: WorkflowPrimaryScreenState) {
-  return state !== "fresh_start"
-    && state !== "cross_flow_handoff"
-    && state !== "one_off_done"
+  return (
+    state !== "fresh_start" &&
+    state !== "cross_flow_handoff" &&
+    state !== "one_off_done"
+  )
 }
 
 export function shouldShowLiveOutputPanel(state: WorkflowPrimaryScreenState) {
-  return state !== "fresh_start"
-    && state !== "cross_flow_handoff"
-    && state !== "blocked_decision"
+  return (
+    state !== "fresh_start" &&
+    state !== "cross_flow_handoff" &&
+    state !== "blocked_decision"
+  )
 }

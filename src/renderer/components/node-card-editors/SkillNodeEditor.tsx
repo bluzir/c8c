@@ -3,7 +3,13 @@ import type { DiscoveredSkill, SkillNodeConfig } from "@shared/types"
 import { TextareaWithMention } from "@/components/input/TextareaWithMention"
 import { McpToolPicker } from "@/components/ui/mcp-tool-picker"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { SkillRefInput } from "@/components/ui/skill-ref-input"
 import { openSkillPickerAtom } from "@/lib/store"
 import type { ValidationError } from "@/lib/validate-workflow"
@@ -56,7 +62,10 @@ export function SkillNodeEditor({
   return (
     <div className={EDITOR_PANEL_CLASS}>
       <div>
-        <Label htmlFor={`skill-ref-${nodeId}`} className="ui-meta-text text-muted-foreground mb-1 block">
+        <Label
+          htmlFor={`skill-ref-${nodeId}`}
+          className="ui-meta-text text-muted-foreground mb-1 block"
+        >
           Skill reference
         </Label>
         <SkillRefInput
@@ -74,13 +83,19 @@ export function SkillNodeEditor({
 
       <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         <div className="space-y-1">
-          <Label htmlFor={`skill-output-mode-${nodeId}`} className="ui-meta-text text-muted-foreground">
+          <Label
+            htmlFor={`skill-output-mode-${nodeId}`}
+            className="ui-meta-text text-muted-foreground"
+          >
             Output
           </Label>
           <Select
             value={config.outputMode || "auto"}
             onValueChange={(value) =>
-              onConfigChange({ ...config, outputMode: value as SkillNodeConfig["outputMode"] })
+              onConfigChange({
+                ...config,
+                outputMode: value as SkillNodeConfig["outputMode"],
+              })
             }
           >
             <SelectTrigger
@@ -101,7 +116,10 @@ export function SkillNodeEditor({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor={`skill-max-turns-${nodeId}`} className="ui-meta-text text-muted-foreground">
+          <Label
+            htmlFor={`skill-max-turns-${nodeId}`}
+            className="ui-meta-text text-muted-foreground"
+          >
             Turns
           </Label>
           <OptionalClampedNumberInput
@@ -118,7 +136,10 @@ export function SkillNodeEditor({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor={`skill-permission-mode-${nodeId}`} className="ui-meta-text text-muted-foreground">
+          <Label
+            htmlFor={`skill-permission-mode-${nodeId}`}
+            className="ui-meta-text text-muted-foreground"
+          >
             Mode
           </Label>
           <Select
@@ -126,7 +147,10 @@ export function SkillNodeEditor({
             onValueChange={(value) =>
               onConfigChange({
                 ...config,
-                permissionMode: value === "__inherit__" ? undefined : (value as SkillNodeConfig["permissionMode"]),
+                permissionMode:
+                  value === "__inherit__"
+                    ? undefined
+                    : (value as SkillNodeConfig["permissionMode"]),
               })
             }
           >
@@ -134,7 +158,9 @@ export function SkillNodeEditor({
               id={`skill-permission-mode-${nodeId}`}
               className="w-full h-control-md text-body-sm"
               aria-invalid={Boolean(permissionModeError) || undefined}
-              aria-describedby={permissionModeError ? permissionModeErrorId : undefined}
+              aria-describedby={
+                permissionModeError ? permissionModeErrorId : undefined
+              }
             >
               <SelectValue />
             </SelectTrigger>
@@ -144,20 +170,30 @@ export function SkillNodeEditor({
               <SelectItem value="edit">Edit</SelectItem>
             </SelectContent>
           </Select>
-          <FieldErrorMessage id={permissionModeErrorId} error={permissionModeError} />
+          <FieldErrorMessage
+            id={permissionModeErrorId}
+            error={permissionModeError}
+          />
         </div>
       </div>
 
-      <p className="ui-meta-text text-muted-foreground">Provider and model are controlled from the flow Input step.</p>
+      <p className="ui-meta-text text-muted-foreground">
+        Provider and model are controlled from the flow Input step.
+      </p>
 
       <div>
-        <Label htmlFor={`prompt-${nodeId}`} className="ui-meta-text text-muted-foreground mb-1 block">
+        <Label
+          htmlFor={`prompt-${nodeId}`}
+          className="ui-meta-text text-muted-foreground mb-1 block"
+        >
           Prompt
         </Label>
         <TextareaWithMention
           id={`prompt-${nodeId}`}
           value={config.prompt || ""}
-          onChange={(event) => onConfigChange({ ...config, prompt: event.target.value })}
+          onChange={(event) =>
+            onConfigChange({ ...config, prompt: event.target.value })
+          }
           rows={4}
           className="min-h-24 resize-y font-mono text-body-sm"
           placeholder="Enter prompt for this skill..."
@@ -180,7 +216,9 @@ export function SkillNodeEditor({
           nodeId={`${nodeId}-blocked`}
           label="Blocked Tools"
           values={config.disallowedTools || []}
-          onChange={(next) => onConfigChange({ ...config, disallowedTools: next })}
+          onChange={(next) =>
+            onConfigChange({ ...config, disallowedTools: next })
+          }
           placeholder="e.g. Edit"
         />
       </div>
@@ -188,7 +226,9 @@ export function SkillNodeEditor({
       <RuntimePolicyEditor
         nodeId={nodeId}
         config={config}
-        onConfigChange={onConfigChange as (next: RuntimeConfigurableNodeConfig) => void}
+        onConfigChange={
+          onConfigChange as (next: RuntimeConfigurableNodeConfig) => void
+        }
       />
     </div>
   )

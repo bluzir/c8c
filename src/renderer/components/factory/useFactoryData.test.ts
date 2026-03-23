@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import type { ArtifactRecord, WorkflowTemplate } from "@shared/types"
 import { selectFactoryCaseNextTemplates } from "./useFactoryData"
 
-function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemplate {
+function createTemplate(
+  overrides: Partial<WorkflowTemplate> = {},
+): WorkflowTemplate {
   return {
     id: "delivery-shape-project",
     name: "Delivery Lab: Shape Project",
@@ -32,7 +34,9 @@ function createTemplate(overrides: Partial<WorkflowTemplate> = {}): WorkflowTemp
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "project_brief",

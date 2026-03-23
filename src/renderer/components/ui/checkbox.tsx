@@ -3,20 +3,24 @@ import { Check } from "lucide-react"
 
 import { cn } from "@/lib/cn"
 
-export interface CheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {}
+export interface CheckboxProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "type"
+> {}
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className, checked, ...props }, ref) => (
-    <label className={cn("relative inline-flex h-control-xs w-control-xs cursor-pointer items-center justify-center", props.disabled && "cursor-not-allowed")}>
+    <label
+      className={cn(
+        "relative inline-flex h-control-xs w-control-xs cursor-pointer items-center justify-center",
+        props.disabled && "cursor-not-allowed",
+      )}
+    >
       <input
         ref={ref}
         type="checkbox"
         checked={checked}
-        className={cn(
-          "peer sr-only",
-          className,
-        )}
+        className={cn("peer sr-only", className)}
         {...props}
       />
       <span
@@ -30,7 +34,10 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           "peer-disabled:border-hairline peer-disabled:bg-surface-2/80 peer-disabled:text-disabled",
         )}
       >
-        <Check size={12} className="opacity-0 ui-transition-opacity ui-motion-fast" />
+        <Check
+          size={12}
+          className="opacity-0 ui-transition-opacity ui-motion-fast"
+        />
       </span>
     </label>
   ),

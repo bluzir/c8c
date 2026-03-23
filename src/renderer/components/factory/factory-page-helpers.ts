@@ -1,6 +1,9 @@
 import { buildRunProgressSummary } from "@/lib/run-progress"
 import type { WorkflowTemplateRunContext } from "@/lib/workflow-entry"
-import { isRunInFlight, type WorkflowExecutionState } from "@/lib/workflow-execution"
+import {
+  isRunInFlight,
+  type WorkflowExecutionState,
+} from "@/lib/workflow-execution"
 import type {
   ArtifactRecord,
   ContinuationStatus,
@@ -126,15 +129,20 @@ export interface FactoryCaseLane {
   cases: FactoryCase[]
 }
 
-export function isVisibleProjectExecutionState(state: WorkflowExecutionState, projectPath: string) {
+export function isVisibleProjectExecutionState(
+  state: WorkflowExecutionState,
+  projectPath: string,
+) {
   if (state.projectPath !== projectPath) return false
-  return isRunInFlight(state.runStatus)
-    || state.runOutcome !== null
-    || state.workspace !== null
-    || state.reportPath !== null
-    || state.finalContent.trim().length > 0
-    || state.lastError !== null
-    || Object.keys(state.nodeStates).length > 0
+  return (
+    isRunInFlight(state.runStatus) ||
+    state.runOutcome !== null ||
+    state.workspace !== null ||
+    state.reportPath !== null ||
+    state.finalContent.trim().length > 0 ||
+    state.lastError !== null ||
+    Object.keys(state.nodeStates).length > 0
+  )
 }
 
 export function cardToneClass(kind: "info" | "success" | "warning" | "danger") {
@@ -151,7 +159,9 @@ export function factoryCaseStatusLabel(status: FactoryCase["status"]) {
   return "Completed"
 }
 
-export function factoryCaseStatusTone(status: FactoryCase["status"]): "info" | "success" | "warning" | "danger" {
+export function factoryCaseStatusTone(
+  status: FactoryCase["status"],
+): "info" | "success" | "warning" | "danger" {
   if (status === "active") return "info"
   if (status === "blocked") return "warning"
   if (status === "ready") return "success"
@@ -164,10 +174,12 @@ export function factoryActionLabel(kind: FactoryActionItem["kind"]) {
   return "Open step"
 }
 
-export function factoryPrimaryActionButtonLabel(kind: FactoryActionItem["kind"]) {
-  if (kind === "review_gate") return "Review in runtime shell"
-  if (kind === "monitor_run") return "Open in runtime shell"
-  return "Continue in runtime shell"
+export function factoryPrimaryActionButtonLabel(
+  kind: FactoryActionItem["kind"],
+) {
+  if (kind === "review_gate") return "Review in flow"
+  if (kind === "monitor_run") return "Open flow"
+  return "Continue flow"
 }
 
 export function latestLineageLabel(entry: FactoryCase) {
@@ -187,7 +199,9 @@ export function dedupePreserveOrder(values: string[]) {
 }
 
 export function templateHasStrategistCheckpoint(template: WorkflowTemplate) {
-  return template.workflow.nodes.some((node) => node.type === "approval" || node.type === "human")
+  return template.workflow.nodes.some(
+    (node) => node.type === "approval" || node.type === "human",
+  )
 }
 
 function joinLines(values?: string[]) {
@@ -195,7 +209,12 @@ function joinLines(values?: string[]) {
 }
 
 export function splitLines(value: string): string[] | undefined {
-  const next = dedupePreserveOrder(value.split("\n").map((line) => line.trim()).filter(Boolean))
+  const next = dedupePreserveOrder(
+    value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean),
+  )
   return next.length > 0 ? next : undefined
 }
 
@@ -223,7 +242,9 @@ export function resolveArtifactFactoryIdentity(
   return null
 }
 
-export function resolveContextFactoryIdentity(context: WorkflowTemplateRunContext) {
+export function resolveContextFactoryIdentity(
+  context: WorkflowTemplateRunContext,
+) {
   if (context.factoryId) {
     return {
       id: context.factoryId,
@@ -269,16 +290,30 @@ export function buildBlueprintDraft(
     timeHorizon: factory?.outcome?.timeHorizon || "",
     windowStart: factory?.outcome?.windowStart || "",
     windowEnd: factory?.outcome?.windowEnd || "",
-    targetCount: typeof factory?.outcome?.targetCount === "number" ? String(factory.outcome.targetCount) : "",
+    targetCount:
+      typeof factory?.outcome?.targetCount === "number"
+        ? String(factory.outcome.targetCount)
+        : "",
     targetUnit: factory?.outcome?.targetUnit || "",
     audience: factory?.outcome?.audience || "",
     constraintsText: joinLines(factory?.outcome?.constraints),
     recipeSummary: factory?.recipe?.summary || primaryRecipe?.label || "",
-    stageOrderText: joinLines(factory?.recipe?.stageOrder || primaryRecipe?.stageLabels),
-    artifactContractsText: joinLines(factory?.recipe?.artifactContracts || primaryRecipe?.contractLabels),
-    qualityPolicyText: joinLines(factory?.recipe?.qualityPolicy || primaryRecipe?.policyLabels),
-    strategistCheckpointsText: joinLines(factory?.recipe?.strategistCheckpoints || primaryRecipe?.checkpointLabels),
-    caseGenerationRulesText: joinLines(factory?.recipe?.caseGenerationRules || (primaryRecipe ? [primaryRecipe.caseRule] : [])),
+    stageOrderText: joinLines(
+      factory?.recipe?.stageOrder || primaryRecipe?.stageLabels,
+    ),
+    artifactContractsText: joinLines(
+      factory?.recipe?.artifactContracts || primaryRecipe?.contractLabels,
+    ),
+    qualityPolicyText: joinLines(
+      factory?.recipe?.qualityPolicy || primaryRecipe?.policyLabels,
+    ),
+    strategistCheckpointsText: joinLines(
+      factory?.recipe?.strategistCheckpoints || primaryRecipe?.checkpointLabels,
+    ),
+    caseGenerationRulesText: joinLines(
+      factory?.recipe?.caseGenerationRules ||
+        (primaryRecipe ? [primaryRecipe.caseRule] : []),
+    ),
   }
 }
 
@@ -351,7 +386,11 @@ export function launchablePlannedTemplateId(
   templateById: Map<string, WorkflowTemplate>,
   fallback: WorkflowTemplate | null,
 ) {
-  return (plannedCase.templateId && templateById.get(plannedCase.templateId)?.id) || fallback?.id || null
+  return (
+    (plannedCase.templateId && templateById.get(plannedCase.templateId)?.id) ||
+    fallback?.id ||
+    null
+  )
 }
 
 export function factoryLaneMeta(status: FactoryCase["status"]) {

@@ -15,17 +15,29 @@ export function useMultiRunDashboardEntries({
   selectedWorkflowPath,
 }: {
   workflowExecutionStates: Record<string, WorkflowExecutionState>
-  approvalRequests: Array<{ workflowKey: string; message?: string | null; nodeId: string }>
+  approvalRequests: Array<{
+    workflowKey: string
+    message?: string | null
+    nodeId: string
+  }>
   pastRuns: RunResult[]
   selectedWorkflowPath: string | null
 }) {
   const entriesWithHistory = useMemo(
-    () => buildDashboardEntries({ workflowExecutionStates, approvalRequests, pastRuns, selectedWorkflowPath }),
+    () =>
+      buildDashboardEntries({
+        workflowExecutionStates,
+        approvalRequests,
+        pastRuns,
+        selectedWorkflowPath,
+      }),
     [approvalRequests, pastRuns, selectedWorkflowPath, workflowExecutionStates],
   )
 
   const activeCount = useMemo(
-    () => entriesWithHistory.filter((entry) => isRunInFlight(entry.runStatus)).length,
+    () =>
+      entriesWithHistory.filter((entry) => isRunInFlight(entry.runStatus))
+        .length,
     [entriesWithHistory],
   )
 

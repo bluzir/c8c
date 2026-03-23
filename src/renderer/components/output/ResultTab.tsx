@@ -380,7 +380,7 @@ export function ResultTab({
   const documentMetaLine = compactLine([visibleProvenanceLabel, evidenceLine])
   const failureBridge =
     terminalVariant === "failed" && (failureCategoryLabel || failureHint) ? (
-      <div className="space-y-1 border-t border-hairline pt-3">
+      <div className="space-y-1 ui-section-divider">
         {failureCategoryLabel ? (
           <p className="ui-meta-label text-status-danger">
             {failureCategoryLabel}
@@ -399,13 +399,13 @@ export function ResultTab({
     ) : null
   const artifactPersistenceNotice =
     showArtifactContinuation && artifactPersistenceError ? (
-      <p className="border-t border-hairline pt-3 text-body-sm text-status-danger">
+      <p className="ui-section-divider text-body-sm text-status-danger">
         {artifactPersistenceError}
       </p>
     ) : null
   const evidencePanel =
     verdictData.evidencePanelItems.length > 0 ? (
-      <section className="space-y-2 border-t border-hairline pt-3">
+      <section className="space-y-2 ui-section-divider">
         {verdictData.evidencePanelTitle ? (
           <div className="ui-meta-label text-muted-foreground">
             {verdictData.evidencePanelTitle}
@@ -450,7 +450,7 @@ export function ResultTab({
     ) : null
   const artifactLinkStrip =
     showArtifactContinuation && visibleSavedArtifacts.length > 0 ? (
-      <div className="border-t border-hairline pt-3">
+      <div className="ui-section-divider">
         <div className="ui-meta-label text-muted-foreground">Saved files</div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           {visibleSavedArtifacts.map((artifact) => (
@@ -549,7 +549,7 @@ export function ResultTab({
             </div>
 
             {verdictData.evidenceItems.length > 0 && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-hairline pt-3 text-body-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 ui-section-divider text-body-sm text-muted-foreground">
                 {verdictData.evidenceItems.map((item) => (
                   <span key={item}>{item}</span>
                 ))}
@@ -567,7 +567,7 @@ export function ResultTab({
 
             {((showArtifactContinuation && continuationReferenceLine) ||
               verdictData.preservedText) && (
-              <p className="border-t border-hairline pt-3 text-body-sm text-muted-foreground">
+              <p className="ui-section-divider text-body-sm text-muted-foreground">
                 {showArtifactContinuation
                   ? continuationReferenceLine
                   : verdictData.preservedText}
@@ -582,8 +582,8 @@ export function ResultTab({
       {!reviewingRunHistory && hasMultipleResultOptions && (
         <DisclosurePanel
           summary={`Other results (${resultNodeOptions.length})`}
-          surface="flat"
-          className="border border-hairline bg-transparent"
+          surface="plain"
+          className="space-y-2"
           contentClassName="space-y-2"
         >
           <div className="space-y-1">

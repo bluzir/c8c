@@ -36,11 +36,7 @@ import {
 import { runStatusAtom, selectedPastRunAtom } from "@/features/execution"
 import { toast } from "sonner"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
-import {
-  Loader2,
-  Sparkles,
-  X,
-} from "lucide-react"
+import { Loader2, Sparkles, X } from "lucide-react"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
 import { CollectionToolbar } from "@/components/ui/collection-toolbar"
 import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
@@ -59,9 +55,7 @@ import {
   resolveProjectRequiredContract,
   splitGuidedTemplateEntryContracts,
 } from "@/lib/entry-state-contracts"
-import {
-  mergeInputAttachments,
-} from "@/lib/workflow-entry"
+import { mergeInputAttachments } from "@/lib/workflow-entry"
 import {
   buildResultModeSeedInput,
   countResultModeConfigFields,
@@ -91,48 +85,78 @@ export function WorkflowsTemplatesPage() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
-  const [activeCategory, setActiveCategory] = useState<TemplateCategoryKey>("all")
-  const [activeFilter, setActiveFilter] = useState<TemplateLibraryFilterKey>("all")
+  const [activeCategory, setActiveCategory] =
+    useState<TemplateCategoryKey>("all")
+  const [activeFilter, setActiveFilter] =
+    useState<TemplateLibraryFilterKey>("all")
   const [selectedResultModeId] = useAtom(selectedResultModeIdAtom)
   const [draftPrompt, setDraftPrompt] = useAtom(workflowCreateDraftPromptAtom)
   const [modeConfigs] = useAtom(workflowCreateModeConfigsAtom)
   const [promptScaffold] = useAtom(workflowCreatePromptScaffoldAtom)
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
-  const [pendingTemplate, setPendingTemplate] = useState<WorkflowTemplate | null>(null)
-  const [pendingTemplateDecision, setPendingTemplateDecision] = useState<"create" | "replace">("create")
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  )
+  const [pendingTemplate, setPendingTemplate] =
+    useState<WorkflowTemplate | null>(null)
+  const [pendingTemplateDecision, setPendingTemplateDecision] = useState<
+    "create" | "replace"
+  >("create")
   const [workflow, setWorkflow] = useAtom(currentWorkflowAtom)
   const [inputAttachments, setInputAttachments] = useAtom(inputAttachmentsAtom)
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
   const [projects] = useAtom(projectsAtom)
   const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
-  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
-  const [selectedWorkflowTemplateContext] = useAtom(selectedWorkflowTemplateContextAtom)
-  const [templateLibraryContext, setTemplateLibraryContext] = useAtom(templateLibraryContextAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
+  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
+    selectedInboxTaskKeyAtom,
+  )
+  const [selectedWorkflowTemplateContext] = useAtom(
+    selectedWorkflowTemplateContextAtom,
+  )
+  const [templateLibraryContext, setTemplateLibraryContext] = useAtom(
+    templateLibraryContextAtom,
+  )
   const [, setWorkflows] = useAtom(workflowsAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [selectedPastRun, setSelectedPastRun] = useAtom(selectedPastRunAtom)
-  const [workflowEntryState, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
+  const [workflowEntryState, setWorkflowEntryState] = useAtom(
+    workflowEntryStateAtom,
+  )
   const [sourceArtifacts] = useAtom(workflowCreateSourceArtifactsAtom)
   const [sourceAttachments] = useAtom(workflowCreateSourceAttachmentsAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const [, setMainView] = useAtom(mainViewAtom)
   const [runStatus] = useAtom(runStatusAtom)
-  const [targetProjectPath, setTargetProjectPath] = useState<string | null>(selectedProject)
+  const [targetProjectPath, setTargetProjectPath] = useState<string | null>(
+    selectedProject,
+  )
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
-  const replaceCurrentBlockedReason = getReplaceCurrentWorkflowBlockedReason(runStatus)
+  const replaceCurrentBlockedReason =
+    getReplaceCurrentWorkflowBlockedReason(runStatus)
   const preferredProjectPath = useMemo(
-    () => resolveTemplateLibraryProjectPath(projects, selectedProject, templateLibraryContext),
+    () =>
+      resolveTemplateLibraryProjectPath(
+        projects,
+        selectedProject,
+        templateLibraryContext,
+      ),
     [projects, selectedProject, templateLibraryContext],
   )
-  const createInProjectOnly = templateLibraryRequiresProjectCreation(templateLibraryContext)
+  const createInProjectOnly = templateLibraryRequiresProjectCreation(
+    templateLibraryContext,
+  )
   const projectRequired = useMemo(
-    () => resolveProjectRequiredContract({
-      resolvedProjectPath: preferredProjectPath,
-      primaryActionLabel: "Choose folder",
-    }),
+    () =>
+      resolveProjectRequiredContract({
+        resolvedProjectPath: preferredProjectPath,
+        primaryActionLabel: "Choose folder",
+      }),
     [preferredProjectPath],
   )
 
@@ -173,28 +197,40 @@ export function WorkflowsTemplatesPage() {
       .map((template, index) => ({
         template,
         index,
-        score: getTemplateSearchScore(template, q, getTemplateSourceLabel(template)),
+        score: getTemplateSearchScore(
+          template,
+          q,
+          getTemplateSourceLabel(template),
+        ),
       }))
       .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score || a.index - b.index)
       .map((entry) => entry.template)
   }, [query, templates])
 
-  const categoryFilteredTemplates = useMemo(() => (
-    searchFilteredTemplates.filter((template) => templateMatchesCategory(template, activeCategory))
-  ), [activeCategory, searchFilteredTemplates])
+  const categoryFilteredTemplates = useMemo(
+    () =>
+      searchFilteredTemplates.filter((template) =>
+        templateMatchesCategory(template, activeCategory),
+      ),
+    [activeCategory, searchFilteredTemplates],
+  )
 
-  const availableStageFilters = useMemo(() => (
-    STAGE_ORDER
-      .map((stage) => ({
+  const availableStageFilters = useMemo(
+    () =>
+      STAGE_ORDER.map((stage) => ({
         stage,
-        count: categoryFilteredTemplates.filter((template) => template.stage === stage).length,
-      }))
-      .filter((entry) => entry.count > 0)
-  ), [categoryFilteredTemplates])
+        count: categoryFilteredTemplates.filter(
+          (template) => template.stage === stage,
+        ).length,
+      })).filter((entry) => entry.count > 0),
+    [categoryFilteredTemplates],
+  )
 
   const filteredTemplates = useMemo(() => {
-    return categoryFilteredTemplates.filter((template) => templateMatchesLibraryFilter(template, activeFilter))
+    return categoryFilteredTemplates.filter((template) =>
+      templateMatchesLibraryFilter(template, activeFilter),
+    )
   }, [activeFilter, categoryFilteredTemplates])
   const filteredTemplateEntries = useMemo(
     () => splitGuidedTemplateEntryContracts(filteredTemplates, templates),
@@ -202,14 +238,22 @@ export function WorkflowsTemplatesPage() {
   )
 
   const selectedTemplateEntry = useMemo(
-    () => filteredTemplateEntries.entries.find((entry) => entry.template.id === selectedTemplateId) ?? null,
+    () =>
+      filteredTemplateEntries.entries.find(
+        (entry) => entry.template.id === selectedTemplateId,
+      ) ?? null,
     [filteredTemplateEntries.entries, selectedTemplateId],
   )
   const selectedTemplate = selectedTemplateEntry?.template ?? null
 
   const selectedCategoryMeta = TEMPLATE_CATEGORY_META[activeCategory]
   const createModeId = useMemo(
-    () => deriveCreateModeId(activeCategory, selectedResultModeId, selectedTemplateEntry?.template ?? null),
+    () =>
+      deriveCreateModeId(
+        activeCategory,
+        selectedResultModeId,
+        selectedTemplateEntry?.template ?? null,
+      ),
     [activeCategory, selectedResultModeId, selectedTemplateEntry?.template],
   )
   const selectedResultMode = useMemo(
@@ -217,7 +261,11 @@ export function WorkflowsTemplatesPage() {
     [selectedResultModeId],
   )
   const selectedModeConfig = useMemo(
-    () => normalizeResultModeConfig(selectedResultModeId, modeConfigs[selectedResultModeId]),
+    () =>
+      normalizeResultModeConfig(
+        selectedResultModeId,
+        modeConfigs[selectedResultModeId],
+      ),
     [modeConfigs, selectedResultModeId],
   )
   const selectedModeConfigFieldCount = useMemo(
@@ -226,8 +274,9 @@ export function WorkflowsTemplatesPage() {
   )
   const requestedResult = useMemo(() => {
     if (!templateLibraryContext) return ""
-    const canSeedIntent = hasWorkflowCreatePromptContent(draftPrompt, promptScaffold)
-      || selectedModeConfigFieldCount > 0
+    const canSeedIntent =
+      hasWorkflowCreatePromptContent(draftPrompt, promptScaffold) ||
+      selectedModeConfigFieldCount > 0
     if (!canSeedIntent) return ""
     return buildResultModeSeedInput(
       selectedResultMode,
@@ -245,7 +294,9 @@ export function WorkflowsTemplatesPage() {
   ])
   const sourceAttachmentSummary = useMemo(() => {
     if (sourceArtifacts.length > 0) {
-      const titles = sourceArtifacts.slice(0, 2).map((artifact) => artifact.title)
+      const titles = sourceArtifacts
+        .slice(0, 2)
+        .map((artifact) => artifact.title)
       if (sourceArtifacts.length > 2) {
         titles.push(`+${sourceArtifacts.length - 2} more`)
       }
@@ -264,17 +315,24 @@ export function WorkflowsTemplatesPage() {
     }
     return null
   }, [sourceArtifacts, sourceAttachments])
-  const hasActiveFilters = activeCategory !== "all" || activeFilter !== "all" || query.trim().length > 0
+  const hasActiveFilters =
+    activeCategory !== "all" ||
+    activeFilter !== "all" ||
+    query.trim().length > 0
 
   useEffect(() => {
     if (selectedTemplateId === null) return
-    if (filteredTemplates.some((template) => template.id === selectedTemplateId)) return
+    if (
+      filteredTemplates.some((template) => template.id === selectedTemplateId)
+    )
+      return
     setSelectedTemplateId(null)
   }, [filteredTemplates, selectedTemplateId])
 
   useEffect(() => {
     if (activeFilter === "all") return
-    if (availableStageFilters.some((entry) => entry.stage === activeFilter)) return
+    if (availableStageFilters.some((entry) => entry.stage === activeFilter))
+      return
     setActiveFilter("all")
   }, [activeFilter, availableStageFilters])
 
@@ -290,14 +348,17 @@ export function WorkflowsTemplatesPage() {
   }
 
   const replaceOptionAvailable = !replaceCurrentBlockedReason
-  const canContinuePendingTemplate = pendingTemplateDecision === "create"
-    ? Boolean(targetProjectPath)
-    : replaceOptionAvailable
+  const canContinuePendingTemplate =
+    pendingTemplateDecision === "create"
+      ? Boolean(targetProjectPath)
+      : replaceOptionAvailable
 
   const confirmApplyTemplate = (template: WorkflowTemplate) => {
     if (createInProjectOnly) {
       if (projectRequired.projectRequired) {
-        toastError(`${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`)
+        toastError(
+          `${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`,
+        )
         return
       }
       void doCreateFromTemplate(template, preferredProjectPath)
@@ -305,7 +366,8 @@ export function WorkflowsTemplatesPage() {
     }
 
     const nextWorkflow = resolveTemplateWorkflow(template, webSearchBackend)
-    const replacingCurrent = JSON.stringify(workflow) !== JSON.stringify(nextWorkflow)
+    const replacingCurrent =
+      JSON.stringify(workflow) !== JSON.stringify(nextWorkflow)
     if (replacingCurrent) {
       setPendingTemplate(template)
       return
@@ -332,7 +394,10 @@ export function WorkflowsTemplatesPage() {
       selectedPastRun,
     }
     const templateForWorkflowUse = normalizeTemplateForWorkflowUse(resolved)
-    const nextWorkflow = resolveTemplateWorkflow(templateForWorkflowUse, webSearchBackend)
+    const nextWorkflow = resolveTemplateWorkflow(
+      templateForWorkflowUse,
+      webSearchBackend,
+    )
     const templateStartState = buildTemplateStartState({
       template: {
         ...templateForWorkflowUse,
@@ -346,7 +411,12 @@ export function WorkflowsTemplatesPage() {
     const workflowKey = toWorkflowExecutionKey(selectedWorkflowPath)
     setWorkflow(nextWorkflow)
     setInputValue(templateStartState.initialInputValue)
-    setInputAttachments(mergeInputAttachments(sourceAttachments, templateStartState.initialAttachments))
+    setInputAttachments(
+      mergeInputAttachments(
+        sourceAttachments,
+        templateStartState.initialAttachments,
+      ),
+    )
     setSelectedInboxTaskKey(null)
     setSelectedPastRun(null)
     setWorkflowEntryState(templateStartState.entryState)
@@ -356,28 +426,44 @@ export function WorkflowsTemplatesPage() {
     })
     setMainView("thread")
     setPendingTemplate(null)
-    toast.success(`"${templateForWorkflowUse.name}" is ready in the current flow`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          setWorkflow(previousWorkflow)
-          setInputValue(previousState.inputValue)
-          setInputAttachments(previousState.inputAttachments)
-          setSelectedInboxTaskKey(previousState.selectedInboxTaskKey)
-          setSelectedPastRun(previousState.selectedPastRun)
-          setWorkflowEntryState(previousState.workflowEntryState)
-          setWorkflowTemplateContextForKey({ key: workflowKey, context: previousState.templateContext })
+    toast.success(
+      `"${templateForWorkflowUse.name}" is ready in the current flow`,
+      {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            setWorkflow(previousWorkflow)
+            setInputValue(previousState.inputValue)
+            setInputAttachments(previousState.inputAttachments)
+            setSelectedInboxTaskKey(previousState.selectedInboxTaskKey)
+            setSelectedPastRun(previousState.selectedPastRun)
+            setWorkflowEntryState(previousState.workflowEntryState)
+            setWorkflowTemplateContextForKey({
+              key: workflowKey,
+              context: previousState.templateContext,
+            })
+          },
         },
       },
-    })
+    )
   }
 
-  const doCreateFromTemplate = async (template: WorkflowTemplate, projectPath: string) => {
+  const doCreateFromTemplate = async (
+    template: WorkflowTemplate,
+    projectPath: string,
+  ) => {
     const resolved = await resolveHubTemplate(template)
     const templateForWorkflowUse = normalizeTemplateForWorkflowUse(resolved)
-    const nextWorkflow = resolveTemplateWorkflow(templateForWorkflowUse, webSearchBackend)
+    const nextWorkflow = resolveTemplateWorkflow(
+      templateForWorkflowUse,
+      webSearchBackend,
+    )
     try {
-      const filePath = await window.api.createWorkflow(projectPath, templateForWorkflowUse.name, nextWorkflow)
+      const filePath = await window.api.createWorkflow(
+        projectPath,
+        templateForWorkflowUse.name,
+        nextWorkflow,
+      )
       const loadedWorkflow = await window.api.loadWorkflow(filePath)
       const templateStartState = buildTemplateStartState({
         template: {
@@ -390,14 +476,21 @@ export function WorkflowsTemplatesPage() {
         sourceArtifacts,
       })
       const refreshed = await window.api.listProjectWorkflows(projectPath)
-      await window.api.recordProjectTemplateUsage(projectPath, template.id).catch(() => undefined)
+      await window.api
+        .recordProjectTemplateUsage(projectPath, template.id)
+        .catch(() => undefined)
       setWorkflows(refreshed)
       setSelectedProject(projectPath)
       setSelectedWorkflowPath(filePath)
       setSelectedInboxTaskKey(null)
       setWorkflow(loadedWorkflow)
       setInputValue(templateStartState.initialInputValue)
-      setInputAttachments(mergeInputAttachments(sourceAttachments, templateStartState.initialAttachments))
+      setInputAttachments(
+        mergeInputAttachments(
+          sourceAttachments,
+          templateStartState.initialAttachments,
+        ),
+      )
       setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
       setSelectedPastRun(null)
       setWorkflowEntryState(templateStartState.entryState)
@@ -407,7 +500,9 @@ export function WorkflowsTemplatesPage() {
       })
       setMainView("thread")
       setPendingTemplate(null)
-      toast.success(`"${loadedWorkflow.name || templateForWorkflowUse.name}" is ready in ${projectPath.split(/[\\/]/).pop() || "project"}`)
+      toast.success(
+        `"${loadedWorkflow.name || templateForWorkflowUse.name}" is ready in ${projectPath.split(/[\\/]/).pop() || "project"}`,
+      )
     } catch (error) {
       toastErrorFromCatch("Could not create flow", error)
     }
@@ -420,7 +515,11 @@ export function WorkflowsTemplatesPage() {
           key={entry.template.id}
           entry={entry}
           isSelected={selectedTemplateId === entry.template.id}
-          onSelect={(template) => setSelectedTemplateId((current) => (current === template.id ? null : template.id))}
+          onSelect={(template) =>
+            setSelectedTemplateId((current) =>
+              current === template.id ? null : template.id,
+            )
+          }
         />
       ))}
     </div>
@@ -431,14 +530,16 @@ export function WorkflowsTemplatesPage() {
       <Button
         size="sm"
         variant="outline"
-        onClick={() => openWorkflowCreate({
-          modeId: createModeId,
-          projectPath: preferredProjectPath,
-          locked: createInProjectOnly,
-          prompt: templateLibraryContext ? draftPrompt : "",
-          sourceArtifacts,
-          initialAttachments: sourceAttachments,
-        })}
+        onClick={() =>
+          openWorkflowCreate({
+            modeId: createModeId,
+            projectPath: preferredProjectPath,
+            locked: createInProjectOnly,
+            prompt: templateLibraryContext ? draftPrompt : "",
+            sourceArtifacts,
+            initialAttachments: sourceAttachments,
+          })
+        }
       >
         <Sparkles size={14} />
         {templateLibraryContext ? "Back to create" : "Create with agent"}
@@ -468,7 +569,9 @@ export function WorkflowsTemplatesPage() {
         ) : null}
         {sourceAttachmentSummary ? (
           <div className="border-b border-hairline/70 pb-3">
-            <div className="ui-meta-label text-muted-foreground">Using result</div>
+            <div className="ui-meta-label text-muted-foreground">
+              Using result
+            </div>
             <p className="mt-1 text-body-sm text-foreground">
               {sourceAttachmentSummary}
             </p>
@@ -484,9 +587,14 @@ export function WorkflowsTemplatesPage() {
         searchAriaLabel="Search starting points"
         surface="flat"
         summary={`${filteredTemplates.length} starting point${filteredTemplates.length === 1 ? "" : "s"}`}
-        filters={(
+        filters={
           <>
-            <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as TemplateCategoryKey)}>
+            <Select
+              value={activeCategory}
+              onValueChange={(value) =>
+                setActiveCategory(value as TemplateCategoryKey)
+              }
+            >
               <SelectTrigger className="h-control-sm min-w-[11rem]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -498,7 +606,12 @@ export function WorkflowsTemplatesPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as TemplateLibraryFilterKey)}>
+            <Select
+              value={activeFilter}
+              onValueChange={(value) =>
+                setActiveFilter(value as TemplateLibraryFilterKey)
+              }
+            >
               <SelectTrigger className="h-control-sm min-w-[12rem]">
                 <SelectValue placeholder="Step" />
               </SelectTrigger>
@@ -518,7 +631,7 @@ export function WorkflowsTemplatesPage() {
               </Button>
             )}
           </>
-        )}
+        }
       />
 
       <section aria-busy={loading} aria-live="polite">
@@ -528,7 +641,11 @@ export function WorkflowsTemplatesPage() {
             {loading ? (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, idx) => (
-                  <div key={`skeleton-${idx}`} className="rounded-lg border border-hairline/70 p-4 flex items-start gap-3" aria-hidden="true">
+                  <div
+                    key={`skeleton-${idx}`}
+                    className="rounded-lg border border-hairline/70 p-4 flex items-start gap-3"
+                    aria-hidden="true"
+                  >
                     <Skeleton className="h-6 w-6 flex-shrink-0" />
                     <div className="min-w-0 flex-1 space-y-2">
                       <Skeleton className="h-4 w-2/3" />
@@ -544,7 +661,12 @@ export function WorkflowsTemplatesPage() {
                     ? "No starting points match these filters."
                     : `No ${selectedCategoryMeta.label.toLowerCase()} starting points match these filters.`}
                 </p>
-                <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                >
                   Clear filters
                 </Button>
               </div>
@@ -555,7 +677,8 @@ export function WorkflowsTemplatesPage() {
                     <div className="px-1">
                       <p className="section-kicker">Guided entries</p>
                       <p className="mt-1 text-body-sm text-muted-foreground">
-                        Start with the first step, then continue through saved work as the path progresses.
+                        Start with the first step, then continue through saved
+                        work as the path progresses.
                       </p>
                     </div>
                     {renderTemplateGrid(filteredTemplateEntries.guidedEntries)}
@@ -563,7 +686,14 @@ export function WorkflowsTemplatesPage() {
                 ) : null}
 
                 {filteredTemplateEntries.isolatedEntries.length > 0 ? (
-                  <section className="space-y-3" aria-label={filteredTemplateEntries.guidedEntries.length > 0 ? "More starts" : "All starts"}>
+                  <section
+                    className="space-y-3"
+                    aria-label={
+                      filteredTemplateEntries.guidedEntries.length > 0
+                        ? "More starts"
+                        : "All starts"
+                    }
+                  >
                     {filteredTemplateEntries.guidedEntries.length > 0 ? (
                       <div className="px-1">
                         <p className="section-kicker">More starts</p>
@@ -572,7 +702,9 @@ export function WorkflowsTemplatesPage() {
                         </p>
                       </div>
                     ) : null}
-                    {renderTemplateGrid(filteredTemplateEntries.isolatedEntries)}
+                    {renderTemplateGrid(
+                      filteredTemplateEntries.isolatedEntries,
+                    )}
                   </section>
                 ) : null}
               </div>

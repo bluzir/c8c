@@ -1,8 +1,17 @@
 import { Badge } from "@/components/ui/badge"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { cn } from "@/lib/cn"
-import type { ExecutionLoopOutcome, ExecutionLoopSummary } from "@/lib/execution-loops"
-import { CheckCircle2, Gauge, RefreshCcw, ShieldAlert, TimerReset } from "lucide-react"
+import type {
+  ExecutionLoopOutcome,
+  ExecutionLoopSummary,
+} from "@/lib/execution-loops"
+import {
+  CheckCircle2,
+  Gauge,
+  RefreshCcw,
+  ShieldAlert,
+  TimerReset,
+} from "lucide-react"
 
 function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
   switch (outcome) {
@@ -10,7 +19,7 @@ function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
       return {
         Icon: CheckCircle2,
         badgeVariant: "success" as const,
-        iconToneClass: "text-status-success bg-status-success/10 border-status-success/20",
+        iconToneClass: "text-status-success surface-success-soft",
         headline: "Check passed",
         nextAction: "Continue",
       }
@@ -18,7 +27,7 @@ function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
       return {
         Icon: ShieldAlert,
         badgeVariant: "warning" as const,
-        iconToneClass: "text-status-warning bg-status-warning/10 border-status-warning/20",
+        iconToneClass: "text-status-warning surface-warning-soft",
         headline: "Decision required",
         nextAction: "Approve or reject",
       }
@@ -26,7 +35,7 @@ function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
       return {
         Icon: TimerReset,
         badgeVariant: "warning" as const,
-        iconToneClass: "text-status-warning bg-status-warning/10 border-status-warning/20",
+        iconToneClass: "text-status-warning surface-warning-soft",
         headline: "Retry limit hit",
         nextAction: "Decide manually",
       }
@@ -34,7 +43,7 @@ function resolveLoopOutcomePresentation(outcome: ExecutionLoopOutcome) {
       return {
         Icon: RefreshCcw,
         badgeVariant: "info" as const,
-        iconToneClass: "text-status-info bg-status-info/10 border-status-info/20",
+        iconToneClass: "text-status-info surface-info-soft",
         headline: "Returning with fixes",
         nextAction: "Auto return",
       }
@@ -57,7 +66,8 @@ export function ExecutionLoopCard({
   if (!summary) return null
 
   const outcome = resolveLoopOutcomePresentation(summary.outcome)
-  const scoreVariant = summary.score >= summary.threshold ? "success" : "warning"
+  const scoreVariant =
+    summary.score >= summary.threshold ? "success" : "warning"
   const scoreGap = Math.max(summary.threshold - summary.score, 0)
   const criteriaCount = summary.criteriaBreakdown?.length || 0
   const compactDetail = summary.fixInstructions || summary.reason
@@ -66,9 +76,7 @@ export function ExecutionLoopCard({
   return (
     <div
       className={cn(
-        flatSurface
-          ? "px-0.5 py-1.5"
-          : "rounded-lg border border-hairline bg-surface-2/55 px-3 py-2.5",
+        flatSurface ? "px-0.5 py-1.5" : "ui-inset-well px-3 py-2.5",
         compact && !flatSurface && "px-2.5 py-2",
         className,
       )}
@@ -76,43 +84,66 @@ export function ExecutionLoopCard({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn("inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border", outcome.iconToneClass)}>
+            <span
+              className={cn(
+                "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border",
+                outcome.iconToneClass,
+              )}
+            >
               <outcome.Icon size={13} aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="ui-meta-label text-muted-foreground">{summary.loopLabel}</span>
-                <span className="text-body-sm font-medium text-foreground">{summary.title}</span>
+                <span className="ui-meta-label text-muted-foreground">
+                  {summary.loopLabel}
+                </span>
+                <span className="text-body-sm font-medium text-foreground">
+                  {summary.title}
+                </span>
               </div>
               {!compact && (
-                <div className="mt-0.5 text-body-sm font-medium text-foreground">{outcome.headline}</div>
+                <div className="mt-0.5 text-body-sm font-medium text-foreground">
+                  {outcome.headline}
+                </div>
               )}
             </div>
           </div>
         </div>
         <div className="ui-badge-row">
-          <Badge variant={outcome.badgeVariant} size="compact">{summary.outcomeLabel}</Badge>
+          <Badge variant={outcome.badgeVariant} size="compact">
+            {summary.outcomeLabel}
+          </Badge>
           <Badge variant={scoreVariant} size="compact">
             <Gauge size={11} />
             {summary.score}/10
           </Badge>
-          <Badge variant="outline" size="compact">Bar {summary.threshold}/10</Badge>
-          <Badge variant="outline" size="compact">Loop {summary.attempt}/{summary.maxAttempts}</Badge>
+          <Badge variant="outline" size="compact">
+            Bar {summary.threshold}/10
+          </Badge>
+          <Badge variant="outline" size="compact">
+            Loop {summary.attempt}/{summary.maxAttempts}
+          </Badge>
         </div>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <Badge variant={outcome.badgeVariant} size="compact">{outcome.nextAction}</Badge>
+        <Badge variant={outcome.badgeVariant} size="compact">
+          {outcome.nextAction}
+        </Badge>
         {summary.failedCriteriaCount > 0 && (
           <Badge variant="warning" size="compact">
             {summary.failedCriteriaCount} below bar
           </Badge>
         )}
         {summary.deltaLabel && (
-          <Badge variant="outline" size="compact">{summary.deltaLabel}</Badge>
+          <Badge variant="outline" size="compact">
+            {summary.deltaLabel}
+          </Badge>
         )}
         {scoreGap > 0 && (
-          <Badge variant="outline" size="compact">-{scoreGap} to pass</Badge>
+          <Badge variant="outline" size="compact">
+            -{scoreGap} to pass
+          </Badge>
         )}
       </div>
 
@@ -133,39 +164,50 @@ export function ExecutionLoopCard({
           {summary.reason && (
             <div>
               <p className="ui-meta-label text-muted-foreground">Why</p>
-              <p className="mt-1 text-body-sm text-foreground whitespace-pre-wrap">{summary.reason}</p>
+              <p className="mt-1 text-body-sm text-foreground whitespace-pre-wrap">
+                {summary.reason}
+              </p>
             </div>
           )}
           {summary.fixInstructions && (
             <div>
               <p className="ui-meta-label text-muted-foreground">Fix next</p>
-              <p className="mt-1 text-body-sm text-foreground whitespace-pre-wrap">{summary.fixInstructions}</p>
+              <p className="mt-1 text-body-sm text-foreground whitespace-pre-wrap">
+                {summary.fixInstructions}
+              </p>
             </div>
           )}
-          {summary.criteriaBreakdown && summary.criteriaBreakdown.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="ui-meta-label text-muted-foreground">Checks</p>
-              <div className="space-y-1">
-                {summary.criteriaBreakdown.map((criterion) => (
-                  <div
-                    key={`${criterion.id}-${criterion.score}`}
-                    className={cn(
-                      "flex items-center justify-between gap-3 rounded-md border border-hairline px-2.5 py-1.5 text-body-sm",
-                      flatSurface ? "bg-transparent" : "bg-surface-2/45",
-                    )}
-                  >
-                    <span className="min-w-0 truncate text-foreground">{criterion.id}</span>
-                    <Badge
-                      variant={criterion.score >= summary.threshold ? "success" : "warning"}
-                      size="compact"
+          {summary.criteriaBreakdown &&
+            summary.criteriaBreakdown.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="ui-meta-label text-muted-foreground">Checks</p>
+                <div className="space-y-1">
+                  {summary.criteriaBreakdown.map((criterion) => (
+                    <div
+                      key={`${criterion.id}-${criterion.score}`}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-md border border-hairline px-2.5 py-1.5 text-body-sm",
+                        flatSurface ? "bg-transparent" : "bg-surface-2/45",
+                      )}
                     >
-                      {criterion.score}/10
-                    </Badge>
-                  </div>
-                ))}
+                      <span className="min-w-0 truncate text-foreground">
+                        {criterion.id}
+                      </span>
+                      <Badge
+                        variant={
+                          criterion.score >= summary.threshold
+                            ? "success"
+                            : "warning"
+                        }
+                        size="compact"
+                      >
+                        {criterion.score}/10
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </DisclosurePanel>
       )}
     </div>

@@ -15,7 +15,9 @@ export function CliBanner() {
   const [defaultProvider] = useAtom(defaultProviderAtom)
   const [providerAvailability] = useAtom(providerAvailabilityAtom)
   const [providerAuthStatus] = useAtom(providerAuthStatusAtom)
-  const [dismissedKey, setDismissedKey] = useAtom(providerSetupBannerDismissedKeyAtom)
+  const [dismissedKey, setDismissedKey] = useAtom(
+    providerSetupBannerDismissedKeyAtom,
+  )
   const [, setMainView] = useAtom(mainViewAtom)
   const banner = resolveProviderBannerState(
     defaultProvider,
@@ -25,13 +27,17 @@ export function CliBanner() {
 
   if (!banner || dismissedKey === banner.dismissKey) return null
 
-  const toneClass = banner.tone === "danger" ? "text-status-danger" : "text-status-warning"
-  const bannerClass = banner.tone === "danger" ? "ui-alert-danger" : "ui-alert-warning"
+  const toneClass =
+    banner.tone === "danger" ? "text-status-danger" : "text-status-warning"
+  const bannerClass =
+    banner.tone === "danger" ? "ui-alert-danger" : "ui-alert-warning"
 
   return (
     <div className={cn("mx-3 mt-3 flex items-center gap-2", bannerClass)}>
       <AlertTriangle size={14} className={cn("shrink-0", toneClass)} />
-      <span className={cn("flex-1 text-body-sm", toneClass)}>{banner.message}</span>
+      <span className={cn("flex-1 text-body-sm", toneClass)}>
+        {banner.message}
+      </span>
       <Button
         variant="ghost"
         size="sm"

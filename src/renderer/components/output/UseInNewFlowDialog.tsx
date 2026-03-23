@@ -42,7 +42,9 @@ export function UseInNewFlowDialog({
   pending,
   onConfirm,
 }: UseInNewFlowDialogProps) {
-  const selectedTemplate = suggestedTemplates.find((template) => template.id === selectedTemplateId) || null
+  const selectedTemplate =
+    suggestedTemplates.find((template) => template.id === selectedTemplateId) ||
+    null
   const trimmedIntent = intent.trim()
   const canConfirm = Boolean(selectedTemplate || trimmedIntent)
   const primaryLabel = selectedTemplate
@@ -63,15 +65,23 @@ export function UseInNewFlowDialog({
 
         <CanvasDialogBody className="space-y-4">
           <div className="border-b border-hairline pb-3">
-            <div className="ui-meta-label text-muted-foreground">Using result</div>
-            <div className="mt-1 text-body-sm text-foreground">{sourceLabel}</div>
+            <div className="ui-meta-label text-muted-foreground">
+              Using result
+            </div>
+            <div className="mt-1 text-body-sm text-foreground">
+              {sourceLabel}
+            </div>
           </div>
 
           {loading ? (
-            <div className="text-body-sm text-muted-foreground">Loading suggested starts…</div>
+            <div className="text-body-sm text-muted-foreground">
+              Loading suggested starts…
+            </div>
           ) : suggestedTemplates.length > 0 ? (
             <div className="space-y-2">
-              <div className="ui-meta-label text-muted-foreground">Suggested starts</div>
+              <div className="ui-meta-label text-muted-foreground">
+                Suggested starts
+              </div>
               <div className="space-y-2">
                 {suggestedTemplates.map((template) => {
                   const selected = selectedTemplateId === template.id
@@ -85,11 +95,17 @@ export function UseInNewFlowDialog({
                           ? "bg-surface-2/75 text-foreground"
                           : "bg-transparent text-foreground hover:bg-surface-2/45",
                       )}
-                      onClick={() => onSelectTemplate(selected ? null : template.id)}
+                      onClick={() =>
+                        onSelectTemplate(selected ? null : template.id)
+                      }
                     >
-                      <div className="text-body-sm font-medium">{template.name}</div>
+                      <div className="text-body-sm font-medium">
+                        {template.name}
+                      </div>
                       <div className="mt-1 text-body-sm text-muted-foreground">
-                        {template.useWhen || template.output || template.description}
+                        {template.useWhen ||
+                          template.output ||
+                          template.description}
                       </div>
                     </button>
                   )
@@ -99,23 +115,31 @@ export function UseInNewFlowDialog({
           ) : null}
 
           <div className="space-y-2">
-            <div className="ui-meta-label text-muted-foreground">Or describe the next flow</div>
+            <div className="ui-meta-label text-muted-foreground">
+              Or describe the next flow
+            </div>
             <AutosizeTextarea
               value={intent}
               onChange={(event) => onIntentChange(event.target.value)}
               rows={3}
               maxHeight={168}
               placeholder="Example: Use this audit to plan and execute the top fixes"
-              className="w-full rounded-lg border border-input bg-input-background px-3 py-3 text-body-sm text-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/20"
+              className="w-full rounded-lg border border-input bg-input-background px-3 py-3 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/20"
             />
           </div>
         </CanvasDialogBody>
 
         <CanvasDialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost" size="sm">Cancel</Button>
+            <Button variant="ghost" size="sm">
+              Cancel
+            </Button>
           </DialogClose>
-          <Button size="sm" disabled={!canConfirm || pending} onClick={onConfirm}>
+          <Button
+            size="sm"
+            disabled={!canConfirm || pending}
+            onClick={onConfirm}
+          >
             {pending ? "Opening..." : primaryLabel}
           </Button>
         </CanvasDialogFooter>

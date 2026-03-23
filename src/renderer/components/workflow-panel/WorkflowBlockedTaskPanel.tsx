@@ -1,6 +1,14 @@
-import type { RefObject } from "react"
+import { useEffect, type RefObject } from "react"
+import { useAtomValue } from "jotai"
 import type { HumanTaskField, HumanTaskSnapshot } from "@shared/types"
 import { SelectedTaskPanel } from "@/components/notifications/SelectedTaskPanel"
+import { hasMissingRequiredTaskAnswers } from "@/components/notifications/task-ui"
+import {
+  consumeShortcut,
+  isShortcutConsumed,
+  matchesPrimaryShortcut,
+} from "@/lib/keyboard-shortcuts"
+import { desktopRuntimeAtom } from "@/lib/store"
 import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume"
 import type { TaskStageMeta } from "@/components/notifications/task-ui"
 
@@ -33,6 +41,44 @@ export function WorkflowBlockedTaskPanel({
   onReject,
   onInspect,
 }: WorkflowBlockedTaskPanelProps) {
+  const desktopRuntime = useAtomValue(desktopRuntimeAtom)
+  const hasMissingRequiredFields = selectedTask
+    ? hasMissingRequiredTaskAnswers(selectedTask, taskAnswers)
+    : false
+
+  useEffect(() => {
+    if (!selectedTask || taskSubmitting || hasMissingRequiredFields) return
+
+    const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isShortcutConsumed(event)) return
+      if (
+        !matchesPrimaryShortcut(event, {
+          key: "Enter",
+          primaryModifierKey: desktopRuntime.primaryModifierKey,
+        })
+      )
+        return
+      consumeShortcut(event)
+      if (selectedTask.workflowPath) {
+        onSubmitAndContinue()
+        return
+      }
+      onSubmit()
+    }
+
+    window.addEventListener("keydown", handler, true)
+    return () => {
+      window.removeEventListener("keydown", handler, true)
+    }
+  }, [
+    desktopRuntime.primaryModifierKey,
+    hasMissingRequiredFields,
+    onSubmit,
+    onSubmitAndContinue,
+    selectedTask,
+    taskSubmitting,
+  ])
+
   if (!selectedTask) return null
 
   return (
@@ -43,21 +89,27 @@ export function WorkflowBlockedTaskPanel({
         taskSubmitting={taskSubmitting}
         taskAnswers={taskAnswers}
         selectedTaskStageMeta={selectedTaskStageMeta}
-        blockedSummary={blockedResumeSummary ? {
-          statusText: blockedResumeSummary.statusText,
-          reasonText: blockedResumeSummary.reasonText,
-          inputText: blockedResumeSummary.attachText,
-          latestResultText: blockedResumeSummary.latestResultText,
-          findings: blockedResumeSummary.findings,
-          approveText: selectedTask.kind === "approval"
-            ? "Continue this flow after approval."
-            : "Submit the requested input and continue the flow.",
-          rejectText: "Stop the flow. Saved artifacts stay available for later review.",
-        } : null}
+        blockedSummary={
+          blockedResumeSummary
+            ? {
+                statusText: blockedResumeSummary.statusText,
+                reasonText: blockedResumeSummary.reasonText,
+                inputText: blockedResumeSummary.attachText,
+                latestResultText: blockedResumeSummary.latestResultText,
+                findings: blockedResumeSummary.findings,
+                approveText:
+                  selectedTask.kind === "approval"
+                    ? "Continue this flow after approval."
+                    : "Submit the requested input and continue the flow.",
+                rejectText:
+                  "Stop the flow. Saved results stay available for later review.",
+              }
+            : null
+        }
         showOpenWorkflowButton={false}
-        className="rounded-lg border border-hairline bg-surface-1 px-5 py-4"
+        primaryActionShortcutLabel={`${desktopRuntime.primaryModifierLabel}↵`}
+        className="surface-figure p-5"
         inspectLabel={showResumeReviewMode ? "Inspect saved run" : null}
-        onOpenWorkflow={() => {}}
         onFieldChange={onFieldChange}
         onSubmit={onSubmit}
         onSubmitAndContinue={onSubmitAndContinue}

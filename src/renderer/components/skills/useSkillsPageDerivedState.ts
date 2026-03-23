@@ -131,7 +131,9 @@ export function useSkillsPageDerivedState({
     const normalizedQuery = query.trim().toLowerCase()
     if (!normalizedQuery) return libraries
     return libraries.filter((library) =>
-      `${library.name} ${library.description} ${library.id}`.toLowerCase().includes(normalizedQuery),
+      `${library.name} ${library.description} ${library.id}`
+        .toLowerCase()
+        .includes(normalizedQuery),
     )
   }, [libraries, query])
 
@@ -139,7 +141,9 @@ export function useSkillsPageDerivedState({
     const normalizedQuery = query.trim().toLowerCase()
     if (!normalizedQuery) return marketplaces
     return marketplaces.filter((marketplace) =>
-      `${marketplace.name} ${marketplace.description} ${marketplace.id} ${marketplace.owner || ""}`.toLowerCase().includes(normalizedQuery),
+      `${marketplace.name} ${marketplace.description} ${marketplace.id} ${marketplace.owner || ""}`
+        .toLowerCase()
+        .includes(normalizedQuery),
     )
   }, [marketplaces, query])
 
@@ -148,19 +152,23 @@ export function useSkillsPageDerivedState({
     const list = !normalizedQuery
       ? plugins
       : plugins.filter((plugin) =>
-        [
-          plugin.name,
-          plugin.description,
-          plugin.marketplaceName,
-          plugin.category || "",
-          plugin.tags?.join(" ") || "",
-          plugin.capabilities.join(" "),
-        ].join(" ").toLowerCase().includes(normalizedQuery),
-      )
+          [
+            plugin.name,
+            plugin.description,
+            plugin.marketplaceName,
+            plugin.category || "",
+            plugin.tags?.join(" ") || "",
+            plugin.capabilities.join(" "),
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedQuery),
+        )
 
     return [...list].sort((a, b) => {
       if (a.enabled !== b.enabled) return a.enabled ? -1 : 1
-      if (a.marketplaceName !== b.marketplaceName) return a.marketplaceName.localeCompare(b.marketplaceName)
+      if (a.marketplaceName !== b.marketplaceName)
+        return a.marketplaceName.localeCompare(b.marketplaceName)
       return a.name.localeCompare(b.name)
     })
   }, [plugins, query])
@@ -170,8 +178,10 @@ export function useSkillsPageDerivedState({
     const list = !normalizedQuery
       ? skills
       : skills.filter((skill) =>
-        `${skill.name} ${skill.description} ${skill.category} ${getSkillSourceLabel(skill)}`.toLowerCase().includes(normalizedQuery),
-      )
+          `${skill.name} ${skill.description} ${skill.category} ${getSkillSourceLabel(skill)}`
+            .toLowerCase()
+            .includes(normalizedQuery),
+        )
     return [...list].sort((a, b) => a.name.localeCompare(b.name))
   }, [skills, query])
 
@@ -185,7 +195,9 @@ export function useSkillsPageDerivedState({
 
   const groupedSkills = useMemo(() => {
     return CAPABILITY_SOURCE_SECTIONS.map((section) => {
-      const items = filteredSkills.filter((skill) => section.kinds.has(getSkillSourceKind(skill)))
+      const items = filteredSkills.filter((skill) =>
+        section.kinds.has(getSkillSourceKind(skill)),
+      )
       return { ...section, items }
     }).filter((section) => section.items.length > 0)
   }, [filteredSkills])
@@ -195,13 +207,25 @@ export function useSkillsPageDerivedState({
     [filteredLibraries],
   )
   const favoriteLibraries = useMemo(
-    () => filteredLibraries
-      .filter((library) => !library.installed && FAVORITE_LIBRARY_ORDER.has(library.id))
-      .sort((a, b) => (FAVORITE_LIBRARY_ORDER.get(a.id) ?? 999) - (FAVORITE_LIBRARY_ORDER.get(b.id) ?? 999)),
+    () =>
+      filteredLibraries
+        .filter(
+          (library) =>
+            !library.installed && FAVORITE_LIBRARY_ORDER.has(library.id),
+        )
+        .sort(
+          (a, b) =>
+            (FAVORITE_LIBRARY_ORDER.get(a.id) ?? 999) -
+            (FAVORITE_LIBRARY_ORDER.get(b.id) ?? 999),
+        ),
     [filteredLibraries],
   )
   const availableLibraries = useMemo(
-    () => filteredLibraries.filter((library) => !library.installed && !FAVORITE_LIBRARY_ORDER.has(library.id)),
+    () =>
+      filteredLibraries.filter(
+        (library) =>
+          !library.installed && !FAVORITE_LIBRARY_ORDER.has(library.id),
+      ),
     [filteredLibraries],
   )
   const installedMarketplaces = useMemo(
@@ -235,10 +259,18 @@ export function useSkillsPageDerivedState({
 
   const pendingRemoveMarketplaceRefs = useMemo(() => {
     if (!pendingRemoveMarketplace) return []
-    const marketplacePlugins = pluginsByMarketplaceId.get(pendingRemoveMarketplace.id) || []
-    const marketplaceSkills = marketplacePlugins.flatMap((plugin) => skillsByPlugin.get(plugin.id) || [])
+    const marketplacePlugins =
+      pluginsByMarketplaceId.get(pendingRemoveMarketplace.id) || []
+    const marketplaceSkills = marketplacePlugins.flatMap(
+      (plugin) => skillsByPlugin.get(plugin.id) || [],
+    )
     return findWorkflowRefsBySkills(currentWorkflow, marketplaceSkills)
-  }, [currentWorkflow, pendingRemoveMarketplace, pluginsByMarketplaceId, skillsByPlugin])
+  }, [
+    currentWorkflow,
+    pendingRemoveMarketplace,
+    pluginsByMarketplaceId,
+    skillsByPlugin,
+  ])
 
   return {
     skillsCountByLibrary,

@@ -44,7 +44,10 @@ export function ModeConfigField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={`mode-config-${field.id}`} className="ui-meta-text text-muted-foreground">
+      <Label
+        htmlFor={`mode-config-${field.id}`}
+        className="ui-meta-text text-muted-foreground"
+      >
         {field.label}
       </Label>
       {field.type === "textarea" ? (

@@ -23,14 +23,17 @@ export function useOutputPanelActions({
     }
   }, [canCopyResult, resultCopyTextWithHeader])
 
-  const handleOpenReport = useCallback(async (path: string) => {
-    try {
-      await Promise.resolve(onOpenReport(path))
-    } catch (error) {
-      console.error("[OutputPanel] open report failed:", error)
-      toastErrorFromCatch("Could not open report file", error)
-    }
-  }, [onOpenReport])
+  const handleOpenReport = useCallback(
+    async (path: string) => {
+      try {
+        await Promise.resolve(onOpenReport(path))
+      } catch (error) {
+        console.error("[OutputPanel] open report failed:", error)
+        toastErrorFromCatch("Could not open report file", error)
+      }
+    },
+    [onOpenReport],
+  )
 
   const handleOpenArtifact = useCallback(async (artifact: ArtifactRecord) => {
     const openError = await window.api.openPath(artifact.contentPath)
@@ -40,14 +43,17 @@ export function useOutputPanelActions({
     })
   }, [])
 
-  const handleCopyArtifactPath = useCallback(async (artifact: ArtifactRecord) => {
-    try {
-      await navigator.clipboard.writeText(artifact.contentPath)
-    } catch (error) {
-      console.error("[OutputPanel] copy artifact path failed:", error)
-      toastErrorFromCatch("Could not copy file path", error)
-    }
-  }, [])
+  const handleCopyArtifactPath = useCallback(
+    async (artifact: ArtifactRecord) => {
+      try {
+        await navigator.clipboard.writeText(artifact.contentPath)
+      } catch (error) {
+        console.error("[OutputPanel] copy artifact path failed:", error)
+        toastErrorFromCatch("Could not copy file path", error)
+      }
+    },
+    [],
+  )
 
   return {
     handleCopyResult,

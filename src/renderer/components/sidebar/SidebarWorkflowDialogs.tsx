@@ -1,17 +1,6 @@
 import type { WorkflowFile } from "@shared/types"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import {
-  CanvasDialogBody,
-  CanvasDialogContent,
-  CanvasDialogFooter,
-  CanvasDialogHeader,
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { FlowRenameDialog } from "@/components/FlowRenameDialog"
 import { CursorMenu } from "@/components/ui/cursor-menu"
 import { SidebarConfirmDialog } from "./SidebarConfirmDialog"
 import { projectFolderName } from "./projectSidebarUtils"
@@ -40,10 +29,16 @@ export type SidebarContextMenuState =
 interface SidebarWorkflowDialogsProps {
   sidebarContextMenu: SidebarContextMenuState | null
   setSidebarContextMenu: (value: SidebarContextMenuState | null) => void
-  selectWorkflow: (workflow: WorkflowFile, projectPath?: string) => Promise<void>
+  selectWorkflow: (
+    workflow: WorkflowFile,
+    projectPath?: string,
+  ) => Promise<void>
   selectGlobalWorkflow: (workflow: WorkflowFile) => Promise<void>
   requestRenameWorkflow: (workflow: WorkflowFile) => void
-  duplicateWorkflow: (workflow: WorkflowFile, projectPath?: string) => Promise<void>
+  duplicateWorkflow: (
+    workflow: WorkflowFile,
+    projectPath?: string,
+  ) => Promise<void>
   requestDeleteWorkflow: (workflow: WorkflowFile) => void
   pendingRenameWorkflow: WorkflowFile | null
   setPendingRenameWorkflow: (workflow: WorkflowFile | null) => void
@@ -56,7 +51,10 @@ interface SidebarWorkflowDialogsProps {
   workflowDirty: boolean
   commitDeleteWorkflow: () => Promise<void>
   selectedProject: string | null
-  copyWorkflowToProject: (workflow: WorkflowFile, projectPath: string) => Promise<void>
+  copyWorkflowToProject: (
+    workflow: WorkflowFile,
+    projectPath: string,
+  ) => Promise<void>
   pendingRemoveProject: string | null
   setPendingRemoveProject: (projectPath: string | null) => void
   removingSelectedDirtyProject: boolean
@@ -105,7 +103,10 @@ export function SidebarWorkflowDialogs({
             <DropdownMenuItem
               onSelect={() => {
                 if (!sidebarContextMenu) return
-                void selectWorkflow(sidebarContextMenu.workflow, sidebarContextMenu.projectPath)
+                void selectWorkflow(
+                  sidebarContextMenu.workflow,
+                  sidebarContextMenu.projectPath,
+                )
                 setSidebarContextMenu(null)
               }}
             >
@@ -158,7 +159,10 @@ export function SidebarWorkflowDialogs({
                 onSelect={() => {
                   if (!sidebarContextMenu || !selectedProject) return
                   setSidebarContextMenu(null)
-                  void copyWorkflowToProject(sidebarContextMenu.workflow, selectedProject)
+                  void copyWorkflowToProject(
+                    sidebarContextMenu.workflow,
+                    selectedProject,
+                  )
                 }}
               >
                 Copy to {projectFolderName(selectedProject)}
@@ -195,58 +199,41 @@ export function SidebarWorkflowDialogs({
             </DropdownMenuItem>
           </>
         )}
-        {sidebarContextMenu?.scope === "project" && sidebarContextMenu.projectPath && (
-          <>
-            <DropdownMenuItem
-              onSelect={() => {
-                if (!sidebarContextMenu.projectPath) return
-                openProjectFlow(sidebarContextMenu.projectPath)
-                setSidebarContextMenu(null)
-              }}
-            >
-              New flow
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-status-danger focus:text-status-danger"
-              onSelect={() => {
-                if (!sidebarContextMenu.projectPath) return
-                setPendingRemoveProject(sidebarContextMenu.projectPath)
-                setSidebarContextMenu(null)
-              }}
-            >
-              Remove project
-            </DropdownMenuItem>
-          </>
-        )}
+        {sidebarContextMenu?.scope === "project" &&
+          sidebarContextMenu.projectPath && (
+            <>
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (!sidebarContextMenu.projectPath) return
+                  openProjectFlow(sidebarContextMenu.projectPath)
+                  setSidebarContextMenu(null)
+                }}
+              >
+                New flow
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-status-danger focus:text-status-danger"
+                onSelect={() => {
+                  if (!sidebarContextMenu.projectPath) return
+                  setPendingRemoveProject(sidebarContextMenu.projectPath)
+                  setSidebarContextMenu(null)
+                }}
+              >
+                Remove project
+              </DropdownMenuItem>
+            </>
+          )}
       </CursorMenu>
 
-      <Dialog
+      <FlowRenameDialog
         open={pendingRenameWorkflow !== null}
         onOpenChange={(open) => {
           if (!open) setPendingRenameWorkflow(null)
         }}
-      >
-        <CanvasDialogContent showCloseButton={false}>
-          <CanvasDialogHeader>
-            <DialogTitle>Rename flow</DialogTitle>
-            <DialogDescription>Enter a new name for this flow.</DialogDescription>
-          </CanvasDialogHeader>
-          <CanvasDialogBody>
-            <Input
-              value={renameInput}
-              onChange={(event) => setRenameInput(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && void commitRenameWorkflow()}
-              autoFocus
-            />
-          </CanvasDialogBody>
-          <CanvasDialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
-            </DialogClose>
-            <Button size="sm" onClick={() => void commitRenameWorkflow()}>Rename</Button>
-          </CanvasDialogFooter>
-        </CanvasDialogContent>
-      </Dialog>
+        value={renameInput}
+        onValueChange={setRenameInput}
+        onCommit={() => void commitRenameWorkflow()}
+      />
 
       <SidebarConfirmDialog
         open={pendingDeleteWorkflow !== null}

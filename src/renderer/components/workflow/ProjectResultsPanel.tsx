@@ -24,7 +24,11 @@ export function ProjectResultsPanel({
     satisfied: availableKinds.has(contract.kind),
     optional: contract.required === false,
   }))
-  const shouldRender = loading || Boolean(error) || latestArtifacts.length > 0 || requiredLabels.length > 0
+  const shouldRender =
+    loading ||
+    Boolean(error) ||
+    latestArtifacts.length > 0 ||
+    requiredLabels.length > 0
 
   if (!shouldRender) {
     return null
@@ -38,20 +42,27 @@ export function ProjectResultsPanel({
         </div>
         <div className="ui-meta-text text-muted-foreground">
           {artifacts.length} saved
-          {requiredLabels.length > 0 ? ` · ${requiredLabels.length} reusable` : ""}
+          {requiredLabels.length > 0
+            ? ` · ${requiredLabels.length} reusable`
+            : ""}
         </div>
       </div>
 
       {requiredLabels.length > 0 && (
-        <div className="mt-3 space-y-2 border-t border-hairline/70 pt-3">
+        <div className="mt-3 space-y-2 ui-section-divider">
           <p className="ui-meta-label text-muted-foreground">Reusable inputs</p>
           <div className="space-y-1.5">
             {requiredLabels.map((item) => (
               <div
                 key={`${item.label}-${item.optional ? "optional" : "required"}`}
-                className={item.satisfied ? "text-body-sm text-foreground" : "text-body-sm text-muted-foreground"}
+                className={
+                  item.satisfied
+                    ? "text-body-sm text-foreground"
+                    : "text-body-sm text-muted-foreground"
+                }
               >
-                {item.label}{item.optional ? " (optional)" : ""}
+                {item.label}
+                {item.optional ? " (optional)" : ""}
               </div>
             ))}
           </div>
@@ -60,20 +71,32 @@ export function ProjectResultsPanel({
 
       <div className="mt-3">
         {loading ? (
-          <div className="ui-meta-text text-muted-foreground">Loading results...</div>
+          <div className="ui-meta-text text-muted-foreground">
+            Loading results...
+          </div>
         ) : error ? (
-          <div role="alert" className="ui-meta-text text-status-danger">{error}</div>
+          <div role="alert" className="ui-meta-text text-status-danger">
+            {error}
+          </div>
         ) : latestArtifacts.length === 0 ? (
-          <div className="ui-meta-text text-muted-foreground">No saved results yet.</div>
+          <div className="ui-meta-text text-muted-foreground">
+            No saved results yet.
+          </div>
         ) : (
-          <div className="space-y-0 border-t border-hairline/70">
+          <div className="space-y-0 ui-section-divider">
             {latestArtifacts.map((artifact, index) => (
               <div
                 key={artifact.id}
-                className={index === 0 ? "flex flex-wrap items-center justify-between gap-2 py-3" : "flex flex-wrap items-center justify-between gap-2 border-t border-hairline/70 py-3"}
+                className={
+                  index === 0
+                    ? "flex flex-wrap items-center justify-between gap-2 py-3"
+                    : "flex flex-wrap items-center justify-between gap-2 ui-section-divider py-3"
+                }
               >
                 <div className="min-w-0">
-                  <div className="text-body-sm font-medium text-foreground">{artifact.title}</div>
+                  <div className="text-body-sm font-medium text-foreground">
+                    {artifact.title}
+                  </div>
                   <div className="ui-meta-text text-muted-foreground">
                     {formatArtifactContractLabel(artifact.kind)}
                   </div>

@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { NodeState, WorkflowNode } from "@shared/types"
 
-import { buildRuntimeCardCopy, getPreviewStatusLabel } from "./runtime-card-copy"
+import {
+  buildRuntimeCardCopy,
+  getPreviewStatusLabel,
+} from "./runtime-card-copy"
 
 function createNode(node: WorkflowNode): WorkflowNode {
   return node
@@ -25,7 +28,8 @@ describe("runtime-card-copy", () => {
         type: "skill",
         position: { x: 0, y: 0 },
         config: {
-          prompt: "Implement the requested feature and return the updated code.",
+          prompt:
+            "Implement the requested feature and return the updated code.",
         },
       }),
       state: createState({
@@ -113,7 +117,9 @@ describe("runtime-card-copy", () => {
         },
       })
 
-      expect(copy.metricChips.some((chip) => chip.includes("1 blocked"))).toBe(true)
+      expect(copy.metricChips.some((chip) => chip.includes("1 blocked"))).toBe(
+        true,
+      )
       expect(getPreviewStatusLabel("waiting_approval")).toBe("Approval")
     } finally {
       vi.useRealTimers()

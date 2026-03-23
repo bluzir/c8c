@@ -45,9 +45,7 @@ export function SidebarGlobalWorkflowRow({
       >
         <span className="flex items-center gap-1.5 min-w-0">
           <Globe size={12} className="text-muted-foreground flex-shrink-0" />
-          <span className="min-w-0 flex-1 truncate">
-            {workflow.name}
-          </span>
+          <span className="min-w-0 flex-1 truncate">{workflow.name}</span>
           {statusLabel && statusBadgeClass ? (
             <span
               className={cn(
@@ -55,7 +53,13 @@ export function SidebarGlobalWorkflowRow({
                 statusBadgeClass,
               )}
             >
-              {showStatusSpinner ? <Loader2 size={11} className="animate-spin" aria-hidden="true" /> : null}
+              {showStatusSpinner ? (
+                <Loader2
+                  size={11}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
+              ) : null}
               <span>{statusLabel}</span>
             </span>
           ) : idleMetaLabel ? (

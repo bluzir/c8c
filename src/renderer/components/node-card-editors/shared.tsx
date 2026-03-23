@@ -15,18 +15,36 @@ import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import type { ValidationError } from "@/lib/validate-workflow"
 
-const ON_ERROR_OPTIONS: NodeOnErrorPolicy[] = ["stop", "continue", "continue_error_output"]
-const RETRY_ERROR_KINDS: ErrorKind[] = ["tool", "model", "timeout", "policy", "unknown"]
+const ON_ERROR_OPTIONS: NodeOnErrorPolicy[] = [
+  "stop",
+  "continue",
+  "continue_error_output",
+]
+const RETRY_ERROR_KINDS: ErrorKind[] = [
+  "tool",
+  "model",
+  "timeout",
+  "policy",
+  "unknown",
+]
 
-export const EDITOR_PANEL_CLASS = "ui-fade-slide-in border-t border-hairline px-3 pb-3 pt-2.5 space-y-2"
-export const EDITOR_DISCLOSURE_CLASS = "ui-disclosure rounded-md bg-surface-2/30"
-export const EDITOR_GROUP_CLASS = "rounded-md bg-surface-2/40 px-2 py-2 space-y-2"
-export const EDITOR_TOGGLE_ROW_CLASS = "rounded-md bg-surface-2/40 flex items-center justify-between px-2 py-2"
+export const EDITOR_PANEL_CLASS =
+  "ui-fade-slide-in border-t border-hairline px-3 pb-3 pt-2.5 space-y-2"
+export const EDITOR_DISCLOSURE_CLASS = "ui-disclosure"
+export const EDITOR_GROUP_CLASS = "ui-inset-well space-y-2"
+export const EDITOR_TOGGLE_ROW_CLASS =
+  "ui-inset-well flex items-center justify-between"
 
 export type RuntimeConfigurableNodeConfig =
   | SkillNodeConfig
@@ -49,19 +67,34 @@ export function getFieldError(
   ...fields: string[]
 ): ValidationError | null {
   const fieldSet = new Set(fields)
-  return validationErrors?.find((error) => fieldSet.has(normalizeValidationField(error.field))) || null
+  return (
+    validationErrors?.find((error) =>
+      fieldSet.has(normalizeValidationField(error.field)),
+    ) || null
+  )
 }
 
 export function RequiredMark() {
   return (
     <>
-      <span className="ml-0.5 text-label-xs text-status-danger" aria-hidden="true">*</span>
+      <span
+        className="ml-0.5 text-label-xs text-status-danger"
+        aria-hidden="true"
+      >
+        *
+      </span>
       <span className="sr-only"> (required)</span>
     </>
   )
 }
 
-export function FieldErrorMessage({ id, error }: { id: string; error: ValidationError | null }) {
+export function FieldErrorMessage({
+  id,
+  error,
+}: {
+  id: string
+  error: ValidationError | null
+}) {
   if (!error) return null
   return (
     <p id={id} className="mt-1 text-label-xs text-status-danger">
@@ -122,7 +155,7 @@ export function OptionalClampedNumberInput({
       type="number"
       min={min}
       max={max}
-      value={local ?? (value ?? "")}
+      value={local ?? value ?? ""}
       onChange={(event) => setLocal(event.target.value)}
       onBlur={() => {
         if (local === null) return
@@ -184,7 +217,11 @@ export function ToolArrayEditor({
       {normalizedValues.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
           {normalizedValues.map((tool) => (
-            <Badge key={tool} variant="secondary" className="inline-flex items-center gap-1 px-2 py-0.5">
+            <Badge
+              key={tool}
+              variant="secondary"
+              className="inline-flex items-center gap-1 px-2 py-0.5"
+            >
               <span className="font-mono">{tool}</span>
               <button
                 type="button"
@@ -270,14 +307,22 @@ export function RuntimePolicyEditor({
       </summary>
       <div className="space-y-2 border-t border-hairline px-2 py-2">
         <div className="flex items-center gap-3">
-          <Label htmlFor={`runtime-on-error-${nodeId}`} className="ui-meta-text text-muted-foreground">
+          <Label
+            htmlFor={`runtime-on-error-${nodeId}`}
+            className="ui-meta-text text-muted-foreground"
+          >
             On error
           </Label>
           <Select
             value={onError}
-            onValueChange={(value) => updateExecution({ onError: value as NodeOnErrorPolicy })}
+            onValueChange={(value) =>
+              updateExecution({ onError: value as NodeOnErrorPolicy })
+            }
           >
-            <SelectTrigger id={`runtime-on-error-${nodeId}`} className="w-52 h-control-md text-body-sm">
+            <SelectTrigger
+              id={`runtime-on-error-${nodeId}`}
+              className="w-52 h-control-md text-body-sm"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -291,7 +336,10 @@ export function RuntimePolicyEditor({
         </div>
 
         <div className={EDITOR_TOGGLE_ROW_CLASS}>
-          <Label htmlFor={`runtime-retry-${nodeId}`} className="ui-meta-text text-muted-foreground">
+          <Label
+            htmlFor={`runtime-retry-${nodeId}`}
+            className="ui-meta-text text-muted-foreground"
+          >
             Retry on fail
           </Label>
           <Switch
@@ -312,7 +360,10 @@ export function RuntimePolicyEditor({
         {retryEnabled && (
           <div className={EDITOR_GROUP_CLASS}>
             <div className="flex items-center gap-3">
-              <Label htmlFor={`runtime-max-tries-${nodeId}`} className="ui-meta-text text-muted-foreground">
+              <Label
+                htmlFor={`runtime-max-tries-${nodeId}`}
+                className="ui-meta-text text-muted-foreground"
+              >
                 Max tries
               </Label>
               <ClampedNumberInput
@@ -326,7 +377,10 @@ export function RuntimePolicyEditor({
             </div>
 
             <div className="flex items-center gap-3">
-              <Label htmlFor={`runtime-wait-ms-${nodeId}`} className="ui-meta-text text-muted-foreground">
+              <Label
+                htmlFor={`runtime-wait-ms-${nodeId}`}
+                className="ui-meta-text text-muted-foreground"
+              >
                 Wait ms
               </Label>
               <Input
@@ -334,20 +388,32 @@ export function RuntimePolicyEditor({
                 type="number"
                 min={0}
                 value={retry.waitMs || 0}
-                onChange={(event) => updateRetry({ waitMs: Math.max(0, Number(event.target.value) || 0) })}
+                onChange={(event) =>
+                  updateRetry({
+                    waitMs: Math.max(0, Number(event.target.value) || 0),
+                  })
+                }
                 className="w-24 h-control-sm px-2 text-body-sm text-center"
               />
             </div>
 
             <div className="flex items-center gap-3">
-              <Label htmlFor={`runtime-backoff-${nodeId}`} className="ui-meta-text text-muted-foreground">
+              <Label
+                htmlFor={`runtime-backoff-${nodeId}`}
+                className="ui-meta-text text-muted-foreground"
+              >
                 Backoff
               </Label>
               <Select
                 value={(retry.backoff || "none") as NodeRetryBackoff}
-                onValueChange={(value) => updateRetry({ backoff: value as NodeRetryBackoff })}
+                onValueChange={(value) =>
+                  updateRetry({ backoff: value as NodeRetryBackoff })
+                }
               >
-                <SelectTrigger id={`runtime-backoff-${nodeId}`} className="w-36 h-control-md text-body-sm">
+                <SelectTrigger
+                  id={`runtime-backoff-${nodeId}`}
+                  className="w-36 h-control-md text-body-sm"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -365,16 +431,22 @@ export function RuntimePolicyEditor({
               onChange={(next) => {
                 const parsed = (next || [])
                   .map((token) => token.toLowerCase())
-                  .filter((token): token is ErrorKind => RETRY_ERROR_KINDS.includes(token as ErrorKind))
+                  .filter((token): token is ErrorKind =>
+                    RETRY_ERROR_KINDS.includes(token as ErrorKind),
+                  )
                 updateRetry({ retryOn: parsed.length > 0 ? parsed : undefined })
               }}
               placeholder="tool, model, timeout"
               normalizeValue={(value) => {
                 const normalized = value.toLowerCase()
-                return RETRY_ERROR_KINDS.includes(normalized as ErrorKind) ? normalized : null
+                return RETRY_ERROR_KINDS.includes(normalized as ErrorKind)
+                  ? normalized
+                  : null
               }}
             />
-            <p className="ui-meta-text text-muted-foreground">Allowed: {RETRY_ERROR_KINDS.join(", ")}</p>
+            <p className="ui-meta-text text-muted-foreground">
+              Allowed: {RETRY_ERROR_KINDS.join(", ")}
+            </p>
           </div>
         )}
       </div>

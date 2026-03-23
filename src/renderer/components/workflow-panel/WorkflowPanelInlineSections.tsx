@@ -12,11 +12,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
+  CanvasDialogBody,
+  CanvasDialogContent,
+  CanvasDialogFooter,
+  CanvasDialogHeader,
   Dialog,
-  DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { FlowRulesPreview } from "@/components/ui/flow-rules-preview"
@@ -24,7 +25,11 @@ import { ExecutionApprovalSummary } from "@/components/ui/execution-approval-sum
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { InputPanel } from "@/components/InputPanel"
 import { ProjectResultsPanel } from "@/components/workflow/ProjectResultsPanel"
-import { consumeShortcut, isShortcutConsumed, matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
+import {
+  consumeShortcut,
+  isShortcutConsumed,
+  matchesPrimaryShortcut,
+} from "@/lib/keyboard-shortcuts"
 import { hasCompletedFirstFlowAtom } from "@/lib/store"
 import type { WorkflowBlockedResumeSummary } from "@/lib/workflow-blocked-resume"
 import type { WorkflowEntryState } from "@/lib/workflow-entry"
@@ -61,7 +66,11 @@ export function EmptyState({
         </div>
         <p className="mb-1 text-title-md text-foreground">{title}</p>
         <p className="text-body-md">{description}</p>
-        {children && <div className="mt-4 flex items-center justify-center gap-2">{children}</div>}
+        {children && (
+          <div className="mt-4 flex items-center justify-center gap-2">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -73,8 +82,15 @@ export interface EmptyProjectQuickStart {
 }
 
 const DEFAULT_QUICK_STARTS: EmptyProjectQuickStart[] = [
-  { label: "Map this codebase", prompt: "Map this codebase and summarize its architecture" },
-  { label: "Review code for issues", prompt: "Review this codebase for bugs, security issues, and code quality problems" },
+  {
+    label: "Map this codebase",
+    prompt: "Map this codebase and summarize its architecture",
+  },
+  {
+    label: "Review code for issues",
+    prompt:
+      "Review this codebase for bugs, security issues, and code quality problems",
+  },
   { label: "Investigate a bug", prompt: "Investigate and fix a bug" },
   { label: "Plan a new feature", prompt: "Plan and build a new feature" },
 ]
@@ -106,7 +122,11 @@ export function EmptyProjectState({
                 onClick={() => onQuickStart(qs.prompt)}
                 className="flex items-center gap-2 rounded-md px-3 py-2 text-body-sm text-foreground hover:bg-surface-2 ui-transition-colors text-left"
               >
-                <ArrowRight size={12} className="shrink-0 opacity-50" aria-hidden="true" />
+                <ArrowRight
+                  size={12}
+                  className="shrink-0 opacity-50"
+                  aria-hidden="true"
+                />
                 {qs.label}
               </button>
             ))}
@@ -132,7 +152,11 @@ const CAPABILITY_EXAMPLES = [
   "Plan and build a new feature",
 ]
 
-export function EmptyWorkspaceState({ onOpenProject }: { onOpenProject: () => void }) {
+export function EmptyWorkspaceState({
+  onOpenProject,
+}: {
+  onOpenProject: () => void
+}) {
   const hasCompletedFirstFlow = useAtomValue(hasCompletedFirstFlowAtom)
 
   return (
@@ -149,14 +173,19 @@ export function EmptyWorkspaceState({ onOpenProject }: { onOpenProject: () => vo
         <ul className="space-y-1.5 text-body-sm text-muted-foreground">
           {CAPABILITY_EXAMPLES.map((example) => (
             <li key={example} className="flex items-center gap-2">
-              <ArrowRight size={12} className="shrink-0 opacity-50" aria-hidden="true" />
+              <ArrowRight
+                size={12}
+                className="shrink-0 opacity-50"
+                aria-hidden="true"
+              />
               {example}
             </li>
           ))}
         </ul>
         {!hasCompletedFirstFlow && (
           <p className="text-body-sm text-muted-foreground/70">
-            First time? Open a project and describe what you need — c8c will handle the rest.
+            First time? Open a project and describe what you need — c8c will
+            handle the rest.
           </p>
         )}
       </div>
@@ -166,7 +195,7 @@ export function EmptyWorkspaceState({ onOpenProject }: { onOpenProject: () => vo
 
 export function WorkflowDraftSkeleton() {
   return (
-    <div className="rounded-lg border border-hairline bg-surface-1 p-5 ui-fade-slide-in">
+    <div className="surface-figure p-5 ui-fade-slide-in">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center text-muted-foreground">
           <Sparkles size={18} aria-hidden="true" />
@@ -177,7 +206,8 @@ export function WorkflowDraftSkeleton() {
             Preparing the first flow draft
           </div>
           <p className="mt-2 text-body-sm text-muted-foreground">
-            The agent is turning your prompt into a runnable flow. This view will populate as soon as the draft is ready.
+            The agent is turning your prompt into a runnable flow. This view
+            will populate as soon as the draft is ready.
           </p>
         </div>
       </div>
@@ -218,7 +248,10 @@ export function WorkflowIdleStageContract({
   onPrimaryAction?: (() => void) | null
   primaryActionLabel?: string
 }) {
-  const needsText = inputLabels.length > 0 ? inputLabels.slice(0, 3).join(" · ") : "Input from this page"
+  const needsText =
+    inputLabels.length > 0
+      ? inputLabels.slice(0, 3).join(" · ")
+      : "Input from this page"
   const detailLines = [
     provenanceLabel ? `Using: ${provenanceLabel}` : null,
     resultLabel ? `Result: ${resultLabel}` : null,
@@ -230,7 +263,7 @@ export function WorkflowIdleStageContract({
       {contextLine && (
         <p className="ui-meta-text text-muted-foreground">{contextLine}</p>
       )}
-      <div className="rounded-lg border border-hairline bg-surface-1 px-4 py-4">
+      <div className="surface-figure px-4 py-4">
         <div className="space-y-4">
           <div className="space-y-1.5">
             <p className="section-kicker">Stage contract</p>
@@ -280,7 +313,10 @@ export function formatInputAttachmentLabel(attachment: InputAttachment) {
   return attachment.label
 }
 
-export function takeLeadingSentence(value: string | null | undefined, fallback: string) {
+export function takeLeadingSentence(
+  value: string | null | undefined,
+  fallback: string,
+) {
   const firstLine = (value || "")
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -323,37 +359,44 @@ export function WorkflowResumeHeader({
     : resumeSummary
       ? readyToRun
         ? nextStepLabel
-        : (resumeSummary.readyBecauseText || "Add the remaining input to continue.")
+        : resumeSummary.readyBecauseText ||
+          "Add the remaining input to continue."
       : startApprovalRequired
         ? "Approval is still required before this step can continue."
         : nextStepLabel
   const detailLines = blockedResumeSummary
     ? [
-      blockedResumeSummary.latestResultText ? `Previous: ${blockedResumeSummary.latestResultText}` : null,
-      `Step input: ${blockedResumeSummary.attachText}`,
-      `Status: ${blockedResumeSummary.reasonText}`,
-    ]
+        blockedResumeSummary.latestResultText
+          ? `Previous: ${blockedResumeSummary.latestResultText}`
+          : null,
+        `Step input: ${blockedResumeSummary.attachText}`,
+        `Status: ${blockedResumeSummary.reasonText}`,
+      ]
     : resumeSummary
       ? [
-        resumeSummary.latestResultText ? `Previous: ${resumeSummary.latestResultText}` : null,
-        `Attached: ${resumeSummary.attachText} -> used by this step`,
-        `Status: ${readyToRun ? resumeSummary.checksText : resumeSummary.readyBecauseText}`,
-      ]
+          resumeSummary.latestResultText
+            ? `Previous: ${resumeSummary.latestResultText}`
+            : null,
+          `Attached: ${resumeSummary.attachText} -> used by this step`,
+          `Status: ${readyToRun ? resumeSummary.checksText : resumeSummary.readyBecauseText}`,
+        ]
       : [
-        `Expects: ${inputLabels.length > 0 ? inputLabels.slice(0, 3).join(" · ") : entry.inputText}`,
-        `Produces: ${entry.outputText}`,
-        `Next: ${startApprovalRequired ? "Approval before continue." : nextStepLabel}`,
-      ]
+          `Expects: ${inputLabels.length > 0 ? inputLabels.slice(0, 3).join(" · ") : entry.inputText}`,
+          `Produces: ${entry.outputText}`,
+          `Next: ${startApprovalRequired ? "Approval before continue." : nextStepLabel}`,
+        ]
   const routingReason = entry.routing?.reason
     ? takeLeadingSentence(
-      entry.routing.reason,
-      entry.routing.source === "agent" ? "Picked by the agent." : "Picked for this start.",
-    )
+        entry.routing.reason,
+        entry.routing.source === "agent"
+          ? "Picked by the agent."
+          : "Picked for this start.",
+      )
     : null
 
   return (
     <section data-workflow-resume-header="true" className="ui-fade-slide-in">
-      <div className="rounded-lg border border-hairline bg-surface-1 px-4 py-4">
+      <div className="surface-figure px-4 py-4">
         <div className="space-y-4">
           <div className="space-y-1.5">
             <p className="section-kicker">
@@ -372,7 +415,10 @@ export function WorkflowResumeHeader({
             ))}
             {routingReason && (
               <p className="ui-meta-text text-muted-foreground">
-                {entry.routing?.source === "agent" ? "Agent picked this start" : "Why this start"}: {routingReason}
+                {entry.routing?.source === "agent"
+                  ? "Agent picked this start"
+                  : "Why this start"}
+                : {routingReason}
               </p>
             )}
           </div>
@@ -430,7 +476,8 @@ export function StageStartApprovalDialog({
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isShortcutConsumed(event)) return
 
-      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey })) return
+      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey }))
+        return
       consumeShortcut(event)
       void Promise.resolve(onApprove())
     }
@@ -442,16 +489,22 @@ export function StageStartApprovalDialog({
   }, [onApprove, open, primaryModifierKey])
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onCancel() }}>
-      <DialogContent className="max-w-xl" showCloseButton={false}>
-        <DialogHeader>
-          <DialogTitle>Approve and continue</DialogTitle>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onCancel()
+      }}
+    >
+      <CanvasDialogContent size="lg" showCloseButton={false}>
+        <CanvasDialogHeader className="space-y-1.5">
+          <DialogTitle>{`Approve ${title}`}</DialogTitle>
           <DialogDescription>
-            Confirm what will run, which input it will use, and what happens next.
+            Confirm what will run, which input it will use, and what happens
+            next.
           </DialogDescription>
-        </DialogHeader>
+        </CanvasDialogHeader>
 
-        <div className="space-y-3">
+        <CanvasDialogBody className="space-y-3">
           <ExecutionApprovalSummary
             flowName={flowName}
             stepName={title}
@@ -462,37 +515,51 @@ export function StageStartApprovalDialog({
             inputLabels={inputLabels}
             approveConsequence={approveConsequence}
             rejectConsequence={rejectConsequence}
-            topBadges={(
+            topBadges={
               <>
-                <Badge variant="warning" size="compact">Approval</Badge>
-                <Badge variant="outline" size="compact">{shortcutLabel}</Badge>
+                <Badge variant="warning" size="compact">
+                  Approval
+                </Badge>
+                <Badge variant="outline" size="compact">
+                  {shortcutLabel}
+                </Badge>
               </>
-            )}
+            }
           />
 
-          <FlowRulesPreview rules={flowRules} />
+          <FlowRulesPreview rules={flowRules} collapsible defaultOpen={false} />
 
           {notes.length > 0 && (
             <DisclosurePanel summary="Approval notes">
               <div className="space-y-2">
                 {notes.map((note, index) => (
-                  <p key={`${note}-${index}`} className="text-body-sm text-foreground">{note}</p>
+                  <p
+                    key={`${note}-${index}`}
+                    className="text-body-sm text-foreground"
+                  >
+                    {note}
+                  </p>
                 ))}
               </div>
             </DisclosurePanel>
           )}
-        </div>
+        </CanvasDialogBody>
 
-        <DialogFooter>
+        <CanvasDialogFooter>
           <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
-          <Button size="sm" onClick={() => { void Promise.resolve(onApprove()) }}>
+          <Button
+            size="sm"
+            onClick={() => {
+              void Promise.resolve(onApprove())
+            }}
+          >
             <Play size={14} />
             Approve and continue
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </CanvasDialogFooter>
+      </CanvasDialogContent>
     </Dialog>
   )
 }
@@ -519,7 +586,12 @@ export function StageInputSection({
   return (
     <>
       <div ref={inputPanelRef}>
-        <InputPanel label="Step input" compact showTemplateContext={showTemplateContext} surface="flat" />
+        <InputPanel
+          label="Step input"
+          compact
+          showTemplateContext={showTemplateContext}
+          surface="flat"
+        />
       </div>
       {showProjectArtifactsPanel && (
         <ProjectResultsPanel

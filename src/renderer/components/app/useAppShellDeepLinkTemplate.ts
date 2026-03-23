@@ -7,6 +7,7 @@ import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
 import { buildTemplateRunContext } from "@/lib/workflow-entry"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
+import type { MainView } from "@/lib/store"
 import type { WorkflowTemplate, WorkflowFile, Workflow } from "@shared/types"
 
 export function useAppShellDeepLinkTemplate({
@@ -39,7 +40,9 @@ export function useAppShellDeepLinkTemplate({
   selectedWorkflowPath: string | null
   selectedInboxTaskKey: string | null
   selectedPastRun: import("@shared/types").RunResult | null
-  selectedWorkflowTemplateContext: ReturnType<typeof buildTemplateRunContext> | null
+  selectedWorkflowTemplateContext: ReturnType<
+    typeof buildTemplateRunContext
+  > | null
   webSearchBackend: import("@/lib/web-search-backend").WebSearchBackend
   clearReviewState: () => void
   setSelectedProject: (value: string | null) => void
@@ -53,16 +56,21 @@ export function useAppShellDeepLinkTemplate({
     key: string
     context: ReturnType<typeof buildTemplateRunContext> | null
   }) => void
-  setMainView: (value: string) => void
+  setMainView: (value: MainView) => void
 }) {
-  const [deepLinkTargetProject, setDeepLinkTargetProject] = useState<string | null>(selectedProject)
+  const [deepLinkTargetProject, setDeepLinkTargetProject] = useState<
+    string | null
+  >(selectedProject)
 
   useEffect(() => {
     const unsubTemplate = window.api.onDeepLinkTemplate((template) => {
       setDeepLinkTemplate(template)
     })
     const unsubError = window.api.onDeepLinkTemplateError((err) => {
-      toastErrorFromCatch(`Could not load library flow "${err.templateId}"`, err.error)
+      toastErrorFromCatch(
+        `Could not load library flow "${err.templateId}"`,
+        err.error,
+      )
     })
     return () => {
       unsubTemplate()
@@ -88,7 +96,10 @@ export function useAppShellDeepLinkTemplate({
       selectedPastRun,
     }
     const previousTemplateContext = selectedWorkflowTemplateContext
-    const nextWorkflow = resolveTemplateWorkflow(deepLinkTemplate, webSearchBackend)
+    const nextWorkflow = resolveTemplateWorkflow(
+      deepLinkTemplate,
+      webSearchBackend,
+    )
     setWorkflow(nextWorkflow)
     setSelectedWorkflowPath(null)
     clearReviewState()
@@ -114,7 +125,8 @@ export function useAppShellDeepLinkTemplate({
           setSelectedPastRun(previousReviewState.selectedPastRun)
           setWorkflowTemplateContextForKey({
             key: toWorkflowExecutionKey(null),
-            context: previousWorkflowPath === null ? previousTemplateContext : null,
+            context:
+              previousWorkflowPath === null ? previousTemplateContext : null,
           })
           setWorkflowTemplateContextForKey({
             key: toWorkflowExecutionKey(previousWorkflowPath),
@@ -127,11 +139,20 @@ export function useAppShellDeepLinkTemplate({
 
   const createDeepLinkTemplate = async () => {
     if (!deepLinkTemplate || !deepLinkTargetProject) return
-    const nextWorkflow = resolveTemplateWorkflow(deepLinkTemplate, webSearchBackend)
+    const nextWorkflow = resolveTemplateWorkflow(
+      deepLinkTemplate,
+      webSearchBackend,
+    )
     try {
-      const filePath = await window.api.createWorkflow(deepLinkTargetProject, deepLinkTemplate.name, nextWorkflow)
+      const filePath = await window.api.createWorkflow(
+        deepLinkTargetProject,
+        deepLinkTemplate.name,
+        nextWorkflow,
+      )
       const loadedWorkflow = await window.api.loadWorkflow(filePath)
-      const refreshed = await window.api.listProjectWorkflows(deepLinkTargetProject)
+      const refreshed = await window.api.listProjectWorkflows(
+        deepLinkTargetProject,
+      )
       setWorkflows(refreshed)
       setSelectedProject(deepLinkTargetProject)
       setSelectedWorkflowPath(filePath)
@@ -150,7 +171,9 @@ export function useAppShellDeepLinkTemplate({
       })
       setMainView("thread")
       setDeepLinkTemplate(null)
-      toast.success(`Created "${loadedWorkflow.name || deepLinkTemplate.name}" from library`)
+      toast.success(
+        `Created "${loadedWorkflow.name || deepLinkTemplate.name}" from library`,
+      )
     } catch (error) {
       toastErrorFromCatch("Could not create flow", error)
     }

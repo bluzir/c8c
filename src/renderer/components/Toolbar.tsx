@@ -625,9 +625,9 @@ export function Toolbar({
 
   return (
     <>
-      <div className="border-b border-hairline bg-gradient-to-b from-surface-1/96 to-surface-1/84 shadow-[0_1px_0_hsl(var(--hairline)/0.7),0_2px_6px_hsl(var(--foreground)/0.04)] backdrop-blur-md">
+      <div className="border-b border-hairline bg-background/80 backdrop-blur-[var(--glass-blur-md)]">
         <div
-          className="flex min-w-0 items-center gap-2 ui-content-gutter py-2 no-drag"
+          className="flex min-w-0 items-center gap-2 ui-dialog-gutter py-2 no-drag"
           style={
             macToolbarLeadingInset > 0
               ? {

@@ -1,13 +1,21 @@
 import { describe, expect, it, vi } from "vitest"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
-import { restoreSelectedWorkflowIfNeeded, shouldRestoreSelectedWorkflow } from "./workflowRestore"
+import {
+  restoreSelectedWorkflowIfNeeded,
+  shouldRestoreSelectedWorkflow,
+} from "./workflowRestore"
 
 function createBlankWorkflow() {
   return {
     version: 1 as const,
     name: "",
     description: "",
-    defaults: { model: "sonnet", maxTurns: 60, timeout_minutes: 30, maxParallel: 8 },
+    defaults: {
+      model: "sonnet",
+      maxTurns: 60,
+      timeout_minutes: 30,
+      maxParallel: 8,
+    },
     nodes: [],
     edges: [],
   }
@@ -71,7 +79,10 @@ describe("restoreSelectedWorkflowIfNeeded", () => {
 describe("shouldRestoreSelectedWorkflow", () => {
   it("restores a selected workflow when memory falls back to the default draft graph", () => {
     expect(
-      shouldRestoreSelectedWorkflow("/tmp/recovered.chain", createEmptyWorkflow()),
+      shouldRestoreSelectedWorkflow(
+        "/tmp/recovered.chain",
+        createEmptyWorkflow(),
+      ),
     ).toBe(true)
   })
 })

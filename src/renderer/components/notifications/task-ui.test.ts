@@ -10,7 +10,9 @@ import {
   toContinuationRun,
 } from "./task-ui"
 
-function createTask(overrides: Partial<HumanTaskSnapshot> = {}): HumanTaskSnapshot {
+function createTask(
+  overrides: Partial<HumanTaskSnapshot> = {},
+): HumanTaskSnapshot {
   return {
     task: "Review block",
     taskId: "approval-1",
@@ -52,7 +54,9 @@ function createTask(overrides: Partial<HumanTaskSnapshot> = {}): HumanTaskSnapsh
   }
 }
 
-function createArtifact(overrides: Partial<ArtifactRecord> = {}): ArtifactRecord {
+function createArtifact(
+  overrides: Partial<ArtifactRecord> = {},
+): ArtifactRecord {
   return {
     id: "artifact-1",
     kind: "verification_report",
@@ -77,44 +81,49 @@ describe("task-ui", () => {
   })
 
   it("prefers latest response answers when present", () => {
-    expect(buildInitialHumanTaskAnswers(createTask({
-      latestResponse: {
-        version: 1,
-        taskId: "approval-1",
-        resolution: "submitted",
-        answers: { decision: "reject" },
-        metadata: {
-          answeredAt: 10,
-          revision: 1,
-          idempotencyKey: "task-1",
-        },
-      },
-    }))).toEqual({
+    expect(
+      buildInitialHumanTaskAnswers(
+        createTask({
+          latestResponse: {
+            version: 1,
+            taskId: "approval-1",
+            resolution: "submitted",
+            answers: { decision: "reject" },
+            metadata: {
+              answeredAt: 10,
+              revision: 1,
+              idempotencyKey: "task-1",
+            },
+          },
+        }),
+      ),
+    ).toEqual({
       decision: "reject",
     })
   })
 
   it("marks approval submissions as approved for runtime continue flows", () => {
-    expect(buildSubmitHumanTaskAnswers(
-      createTask(),
-      { comment: "looks good" },
-    )).toEqual({
+    expect(
+      buildSubmitHumanTaskAnswers(createTask(), { comment: "looks good" }),
+    ).toEqual({
       comment: "looks good",
       approved: true,
     })
 
-    expect(buildSubmitHumanTaskAnswers(
-      createTask({
-        kind: "form",
-        request: {
-          version: 1,
+    expect(
+      buildSubmitHumanTaskAnswers(
+        createTask({
           kind: "form",
-          title: "Provide missing input",
-          fields: [],
-        },
-      }),
-      { answer: "42" },
-    )).toEqual({
+          request: {
+            version: 1,
+            kind: "form",
+            title: "Provide missing input",
+            fields: [],
+          },
+        }),
+        { answer: "42" },
+      ),
+    ).toEqual({
       answer: "42",
     })
   })
@@ -123,7 +132,9 @@ describe("task-ui", () => {
     const task = createTask()
 
     expect(hasMissingRequiredTaskAnswers(task, {})).toBe(true)
-    expect(hasMissingRequiredTaskAnswers(task, { decision: "approve" })).toBe(false)
+    expect(hasMissingRequiredTaskAnswers(task, { decision: "approve" })).toBe(
+      false,
+    )
     expect(toContinuationRun(task)).toMatchObject({
       runId: "run-1",
       status: "blocked",
@@ -134,30 +145,41 @@ describe("task-ui", () => {
   })
 
   it("derives durable task card context from blocked copy helpers", () => {
-    expect(deriveTaskCardContext(
-      createTask({
-        summary: "Final release decision is still waiting on you.",
-      }),
-      {
-        stageLabel: "Ship",
-        latestArtifact: createArtifact(),
-      },
-    )).toEqual({
+    expect(
+      deriveTaskCardContext(
+        createTask({
+          summary: "Final release decision is still waiting on you.",
+        }),
+        {
+          stageLabel: "Ship",
+          latestArtifact: createArtifact(),
+        },
+      ),
+    ).toEqual({
       statusText: "Blocked: awaiting your approval before Ship can continue.",
-      detailText: "Latest result: Verification Report. · Final release decision is still waiting on you.",
+      detailText:
+        "Latest result: Verification Report. · Final release decision is still waiting on you.",
     })
   })
 
   it("derives task activity from the latest update when available", () => {
-    expect(taskActivityAt(createTask({
-      createdAt: 5,
-      updatedAt: 20,
-    }))).toBe(20)
+    expect(
+      taskActivityAt(
+        createTask({
+          createdAt: 5,
+          updatedAt: 20,
+        }),
+      ),
+    ).toBe(20)
 
-    expect(taskActivityAt(createTask({
-      createdAt: 7,
-      updatedAt: 0,
-    }))).toBe(7)
+    expect(
+      taskActivityAt(
+        createTask({
+          createdAt: 7,
+          updatedAt: 0,
+        }),
+      ),
+    ).toBe(7)
   })
 
   it("sorts human tasks by recent activity instead of API order", () => {

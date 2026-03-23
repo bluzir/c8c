@@ -66,7 +66,8 @@ module.exports = {
       },
       boxShadow: {
         "inset-highlight": "inset 0 1px 0 var(--inset-highlight)",
-        "inset-highlight-subtle": "inset 0 1px 0 var(--inset-highlight-subtle, var(--inset-highlight))",
+        "inset-highlight-subtle":
+          "inset 0 1px 0 var(--inset-highlight-subtle, var(--inset-highlight))",
       },
       spacing: {
         "space-1": "var(--space-1)",
@@ -105,7 +106,10 @@ module.exports = {
         "title-sm": ["1rem", { lineHeight: "1.375rem", fontWeight: "600" }],
         "title-md": ["1.125rem", { lineHeight: "1.5rem", fontWeight: "600" }],
         "sidebar-meta": ["0.625rem", { lineHeight: "0.875rem" }],
-        "sidebar-label": ["0.6875rem", { lineHeight: "1rem", fontWeight: "500" }],
+        "sidebar-label": [
+          "0.6875rem",
+          { lineHeight: "1rem", fontWeight: "500" },
+        ],
         "sidebar-item": ["0.8125rem", { lineHeight: "1rem" }],
       },
     },

@@ -67,7 +67,11 @@ function getLatestLogSnippet(state?: NodeState) {
 
   for (let index = state.log.length - 1; index >= 0; index -= 1) {
     const entry = state.log[index]
-    if (entry.type === "thinking" || entry.type === "text" || entry.type === "error") {
+    if (
+      entry.type === "thinking" ||
+      entry.type === "text" ||
+      entry.type === "error"
+    ) {
       const snippet = compactRuntimeText(entry.content, 120)
       if (snippet) return snippet
     }
@@ -106,13 +110,24 @@ function formatBranchSummary(summary: RuntimeBranchSummary) {
 }
 
 function deriveDurationMs(state?: NodeState) {
-  if (typeof state?.completedAt === "number" && typeof state.startedAt === "number") {
+  if (
+    typeof state?.completedAt === "number" &&
+    typeof state.startedAt === "number"
+  ) {
     return Math.max(state.completedAt - state.startedAt, 0)
   }
-  if ((state?.status === "running" || state?.status === "waiting_approval" || state?.status === "waiting_human") && typeof state.startedAt === "number") {
+  if (
+    (state?.status === "running" ||
+      state?.status === "waiting_approval" ||
+      state?.status === "waiting_human") &&
+    typeof state.startedAt === "number"
+  ) {
     return Math.max(Date.now() - state.startedAt, 0)
   }
-  if (typeof state?.metrics?.latency_ms === "number" && state.metrics.latency_ms > 0) {
+  if (
+    typeof state?.metrics?.latency_ms === "number" &&
+    state.metrics.latency_ms > 0
+  ) {
     return state.metrics.latency_ms
   }
   return null
@@ -128,19 +143,30 @@ function buildMetricChips({
   runtimeBranchSummary: RuntimeBranchSummary | null
 }) {
   const chips: string[] = []
-  const score = typeof state?.output?.metadata?.score === "number" ? state.output.metadata.score : null
+  const score =
+    typeof state?.output?.metadata?.score === "number"
+      ? state.output.metadata.score
+      : null
 
   if (node.type === "evaluator" && score != null) {
     chips.push(`Score ${score}/10`)
   }
 
-  const totalTokens = (state?.metrics?.tokens_in || 0) + (state?.metrics?.tokens_out || 0)
+  const totalTokens =
+    (state?.metrics?.tokens_in || 0) + (state?.metrics?.tokens_out || 0)
   if (totalTokens > 0) {
     chips.push(`${formatTokenCount(totalTokens)} tok`)
   }
 
-  if (typeof state?.metrics?.cost_usd === "number" && state.metrics.cost_usd > 0) {
-    chips.push(state.metrics.cost_usd < 0.01 ? "<$0.01" : `$${state.metrics.cost_usd.toFixed(2)}`)
+  if (
+    typeof state?.metrics?.cost_usd === "number" &&
+    state.metrics.cost_usd > 0
+  ) {
+    chips.push(
+      state.metrics.cost_usd < 0.01
+        ? "<$0.01"
+        : `$${state.metrics.cost_usd.toFixed(2)}`,
+    )
   }
 
   const durationLabel = formatDurationMs(deriveDurationMs(state))
@@ -179,37 +205,75 @@ function buildRuntimeSummary({
   const latestLogSnippet = getLatestLogSnippet(state)
 
   if (node.type === "input") {
-    if (status === "completed") return { summary: "Input ready", detail: outputSnippet || latestLogSnippet }
-    if (status === "running") return { summary: "Preparing input", detail: latestLogSnippet }
-    if (status === "failed") return { summary: "Input issue", detail: errorSnippet || latestLogSnippet }
-    return { summary: runtimeFocusKind === "next" ? "Next: input" : "Waiting for input", detail: null }
+    if (status === "completed")
+      return {
+        summary: "Input ready",
+        detail: outputSnippet || latestLogSnippet,
+      }
+    if (status === "running")
+      return { summary: "Preparing input", detail: latestLogSnippet }
+    if (status === "failed")
+      return {
+        summary: "Input issue",
+        detail: errorSnippet || latestLogSnippet,
+      }
+    return {
+      summary:
+        runtimeFocusKind === "next" ? "Next: input" : "Waiting for input",
+      detail: null,
+    }
   }
 
   if (node.type === "skill") {
     const config = node.config as SkillNodeConfig
     const promptSnippet = compactRuntimeText(config.prompt, 110)
-    if (status === "running") return { summary: runtimeBranchSummary ? "Branch work active" : "Agent running", detail: latestLogSnippet || outputSnippet || promptSnippet }
-    if (status === "completed") return { summary: runtimeBranchSummary ? "Branches complete" : "Step complete", detail: outputSnippet || latestLogSnippet }
-    if (status === "failed") return { summary: runtimeBranchSummary ? "Branch issue" : "Step issue", detail: errorSnippet || latestLogSnippet || promptSnippet }
+    if (status === "running")
+      return {
+        summary: runtimeBranchSummary ? "Branch work active" : "Agent running",
+        detail: latestLogSnippet || outputSnippet || promptSnippet,
+      }
+    if (status === "completed")
+      return {
+        summary: runtimeBranchSummary ? "Branches complete" : "Step complete",
+        detail: outputSnippet || latestLogSnippet,
+      }
+    if (status === "failed")
+      return {
+        summary: runtimeBranchSummary ? "Branch issue" : "Step issue",
+        detail: errorSnippet || latestLogSnippet || promptSnippet,
+      }
     return {
-      summary: runtimeFocusKind === "next" ? "Next step" : runtimeBranchSummary ? "Ready to fan out" : "Ready to run",
+      summary:
+        runtimeFocusKind === "next"
+          ? "Next step"
+          : runtimeBranchSummary
+            ? "Ready to fan out"
+            : "Ready to run",
       detail: promptSnippet,
     }
   }
 
   if (node.type === "evaluator") {
     const config = node.config as EvaluatorNodeConfig
-    const score = typeof state?.output?.metadata?.score === "number" ? state.output.metadata.score : null
+    const score =
+      typeof state?.output?.metadata?.score === "number"
+        ? state.output.metadata.score
+        : null
     if (status === "running") {
       return {
         summary: "Quality check running",
-        detail: latestLogSnippet || `Threshold ${config.threshold}/10${retryLabel ? ` · Retry from ${retryLabel}` : ""}`,
+        detail:
+          latestLogSnippet ||
+          `Threshold ${config.threshold}/10${retryLabel ? ` · Retry from ${retryLabel}` : ""}`,
       }
     }
     if (status === "completed") {
       return {
         summary: score != null ? `Score ${score}/10` : "Quality check complete",
-        detail: compactRuntimeText(state?.output?.metadata?.reason, 120) || outputSnippet || latestLogSnippet,
+        detail:
+          compactRuntimeText(state?.output?.metadata?.reason, 120) ||
+          outputSnippet ||
+          latestLogSnippet,
       }
     }
     if (status === "failed") {
@@ -219,51 +283,96 @@ function buildRuntimeSummary({
       }
     }
     return {
-      summary: runtimeFocusKind === "next" ? "Next quality check" : "Quality check queued",
+      summary:
+        runtimeFocusKind === "next"
+          ? "Next quality check"
+          : "Quality check queued",
       detail: `Threshold ${config.threshold}/10${retryLabel ? ` · Retry from ${retryLabel}` : ""}`,
     }
   }
 
   if (node.type === "splitter") {
-    if (status === "running") return { summary: "Creating branches", detail: latestLogSnippet || outputSnippet }
+    if (status === "running")
+      return {
+        summary: "Creating branches",
+        detail: latestLogSnippet || outputSnippet,
+      }
     if (status === "completed") {
       return {
-        summary: runtimeBranchSummary ? `${runtimeBranchSummary.total} branches ready` : "Branches ready",
+        summary: runtimeBranchSummary
+          ? `${runtimeBranchSummary.total} branches ready`
+          : "Branches ready",
         detail: latestLogSnippet || outputSnippet,
       }
     }
-    if (status === "failed") return { summary: "Fan-out issue", detail: errorSnippet || latestLogSnippet }
-    return { summary: runtimeFocusKind === "next" ? "Next fan-out" : "Ready to branch", detail: null }
+    if (status === "failed")
+      return {
+        summary: "Fan-out issue",
+        detail: errorSnippet || latestLogSnippet,
+      }
+    return {
+      summary: runtimeFocusKind === "next" ? "Next fan-out" : "Ready to branch",
+      detail: null,
+    }
   }
 
   if (node.type === "merger") {
     const config = node.config as MergerNodeConfig
-    if (status === "running") return { summary: "Merging branches", detail: latestLogSnippet || outputSnippet }
-    if (status === "completed") return { summary: "Merge complete", detail: outputSnippet || latestLogSnippet }
-    if (status === "failed") return { summary: "Merge issue", detail: errorSnippet || latestLogSnippet }
-    return { summary: runtimeFocusKind === "next" ? "Next merge" : "Waiting to merge", detail: `Strategy ${config.strategy}` }
+    if (status === "running")
+      return {
+        summary: "Merging branches",
+        detail: latestLogSnippet || outputSnippet,
+      }
+    if (status === "completed")
+      return {
+        summary: "Merge complete",
+        detail: outputSnippet || latestLogSnippet,
+      }
+    if (status === "failed")
+      return {
+        summary: "Merge issue",
+        detail: errorSnippet || latestLogSnippet,
+      }
+    return {
+      summary: runtimeFocusKind === "next" ? "Next merge" : "Waiting to merge",
+      detail: `Strategy ${config.strategy}`,
+    }
   }
 
   if (node.type === "approval") {
     const config = node.config as ApprovalNodeConfig
     const messageSnippet = compactRuntimeText(config.message, 110)
-    if (status === "waiting_approval") return { summary: "Awaiting approval", detail: messageSnippet }
-    if (status === "completed") return { summary: "Approved", detail: messageSnippet || outputSnippet }
+    if (status === "waiting_approval")
+      return { summary: "Awaiting approval", detail: messageSnippet }
+    if (status === "completed")
+      return { summary: "Approved", detail: messageSnippet || outputSnippet }
     if (status === "failed") {
       return {
-        summary: errorSnippet?.toLowerCase().includes("reject") ? "Rejected" : "Approval issue",
+        summary: errorSnippet?.toLowerCase().includes("reject")
+          ? "Rejected"
+          : "Approval issue",
         detail: errorSnippet || messageSnippet,
       }
     }
-    return { summary: runtimeFocusKind === "next" ? "Next approval" : "Approval queued", detail: messageSnippet }
+    return {
+      summary:
+        runtimeFocusKind === "next" ? "Next approval" : "Approval queued",
+      detail: messageSnippet,
+    }
   }
 
   if (node.type === "human") {
     const config = node.config as HumanNodeConfig
-    const requestSnippet = compactRuntimeText(config.staticRequest?.instructions || config.staticRequest?.title, 110)
+    const requestSnippet = compactRuntimeText(
+      config.staticRequest?.instructions || config.staticRequest?.title,
+      110,
+    )
     if (status === "waiting_human") {
       return {
-        summary: config.mode === "approval" ? "Awaiting human approval" : "Awaiting human input",
+        summary:
+          config.mode === "approval"
+            ? "Awaiting human approval"
+            : "Awaiting human input",
         detail: requestSnippet,
       }
     }
@@ -275,22 +384,35 @@ function buildRuntimeSummary({
     }
     if (status === "failed") {
       return {
-        summary: errorSnippet?.toLowerCase().includes("reject") ? "Rejected" : "Human input issue",
+        summary: errorSnippet?.toLowerCase().includes("reject")
+          ? "Rejected"
+          : "Human input issue",
         detail: errorSnippet || requestSnippet,
       }
     }
     return {
-      summary: runtimeFocusKind === "next" ? "Next human check" : "Human check queued",
+      summary:
+        runtimeFocusKind === "next" ? "Next human check" : "Human check queued",
       detail: requestSnippet,
     }
   }
 
   const outputConfig = node.config as OutputNodeConfig
-  if (status === "running") return { summary: "Preparing result", detail: latestLogSnippet || outputSnippet }
-  if (status === "completed") return { summary: "Result ready", detail: outputSnippet || latestLogSnippet }
-  if (status === "failed") return { summary: "Result issue", detail: errorSnippet || latestLogSnippet }
+  if (status === "running")
+    return {
+      summary: "Preparing result",
+      detail: latestLogSnippet || outputSnippet,
+    }
+  if (status === "completed")
+    return {
+      summary: "Result ready",
+      detail: outputSnippet || latestLogSnippet,
+    }
+  if (status === "failed")
+    return { summary: "Result issue", detail: errorSnippet || latestLogSnippet }
   return {
-    summary: runtimeFocusKind === "next" ? "Next result step" : "Final result pending",
+    summary:
+      runtimeFocusKind === "next" ? "Next result step" : "Final result pending",
     detail: `Format ${outputConfig.format || "markdown"}`,
   }
 }
@@ -345,15 +467,21 @@ export function getRuntimeStatusLabel(status: NodeStatus | undefined) {
   return "Pending"
 }
 
-export function getRuntimeStatusBadgeVariant(status: NodeStatus | undefined): "info" | "warning" | "destructive" | "success" | "secondary" {
+export function getRuntimeStatusBadgeVariant(
+  status: NodeStatus | undefined,
+): "info" | "warning" | "destructive" | "success" | "secondary" {
   if (status === "running") return "info"
-  if (status === "waiting_approval" || status === "waiting_human") return "warning"
+  if (status === "waiting_approval" || status === "waiting_human")
+    return "warning"
   if (status === "failed") return "destructive"
   if (status === "completed") return "success"
   return "secondary"
 }
 
-export function getRuntimeStatusDotStyle(status: NodeStatus | undefined): { core: string; ring?: string } {
+export function getRuntimeStatusDotStyle(status: NodeStatus | undefined): {
+  core: string
+  ring?: string
+} {
   if (status === "running") {
     return {
       core: "bg-status-info",
@@ -388,22 +516,57 @@ export function getRuntimeStatusDotStyle(status: NodeStatus | undefined): { core
 
 export function getRuntimeProgress(status: NodeStatus | undefined) {
   if (status === "running") {
-    return { value: 62, label: "In flight", barClass: "bg-status-info", animate: true }
+    return {
+      value: 62,
+      label: "In flight",
+      barClass: "bg-status-info",
+      animate: true,
+    }
   }
   if (status === "waiting_approval" || status === "waiting_human") {
-    return { value: 84, label: "Blocked", barClass: "bg-status-warning", animate: false }
+    return {
+      value: 84,
+      label: "Blocked",
+      barClass: "bg-status-warning",
+      animate: false,
+    }
   }
   if (status === "failed") {
-    return { value: 100, label: "Stopped", barClass: "bg-status-danger", animate: false }
+    return {
+      value: 100,
+      label: "Stopped",
+      barClass: "bg-status-danger",
+      animate: false,
+    }
   }
   if (status === "completed") {
-    return { value: 100, label: "Done", barClass: "bg-status-success", animate: false }
+    return {
+      value: 100,
+      label: "Done",
+      barClass: "bg-status-success",
+      animate: false,
+    }
   }
   if (status === "skipped") {
-    return { value: 100, label: "Skipped", barClass: "bg-status-warning", animate: false }
+    return {
+      value: 100,
+      label: "Skipped",
+      barClass: "bg-status-warning",
+      animate: false,
+    }
   }
   if (status === "queued") {
-    return { value: 26, label: "Queued", barClass: "bg-primary/70", animate: false }
+    return {
+      value: 26,
+      label: "Queued",
+      barClass: "bg-primary/70",
+      animate: false,
+    }
   }
-  return { value: 10, label: "Pending", barClass: "bg-muted-foreground/50", animate: false }
+  return {
+    value: 10,
+    label: "Pending",
+    barClass: "bg-muted-foreground/50",
+    animate: false,
+  }
 }

@@ -13,12 +13,19 @@ export function useFactoryResources(selectedProject: string | null) {
   const [humanTasks, setHumanTasks] = useState<HumanTaskSummary[]>([])
   const [humanTasksLoading, setHumanTasksLoading] = useState(false)
   const [humanTasksError, setHumanTasksError] = useState<string | null>(null)
-  const [factoryBlueprint, setFactoryBlueprint] = useState<ProjectFactoryBlueprint | null>(null)
+  const [factoryBlueprint, setFactoryBlueprint] =
+    useState<ProjectFactoryBlueprint | null>(null)
   const [factoryBlueprintLoading, setFactoryBlueprintLoading] = useState(false)
-  const [factoryBlueprintError, setFactoryBlueprintError] = useState<string | null>(null)
-  const [factoryState, setFactoryState] = useState<ProjectFactoryState | null>(null)
+  const [factoryBlueprintError, setFactoryBlueprintError] = useState<
+    string | null
+  >(null)
+  const [factoryState, setFactoryState] = useState<ProjectFactoryState | null>(
+    null,
+  )
   const [factoryStateLoading, setFactoryStateLoading] = useState(false)
-  const [factoryStateError, setFactoryStateError] = useState<string | null>(null)
+  const [factoryStateError, setFactoryStateError] = useState<string | null>(
+    null,
+  )
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([])
   const [caseStates, setCaseStates] = useState<CaseStateRecord[]>([])
   const [artifactsLoading, setArtifactsLoading] = useState(false)
@@ -74,7 +81,9 @@ export function useFactoryResources(selectedProject: string | null) {
     try {
       const [nextArtifacts, nextCaseStates] = await Promise.all([
         window.api.listProjectArtifacts(selectedProject),
-        window.api.listProjectCaseStates(selectedProject).catch(() => [] as CaseStateRecord[]),
+        window.api
+          .listProjectCaseStates(selectedProject)
+          .catch(() => [] as CaseStateRecord[]),
       ])
       if (artifactsRequestIdRef.current !== requestId) return
       setArtifacts(nextArtifacts)
@@ -103,7 +112,8 @@ export function useFactoryResources(selectedProject: string | null) {
     setFactoryBlueprintLoading(true)
     setFactoryBlueprintError(null)
     try {
-      const nextBlueprint = await window.api.loadProjectFactoryBlueprint(selectedProject)
+      const nextBlueprint =
+        await window.api.loadProjectFactoryBlueprint(selectedProject)
       if (blueprintRequestIdRef.current !== requestId) return
       setFactoryBlueprint(nextBlueprint)
     } catch (error) {
@@ -129,7 +139,8 @@ export function useFactoryResources(selectedProject: string | null) {
     setFactoryStateLoading(true)
     setFactoryStateError(null)
     try {
-      const nextFactoryState = await window.api.loadProjectFactoryState(selectedProject)
+      const nextFactoryState =
+        await window.api.loadProjectFactoryState(selectedProject)
       if (factoryStateRequestIdRef.current !== requestId) return
       setFactoryState(nextFactoryState)
     } catch (error) {
@@ -149,7 +160,12 @@ export function useFactoryResources(selectedProject: string | null) {
       refreshHumanTasks(),
       refreshArtifacts(),
     ])
-  }, [refreshArtifacts, refreshFactoryBlueprint, refreshFactoryState, refreshHumanTasks])
+  }, [
+    refreshArtifacts,
+    refreshFactoryBlueprint,
+    refreshFactoryState,
+    refreshHumanTasks,
+  ])
 
   useEffect(() => {
     void refreshFactoryData()
@@ -160,18 +176,22 @@ export function useFactoryResources(selectedProject: string | null) {
     setTemplatesLoading(true)
     setTemplatesError(null)
 
-    void window.api.listTemplates().then((nextTemplates) => {
-      if (cancelled) return
-      setTemplates(nextTemplates)
-    }).catch((error) => {
-      if (cancelled) return
-      setTemplates([])
-      setTemplatesError(errorToUserMessage(error))
-    }).finally(() => {
-      if (!cancelled) {
-        setTemplatesLoading(false)
-      }
-    })
+    void window.api
+      .listTemplates()
+      .then((nextTemplates) => {
+        if (cancelled) return
+        setTemplates(nextTemplates)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setTemplates([])
+        setTemplatesError(errorToUserMessage(error))
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTemplatesLoading(false)
+        }
+      })
 
     return () => {
       cancelled = true

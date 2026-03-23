@@ -43,13 +43,19 @@ export function ExecutionApprovalSummary({
   const hasTopBadges = Boolean(topBadges)
 
   return (
-    <section className={cn("space-y-3 rounded-lg bg-surface-2/45 px-3 py-3", className)}>
+    <section className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="ui-meta-label text-muted-foreground">Flow</p>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="min-w-0 truncate text-body-sm font-medium text-foreground">{flowName}</span>
-            {stepKind ? <Badge variant="outline" size="compact">{stepKind}</Badge> : null}
+            <span className="min-w-0 truncate text-body-sm font-medium text-foreground">
+              {flowName}
+            </span>
+            {stepKind ? (
+              <Badge variant="outline" size="compact">
+                {stepKind}
+              </Badge>
+            ) : null}
           </div>
         </div>
         {hasTopBadges ? (
@@ -59,10 +65,12 @@ export function ExecutionApprovalSummary({
         ) : null}
       </div>
 
-      <div className="grid gap-3 border-t border-hairline/70 pt-3 md:grid-cols-3">
+      <div className="grid gap-3 ui-section-divider md:grid-cols-3">
         <div className="space-y-1">
           <div className="ui-meta-label text-muted-foreground">This step</div>
-          <div className="text-body-sm font-medium text-foreground">{stepName}</div>
+          <div className="text-body-sm font-medium text-foreground">
+            {stepName}
+          </div>
           {compactDescription ? (
             <div className="line-clamp-2 ui-meta-text text-muted-foreground">
               {compactDescription}
@@ -70,42 +78,60 @@ export function ExecutionApprovalSummary({
           ) : null}
         </div>
         <div className="space-y-1">
-          <div className="ui-meta-label text-muted-foreground">Expected result</div>
-          <div className="text-body-sm font-medium text-foreground">{expectedResult}</div>
+          <div className="ui-meta-label text-muted-foreground">
+            Expected result
+          </div>
+          <div className="text-body-sm font-medium text-foreground">
+            {expectedResult}
+          </div>
         </div>
         <div className="space-y-1">
           <div className="ui-meta-label text-muted-foreground">Runs with</div>
           {inputLabels.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {inputLabels.map((label) => (
-                <Badge key={label} variant="outline" className="ui-meta-text px-2 py-0">
+                <Badge
+                  key={label}
+                  variant="outline"
+                  className="ui-meta-text px-2 py-0"
+                >
                   {label}
                 </Badge>
               ))}
             </div>
           ) : (
-            <div className="ui-meta-text text-muted-foreground">Current input</div>
+            <div className="ui-meta-text text-muted-foreground">
+              Current input
+            </div>
           )}
         </div>
       </div>
 
       {previewText ? (
-        <div className="space-y-1 border-t border-hairline/70 pt-3">
-          <div className="ui-meta-label text-muted-foreground">Input preview</div>
+        <div className="space-y-1 ui-section-divider">
+          <div className="ui-meta-label text-muted-foreground">
+            Input preview
+          </div>
           <div className="line-clamp-4 whitespace-pre-wrap text-body-sm text-foreground">
             {previewText}
           </div>
         </div>
       ) : null}
 
-      <div className="grid gap-3 border-t border-hairline/70 pt-3 sm:grid-cols-2">
-        <div className="space-y-1 rounded-md bg-status-success/5 px-3 py-2.5">
-          <div className="ui-meta-label text-status-success">{approveLabel}</div>
-          <div className="text-body-sm font-medium text-foreground">{approveConsequence}</div>
+      <div className="grid gap-3 ui-section-divider sm:grid-cols-2">
+        <div className="space-y-1">
+          <div className="ui-meta-label text-status-success">
+            {approveLabel}
+          </div>
+          <div className="text-body-sm font-medium text-foreground">
+            {approveConsequence}
+          </div>
         </div>
-        <div className="space-y-1 rounded-md bg-status-danger/5 px-3 py-2.5">
+        <div className="space-y-1">
           <div className="ui-meta-label text-status-danger">{rejectLabel}</div>
-          <div className="text-body-sm font-medium text-foreground">{rejectConsequence}</div>
+          <div className="text-body-sm font-medium text-foreground">
+            {rejectConsequence}
+          </div>
         </div>
       </div>
     </section>

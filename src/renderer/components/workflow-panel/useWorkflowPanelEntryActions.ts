@@ -29,42 +29,54 @@ export function useWorkflowPanelEntryActions({
     attachTargetLabel?: string
     onAddSkill: (skill: DiscoveredSkill) => void
   }) => void
-  setWorkflow: ReturnType<typeof import("@/hooks/useWorkflowWithUndo").useWorkflowWithUndo>["setWorkflow"]
+  setWorkflow: ReturnType<
+    typeof import("@/hooks/useWorkflowWithUndo").useWorkflowWithUndo
+  >["setWorkflow"]
   setSelectedNodeId: (value: string | null) => void
   setShowEntryEditor: (value: boolean) => void
   setFlowSurfaceMode: (value: "outline" | "edit") => void
   setPrepareNewRun: (value: boolean) => void
   setSelectedInboxTaskKey: (value: string | null) => void
-  setWorkflowEntryState: (value: import("@/lib/workflow-entry").WorkflowEntryState | null) => void
+  setWorkflowEntryState: (
+    value: import("@/lib/workflow-entry").WorkflowEntryState | null,
+  ) => void
 }) {
-  const handleAddSkillToFlow = useCallback((skill: DiscoveredSkill) => {
-    let nextSelectedId: string | null = null
-    setWorkflow((previous) => {
-      const previousNodeIds = new Set(previous.nodes.map((node) => node.id))
-      const next = addSkillNodeToWorkflow(previous, skill)
-      nextSelectedId = next.nodes.find((node) => !previousNodeIds.has(node.id))?.id ?? null
-      return next
-    })
-    if (nextSelectedId) {
-      setSelectedNodeId(nextSelectedId)
-    }
-    setShowEntryEditor(true)
-    setFlowSurfaceMode("edit")
-  }, [setFlowSurfaceMode, setSelectedNodeId, setShowEntryEditor, setWorkflow])
+  const handleAddSkillToFlow = useCallback(
+    (skill: DiscoveredSkill) => {
+      let nextSelectedId: string | null = null
+      setWorkflow((previous) => {
+        const previousNodeIds = new Set(previous.nodes.map((node) => node.id))
+        const next = addSkillNodeToWorkflow(previous, skill)
+        nextSelectedId =
+          next.nodes.find((node) => !previousNodeIds.has(node.id))?.id ?? null
+        return next
+      })
+      if (nextSelectedId) {
+        setSelectedNodeId(nextSelectedId)
+      }
+      setShowEntryEditor(true)
+      setFlowSurfaceMode("edit")
+    },
+    [setFlowSurfaceMode, setSelectedNodeId, setShowEntryEditor, setWorkflow],
+  )
 
-  const handleAddSkillSelection = useCallback((skill: DiscoveredSkill) => {
-    handleAddSkillToFlow(skill)
-    toast.success(`Added ${skill.name}`, {
-      description: "Added to this flow as a new step.",
-    })
-  }, [handleAddSkillToFlow])
+  const handleAddSkillSelection = useCallback(
+    (skill: DiscoveredSkill) => {
+      handleAddSkillToFlow(skill)
+      toast.success(`Added ${skill.name}`, {
+        description: "Added to this flow as a new step.",
+      })
+    },
+    [handleAddSkillToFlow],
+  )
 
   const handleAttachCapability = useCallback(() => {
     openSkillPicker({
       title: "Attach skill",
       description: "Choose a reusable skill to add to the current flow.",
       searchPlaceholder: "Search skills...",
-      emptyStateMessage: "No skills available. Open a project with local skills, or visit Skills to connect a skill source.",
+      emptyStateMessage:
+        "No skills available. Open a project with local skills, or visit Skills to connect a skill source.",
       emptyResultsMessage: (query) => `No skills found for “${query}”`,
       stageLabel: effectiveEntryStageLabel,
       attachTargetLabel: "this flow",
@@ -84,7 +96,12 @@ export function useWorkflowPanelEntryActions({
       return
     }
     setWorkflowEntryState(null)
-  }, [blockedResumeSummary, setPrepareNewRun, setSelectedInboxTaskKey, setWorkflowEntryState])
+  }, [
+    blockedResumeSummary,
+    setPrepareNewRun,
+    setSelectedInboxTaskKey,
+    setWorkflowEntryState,
+  ])
 
   return {
     handleAddSkillSelection,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 
+import type { MainView } from "@/lib/store"
 import { toastError } from "@/lib/toast-error"
 import type { ExecutionSurfaceNotice } from "@/lib/workflow-execution"
 import type { ArtifactRecord } from "@shared/types"
@@ -32,28 +33,41 @@ export function useWorkflowPanelOutputSurface({
   surfaceNotice: ExecutionSurfaceNotice | null
   outputPanelRef: React.MutableRefObject<HTMLDivElement | null>
   scrollOutputPanelIntoListViewport: (padding?: number) => boolean
-  setMainView: (value: string) => void
+  setMainView: (value: MainView) => void
   setSurfaceNotice: (value: ExecutionSurfaceNotice | null) => void
   setViewMode: (value: "list" | "settings") => void
   setOutputTabRequest: (value: OutputTabRequest) => void
 }) {
-  const [blockedInspectionVisible, setBlockedInspectionVisible] = useState(false)
+  const [blockedInspectionVisible, setBlockedInspectionVisible] =
+    useState(false)
 
-  const requestOutputTab = useCallback((tab: "nodes" | "log" | "result" | "history", nodeId?: string) => {
-    setViewMode("list")
-    if (showBlockedResumeHeader) {
-      setBlockedInspectionVisible(true)
-    }
-    setOutputTabRequest({ tab, nodeId, nonce: Date.now() })
-    window.requestAnimationFrame(() => {
+  const requestOutputTab = useCallback(
+    (tab: "nodes" | "log" | "result" | "history", nodeId?: string) => {
+      setViewMode("list")
+      if (showBlockedResumeHeader) {
+        setBlockedInspectionVisible(true)
+      }
+      setOutputTabRequest({ tab, nodeId, nonce: Date.now() })
       window.requestAnimationFrame(() => {
-        if (scrollOutputPanelIntoListViewport()) {
-          return
-        }
-        outputPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+        window.requestAnimationFrame(() => {
+          if (scrollOutputPanelIntoListViewport()) {
+            return
+          }
+          outputPanelRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          })
+        })
       })
-    })
-  }, [outputPanelRef, scrollOutputPanelIntoListViewport, setOutputTabRequest, setViewMode, showBlockedResumeHeader])
+    },
+    [
+      outputPanelRef,
+      scrollOutputPanelIntoListViewport,
+      setOutputTabRequest,
+      setViewMode,
+      showBlockedResumeHeader,
+    ],
+  )
 
   useEffect(() => {
     setBlockedInspectionVisible(false)
@@ -85,13 +99,19 @@ export function useWorkflowPanelOutputSurface({
     }
   }, [openActivity, openResult, setMainView, setSurfaceNotice, surfaceNotice])
 
-  const focusStageDetails = useCallback(({ nodeId, preferredTab }: {
-    nodeId: string
-    preferredTab: "nodes" | "log" | "result"
-  }) => {
-    if (runStatus === "idle" && !showAnyReviewMode) return
-    requestOutputTab(preferredTab, nodeId)
-  }, [requestOutputTab, runStatus, showAnyReviewMode])
+  const focusStageDetails = useCallback(
+    ({
+      nodeId,
+      preferredTab,
+    }: {
+      nodeId: string
+      preferredTab: "nodes" | "log" | "result"
+    }) => {
+      if (runStatus === "idle" && !showAnyReviewMode) return
+      requestOutputTab(preferredTab, nodeId)
+    },
+    [requestOutputTab, runStatus, showAnyReviewMode],
+  )
 
   const handleOpenArtifact = useCallback(async (artifact: ArtifactRecord) => {
     const openError = await window.api.openPath(artifact.contentPath)

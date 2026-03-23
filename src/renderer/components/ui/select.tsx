@@ -2,7 +2,11 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import * as React from "react"
 
 import { cn } from "@/lib/cn"
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "@radix-ui/react-icons"
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "@radix-ui/react-icons"
 import {
   overlayContentBase,
   overlayMaxHeight,
@@ -42,7 +46,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-control-md w-full min-w-0 items-center justify-between gap-2 overflow-hidden whitespace-nowrap rounded-md border border-input bg-input-background px-3 py-1 text-start text-body-sm text-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)] transition-[border-color,box-shadow,background-color,color] ui-motion-fast hover:border-hairline hover:bg-surface-1 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/20 aria-invalid:border-status-danger aria-invalid:ring-[3px] aria-invalid:ring-status-danger/20 disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface-2/80 disabled:text-disabled disabled:opacity-100 disabled:[-webkit-text-fill-color:currentColor] disabled:shadow-none data-[placeholder]:text-muted-foreground/80 [&>span]:block [&>span]:min-w-0 [&>span]:truncate",
+      "flex h-control-md w-full min-w-0 items-center justify-between gap-2 overflow-hidden whitespace-nowrap rounded-md border border-input bg-input-background px-3 py-1 text-start text-body-sm text-foreground transition-[border-color,background-color,color] ui-motion-fast hover:border-hairline hover:bg-surface-1 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring/40 aria-invalid:border-status-danger aria-invalid:ring-[3px] aria-invalid:ring-status-danger/20 disabled:cursor-not-allowed disabled:border-hairline disabled:bg-surface-2/80 disabled:text-disabled disabled:opacity-100 disabled:[-webkit-text-fill-color:currentColor] data-[placeholder]:text-muted-foreground/80 [&>span]:block [&>span]:min-w-0 [&>span]:truncate",
       className,
     )}
     {...props}
@@ -71,7 +75,11 @@ const SelectScrollUpButton = React.forwardRef<
     )}
     {...props}
   >
-    <ChevronUpIcon width={16} height={16} className="shrink-0 text-muted-foreground/80" />
+    <ChevronUpIcon
+      width={16}
+      height={16}
+      className="shrink-0 text-muted-foreground/80"
+    />
   </SelectPrimitive.ScrollUpButton>
 ))
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
@@ -88,10 +96,15 @@ const SelectScrollDownButton = React.forwardRef<
     )}
     {...props}
   >
-    <ChevronDownIcon width={16} height={16} className="shrink-0 text-muted-foreground/80" />
+    <ChevronDownIcon
+      width={16}
+      height={16}
+      className="shrink-0 text-muted-foreground/80"
+    />
   </SelectPrimitive.ScrollDownButton>
 ))
-SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName
+SelectScrollDownButton.displayName =
+  SelectPrimitive.ScrollDownButton.displayName
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
@@ -115,9 +128,7 @@ const SelectContent = React.forwardRef<
     >
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
-        className={cn(
-          "w-full py-1 max-h-[inherit] overflow-y-auto",
-        )}
+        className={cn("w-full py-1 max-h-[inherit] overflow-y-auto")}
       >
         {children}
       </SelectPrimitive.Viewport>
@@ -159,7 +170,11 @@ const SelectItem = React.forwardRef<
   >
     <span className={overlayItemIndicator}>
       <SelectPrimitive.ItemIndicator>
-        <CheckIcon width={16} height={16} className="shrink-0 text-muted-foreground/80" />
+        <CheckIcon
+          width={16}
+          height={16}
+          className="shrink-0 text-muted-foreground/80"
+        />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText className="block min-w-0 truncate">

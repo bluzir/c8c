@@ -2,9 +2,20 @@ import type { HumanNodeConfig } from "@shared/types"
 import { TextareaWithMention } from "@/components/input/TextareaWithMention"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { EDITOR_GROUP_CLASS, EDITOR_PANEL_CLASS, RuntimePolicyEditor, type RuntimeConfigurableNodeConfig } from "./shared"
+import {
+  EDITOR_GROUP_CLASS,
+  EDITOR_PANEL_CLASS,
+  RuntimePolicyEditor,
+  type RuntimeConfigurableNodeConfig,
+} from "./shared"
 
 export function HumanNodeEditor({
   nodeId,
@@ -24,7 +35,9 @@ export function HumanNodeEditor({
 
   const firstField = request.fields?.[0]
 
-  const updateRequest = (patch: Partial<NonNullable<HumanNodeConfig["staticRequest"]>>) => {
+  const updateRequest = (
+    patch: Partial<NonNullable<HumanNodeConfig["staticRequest"]>>,
+  ) => {
     onConfigChange({
       ...config,
       staticRequest: {
@@ -39,7 +52,10 @@ export function HumanNodeEditor({
   return (
     <div className={EDITOR_PANEL_CLASS}>
       <div className="flex items-center gap-3">
-        <Label htmlFor={`human-mode-${nodeId}`} className="ui-meta-text text-muted-foreground">
+        <Label
+          htmlFor={`human-mode-${nodeId}`}
+          className="ui-meta-text text-muted-foreground"
+        >
           Mode
         </Label>
         <Select
@@ -49,12 +65,18 @@ export function HumanNodeEditor({
               ...config,
               mode: value as HumanNodeConfig["mode"],
               staticRequest: config.staticRequest
-                ? { ...config.staticRequest, kind: value as HumanNodeConfig["mode"] }
+                ? {
+                    ...config.staticRequest,
+                    kind: value as HumanNodeConfig["mode"],
+                  }
                 : config.staticRequest,
             })
           }
         >
-          <SelectTrigger id={`human-mode-${nodeId}`} className="w-40 h-control-md text-body-sm">
+          <SelectTrigger
+            id={`human-mode-${nodeId}`}
+            className="w-40 h-control-md text-body-sm"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -65,16 +87,25 @@ export function HumanNodeEditor({
       </div>
 
       <div className="flex items-center gap-3">
-        <Label htmlFor={`human-source-${nodeId}`} className="ui-meta-text text-muted-foreground">
+        <Label
+          htmlFor={`human-source-${nodeId}`}
+          className="ui-meta-text text-muted-foreground"
+        >
           Request Source
         </Label>
         <Select
           value={config.requestSource}
           onValueChange={(value) =>
-            onConfigChange({ ...config, requestSource: value as HumanNodeConfig["requestSource"] })
+            onConfigChange({
+              ...config,
+              requestSource: value as HumanNodeConfig["requestSource"],
+            })
           }
         >
-          <SelectTrigger id={`human-source-${nodeId}`} className="w-44 h-control-md text-body-sm">
+          <SelectTrigger
+            id={`human-source-${nodeId}`}
+            className="w-44 h-control-md text-body-sm"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -85,7 +116,10 @@ export function HumanNodeEditor({
       </div>
 
       <div>
-        <Label htmlFor={`human-title-${nodeId}`} className="ui-meta-text text-muted-foreground mb-1 block">
+        <Label
+          htmlFor={`human-title-${nodeId}`}
+          className="ui-meta-text text-muted-foreground mb-1 block"
+        >
           Task Title
         </Label>
         <Input
@@ -99,13 +133,18 @@ export function HumanNodeEditor({
       </div>
 
       <div>
-        <Label htmlFor={`human-instructions-${nodeId}`} className="ui-meta-text text-muted-foreground mb-1 block">
+        <Label
+          htmlFor={`human-instructions-${nodeId}`}
+          className="ui-meta-text text-muted-foreground mb-1 block"
+        >
           Instructions
         </Label>
         <TextareaWithMention
           id={`human-instructions-${nodeId}`}
           value={request.instructions || ""}
-          onChange={(event) => updateRequest({ instructions: event.target.value })}
+          onChange={(event) =>
+            updateRequest({ instructions: event.target.value })
+          }
           rows={3}
           className="min-h-20 resize-y font-mono text-body-sm"
           placeholder="Explain what information is needed before the flow continues."
@@ -115,7 +154,10 @@ export function HumanNodeEditor({
       {config.requestSource === "static" && config.mode === "form" && (
         <div className={EDITOR_GROUP_CLASS}>
           <div>
-            <Label htmlFor={`human-field-label-${nodeId}`} className="ui-meta-text text-muted-foreground mb-1 block">
+            <Label
+              htmlFor={`human-field-label-${nodeId}`}
+              className="ui-meta-text text-muted-foreground mb-1 block"
+            >
               Primary Field Label
             </Label>
             <Input
@@ -173,13 +215,18 @@ export function HumanNodeEditor({
 
       <div className={EDITOR_GROUP_CLASS}>
         <div className="flex items-center justify-between">
-          <Label htmlFor={`human-allow-revisions-${nodeId}`} className="ui-meta-text text-muted-foreground">
+          <Label
+            htmlFor={`human-allow-revisions-${nodeId}`}
+            className="ui-meta-text text-muted-foreground"
+          >
             Allow revisions
           </Label>
           <Switch
             id={`human-allow-revisions-${nodeId}`}
             checked={config.allowRevisions ?? true}
-            onCheckedChange={(checked) => onConfigChange({ ...config, allowRevisions: checked })}
+            onCheckedChange={(checked) =>
+              onConfigChange({ ...config, allowRevisions: checked })
+            }
             aria-label="Toggle human task revisions"
           />
         </div>
@@ -188,7 +235,9 @@ export function HumanNodeEditor({
       <RuntimePolicyEditor
         nodeId={nodeId}
         config={config}
-        onConfigChange={onConfigChange as (next: RuntimeConfigurableNodeConfig) => void}
+        onConfigChange={
+          onConfigChange as (next: RuntimeConfigurableNodeConfig) => void
+        }
       />
     </div>
   )

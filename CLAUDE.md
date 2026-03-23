@@ -167,29 +167,28 @@ Sidebar rows should stay compact: project headers around 26px minimum height, th
 
 - `text-body-md` (14px) — default readable body text
 - `text-body-sm` (13px) — compact body/controls copy
-- `ui-body-text` is the utility equivalent of `text-body-md`
 - `ui-meta-text` is for metadata/helper text
 
 ### Custom utility classes (in globals.css)
 
-- `.surface-panel`, `.surface-elevated`, `.surface-figure`, `.surface-soft`, `.surface-inset-card`, `.surface-depth-header`, `.surface-depth-footer` — layered surface styles
+- `.surface-panel`, `.surface-elevated`, `.surface-figure`, `.surface-inset-card`, `.surface-depth-header`, `.surface-depth-footer` — layered surface styles
 - `.surface-figure` — **Level 3 figure surface** with overlay elevation + radius; use for the ONE primary object per state
 - `.surface-info-soft`, `.surface-success-soft`, `.surface-danger-soft`, `.surface-warning-soft` — soft severity surfaces
 - `.ui-context-strip`, `.ui-slab`, `.ui-inset-well`, `.ui-selected-row-tint`, `.ui-section-divider` — connective tissue (Level 0-2 grouping without cards)
 - `.ui-empty-state-box` — standardized dashed-border empty state container (replaces ad-hoc `rounded-lg border-dashed bg-surface-2/30` patterns)
-- `.ui-evidence-strip`, `.ui-evidence-item` — compact fact display for verdict cards
+- `.ui-evidence-item` — compact fact display for verdict cards
 - `.ui-skeleton` — loading placeholder with pulse animation
 - `.ui-item-selected` — interactive selection state for selectable items
-- `.section-kicker`, `.ui-title-text`, `.ui-body-text`, `.ui-meta-text`, `.ui-meta-label`, `.ui-body-text-medium` — content typography
+- `.section-kicker`, `.ui-meta-text`, `.ui-meta-label` — content typography
 - `.ui-motion-fast`, `.ui-motion-standard` — transition duration shortcuts
-- `.ui-transition-colors`, `.ui-transition-surface`, `.ui-transition-opacity`, `.ui-transition-width` — transition property helpers
+- `.ui-transition-colors`, `.ui-transition-surface`, `.ui-transition-opacity` — transition property helpers
 - `.ui-scroll-region`, `.ui-scrollbar-hidden`, `.ui-dialog-gutter` — containment + layout helpers
 - `.ui-interactive-card`, `.ui-interactive-card-subtle`, `.ui-pressable`, `.ui-icon-button`, `.ui-icon-button-danger`, `.ui-resize-handle`, `.ui-chevron` — interaction feedback
 - `.ui-status-badge`, `.ui-status-badge-success|warning|danger|info`, `.ui-status-halo-danger` — status badge/halo patterns
 - `.ui-alert-info|warning|danger|success` — compact alert containers; use these when the alert owns its padding/layout, and `surface-*-soft` when the component owns layout
 - `.ui-badge-row`, `.ui-empty-state`, `.ui-metric-text`, `.inline-code`, `.prose-c8c`, `.ui-content-shell` — layout/content helpers
 - `.control-cluster`, `.control-badge`, `.border-hairline`, `.ui-disclosure` — shared control primitives
-- `.ui-elevation-base`, `.ui-elevation-inset`, `.ui-surface-lift`, `.ui-fade-slide-in`, `.ui-fade-slide-in-trailing` — elevation + motion composition
+- `.ui-elevation-inset`, `.ui-surface-lift`, `.ui-fade-slide-in`, `.ui-fade-slide-in-trailing` — elevation + motion composition
 - `.ui-progress-track`, `.ui-progress-bar`, `.sidebar-progress-track`, `.sidebar-progress-bar` — progress primitives
 - `.ui-collapsible`, `.ui-collapsible-inner` — collapsible content helpers
 

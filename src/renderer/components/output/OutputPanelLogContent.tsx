@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import { LogTab } from "@/components/output/OutputSections"
 import { SelectedStepSummaryPanel } from "@/components/output/SelectedStepSummaryPanel"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/cn"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import type { EvaluationResult, NodeState, WorkflowNode } from "@shared/types"
 
@@ -58,16 +59,16 @@ export function OutputPanelLogContent({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {canInspectActivity && tabOptionsLength <= 1 ? (
-        <div className="border-b border-hairline px-1 pb-2">
+        <div className="ui-context-strip">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
-          onClick={onBackToActivity}
-        >
+            className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+            onClick={onBackToActivity}
+          >
             Back to summary
           </Button>
         </div>
@@ -76,7 +77,7 @@ export function OutputPanelLogContent({
       {savedRunErrorNotice}
       {savedRunSnapshotNotice}
       {(!reviewingRunHistory || canInspectSavedRun) && (
-        <>
+        <section className="surface-figure px-4 py-4">
           <SelectedStepSummaryPanel
             selectedStagePresentation={selectedStagePresentation}
             selectedStageContextLabelClass={selectedStageContextLabelClass}
@@ -84,15 +85,17 @@ export function OutputPanelLogContent({
             selectedStageBranchLabel={selectedStageBranchLabel}
             selectedStageBranchDetail={selectedStageBranchDetail}
           />
-          <LogTab
-            selectedNodeId={selectedNodeId}
-            nodeStates={nodeStates}
-            evalResults={evalResults}
-            workflowNode={workflowNode}
-            runId={runId}
-            evalOverrideNodeIds={evalOverrideNodeIds}
-          />
-        </>
+          <div className={cn(selectedStagePresentation && "pt-4")}>
+            <LogTab
+              selectedNodeId={selectedNodeId}
+              nodeStates={nodeStates}
+              evalResults={evalResults}
+              workflowNode={workflowNode}
+              runId={runId}
+              evalOverrideNodeIds={evalOverrideNodeIds}
+            />
+          </div>
+        </section>
       )}
     </div>
   )

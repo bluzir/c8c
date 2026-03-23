@@ -19,11 +19,11 @@ export function ChainBuilderRemoveDialog({
       onOpenChange={onOpenChange}
       title="Remove step?"
       description="This removes the step and its connections from the current flow."
-      body={(
+      body={
         <p className="text-body-sm text-foreground">
           Remove &ldquo;{stepLabel}&rdquo; from this flow?
         </p>
-      )}
+      }
       confirmLabel="Remove"
       onConfirm={onConfirm}
       confirmVariant="destructive"

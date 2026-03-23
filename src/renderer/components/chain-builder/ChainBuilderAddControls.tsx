@@ -8,7 +8,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ChainBuilderAddControlsProps {
   compact: boolean
@@ -26,7 +30,12 @@ export function ChainBuilderAddControls({
   onAddStep,
 }: ChainBuilderAddControlsProps) {
   return (
-    <div className={cn("flex items-center gap-2 rounded-lg control-cluster p-1", compact ? "pt-1" : "pt-2")}>
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg control-cluster p-1",
+        compact ? "pt-1" : "pt-2",
+      )}
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -47,7 +56,10 @@ export function ChainBuilderAddControls({
           <Button
             variant="outline"
             size="sm"
-            className={cn("justify-start bg-surface-1/80", compact ? "w-[170px]" : "w-[196px]")}
+            className={cn(
+              "justify-start bg-surface-1/80",
+              compact ? "w-[170px]" : "w-[196px]",
+            )}
           >
             <GitFork size={14} />
             Add step
@@ -59,11 +71,17 @@ export function ChainBuilderAddControls({
             disabled={!hasSkillNodes}
             onSelect={() => onAddStep("evaluator")}
             className="items-start gap-2 py-2"
-            title={!hasSkillNodes ? "Add at least one skill node before inserting a check." : undefined}
+            title={
+              !hasSkillNodes
+                ? "Add at least one skill node before inserting a check."
+                : undefined
+            }
           >
             <BarChart3 size={13} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="text-body-sm font-medium text-foreground">Add Check</div>
+              <div className="text-body-sm font-medium text-foreground">
+                Add Check
+              </div>
               <div className="ui-meta-text text-muted-foreground">
                 {hasSkillNodes
                   ? "Check the previous output and branch or retry when it misses the mark."
@@ -77,7 +95,9 @@ export function ChainBuilderAddControls({
           >
             <GitFork size={13} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="text-body-sm font-medium text-foreground">Add Split Work</div>
+              <div className="text-body-sm font-medium text-foreground">
+                Add Split Work
+              </div>
               <div className="ui-meta-text text-muted-foreground">
                 Add a split, branch, and merge scaffold for parallel work.
               </div>
@@ -89,7 +109,9 @@ export function ChainBuilderAddControls({
           >
             <Hand size={13} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="text-body-sm font-medium text-foreground">Add Human Input</div>
+              <div className="text-body-sm font-medium text-foreground">
+                Add Human Input
+              </div>
               <div className="ui-meta-text text-muted-foreground">
                 Pause the flow until someone provides the missing information.
               </div>
@@ -101,9 +123,12 @@ export function ChainBuilderAddControls({
           >
             <Hand size={13} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="text-body-sm font-medium text-foreground">Add Approval</div>
+              <div className="text-body-sm font-medium text-foreground">
+                Add Approval
+              </div>
               <div className="ui-meta-text text-muted-foreground">
-                Stop after a step so you can review it before the flow continues.
+                Stop after a step so you can review it before the flow
+                continues.
               </div>
             </div>
           </DropdownMenuItem>

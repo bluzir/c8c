@@ -21,13 +21,19 @@ import type {
   UpdateEvent,
 } from "@shared/types"
 import {
+  PROVIDER_LABELS,
   getDefaultModelForProvider,
   modelLooksCompatible,
 } from "@shared/provider-metadata"
-import { Download, Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw } from "lucide-react"
 import { McpServersSection } from "@/components/McpServersSection"
-import { getProviderInstallCommand, getProviderLoginCommand, getProviderSignInMethod, resolveProviderReadinessVerdict } from "@/lib/provider-readiness"
 import {
+  getProviderInstallCommand,
+  getProviderLoginCommand,
+  resolveProviderReadinessVerdict,
+} from "@/lib/provider-readiness"
+import {
+  SettingsChapterShell,
   SettingsExecutionDefaultsSection,
   SettingsLabSection,
   SettingsPrivacySection,
@@ -41,22 +47,33 @@ import {
 export function SettingsPage() {
   const [webSearchBackend, setWebSearchBackend] = useAtom(webSearchBackendAtom)
   const [execDefaults, setExecDefaults] = useAtom(globalExecutionDefaultsAtom)
-  const [factoryBetaEnabled, setFactoryBetaEnabled] = useAtom(factoryBetaEnabledAtom)
+  const [factoryBetaEnabled, setFactoryBetaEnabled] = useAtom(
+    factoryBetaEnabledAtom,
+  )
   const [providerSettings, setProviderSettings] = useAtom(providerSettingsAtom)
   const [defaultProvider, setDefaultProvider] = useAtom(defaultProviderAtom)
-  const [providerAvailability, setProviderAvailability] = useAtom(providerAvailabilityAtom)
-  const [providerAuthStatus, setProviderAuthStatus] = useAtom(providerAuthStatusAtom)
-  const [providerDiagnosticsLoading, setProviderDiagnosticsLoading] = useState(false)
+  const [providerAvailability, setProviderAvailability] = useAtom(
+    providerAvailabilityAtom,
+  )
+  const [providerAuthStatus, setProviderAuthStatus] = useAtom(
+    providerAuthStatusAtom,
+  )
+  const [providerDiagnosticsLoading, setProviderDiagnosticsLoading] =
+    useState(false)
   const [settingsRefreshLoading, setSettingsRefreshLoading] = useState(false)
   const [codexApiKeyDraft, setCodexApiKeyDraft] = useState("")
   const [codexApiKeySaving, setCodexApiKeySaving] = useState(false)
-  const [telemetrySettings, setTelemetrySettings] = useState<TelemetrySettings | null>(null)
-  const [telemetrySettingsLoading, setTelemetrySettingsLoading] = useState(false)
+  const [telemetrySettings, setTelemetrySettings] =
+    useState<TelemetrySettings | null>(null)
+  const [telemetrySettingsLoading, setTelemetrySettingsLoading] =
+    useState(false)
   const [telemetryConsentSaving, setTelemetryConsentSaving] = useState(false)
   const [appVersion, setAppVersion] = useState<string>("")
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ status: "idle" })
   const [updateChecking, setUpdateChecking] = useState(false)
-  const [execDefaultsSaveFlash, setExecDefaultsSaveFlash] = useState<"idle" | "saved">("idle")
+  const [execDefaultsSaveFlash, setExecDefaultsSaveFlash] = useState<
+    "idle" | "saved"
+  >("idle")
   const hasMountedExecDefaultsRef = useRef(false)
 
   const telemetryApi = window.api as typeof window.api & {
@@ -65,11 +82,14 @@ export function SettingsPage() {
     trackUiEvent?: (eventName: "settings_opened") => Promise<boolean>
   }
 
-  const applyProviderDiagnostics = useCallback((diagnostics: ProviderDiagnostics) => {
-    setProviderSettings(diagnostics.settings)
-    setProviderAvailability(diagnostics.health)
-    setProviderAuthStatus(diagnostics.auth)
-  }, [setProviderAuthStatus, setProviderAvailability, setProviderSettings])
+  const applyProviderDiagnostics = useCallback(
+    (diagnostics: ProviderDiagnostics) => {
+      setProviderSettings(diagnostics.settings)
+      setProviderAvailability(diagnostics.health)
+      setProviderAuthStatus(diagnostics.auth)
+    },
+    [setProviderAuthStatus, setProviderAvailability, setProviderSettings],
+  )
 
   const refreshProviderDiagnostics = useCallback(async () => {
     setProviderDiagnosticsLoading(true)
@@ -81,10 +101,13 @@ export function SettingsPage() {
     }
   }, [applyProviderDiagnostics])
 
-  const persistProviderSettings = useCallback(async (patch: Partial<typeof providerSettings>) => {
-    const nextSettings = await window.api.updateProviderSettings(patch)
-    setProviderSettings(nextSettings)
-  }, [setProviderSettings])
+  const persistProviderSettings = useCallback(
+    async (patch: Partial<typeof providerSettings>) => {
+      const nextSettings = await window.api.updateProviderSettings(patch)
+      setProviderSettings(nextSettings)
+    },
+    [setProviderSettings],
+  )
 
   const refreshTelemetrySettings = useCallback(async () => {
     if (typeof telemetryApi.getTelemetrySettings !== "function") {
@@ -120,16 +143,19 @@ export function SettingsPage() {
     }
   }, [refreshProviderDiagnostics, refreshTelemetrySettings])
 
-  const updateTelemetryConsent = useCallback(async (enabled: boolean) => {
-    if (typeof telemetryApi.setTelemetryConsent !== "function") return
-    setTelemetryConsentSaving(true)
-    try {
-      const nextSettings = await telemetryApi.setTelemetryConsent(enabled)
-      setTelemetrySettings(nextSettings)
-    } finally {
-      setTelemetryConsentSaving(false)
-    }
-  }, [telemetryApi])
+  const updateTelemetryConsent = useCallback(
+    async (enabled: boolean) => {
+      if (typeof telemetryApi.setTelemetryConsent !== "function") return
+      setTelemetryConsentSaving(true)
+      try {
+        const nextSettings = await telemetryApi.setTelemetryConsent(enabled)
+        setTelemetrySettings(nextSettings)
+      } finally {
+        setTelemetryConsentSaving(false)
+      }
+    },
+    [telemetryApi],
+  )
 
   const handleCheckForUpdate = useCallback(async () => {
     setUpdateChecking(true)
@@ -145,16 +171,19 @@ export function SettingsPage() {
     void window.api.installUpdate()
   }, [])
 
-  const handleDefaultProviderChange = useCallback(async (provider: ProviderId) => {
-    await persistProviderSettings({ defaultProvider: provider })
-    setDefaultProvider(provider)
-    setExecDefaults((prev) => ({
-      ...prev,
-      model: modelLooksCompatible(provider, prev.model)
-        ? prev.model
-        : getDefaultModelForProvider(provider),
-    }))
-  }, [persistProviderSettings, setDefaultProvider, setExecDefaults])
+  const handleDefaultProviderChange = useCallback(
+    async (provider: ProviderId) => {
+      await persistProviderSettings({ defaultProvider: provider })
+      setDefaultProvider(provider)
+      setExecDefaults((prev) => ({
+        ...prev,
+        model: modelLooksCompatible(provider, prev.model)
+          ? prev.model
+          : getDefaultModelForProvider(provider),
+      }))
+    },
+    [persistProviderSettings, setDefaultProvider, setExecDefaults],
+  )
 
   const handleSaveCodexApiKey = useCallback(async () => {
     setCodexApiKeySaving(true)
@@ -182,15 +211,18 @@ export function SettingsPage() {
     }
   }, [applyProviderDiagnostics])
 
-  const handleLogoutProvider = useCallback(async (provider: ProviderId) => {
-    setProviderDiagnosticsLoading(true)
-    try {
-      const diagnostics = await window.api.logoutProvider(provider)
-      applyProviderDiagnostics(diagnostics)
-    } finally {
-      setProviderDiagnosticsLoading(false)
-    }
-  }, [applyProviderDiagnostics])
+  const handleLogoutProvider = useCallback(
+    async (provider: ProviderId) => {
+      setProviderDiagnosticsLoading(true)
+      try {
+        const diagnostics = await window.api.logoutProvider(provider)
+        applyProviderDiagnostics(diagnostics)
+      } finally {
+        setProviderDiagnosticsLoading(false)
+      }
+    },
+    [applyProviderDiagnostics],
+  )
 
   useEffect(() => {
     void refreshProviderDiagnostics()
@@ -213,13 +245,25 @@ export function SettingsPage() {
           setUpdateInfo({ status: "not-available" })
           break
         case "download-progress":
-          setUpdateInfo((prev) => ({ ...prev, status: "downloading", progress: event.percent }))
+          setUpdateInfo((prev) => ({
+            ...prev,
+            status: "downloading",
+            progress: event.percent,
+          }))
           break
         case "downloaded":
-          setUpdateInfo({ status: "downloaded", version: event.version, progress: 100 })
+          setUpdateInfo({
+            status: "downloaded",
+            version: event.version,
+            progress: 100,
+          })
           break
         case "error":
-          setUpdateInfo((prev) => ({ ...prev, status: "error", error: event.message }))
+          setUpdateInfo((prev) => ({
+            ...prev,
+            status: "error",
+            error: event.message,
+          }))
           break
       }
     })
@@ -233,41 +277,86 @@ export function SettingsPage() {
       return
     }
     setExecDefaultsSaveFlash("saved")
-    const timeoutId = window.setTimeout(() => setExecDefaultsSaveFlash("idle"), 1400)
+    const timeoutId = window.setTimeout(
+      () => setExecDefaultsSaveFlash("idle"),
+      1400,
+    )
     return () => window.clearTimeout(timeoutId)
   }, [execDefaults])
   const telemetryAvailable = Boolean(telemetrySettings?.enabledInBuild)
   const telemetryChecked = Boolean(telemetrySettings?.consent)
-  const telemetryDisabled = telemetrySettingsLoading || telemetryConsentSaving || !telemetryAvailable
+  const telemetryDisabled =
+    telemetrySettingsLoading || telemetryConsentSaving || !telemetryAvailable
   const telemetryBuildLabel = telemetrySettings
     ? telemetrySettings.buildFlavor === "release"
       ? "Release build"
       : "OSS build"
     : "Unknown"
-  const telemetryProviderLabel = telemetrySettings?.provider === "posthog" ? "PostHog" : "Disabled"
+  const telemetryProviderLabel =
+    telemetrySettings?.provider === "posthog" ? "PostHog" : "Disabled"
   const telemetryHint = useMemo(() => {
     if (!telemetrySettings) return "Telemetry configuration is still loading."
-    if (telemetrySettings.enabledInBuild) return "Telemetry pipeline is compiled into this build."
+    if (telemetrySettings.enabledInBuild)
+      return "Telemetry pipeline is compiled into this build."
     if (!telemetrySettings.configDetected) {
       return "Missing C8C_POSTHOG_HOST / C8C_POSTHOG_KEY at app start."
     }
-    if (telemetrySettings.buildFlavor !== "release" && !telemetrySettings.telemetryLocalTest) {
+    if (
+      telemetrySettings.buildFlavor !== "release" &&
+      !telemetrySettings.telemetryLocalTest
+    ) {
       return "For local OSS testing set C8C_TELEMETRY_LOCAL_TEST=1 before starting dev."
     }
     return "Telemetry is disabled by current build flags."
   }, [telemetrySettings])
   const telemetryStatusBadge = useMemo(() => {
     if (telemetrySettingsLoading && !telemetrySettings) {
-      return <span className={cn(statusBadgeClassName("outline"), "ui-meta-text text-muted-foreground")}>Checking...</span>
+      return (
+        <span
+          className={cn(
+            statusBadgeClassName("outline"),
+            "ui-meta-text text-muted-foreground",
+          )}
+        >
+          Checking...
+        </span>
+      )
     }
     if (!telemetryAvailable) {
-      return <span className={cn(statusBadgeClassName("outline"), "ui-meta-text text-muted-foreground")}>Disabled in build</span>
+      return (
+        <span
+          className={cn(
+            statusBadgeClassName("outline"),
+            "ui-meta-text text-muted-foreground",
+          )}
+        >
+          Disabled in build
+        </span>
+      )
     }
     if (telemetryChecked) {
-      return <span className={cn(statusBadgeClassName("success"), "ui-meta-text")}>Enabled</span>
+      return (
+        <span className={cn(statusBadgeClassName("success"), "ui-meta-text")}>
+          Enabled
+        </span>
+      )
     }
-    return <span className={cn(statusBadgeClassName("outline"), "ui-meta-text text-muted-foreground")}>Disabled</span>
-  }, [telemetryAvailable, telemetryChecked, telemetrySettings, telemetrySettingsLoading])
+    return (
+      <span
+        className={cn(
+          statusBadgeClassName("outline"),
+          "ui-meta-text text-muted-foreground",
+        )}
+      >
+        Disabled
+      </span>
+    )
+  }, [
+    telemetryAvailable,
+    telemetryChecked,
+    telemetrySettings,
+    telemetrySettingsLoading,
+  ])
   const providers = useMemo(() => ["claude", "codex"] as ProviderId[], [])
   const currentProviderVerdict = useMemo(() => {
     const health = providerAvailability[defaultProvider]
@@ -287,25 +376,38 @@ export function SettingsPage() {
     }
 
     return null
-  }, [currentProviderVerdict.blocking, defaultProvider, providerAuthStatus, providerAvailability])
+  }, [
+    currentProviderVerdict.blocking,
+    defaultProvider,
+    providerAuthStatus,
+    providerAvailability,
+  ])
 
   return (
     <PageShell>
       <PageHeader
         title="Global Settings"
-        subtitle="Providers, tools, and execution defaults."
-        actions={(
+        subtitle="Providers, MCP servers, and run defaults."
+        actions={
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={() => void refreshAllSettingsDiagnostics()}
-            disabled={settingsRefreshLoading || providerDiagnosticsLoading || telemetrySettingsLoading}
+            disabled={
+              settingsRefreshLoading ||
+              providerDiagnosticsLoading ||
+              telemetrySettingsLoading
+            }
           >
-            {settingsRefreshLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            Refresh all
+            {settingsRefreshLoading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <RefreshCw size={14} />
+            )}
+            Refresh status
           </Button>
-        )}
+        }
       />
 
       <SettingsProviderStatusStrip
@@ -316,73 +418,88 @@ export function SettingsPage() {
         setupHint={currentProviderSetupHint}
         blocking={currentProviderVerdict.blocking}
         onOpenProviders={() => {
-          document.getElementById("settings-providers")?.scrollIntoView({ behavior: "smooth", block: "start" })
+          document
+            .getElementById("settings-providers")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
         }}
       />
 
       <div className="flex flex-col gap-6">
-      {process.env.NODE_ENV !== "development" && (
-      <SettingsUpdatesSection
-        appVersion={appVersion}
-        updateInfo={updateInfo}
-        updateChecking={updateChecking}
-        onCheckForUpdate={() => void handleCheckForUpdate()}
-        onInstallUpdate={handleInstallUpdate}
-      />
-      )}
+        <SettingsChapterShell
+          title="Access & Providers"
+          description="Choose the default provider, verify auth and CLI readiness, and manage MCP server access for the active runtime."
+        >
+          <SettingsProvidersSection
+            defaultProvider={defaultProvider}
+            providerSettings={providerSettings}
+            providers={providers}
+            providerAvailability={providerAvailability}
+            providerAuthStatus={providerAuthStatus}
+            providerDiagnosticsLoading={providerDiagnosticsLoading}
+            codexApiKeyDraft={codexApiKeyDraft}
+            codexApiKeySaving={codexApiKeySaving}
+            onDefaultProviderChange={handleDefaultProviderChange}
+            onPersistProviderSettings={persistProviderSettings}
+            onCodexApiKeyDraftChange={setCodexApiKeyDraft}
+            onSaveCodexApiKey={handleSaveCodexApiKey}
+            onClearCodexApiKey={handleClearCodexApiKey}
+            onLogoutProvider={handleLogoutProvider}
+          />
 
-      <SettingsExecutionDefaultsSection
-        defaultProvider={defaultProvider}
-        execDefaults={execDefaults}
-        setExecDefaults={setExecDefaults}
-        execDefaultsSaveFlash={execDefaultsSaveFlash}
-      />
+          <McpServersSection provider={defaultProvider} />
+        </SettingsChapterShell>
 
-      <SettingsLabSection
-        factoryBetaEnabled={factoryBetaEnabled}
-        onCheckedChange={setFactoryBetaEnabled}
-      />
+        <SettingsChapterShell
+          title="Run behavior"
+          description="Control default execution limits and research routing for new flows created from this app profile."
+        >
+          <SettingsExecutionDefaultsSection
+            defaultProvider={defaultProvider}
+            execDefaults={execDefaults}
+            setExecDefaults={setExecDefaults}
+            execDefaultsSaveFlash={execDefaultsSaveFlash}
+          />
 
-      <SettingsResearchSection
-        webSearchBackend={webSearchBackend}
-        onValueChange={(value) => setWebSearchBackend(value)}
-      />
+          <SettingsResearchSection
+            webSearchBackend={webSearchBackend}
+            onValueChange={(value) => setWebSearchBackend(value)}
+          />
+        </SettingsChapterShell>
 
-      <SettingsProvidersSection
-        defaultProvider={defaultProvider}
-        providerSettings={providerSettings}
-        providers={providers}
-        providerAvailability={providerAvailability}
-        providerAuthStatus={providerAuthStatus}
-        providerDiagnosticsLoading={providerDiagnosticsLoading}
-        codexApiKeyDraft={codexApiKeyDraft}
-        codexApiKeySaving={codexApiKeySaving}
-        onDefaultProviderChange={handleDefaultProviderChange}
-        onPersistProviderSettings={persistProviderSettings}
-        onCodexApiKeyDraftChange={setCodexApiKeyDraft}
-        onSaveCodexApiKey={handleSaveCodexApiKey}
-        onClearCodexApiKey={handleClearCodexApiKey}
-        onLogoutProvider={handleLogoutProvider}
-      />
+        <SettingsChapterShell
+          title="App controls"
+          description="Review privacy, beta workspace behavior, and app update settings without mixing them into provider setup."
+        >
+          <SettingsPrivacySection
+            telemetryStatusBadge={telemetryStatusBadge}
+            telemetryBuildLabel={telemetryBuildLabel}
+            telemetryProviderLabel={telemetryProviderLabel}
+            telemetryConfigDetected={Boolean(telemetrySettings?.configDetected)}
+            telemetryLocalTest={Boolean(telemetrySettings?.telemetryLocalTest)}
+            telemetryAvailable={telemetryAvailable}
+            telemetryChecked={telemetryChecked}
+            telemetryDisabled={telemetryDisabled}
+            telemetryHint={telemetryHint}
+            onCheckedChange={(enabled) => {
+              void updateTelemetryConsent(enabled)
+            }}
+          />
 
-      <div className="order-2">
-        <McpServersSection provider={defaultProvider} />
-      </div>
+          <SettingsLabSection
+            factoryBetaEnabled={factoryBetaEnabled}
+            onCheckedChange={setFactoryBetaEnabled}
+          />
 
-      <SettingsPrivacySection
-        telemetryStatusBadge={telemetryStatusBadge}
-        telemetryBuildLabel={telemetryBuildLabel}
-        telemetryProviderLabel={telemetryProviderLabel}
-        telemetryConfigDetected={Boolean(telemetrySettings?.configDetected)}
-        telemetryLocalTest={Boolean(telemetrySettings?.telemetryLocalTest)}
-        telemetryAvailable={telemetryAvailable}
-        telemetryChecked={telemetryChecked}
-        telemetryDisabled={telemetryDisabled}
-        telemetryHint={telemetryHint}
-        onCheckedChange={(enabled) => {
-          void updateTelemetryConsent(enabled)
-        }}
-      />
+          {process.env.NODE_ENV !== "development" && (
+            <SettingsUpdatesSection
+              appVersion={appVersion}
+              updateInfo={updateInfo}
+              updateChecking={updateChecking}
+              onCheckForUpdate={() => void handleCheckForUpdate()}
+              onInstallUpdate={handleInstallUpdate}
+            />
+          )}
+        </SettingsChapterShell>
       </div>
     </PageShell>
   )

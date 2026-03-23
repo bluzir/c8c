@@ -1,6 +1,18 @@
-import { useEffect, useRef, useState, type Dispatch, type DragEvent, type KeyboardEvent, type MutableRefObject, type SetStateAction } from "react"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type DragEvent,
+  type KeyboardEvent,
+  type MutableRefObject,
+  type SetStateAction,
+} from "react"
 
-import { moveProjectBeforeOrAfterTarget, type ProjectDropPosition } from "@shared/project-order"
+import {
+  moveProjectBeforeOrAfterTarget,
+  type ProjectDropPosition,
+} from "@shared/project-order"
 
 import type { WorkflowFile } from "@/lib/store"
 import { toastErrorFromCatch } from "@/lib/toast-error"
@@ -25,7 +37,9 @@ export function useProjectSidebarInteractions({
   const scrollHideTimerRef = useRef<number | null>(null)
   const projectReorderRequestIdRef = useRef(0)
   const [sidebarScrolling, setSidebarScrolling] = useState(false)
-  const [draggedProjectPath, setDraggedProjectPath] = useState<string | null>(null)
+  const [draggedProjectPath, setDraggedProjectPath] = useState<string | null>(
+    null,
+  )
   const [projectDropIndicator, setProjectDropIndicator] = useState<{
     projectPath: string
     position: ProjectDropPosition
@@ -91,7 +105,10 @@ export function useProjectSidebarInteractions({
     event.dataTransfer.dropEffect = "move"
     const position = resolveProjectDropPosition(event)
     setProjectDropIndicator((current) => {
-      if (current?.projectPath === projectPath && current.position === position) {
+      if (
+        current?.projectPath === projectPath &&
+        current.position === position
+      ) {
         return current
       }
       return { projectPath, position }
@@ -129,7 +146,11 @@ export function useProjectSidebarInteractions({
     )
 
     clearProjectDragState()
-    if (nextProjects.every((projectPath, index) => projectPath === previousProjects[index])) {
+    if (
+      nextProjects.every(
+        (projectPath, index) => projectPath === previousProjects[index],
+      )
+    ) {
       return
     }
 
@@ -137,20 +158,23 @@ export function useProjectSidebarInteractions({
     projectReorderRequestIdRef.current = requestId
     setProjects(nextProjects)
 
-    void window.api.reorderProjects(nextProjects).then((persistedProjects) => {
-      if (projectReorderRequestIdRef.current !== requestId) return
-      setProjects(persistedProjects)
-    }).catch(async (error) => {
-      if (projectReorderRequestIdRef.current !== requestId) return
-      try {
-        const persistedProjects = await window.api.listProjects()
+    void window.api
+      .reorderProjects(nextProjects)
+      .then((persistedProjects) => {
         if (projectReorderRequestIdRef.current !== requestId) return
         setProjects(persistedProjects)
-      } catch {
-        setProjects(previousProjects)
-      }
-      toastErrorFromCatch("Could not reorder projects", error)
-    })
+      })
+      .catch(async (error) => {
+        if (projectReorderRequestIdRef.current !== requestId) return
+        try {
+          const persistedProjects = await window.api.listProjects()
+          if (projectReorderRequestIdRef.current !== requestId) return
+          setProjects(persistedProjects)
+        } catch {
+          setProjects(previousProjects)
+        }
+        toastErrorFromCatch("Could not reorder projects", error)
+      })
   }
 
   const handleSidebarKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -160,11 +184,20 @@ export function useProjectSidebarInteractions({
     if (isEditableKeyboardTarget(target)) return
 
     if (event.key === "F2") {
-      const focusedEl = target.closest("[data-sidebar-item]") as HTMLElement | null
+      const focusedEl = target.closest(
+        "[data-sidebar-item]",
+      ) as HTMLElement | null
       if (focusedEl && focusedEl.dataset.workflowPath) {
         event.preventDefault()
-        const workflow = workflows.find((candidate) => candidate.path === focusedEl.dataset.workflowPath)
-          || Object.values(projectWorkflowsCache).flat().find((candidate) => candidate.path === focusedEl.dataset.workflowPath)
+        const workflow =
+          workflows.find(
+            (candidate) => candidate.path === focusedEl.dataset.workflowPath,
+          ) ||
+          Object.values(projectWorkflowsCache)
+            .flat()
+            .find(
+              (candidate) => candidate.path === focusedEl.dataset.workflowPath,
+            )
         if (workflow) {
           requestRenameWorkflow(workflow)
         }
@@ -173,10 +206,10 @@ export function useProjectSidebarInteractions({
     }
 
     if (
-      event.key !== "ArrowDown"
-      && event.key !== "ArrowUp"
-      && event.key !== "Home"
-      && event.key !== "End"
+      event.key !== "ArrowDown" &&
+      event.key !== "ArrowUp" &&
+      event.key !== "Home" &&
+      event.key !== "End"
     ) {
       return
     }
@@ -184,18 +217,23 @@ export function useProjectSidebarInteractions({
     const root = sidebarRef.current
     if (!root) return
     const items = Array.from(
-      root.querySelectorAll<HTMLElement>('[data-sidebar-item="true"]:not([disabled])'),
+      root.querySelectorAll<HTMLElement>(
+        '[data-sidebar-item="true"]:not([disabled])',
+      ),
     ).filter((item) => item.offsetParent !== null)
     if (items.length === 0) return
 
-    const currentIndex = items.findIndex((item) => item === document.activeElement)
+    const currentIndex = items.findIndex(
+      (item) => item === document.activeElement,
+    )
     let nextIndex = 0
     if (event.key === "Home") {
       nextIndex = 0
     } else if (event.key === "End") {
       nextIndex = items.length - 1
     } else if (event.key === "ArrowDown") {
-      nextIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, items.length - 1)
+      nextIndex =
+        currentIndex < 0 ? 0 : Math.min(currentIndex + 1, items.length - 1)
     } else {
       nextIndex = currentIndex < 0 ? 0 : Math.max(currentIndex - 1, 0)
     }

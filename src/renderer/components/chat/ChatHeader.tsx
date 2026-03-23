@@ -1,6 +1,10 @@
 import { useState } from "react"
 import { Undo2, Trash2, PanelRightClose, Loader2 } from "lucide-react"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
 import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 
@@ -28,19 +32,22 @@ export function ChatHeader({
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
   const canUndoAction = canUndo && status === "idle"
   const canClearAction = messageCount > 0 && status === "idle"
-  const statusLabel = status === "error"
-    ? "Error"
-    : activeToolName
-      ? `Editing: ${activeToolName}`
-      : status === "streaming"
-        ? "Responding"
-        : status === "thinking"
-          ? "Thinking"
-          : null
+  const statusLabel =
+    status === "error"
+      ? "Error"
+      : activeToolName
+        ? `Editing: ${activeToolName}`
+        : status === "streaming"
+          ? "Responding"
+          : status === "thinking"
+            ? "Thinking"
+            : null
 
   return (
-    <div className="surface-depth-header flex items-center gap-2 px-3 py-2 backdrop-blur-sm">
-      <span className="text-body-sm font-semibold text-foreground flex-1">{title}</span>
+    <div className="surface-depth-header flex items-center gap-2 px-3 py-2">
+      <span className="text-body-sm font-semibold text-foreground flex-1">
+        {title}
+      </span>
 
       {statusLabel && (
         <span
@@ -59,7 +66,9 @@ export function ChatHeader({
           ) : (
             <Loader2 size={11} className="animate-spin" />
           )}
-          <span className="truncate" title={statusLabel}>{statusLabel}</span>
+          <span className="truncate" title={statusLabel}>
+            {statusLabel}
+          </span>
         </span>
       )}
 

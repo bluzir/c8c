@@ -29,7 +29,11 @@ import { PROVIDER_LABELS } from "@shared/provider-metadata"
 import { Activity, GitBranch, Keyboard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { isEditableKeyboardTarget } from "@/lib/keyboard-shortcuts"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   CanvasDialogBody,
   CanvasDialogContent,
@@ -47,17 +51,32 @@ function folderName(projectPath: string | null) {
 }
 
 function isRunInFlight(status: string) {
-  return status === "starting" || status === "running" || status === "paused" || status === "cancelling"
+  return (
+    status === "starting" ||
+    status === "running" ||
+    status === "paused" ||
+    status === "cancelling"
+  )
 }
 
-function isDashboardVisibleState(state: { runStatus: string; runOutcome?: string | null; workspace?: string | null; reportPath?: string | null; finalContent?: string; lastError?: string | null; nodeStates?: Record<string, unknown> }) {
-  return isRunInFlight(state.runStatus)
-    || !!state.runOutcome
-    || !!state.workspace
-    || !!state.reportPath
-    || !!state.lastError
-    || !!state.finalContent?.trim()
-    || Object.keys(state.nodeStates || {}).length > 0
+function isDashboardVisibleState(state: {
+  runStatus: string
+  runOutcome?: string | null
+  workspace?: string | null
+  reportPath?: string | null
+  finalContent?: string
+  lastError?: string | null
+  nodeStates?: Record<string, unknown>
+}) {
+  return (
+    isRunInFlight(state.runStatus) ||
+    !!state.runOutcome ||
+    !!state.workspace ||
+    !!state.reportPath ||
+    !!state.lastError ||
+    !!state.finalContent?.trim() ||
+    Object.keys(state.nodeStates || {}).length > 0
+  )
 }
 
 export function AppStatusBar() {
@@ -85,7 +104,12 @@ export function AppStatusBar() {
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false)
 
   useEffect(() => {
-    if (!runStartedAt || (runStatus !== "running" && runStatus !== "starting" && runStatus !== "cancelling")) {
+    if (
+      !runStartedAt ||
+      (runStatus !== "running" &&
+        runStatus !== "starting" &&
+        runStatus !== "cancelling")
+    ) {
       setElapsed("")
       return
     }
@@ -106,68 +130,100 @@ export function AppStatusBar() {
   const chatShortcutLabel = `${primaryShortcutLabel}⇧K`
   const sidebarShortcutLabel = `${primaryShortcutLabel}B`
   const settingsShortcutLabel = `${primaryShortcutLabel},`
+  const defaultsShortcutLabel = `${primaryShortcutLabel}D`
   const redoShortcutLabel = `${primaryShortcutLabel}⇧Z`
   const selectedWorkflowKey = toWorkflowExecutionKey(selectedWorkflowPath)
-  const trackedRunCount = Object.values(workflowExecutionStates).filter(isDashboardVisibleState).length
+  const trackedRunCount = Object.values(workflowExecutionStates).filter(
+    isDashboardVisibleState,
+  ).length
   const isBatchRunning = batchStatus === "running"
   const workflowProvider = workflow.defaults?.provider || defaultProvider
-  const displayedProvider = isRunInFlight(runStatus) ? activeExecutionProvider : workflowProvider
-  const backgroundRunCount = Object.entries(workflowExecutionStates).reduce((count, [workflowKey, state]) => {
-    if (!isRunInFlight(state.runStatus) || workflowKey === selectedWorkflowKey) return count
-    return count + 1
-  }, 0)
-  const runSummary = useMemo(() => buildRunProgressSummary({
-    workflow,
-    runtimeNodes,
-    runtimeMeta,
-    nodeStates,
-    runStatus,
-    runOutcome,
-    activeNodeId,
-  }), [activeNodeId, nodeStates, runOutcome, runStatus, runtimeMeta, runtimeNodes, workflow])
-  const progressLabel = runSummary.branchLabel || (
-    runSummary.totalSteps > 0
-      ? `${Math.min(runSummary.completedSteps, runSummary.totalSteps)}/${runSummary.totalSteps}`
-      : null
+  const displayedProvider = isRunInFlight(runStatus)
+    ? activeExecutionProvider
+    : workflowProvider
+  const backgroundRunCount = Object.entries(workflowExecutionStates).reduce(
+    (count, [workflowKey, state]) => {
+      if (
+        !isRunInFlight(state.runStatus) ||
+        workflowKey === selectedWorkflowKey
+      )
+        return count
+      return count + 1
+    },
+    0,
   )
+  const runSummary = useMemo(
+    () =>
+      buildRunProgressSummary({
+        workflow,
+        runtimeNodes,
+        runtimeMeta,
+        nodeStates,
+        runStatus,
+        runOutcome,
+        activeNodeId,
+      }),
+    [
+      activeNodeId,
+      nodeStates,
+      runOutcome,
+      runStatus,
+      runtimeMeta,
+      runtimeNodes,
+      workflow,
+    ],
+  )
+  const progressLabel =
+    runSummary.branchLabel ||
+    (runSummary.totalSteps > 0
+      ? `${Math.min(runSummary.completedSteps, runSummary.totalSteps)}/${runSummary.totalSteps}`
+      : null)
   const progressDetail = [
     runSummary.activeStepLabel,
     progressLabel,
     elapsed || null,
-  ].filter((value): value is string => Boolean(value)).join(" · ")
-  const showRunProgress = runStatus !== "idle" && (runSummary.totalSteps > 0 || runStatus === "starting" || runStatus === "cancelling")
-  const runPhaseLabel = runStatus === "starting"
-    ? "connecting to CLI..."
-    : runStatus === "cancelling"
-      ? "stopping..."
-      : runStatus === "paused"
-        ? "paused"
-        : runStatus === "running"
-          ? runSummary.waitingApprovalSteps > 0
-            ? "waiting for input"
-            : runSummary.failedSteps > 0
-              ? "errors detected"
-              : runSummary.runningSteps > 0
-                ? "running"
-                : "waiting"
-          : runStatus === "done"
-            ? runOutcome === "cancelled" || runOutcome === "interrupted"
-              ? "stopped"
-              : "completed"
-            : "failed"
-  const runProgressClass = runStatus === "done"
-    ? runOutcome === "cancelled" || runOutcome === "interrupted"
-      ? "ui-status-badge-warning"
-      : "ui-status-badge-success"
-    : runStatus === "error"
-      ? "ui-status-badge-danger"
-      : runStatus === "paused"
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(" · ")
+  const showRunProgress =
+    runStatus !== "idle" &&
+    (runSummary.totalSteps > 0 ||
+      runStatus === "starting" ||
+      runStatus === "cancelling")
+  const runPhaseLabel =
+    runStatus === "starting"
+      ? "connecting to CLI..."
+      : runStatus === "cancelling"
+        ? "stopping..."
+        : runStatus === "paused"
+          ? "paused"
+          : runStatus === "running"
+            ? runSummary.waitingApprovalSteps > 0
+              ? "waiting for input"
+              : runSummary.failedSteps > 0
+                ? "errors detected"
+                : runSummary.runningSteps > 0
+                  ? "running"
+                  : "waiting"
+            : runStatus === "done"
+              ? runOutcome === "cancelled" || runOutcome === "interrupted"
+                ? "stopped"
+                : "completed"
+              : "failed"
+  const runProgressClass =
+    runStatus === "done"
+      ? runOutcome === "cancelled" || runOutcome === "interrupted"
         ? "ui-status-badge-warning"
-        : runSummary.failedSteps > 0
-          ? "ui-status-badge-danger"
-        : runSummary.waitingApprovalSteps > 0
+        : "ui-status-badge-success"
+      : runStatus === "error"
+        ? "ui-status-badge-danger"
+        : runStatus === "paused"
           ? "ui-status-badge-warning"
-          : "ui-status-badge-info"
+          : runSummary.failedSteps > 0
+            ? "ui-status-badge-danger"
+            : runSummary.waitingApprovalSteps > 0
+              ? "ui-status-badge-warning"
+              : "ui-status-badge-info"
 
   useEffect(() => {
     if (!selectedProject) {
@@ -176,10 +232,13 @@ export function AppStatusBar() {
     }
     let cancelled = false
     setBranch(undefined)
-    window.api.getProjectStatus(selectedProject).then((status) => {
-      if (cancelled) return
-      setBranch(status.branch)
-    }).catch(console.error)
+    window.api
+      .getProjectStatus(selectedProject)
+      .then((status) => {
+        if (cancelled) return
+        setBranch(status.branch)
+      })
+      .catch(console.error)
     return () => {
       cancelled = true
     }
@@ -187,14 +246,16 @@ export function AppStatusBar() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      const isEditable = isEditableKeyboardTarget(event.target as HTMLElement | null)
+      const isEditable = isEditableKeyboardTarget(
+        event.target as HTMLElement | null,
+      )
 
       if (
-        !event.metaKey
-        && !event.ctrlKey
-        && !event.altKey
-        && !isEditable
-        && (event.key === "?" || (event.key === "/" && event.shiftKey))
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !isEditable &&
+        (event.key === "?" || (event.key === "/" && event.shiftKey))
       ) {
         event.preventDefault()
         setShortcutsDialogOpen((open) => !open)
@@ -235,14 +296,27 @@ export function AppStatusBar() {
                   runProgressClass,
                 )}
               >
-                {(runStatus === "running" || runStatus === "starting" || runStatus === "cancelling") && <Loader2 size={11} className="animate-spin" aria-hidden="true" />}
+                {(runStatus === "running" ||
+                  runStatus === "starting" ||
+                  runStatus === "cancelling") && (
+                  <Loader2
+                    size={11}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
+                )}
                 <span className="text-current/80">{runPhaseLabel}</span>
-                {progressDetail && <span className="ui-meta-text text-current/70">{progressDetail}</span>}
+                {progressDetail && (
+                  <span className="ui-meta-text text-current/70">
+                    {progressDetail}
+                  </span>
+                )}
               </span>
             )}
             {backgroundRunCount > 0 && (
               <span className="ui-status-badge ui-status-badge-info h-control-xs px-2">
-                {backgroundRunCount} run{backgroundRunCount === 1 ? "" : "s"} in background
+                {backgroundRunCount} run{backgroundRunCount === 1 ? "" : "s"} in
+                background
               </span>
             )}
             {isBatchRunning && (
@@ -271,12 +345,14 @@ export function AppStatusBar() {
                 <span className="tabular-nums">{trackedRunCount}</span>
               </Button>
             )}
-            {selectedProject && typeof branch === "string" && branch.length > 0 && (
-              <span className="control-badge gap-2 border border-hairline bg-surface-1/70 text-muted-foreground">
-                <GitBranch size={12} aria-hidden="true" />
-                {branch}
-              </span>
-            )}
+            {selectedProject &&
+              typeof branch === "string" &&
+              branch.length > 0 && (
+                <span className="control-badge gap-2 border border-hairline bg-surface-1/70 text-muted-foreground">
+                  <GitBranch size={12} aria-hidden="true" />
+                  {branch}
+                </span>
+              )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -298,25 +374,63 @@ export function AppStatusBar() {
         <CanvasDialogContent showCloseButton={false}>
           <CanvasDialogHeader>
             <DialogTitle>Keyboard shortcuts</DialogTitle>
-            <DialogDescription>High-value commands across the shell and active flow.</DialogDescription>
+            <DialogDescription>
+              High-value commands across the shell and active flow.
+            </DialogDescription>
           </CanvasDialogHeader>
           <CanvasDialogBody>
             <div className="space-y-2">
               {[
-                { keys: commandPaletteShortcutLabel, label: "Open command palette / quick switch" },
-                { keys: `${primaryShortcutLabel}1…5`, label: "Quick-switch flows" },
+                {
+                  keys: commandPaletteShortcutLabel,
+                  label: "Open command palette / quick switch",
+                },
+                {
+                  keys: `${primaryShortcutLabel}1…5`,
+                  label: "Quick-switch flows",
+                },
                 { keys: newProcessShortcutLabel, label: "Start a new flow" },
-                { keys: `${primaryShortcutLabel}⇧S`, label: "Attach a skill to the current flow" },
-                { keys: `A / ${primaryShortcutLabel}⇧A`, label: "Add a skill step in the active editor" },
-                { keys: "↑ / ↓ / Home / End", label: "Move selection through steps in list view" },
-                { keys: "Alt+↑ / Alt+↓", label: "Move the selected step in list view" },
-                { keys: "Delete", label: "Remove the selected step or connection" },
-                { keys: `${primaryShortcutLabel}Z`, label: "Undo last structural change" },
+                {
+                  keys: `${primaryShortcutLabel}⇧S`,
+                  label: "Attach a skill to the current flow",
+                },
+                {
+                  keys: `A / ${primaryShortcutLabel}⇧A`,
+                  label: "Add a skill step in the active editor",
+                },
+                {
+                  keys: "↑ / ↓ / Home / End",
+                  label: "Move selection through steps in list view",
+                },
+                {
+                  keys: "Alt+↑ / Alt+↓",
+                  label: "Move the selected step in list view",
+                },
+                {
+                  keys: "Delete",
+                  label: "Remove the selected step or connection",
+                },
+                {
+                  keys: `${primaryShortcutLabel}Z`,
+                  label: "Undo last structural change",
+                },
                 { keys: redoShortcutLabel, label: "Redo last undone change" },
-                { keys: `${primaryShortcutLabel}S`, label: "Save current flow" },
-                { keys: runShortcutLabel, label: isRunInFlight(runStatus) ? "Stop current run" : "Run current flow" },
+                {
+                  keys: `${primaryShortcutLabel}S`,
+                  label: "Save current flow",
+                },
+                { keys: defaultsShortcutLabel, label: "Open flow defaults" },
+                {
+                  keys: runShortcutLabel,
+                  label: isRunInFlight(runStatus)
+                    ? "Stop current run"
+                    : "Run current flow",
+                },
                 { keys: chatShortcutLabel, label: "Toggle Agent panel" },
-                { keys: sidebarShortcutLabel, label: "Show or hide the sidebar" },
+                {
+                  keys: sidebarShortcutLabel,
+                  label: "Show or hide the sidebar",
+                },
                 { keys: settingsShortcutLabel, label: "Open global settings" },
                 { keys: "?", label: "Open this shortcuts guide" },
               ].map((shortcut) => (
@@ -324,10 +438,10 @@ export function AppStatusBar() {
                   key={shortcut.keys}
                   className="surface-inset-card flex items-center justify-between gap-4 px-3 py-2"
                 >
-                  <span className="text-body-sm text-foreground">{shortcut.label}</span>
-                  <code className="inline-code">
-                    {shortcut.keys}
-                  </code>
+                  <span className="text-body-sm text-foreground">
+                    {shortcut.label}
+                  </span>
+                  <code className="inline-code">{shortcut.keys}</code>
                 </div>
               ))}
             </div>

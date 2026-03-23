@@ -53,12 +53,7 @@ export function NotificationsHeaderActions({
         </Button>
       ) : null}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onRefresh}
-      >
+      <Button type="button" variant="outline" size="sm" onClick={onRefresh}>
         <RefreshCw size={14} />
         Refresh
       </Button>
@@ -73,10 +68,15 @@ export function NotificationsHeaderActions({
         {showUnreadOnly ? "Show all" : "Unread only"}
       </Button>
 
-      {(unreadCount > 0 || hasNotifications) ? (
+      {unreadCount > 0 || hasNotifications ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="icon" aria-label="More inbox actions">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="More inbox actions"
+            >
               <MoreHorizontal size={14} />
             </Button>
           </DropdownMenuTrigger>

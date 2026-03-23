@@ -18,7 +18,11 @@ export function MultiRunDashboardSidebar({
   onOpenBatch,
 }: {
   entries: DashboardEntry[]
-  groupedEntries: Array<{ id: "needs_action" | "running" | "recent"; label: string; entries: DashboardEntry[] }>
+  groupedEntries: Array<{
+    id: "needs_action" | "running" | "recent"
+    label: string
+    entries: DashboardEntry[]
+  }>
   aggregateCounts: { needsAction: number; running: number; recent: number }
   selectedEntryKey: string | null
   onSelectEntry: (key: string) => void
@@ -30,12 +34,15 @@ export function MultiRunDashboardSidebar({
   onOpenBatch: () => void
 }) {
   return (
-    <div className="border-b border-hairline lg:border-b-0 lg:border-r bg-surface-1/40 min-h-[240px] lg:min-h-0 flex flex-col">
+    <div className="surface-panel border-b border-hairline lg:border-b-0 lg:border-r min-h-[240px] lg:min-h-0 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-hairline">
         <div>
-          <p className="text-body-sm font-medium text-foreground">Session runs</p>
+          <p className="text-body-sm font-medium text-foreground">
+            Session runs
+          </p>
           <p className="ui-meta-text text-muted-foreground">
-            {aggregateCounts.needsAction} need action · {aggregateCounts.running} live · {aggregateCounts.recent} recent
+            {aggregateCounts.needsAction} need action ·{" "}
+            {aggregateCounts.running} live · {aggregateCounts.recent} recent
           </p>
         </div>
       </div>
@@ -79,7 +86,11 @@ export function MultiRunDashboardSidebar({
                       : "ui-status-badge-success",
                 )}
               >
-                {batchStatus === "running" ? "Live" : batchStatus === "error" ? "Error" : "Open"}
+                {batchStatus === "running"
+                  ? "Live"
+                  : batchStatus === "error"
+                    ? "Error"
+                    : "Open"}
               </span>
             </Button>
           </section>
@@ -95,7 +106,9 @@ export function MultiRunDashboardSidebar({
             {groupedEntries.map((group) => (
               <section key={group.id} className="space-y-1.5">
                 <div className="px-3">
-                  <p className="ui-meta-label text-muted-foreground">{group.label}</p>
+                  <p className="ui-meta-label text-muted-foreground">
+                    {group.label}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   {group.entries.map((entry) => (

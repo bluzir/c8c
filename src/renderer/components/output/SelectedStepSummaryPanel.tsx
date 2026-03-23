@@ -4,7 +4,9 @@ import { cn } from "@/lib/cn"
 import type { RuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 
 function compactLine(items: Array<string | null | undefined>) {
-  return items.filter((item): item is string => Boolean(item && item.trim())).join(" · ")
+  return items
+    .filter((item): item is string => Boolean(item && item.trim()))
+    .join(" · ")
 }
 
 function buildStageMetaLine({
@@ -41,8 +43,12 @@ function StepSummaryStrip({
     <div className="border-b border-hairline px-1 py-3 first:pt-0 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className={cn("ui-meta-label", contextLabelClass)}>{contextLabel}</div>
-          <div className="mt-1 text-body-sm font-medium text-foreground">{title}</div>
+          <div className={cn("ui-meta-label", contextLabelClass)}>
+            {contextLabel}
+          </div>
+          <div className="mt-1 text-body-sm font-medium text-foreground">
+            {title}
+          </div>
           <div className="mt-1 ui-meta-text text-muted-foreground">
             {metaLine}
           </div>

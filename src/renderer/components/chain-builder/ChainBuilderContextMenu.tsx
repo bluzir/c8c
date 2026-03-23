@@ -40,9 +40,7 @@ export function ChainBuilderContextMenu({
       {stepLabel && (
         <>
           <DropdownMenuLabel>{stepLabel}</DropdownMenuLabel>
-          <DropdownMenuItem onSelect={onSelect}>
-            Select step
-          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onSelect}>Select step</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={Boolean(moveUpDisabledReason)}

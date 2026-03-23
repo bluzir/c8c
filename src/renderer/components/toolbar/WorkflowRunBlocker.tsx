@@ -26,17 +26,29 @@ export function WorkflowRunBlocker({
 }: WorkflowRunBlockerProps) {
   return (
     <div
-      data-open={!suppressed && !isRunning && !workflowReviewMode && Boolean(runDisabledReason) ? "true" : "false"}
+      data-open={
+        !suppressed &&
+        !isRunning &&
+        !workflowReviewMode &&
+        Boolean(runDisabledReason)
+          ? "true"
+          : "false"
+      }
       className={cn(
         "ui-collapsible",
-        !suppressed && !isRunning && !workflowReviewMode && runDisabledReason && "border-b border-hairline",
+        !suppressed &&
+          !isRunning &&
+          !workflowReviewMode &&
+          runDisabledReason &&
+          "border-b border-hairline",
       )}
     >
       <div className="ui-collapsible-inner">
-        <div role="alert" className="mx-3 my-2 ui-alert-danger text-status-danger">
-          <p className="text-body-sm font-medium">
-            {runDisabledReason || ""}
-          </p>
+        <div
+          role="alert"
+          className="mx-3 my-2 ui-alert-danger text-status-danger"
+        >
+          <p className="text-body-sm font-medium">{runDisabledReason || ""}</p>
           {showOpenSettingsAction && onOpenSettings ? (
             <div className="mt-2">
               <button
@@ -50,17 +62,19 @@ export function WorkflowRunBlocker({
           ) : null}
           {hasBlockingErrors && (
             <ul className="mt-2 space-y-1.5">
-              {workflowValidation.filter((issue) => issue.severity === "error").map((issue) => (
-                <li key={`${issue.nodeId}-${issue.field}`}>
-                  <button
-                    type="button"
-                    onClick={() => onNavigateToValidationIssue(issue)}
-                    className="text-left text-body-sm text-status-danger/90 underline-offset-2 hover:underline"
-                  >
-                    {issue.message}
-                  </button>
-                </li>
-              ))}
+              {workflowValidation
+                .filter((issue) => issue.severity === "error")
+                .map((issue) => (
+                  <li key={`${issue.nodeId}-${issue.field}`}>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateToValidationIssue(issue)}
+                      className="text-left text-body-sm text-status-danger/90 underline-offset-2 hover:underline"
+                    >
+                      {issue.message}
+                    </button>
+                  </li>
+                ))}
             </ul>
           )}
         </div>

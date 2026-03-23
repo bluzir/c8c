@@ -31,7 +31,11 @@ export function OutputPanelHistoryContent({
   onSelectRun: (run: RunResult) => void
 }) {
   return (
-    <div className={cn(fillHeight ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-2")}>
+    <div
+      className={cn(
+        fillHeight ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-2",
+      )}
+    >
       {showResultSurface && tabOptionsLength <= 1 ? (
         <div className="border-b border-hairline px-1 pb-2">
           <Button
@@ -50,9 +54,9 @@ export function OutputPanelHistoryContent({
             type="button"
             variant="ghost"
             size="sm"
-          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
-          onClick={onBackToActivity}
-        >
+            className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+            onClick={onBackToActivity}
+          >
             Back to summary
           </Button>
         </div>

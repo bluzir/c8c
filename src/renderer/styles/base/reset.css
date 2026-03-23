@@ -1,0 +1,128 @@
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    -webkit-text-fill-color: currentColor !important;
+    opacity: 1;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family:
+      "SF Pro Text",
+      "SF Pro Display",
+      "Geist",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+    -webkit-app-region: no-drag;
+    overscroll-behavior: none;
+    background-image:
+      radial-gradient(
+        1200px 520px at 50% -280px,
+        hsl(var(--surface-1) / 0.5),
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        hsl(var(--background)) 0%,
+        hsl(var(--surface-2)) 100%
+      );
+  }
+
+  html[data-test-mode="true"] *,
+  body[data-test-mode="true"] * {
+    animation: none !important;
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(
+        860px 340px at 52% -210px,
+        hsl(var(--surface-2) / 0.5),
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        hsl(var(--background)) 0%,
+        hsl(var(--surface-2)) 100%
+      );
+  }
+
+  #root {
+    min-height: 0;
+  }
+
+  ::selection {
+    background: hsl(var(--selection));
+  }
+
+  :where(
+      button,
+      [role="button"],
+      a[href],
+      summary,
+      [tabindex]:not([tabindex="-1"])
+    ):focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  :where(
+      button,
+      [role="button"],
+      a[href],
+      summary,
+      [tabindex]:not([tabindex="-1"])
+    ):focus-visible:not(.ui-focus-managed):not(.ui-icon-button) {
+    outline: 2px solid hsl(var(--ring) / 0.7);
+    outline-offset: 2px;
+  }
+
+  .ui-focus-managed:focus-visible {
+    outline: none !important;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.28);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.42);
+}
+
+/* Drag region for titlebar */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}

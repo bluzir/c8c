@@ -63,8 +63,10 @@ function formatRunRelativeTime(run: RunResult): string {
 function statusToneClass(status: RunResult["status"]): string {
   if (status === "completed") return "ui-status-badge-success"
   if (status === "failed") return "ui-status-badge-danger"
-  if (status === "blocked" || status === "interrupted") return "ui-status-badge-warning"
-  if (status === "cancelled") return "border border-hairline bg-surface-2/80 text-muted-foreground"
+  if (status === "blocked" || status === "interrupted")
+    return "ui-status-badge-warning"
+  if (status === "cancelled")
+    return "border border-hairline bg-surface-2/80 text-muted-foreground"
   return "ui-status-badge-info"
 }
 
@@ -79,7 +81,11 @@ function statusLabel(status: RunResult["status"]): string {
 }
 
 function isRunContinuable(run: RunResult): boolean {
-  return run.status !== "completed" && run.status !== "failed" && run.status !== "cancelled"
+  return (
+    run.status !== "completed" &&
+    run.status !== "failed" &&
+    run.status !== "cancelled"
+  )
 }
 
 function joinMeta(parts: Array<string | null | undefined>) {
@@ -109,8 +115,14 @@ export function HistoryTab({
   selectedRunId,
   onSelectRun,
 }: HistoryTabProps) {
-  const [selectedHistoryRunId, setSelectedHistoryRunId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; runId: string } | null>(null)
+  const [selectedHistoryRunId, setSelectedHistoryRunId] = useState<
+    string | null
+  >(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    runId: string
+  } | null>(null)
 
   const selectedHistoryRun = useMemo(
     () => pastRuns.find((run) => run.runId === selectedHistoryRunId) || null,
@@ -120,14 +132,17 @@ export function HistoryTab({
     ? pastRuns.find((run) => run.runId === contextMenu.runId) || null
     : null
 
-  const handleOpenReport = useCallback(async (path: string) => {
-    try {
-      await Promise.resolve(onOpenReport(path))
-    } catch (error) {
-      console.error("[HistoryTab] open report failed:", error)
-      toastErrorFromCatch("Could not open report file", error)
-    }
-  }, [onOpenReport])
+  const handleOpenReport = useCallback(
+    async (path: string) => {
+      try {
+        await Promise.resolve(onOpenReport(path))
+      } catch (error) {
+        console.error("[HistoryTab] open report failed:", error)
+        toastErrorFromCatch("Could not open report file", error)
+      }
+    },
+    [onOpenReport],
+  )
 
   const handleCopyRunId = useCallback(async (runId: string) => {
     try {
@@ -147,7 +162,9 @@ export function HistoryTab({
       setSelectedHistoryRunId(null)
       return
     }
-    const exists = selectedHistoryRunId && pastRuns.some((run) => run.runId === selectedHistoryRunId)
+    const exists =
+      selectedHistoryRunId &&
+      pastRuns.some((run) => run.runId === selectedHistoryRunId)
     if (!exists) {
       setSelectedHistoryRunId(pastRuns[0].runId)
     }
@@ -162,11 +179,11 @@ export function HistoryTab({
   }
 
   const selectedRunCanContinue = Boolean(
-    selectedHistoryRun
-    && onContinueRun
-    && selectedHistoryRun.workspace
-    && isRunContinuable(selectedHistoryRun)
-    && runStatus !== "running",
+    selectedHistoryRun &&
+    onContinueRun &&
+    selectedHistoryRun.workspace &&
+    isRunContinuable(selectedHistoryRun) &&
+    runStatus !== "running",
   )
   const selectedRunCanViewResult = Boolean(selectedHistoryRun && onSelectRun)
   const selectedRunCanOpenFile = Boolean(selectedHistoryRun?.reportPath)
@@ -177,16 +194,27 @@ export function HistoryTab({
 
   return (
     <>
-      <div className={cn(fillHeight ? "flex min-h-0 flex-1 flex-col gap-3" : "space-y-3")}>
+      <div
+        className={cn(
+          fillHeight ? "flex min-h-0 flex-1 flex-col gap-3" : "space-y-3",
+        )}
+      >
         {selectedHistoryRun && (
-          <div className="border-b border-hairline px-1 pb-3">
+          <div className="surface-figure px-4 py-4">
             <div className="min-w-0">
-              <div className="ui-meta-label text-muted-foreground">Selected run</div>
+              <div className="ui-meta-label text-muted-foreground">
+                Selected run
+              </div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <div className="text-body-sm font-medium text-foreground">
                   {formatRunRelativeTime(selectedHistoryRun)}
                 </div>
-                <span className={cn("ui-status-badge shrink-0 ui-meta-text", statusToneClass(selectedHistoryRun.status))}>
+                <span
+                  className={cn(
+                    "ui-status-badge shrink-0 ui-meta-text",
+                    statusToneClass(selectedHistoryRun.status),
+                  )}
+                >
                   {statusLabel(selectedHistoryRun.status)}
                 </span>
               </div>
@@ -198,7 +226,11 @@ export function HistoryTab({
                 ]) || "Run details unavailable"}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 ui-meta-text text-muted-foreground">
-                <span>{pastRuns.length === 1 ? "1 run recorded" : `${pastRuns.length} runs recorded`}</span>
+                <span>
+                  {pastRuns.length === 1
+                    ? "1 run recorded"
+                    : `${pastRuns.length} runs recorded`}
+                </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span>Run ID:</span>
                   <span className="font-mono" title={selectedHistoryRun.runId}>
@@ -209,7 +241,9 @@ export function HistoryTab({
                     className="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground"
                     title="Copy run ID"
                     aria-label="Copy run ID"
-                    onClick={() => { void handleCopyRunId(selectedHistoryRun.runId) }}
+                    onClick={() => {
+                      void handleCopyRunId(selectedHistoryRun.runId)
+                    }}
                   >
                     <Copy size={12} aria-hidden="true" />
                   </button>
@@ -244,7 +278,11 @@ export function HistoryTab({
                 variant="outline"
                 size="sm"
                 disabled={!selectedRunCanOpenFile}
-                title={selectedRunCanOpenFile ? undefined : "No report file saved for this run"}
+                title={
+                  selectedRunCanOpenFile
+                    ? undefined
+                    : "No report file saved for this run"
+                }
                 onClick={() => {
                   if (!selectedHistoryRun?.reportPath) return
                   void handleOpenReport(selectedHistoryRun.reportPath)
@@ -261,7 +299,9 @@ export function HistoryTab({
           aria-label="Run history"
           className={cn(
             "ui-scroll-region overflow-y-auto",
-            fillHeight ? "min-h-0 flex-1" : "max-h-[min(24rem,calc(100vh-18rem))]",
+            fillHeight
+              ? "min-h-0 flex-1"
+              : "max-h-[min(24rem,calc(100vh-18rem))]",
           )}
         >
           {pastRuns.map((run) => {
@@ -282,13 +322,15 @@ export function HistoryTab({
                 onContextMenu={(event) => {
                   event.preventDefault()
                   setSelectedHistoryRunId(run.runId)
-                  setContextMenu({ x: event.clientX, y: event.clientY, runId: run.runId })
+                  setContextMenu({
+                    x: event.clientX,
+                    y: event.clientY,
+                    runId: run.runId,
+                  })
                 }}
                 className={cn(
-                  "ui-pressable flex w-full items-center gap-3 border-b border-hairline/70 px-1 py-2.5 text-left ui-transition-colors ui-motion-fast last:border-b-0",
-                  isSelected
-                    ? "bg-surface-2/70"
-                    : "hover:bg-surface-2/40",
+                  "ui-pressable flex w-full items-center gap-3 border-b border-hairline px-1 py-2.5 text-left ui-transition-colors ui-motion-fast last:border-b-0",
+                  isSelected ? "ui-selected-row-tint" : "hover:bg-surface-2/40",
                 )}
               >
                 <span
@@ -298,7 +340,8 @@ export function HistoryTab({
                       ? "bg-status-success"
                       : run.status === "failed"
                         ? "bg-status-danger"
-                        : run.status === "blocked" || run.status === "interrupted"
+                        : run.status === "blocked" ||
+                            run.status === "interrupted"
                           ? "bg-status-warning"
                           : "bg-muted-foreground",
                   )}
@@ -312,7 +355,12 @@ export function HistoryTab({
                     {rowMeta || run.runId}
                   </span>
                 </span>
-                <span className={cn("ui-status-badge shrink-0 ui-meta-text", statusToneClass(run.status))}>
+                <span
+                  className={cn(
+                    "ui-status-badge shrink-0 ui-meta-text",
+                    statusToneClass(run.status),
+                  )}
+                >
                   {statusLabel(run.status)}
                 </span>
               </button>
@@ -331,7 +379,9 @@ export function HistoryTab({
       >
         {contextHistoryRun && (
           <>
-            <DropdownMenuLabel>{formatRunRelativeTime(contextHistoryRun)}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {formatRunRelativeTime(contextHistoryRun)}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               disabled={!onSelectRun}
               onSelect={() => {
@@ -343,9 +393,20 @@ export function HistoryTab({
               View result
             </DropdownMenuItem>
             <DropdownMenuItem
-              disabled={!onContinueRun || !contextHistoryRun.workspace || !isRunContinuable(contextHistoryRun) || runStatus === "running"}
+              disabled={
+                !onContinueRun ||
+                !contextHistoryRun.workspace ||
+                !isRunContinuable(contextHistoryRun) ||
+                runStatus === "running"
+              }
               onSelect={() => {
-                if (!onContinueRun || !contextHistoryRun.workspace || !isRunContinuable(contextHistoryRun) || runStatus === "running") return
+                if (
+                  !onContinueRun ||
+                  !contextHistoryRun.workspace ||
+                  !isRunContinuable(contextHistoryRun) ||
+                  runStatus === "running"
+                )
+                  return
                 void onContinueRun(contextHistoryRun)
                 setContextMenu(null)
               }}

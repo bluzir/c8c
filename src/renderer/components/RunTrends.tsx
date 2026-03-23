@@ -27,7 +27,13 @@ function Sparkline({
   })
 
   return (
-    <svg width={width} height={height} className="inline-block" aria-hidden="true" focusable="false">
+    <svg
+      width={width}
+      height={height}
+      className="inline-block"
+      aria-hidden="true"
+      focusable="false"
+    >
       <polyline
         points={points.join(" ")}
         fill="none"
@@ -37,12 +43,14 @@ function Sparkline({
         strokeLinejoin="round"
       />
       {/* Dot on latest value */}
-      {values.length > 0 && (() => {
-        const lastIdx = values.length - 1
-        const x = padding + (lastIdx / (values.length - 1)) * w
-        const y = padding + h - (maxValue > 0 ? (values[lastIdx] / maxValue) * h : 0)
-        return <circle cx={x} cy={y} r={2} fill={color} />
-      })()}
+      {values.length > 0 &&
+        (() => {
+          const lastIdx = values.length - 1
+          const x = padding + (lastIdx / (values.length - 1)) * w
+          const y =
+            padding + h - (maxValue > 0 ? (values[lastIdx] / maxValue) * h : 0)
+          return <circle cx={x} cy={y} r={2} fill={color} />
+        })()}
     </svg>
   )
 }
@@ -66,7 +74,9 @@ export function RunTrends({ runs }: { runs: RunResult[] }) {
     )
   }
 
-  const runsWithCost = metricsRuns.filter((r) => typeof r.totalCost === "number")
+  const runsWithCost = metricsRuns.filter(
+    (r) => typeof r.totalCost === "number",
+  )
   const costs = runsWithCost.map((r) => r.totalCost ?? 0)
   const durations = metricsRuns.map((r) => (r.durationMs || 0) / 1000)
 
@@ -80,8 +90,8 @@ export function RunTrends({ runs }: { runs: RunResult[] }) {
   const firstEvalId = [...allEvalNodeIds].sort((a, b) => a.localeCompare(b))[0]
   const evalScorePoints = firstEvalId
     ? metricsRuns
-      .map((r) => r.evalScores?.[firstEvalId])
-      .filter((score): score is number => typeof score === "number")
+        .map((r) => r.evalScores?.[firstEvalId])
+        .filter((score): score is number => typeof score === "number")
     : []
 
   const maxCost = costs.reduce((max, value) => Math.max(max, value), 0.001)
@@ -91,19 +101,27 @@ export function RunTrends({ runs }: { runs: RunResult[] }) {
 
   return (
     <div className="space-y-2 px-1 pb-2">
-      <div className="ui-meta-label">
-        Trends ({metricsRuns.length} runs)
-      </div>
+      <div className="ui-meta-label">Trends ({metricsRuns.length} runs)</div>
       <div className="grid grid-cols-2 gap-2">
         <TrendCard
           label="Cost"
           value={latestCost == null ? "n/a" : `$${latestCost.toFixed(4)}`}
-          sparkline={costs.length >= 2 ? <Sparkline values={costs} maxValue={maxCost} /> : null}
+          sparkline={
+            costs.length >= 2 ? (
+              <Sparkline values={costs} maxValue={maxCost} />
+            ) : null
+          }
         />
         <TrendCard
           label="Duration"
           value={`${latestDuration.toFixed(1)}s`}
-          sparkline={<Sparkline values={durations} maxValue={maxDuration} color="hsl(var(--status-info))" />}
+          sparkline={
+            <Sparkline
+              values={durations}
+              maxValue={maxDuration}
+              color="hsl(var(--status-info))"
+            />
+          }
         />
         {evalScorePoints.length >= 2 && (
           <TrendCard
@@ -139,9 +157,19 @@ function TrendCard({
   className?: string
 }) {
   return (
-    <div className={cn("rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5", className)}>
+    <div
+      className={cn(
+        "rounded-md border border-hairline bg-surface-2 px-2.5 py-1.5",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between">
-        <span className="ui-meta-text text-muted-foreground truncate" title={labelTitle ?? label}>{label}</span>
+        <span
+          className="ui-meta-text text-muted-foreground truncate"
+          title={labelTitle ?? label}
+        >
+          {label}
+        </span>
         <span className="ui-metric-text">{value}</span>
       </div>
       <div className="mt-1">{sparkline}</div>
@@ -161,7 +189,8 @@ export function RunCompare({
   const durationA = typeof runA.durationMs === "number" ? runA.durationMs : null
   const durationB = typeof runB.durationMs === "number" ? runB.durationMs : null
   const costDiff = costA != null && costB != null ? costB - costA : null
-  const durationDiff = durationA != null && durationB != null ? durationB - durationA : null
+  const durationDiff =
+    durationA != null && durationB != null ? durationB - durationA : null
 
   // Compare eval scores
   const allEvalIds = new Set([
@@ -173,8 +202,8 @@ export function RunCompare({
     <div className="space-y-2">
       <div className="grid grid-cols-3 gap-1 ui-meta-text">
         <div className="text-muted-foreground" />
-        <div className="ui-body-text-medium text-center">Run A</div>
-        <div className="ui-body-text-medium text-center">Run B</div>
+        <div className="text-body-md font-medium text-center">Run A</div>
+        <div className="text-body-md font-medium text-center">Run B</div>
       </div>
       <CompareRow
         label="Cost"
@@ -193,8 +222,10 @@ export function RunCompare({
         betterWhenLower
       />
       {[...allEvalIds].map((id) => {
-        const scoreA = typeof runA.evalScores?.[id] === "number" ? runA.evalScores[id] : null
-        const scoreB = typeof runB.evalScores?.[id] === "number" ? runB.evalScores[id] : null
+        const scoreA =
+          typeof runA.evalScores?.[id] === "number" ? runA.evalScores[id] : null
+        const scoreB =
+          typeof runB.evalScores?.[id] === "number" ? runB.evalScores[id] : null
         return (
           <CompareRow
             key={id}
@@ -234,7 +265,12 @@ function CompareRow({
 
   return (
     <div className="grid grid-cols-3 gap-1 ui-meta-text items-center">
-      <div className="text-muted-foreground truncate" title={labelTitle ?? label}>{label}</div>
+      <div
+        className="text-muted-foreground truncate"
+        title={labelTitle ?? label}
+      >
+        {label}
+      </div>
       <div className="ui-metric-text text-center">{valueA}</div>
       <div className="ui-metric-text flex items-center justify-center gap-1 text-center">
         {valueB}

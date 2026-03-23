@@ -50,10 +50,10 @@ export function BlueprintForm({
   onStartEditing,
 }: BlueprintFormProps) {
   return (
-    <article className="rounded-xl surface-panel p-5 space-y-4">
+    <article className="space-y-4 ui-section-divider pt-4">
       <SectionHeading
         title="Selected outcome"
-        meta={(
+        meta={
           editing ? (
             <div className="flex items-center gap-2">
               <Button
@@ -70,25 +70,21 @@ export function BlueprintForm({
               </Button>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onStartEditing}
-            >
+            <Button variant="outline" size="sm" onClick={onStartEditing}>
               {selectedFactoryOption ? "Edit outcome" : "Define outcome"}
             </Button>
           )
-        )}
+        }
       />
 
       {error ? (
-        <div role="alert" className="rounded-lg border border-status-danger/25 bg-status-danger/5 px-4 py-3 text-body-sm text-status-danger">
+        <div role="alert" className="ui-alert-danger text-status-danger">
           {error}
         </div>
       ) : null}
 
       {loading ? (
-        <div className="rounded-lg border border-dashed border-hairline bg-surface-2/30 px-4 py-8 text-body-sm text-muted-foreground">
+        <div className="ui-empty-state-box px-4 py-8">
           Loading the saved outcome and guided path for this project...
         </div>
       ) : editing ? (
@@ -99,7 +95,9 @@ export function BlueprintForm({
               <Input
                 id="factory-label"
                 value={draft.factoryLabel}
-                onChange={(event) => onFieldChange("factoryLabel", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("factoryLabel", event.target.value)
+                }
                 placeholder="AI trends content engine"
               />
             </div>
@@ -108,16 +106,22 @@ export function BlueprintForm({
               <Input
                 id="factory-outcome-title"
                 value={draft.outcomeTitle}
-                onChange={(event) => onFieldChange("outcomeTitle", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("outcomeTitle", event.target.value)
+                }
                 placeholder="30-day AI trends content run"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="factory-outcome-statement">Outcome statement</Label>
+              <Label htmlFor="factory-outcome-statement">
+                Outcome statement
+              </Label>
               <Textarea
                 id="factory-outcome-statement"
                 value={draft.outcomeStatement}
-                onChange={(event) => onFieldChange("outcomeStatement", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("outcomeStatement", event.target.value)
+                }
                 placeholder="Generate 100 strong Facebook posts about AI and agents over the next 30 days."
                 rows={4}
               />
@@ -128,7 +132,9 @@ export function BlueprintForm({
                 <Input
                   id="factory-success-signal"
                   value={draft.successSignal}
-                  onChange={(event) => onFieldChange("successSignal", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("successSignal", event.target.value)
+                  }
                   placeholder="Approved calendar and ready-to-publish posts"
                 />
               </div>
@@ -137,7 +143,9 @@ export function BlueprintForm({
                 <Input
                   id="factory-time-horizon"
                   value={draft.timeHorizon}
-                  onChange={(event) => onFieldChange("timeHorizon", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("timeHorizon", event.target.value)
+                  }
                   placeholder="Next 30 days"
                 />
               </div>
@@ -149,7 +157,9 @@ export function BlueprintForm({
                   id="factory-window-start"
                   type="date"
                   value={draft.windowStart}
-                  onChange={(event) => onFieldChange("windowStart", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("windowStart", event.target.value)
+                  }
                 />
               </div>
               <div className="space-y-1.5">
@@ -158,7 +168,9 @@ export function BlueprintForm({
                   id="factory-window-end"
                   type="date"
                   value={draft.windowEnd}
-                  onChange={(event) => onFieldChange("windowEnd", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("windowEnd", event.target.value)
+                  }
                 />
               </div>
             </div>
@@ -170,7 +182,9 @@ export function BlueprintForm({
                   type="number"
                   min={0}
                   value={draft.targetCount}
-                  onChange={(event) => onFieldChange("targetCount", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("targetCount", event.target.value)
+                  }
                   placeholder="100"
                 />
               </div>
@@ -179,7 +193,9 @@ export function BlueprintForm({
                 <Input
                   id="factory-target-unit"
                   value={draft.targetUnit}
-                  onChange={(event) => onFieldChange("targetUnit", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("targetUnit", event.target.value)
+                  }
                   placeholder="posts"
                 />
               </div>
@@ -188,7 +204,9 @@ export function BlueprintForm({
                 <Input
                   id="factory-audience"
                   value={draft.audience}
-                  onChange={(event) => onFieldChange("audience", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("audience", event.target.value)
+                  }
                   placeholder="Founders and operators following AI"
                 />
               </div>
@@ -198,21 +216,31 @@ export function BlueprintForm({
               <Textarea
                 id="factory-constraints"
                 value={draft.constraintsText}
-                onChange={(event) => onFieldChange("constraintsText", event.target.value)}
-                placeholder={"Use company ToV\nNo AI slop\nKeep posts concise and evidence-backed"}
+                onChange={(event) =>
+                  onFieldChange("constraintsText", event.target.value)
+                }
+                placeholder={
+                  "Use company ToV\nNo AI slop\nKeep posts concise and evidence-backed"
+                }
                 rows={4}
               />
-              <p className="ui-meta-text text-muted-foreground">One constraint per line.</p>
+              <p className="ui-meta-text text-muted-foreground">
+                One constraint per line.
+              </p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="factory-recipe-summary">Guided path summary</Label>
+              <Label htmlFor="factory-recipe-summary">
+                Guided path summary
+              </Label>
               <Textarea
                 id="factory-recipe-summary"
                 value={draft.recipeSummary}
-                onChange={(event) => onFieldChange("recipeSummary", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("recipeSummary", event.target.value)
+                }
                 placeholder="Trend watch -> ideas -> editorial calendar -> draft -> QA -> distribution"
                 rows={3}
               />
@@ -222,8 +250,12 @@ export function BlueprintForm({
               <Textarea
                 id="factory-stage-order"
                 value={draft.stageOrderText}
-                onChange={(event) => onFieldChange("stageOrderText", event.target.value)}
-                placeholder={"Trend watch\nIdea backlog\nEditorial calendar\nDraft post\nQA review\nDistribution bundle"}
+                onChange={(event) =>
+                  onFieldChange("stageOrderText", event.target.value)
+                }
+                placeholder={
+                  "Trend watch\nIdea backlog\nEditorial calendar\nDraft post\nQA review\nDistribution bundle"
+                }
                 rows={5}
               />
             </div>
@@ -232,8 +264,12 @@ export function BlueprintForm({
               <Textarea
                 id="factory-case-rules"
                 value={draft.caseGenerationRulesText}
-                onChange={(event) => onFieldChange("caseGenerationRulesText", event.target.value)}
-                placeholder={"Editorial calendar -> post tracks\nApproved sample set -> scale production"}
+                onChange={(event) =>
+                  onFieldChange("caseGenerationRulesText", event.target.value)
+                }
+                placeholder={
+                  "Editorial calendar -> post tracks\nApproved sample set -> scale production"
+                }
                 rows={4}
               />
             </div>
@@ -243,29 +279,46 @@ export function BlueprintForm({
                 <Textarea
                   id="factory-quality-policy"
                   value={draft.qualityPolicyText}
-                  onChange={(event) => onFieldChange("qualityPolicyText", event.target.value)}
+                  onChange={(event) =>
+                    onFieldChange("qualityPolicyText", event.target.value)
+                  }
                   placeholder={"Voice-locked\nNo-slop review\nPublish approval"}
                   rows={4}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="factory-checkpoints">Strategist checkpoints</Label>
+                <Label htmlFor="factory-checkpoints">
+                  Strategist checkpoints
+                </Label>
                 <Textarea
                   id="factory-checkpoints"
                   value={draft.strategistCheckpointsText}
-                  onChange={(event) => onFieldChange("strategistCheckpointsText", event.target.value)}
-                  placeholder={"Approve direction\nApprove calendar\nApprove sample quality"}
+                  onChange={(event) =>
+                    onFieldChange(
+                      "strategistCheckpointsText",
+                      event.target.value,
+                    )
+                  }
+                  placeholder={
+                    "Approve direction\nApprove calendar\nApprove sample quality"
+                  }
                   rows={4}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="factory-artifact-contracts">Reusable results</Label>
+              <Label htmlFor="factory-artifact-contracts">
+                Reusable results
+              </Label>
               <Textarea
                 id="factory-artifact-contracts"
                 value={draft.artifactContractsText}
-                onChange={(event) => onFieldChange("artifactContractsText", event.target.value)}
-                placeholder={"Trend Digest\nIdea Backlog\nEditorial Calendar\nDraft\nQA Report\nDistribution Bundle"}
+                onChange={(event) =>
+                  onFieldChange("artifactContractsText", event.target.value)
+                }
+                placeholder={
+                  "Trend Digest\nIdea Backlog\nEditorial Calendar\nDraft\nQA Report\nDistribution Bundle"
+                }
                 rows={4}
               />
             </div>
@@ -277,14 +330,18 @@ export function BlueprintForm({
             <div className="min-w-0 flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-title-sm text-foreground">
-                  {selectedFactoryDefinition?.outcome?.title || selectedFactoryOption?.label || "Untitled lab"}
+                  {selectedFactoryDefinition?.outcome?.title ||
+                    selectedFactoryOption?.label ||
+                    "Untitled lab"}
                 </h3>
                 <Badge variant="outline" className="ui-meta-text px-2 py-0">
                   {formatResultModeLabel(selectedFactoryDefinition?.modeId)}
                 </Badge>
               </div>
               <p className="text-body-sm text-muted-foreground">
-                {selectedFactoryDefinition?.outcome?.statement || selectedFactoryOption?.summary || "No saved outcome statement yet."}
+                {selectedFactoryDefinition?.outcome?.statement ||
+                  selectedFactoryOption?.summary ||
+                  "No saved outcome statement yet."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -303,27 +360,36 @@ export function BlueprintForm({
             items={[
               {
                 label: "Success signal",
-                value: selectedFactoryDefinition?.outcome?.successSignal || "Not defined",
+                value:
+                  selectedFactoryDefinition?.outcome?.successSignal ||
+                  "Not defined",
               },
               {
                 label: "Time horizon",
-                value: selectedFactoryDefinition?.outcome?.timeHorizon || "Not defined",
+                value:
+                  selectedFactoryDefinition?.outcome?.timeHorizon ||
+                  "Not defined",
               },
               {
                 label: "Window",
-                value: selectedFactoryDefinition?.outcome?.windowStart || selectedFactoryDefinition?.outcome?.windowEnd
-                  ? `${formatFactoryDate(selectedFactoryDefinition?.outcome?.windowStart)} -> ${formatFactoryDate(selectedFactoryDefinition?.outcome?.windowEnd)}`
-                  : "Not defined",
+                value:
+                  selectedFactoryDefinition?.outcome?.windowStart ||
+                  selectedFactoryDefinition?.outcome?.windowEnd
+                    ? `${formatFactoryDate(selectedFactoryDefinition?.outcome?.windowStart)} -> ${formatFactoryDate(selectedFactoryDefinition?.outcome?.windowEnd)}`
+                    : "Not defined",
               },
               {
                 label: "Target",
-                value: typeof selectedFactoryDefinition?.outcome?.targetCount === "number"
-                  ? `${selectedFactoryDefinition.outcome.targetCount}${selectedFactoryDefinition.outcome.targetUnit ? ` ${selectedFactoryDefinition.outcome.targetUnit}` : ""}`
-                  : "Not defined",
+                value:
+                  typeof selectedFactoryDefinition?.outcome?.targetCount ===
+                  "number"
+                    ? `${selectedFactoryDefinition.outcome.targetCount}${selectedFactoryDefinition.outcome.targetUnit ? ` ${selectedFactoryDefinition.outcome.targetUnit}` : ""}`
+                    : "Not defined",
               },
               {
                 label: "Audience",
-                value: selectedFactoryDefinition?.outcome?.audience || "Not defined",
+                value:
+                  selectedFactoryDefinition?.outcome?.audience || "Not defined",
               },
             ]}
             className="xl:grid-cols-5"
@@ -337,7 +403,7 @@ export function BlueprintForm({
           />
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-hairline bg-surface-2/30 px-4 py-8 text-body-sm text-muted-foreground">
+        <div className="ui-empty-state-box px-4 py-8">
           No saved outcome yet.
         </div>
       )}

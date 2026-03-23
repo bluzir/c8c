@@ -26,7 +26,7 @@ import {
 } from "@/components/notifications/task-ui"
 
 type SetSelectedInboxTaskKey = (
-  value: string | null | ((current: string | null) => string | null)
+  value: string | null | ((current: string | null) => string | null),
 ) => void
 
 export function useWorkflowBlockedResumeTask({
@@ -65,8 +65,11 @@ export function useWorkflowBlockedResumeTask({
   ) => Promise<void>
 }) {
   const selectedResumeTaskRequestIdRef = useRef(0)
-  const [selectedResumeTask, setSelectedResumeTask] = useState<HumanTaskSnapshot | null>(null)
-  const [resumeTaskAnswers, setResumeTaskAnswers] = useState<Record<string, unknown>>({})
+  const [selectedResumeTask, setSelectedResumeTask] =
+    useState<HumanTaskSnapshot | null>(null)
+  const [resumeTaskAnswers, setResumeTaskAnswers] = useState<
+    Record<string, unknown>
+  >({})
   const [resumeTaskSubmitting, setResumeTaskSubmitting] = useState(false)
 
   const resetBlockedTaskState = useCallback(() => {
@@ -95,65 +98,92 @@ export function useWorkflowBlockedResumeTask({
     selectedResumeTaskRequestIdRef.current = requestId
 
     resetBlockedTaskState()
-    void window.api.loadHumanTask(taskId, workspace).then((task) => {
-      if (selectedResumeTaskRequestIdRef.current !== requestId) return
-      if (!task || task.status !== "open") {
-        setSelectedInboxTaskKey((current) => current === taskSelectionKey ? null : current)
+    void window.api
+      .loadHumanTask(taskId, workspace)
+      .then((task) => {
+        if (selectedResumeTaskRequestIdRef.current !== requestId) return
+        if (!task || task.status !== "open") {
+          setSelectedInboxTaskKey((current) =>
+            current === taskSelectionKey ? null : current,
+          )
+          resetBlockedTaskState()
+          return
+        }
+        if (task.workflowPath && task.workflowPath !== selectedWorkflowPath) {
+          setSelectedInboxTaskKey((current) =>
+            current === taskSelectionKey ? null : current,
+          )
+          resetBlockedTaskState()
+          return
+        }
+        setSelectedResumeTask(task)
+        setResumeTaskAnswers(buildInitialHumanTaskAnswers(task))
+      })
+      .catch((error) => {
+        if (selectedResumeTaskRequestIdRef.current !== requestId) return
+        toastErrorFromCatch("Could not load blocked task", error)
+        setSelectedInboxTaskKey((current) =>
+          current === taskSelectionKey ? null : current,
+        )
         resetBlockedTaskState()
-        return
-      }
-      if (task.workflowPath && task.workflowPath !== selectedWorkflowPath) {
-        setSelectedInboxTaskKey((current) => current === taskSelectionKey ? null : current)
-        resetBlockedTaskState()
-        return
-      }
-      setSelectedResumeTask(task)
-      setResumeTaskAnswers(buildInitialHumanTaskAnswers(task))
-    }).catch((error) => {
-      if (selectedResumeTaskRequestIdRef.current !== requestId) return
-      toastErrorFromCatch("Could not load blocked task", error)
-      setSelectedInboxTaskKey((current) => current === taskSelectionKey ? null : current)
-      resetBlockedTaskState()
-    })
+      })
 
     return () => {
       if (selectedResumeTaskRequestIdRef.current === requestId) {
         selectedResumeTaskRequestIdRef.current += 1
       }
     }
-  }, [resetBlockedTaskState, selectedInboxTaskKey, selectedWorkflowPath, setSelectedInboxTaskKey])
+  }, [
+    resetBlockedTaskState,
+    selectedInboxTaskKey,
+    selectedWorkflowPath,
+    setSelectedInboxTaskKey,
+  ])
 
   const blockedResumeArtifacts = useMemo(() => {
     if (!selectedResumeTask) return [] as ArtifactRecord[]
 
     return combinedArtifactRecords
-      .filter((artifact) =>
-        (selectedResumeTask.workflowPath && artifact.workflowPath === selectedResumeTask.workflowPath)
-        || artifact.runId === selectedResumeTask.sourceRunId,
+      .filter(
+        (artifact) =>
+          (selectedResumeTask.workflowPath &&
+            artifact.workflowPath === selectedResumeTask.workflowPath) ||
+          artifact.runId === selectedResumeTask.sourceRunId,
       )
       .sort((left, right) => right.updatedAt - left.updatedAt)
   }, [combinedArtifactRecords, selectedResumeTask])
 
   const blockedResumeSummary = useMemo(
-    () => selectedResumeTask
-      ? deriveWorkflowBlockedResumeSummary({
-        workflow,
-        task: selectedResumeTask,
-        sourceArtifacts: blockedResumeArtifacts,
-        nodeStates,
-        evalResults,
-      })
-      : null,
-    [blockedResumeArtifacts, evalResults, nodeStates, selectedResumeTask, workflow],
+    () =>
+      selectedResumeTask
+        ? deriveWorkflowBlockedResumeSummary({
+            workflow,
+            task: selectedResumeTask,
+            sourceArtifacts: blockedResumeArtifacts,
+            nodeStates,
+            evalResults,
+          })
+        : null,
+    [
+      blockedResumeArtifacts,
+      evalResults,
+      nodeStates,
+      selectedResumeTask,
+      workflow,
+    ],
   )
 
   const selectedResumeTaskStageMeta = useMemo<TaskStageMeta | null>(() => {
     if (!selectedResumeTask) return null
     const stageKey = taskStageKey(selectedResumeTask)
     if (!stageKey) return null
-    const node = workflow.nodes.find((candidate) => candidate.id === selectedResumeTask.nodeId)
+    const node = workflow.nodes.find(
+      (candidate) => candidate.id === selectedResumeTask.nodeId,
+    )
     if (!node) return null
-    const presentation = getRuntimeStagePresentation(node, { fallbackId: node.id })
+    const presentation = getRuntimeStagePresentation(node, {
+      fallbackId: node.id,
+    })
     return {
       title: presentation.title,
       group: presentation.group,
@@ -161,48 +191,69 @@ export function useWorkflowBlockedResumeTask({
   }, [selectedResumeTask, workflow.nodes])
 
   const blockedEntryState = useMemo<WorkflowEntryState | null>(
-    () => blockedResumeSummary
-      ? {
-        workflowPath: selectedWorkflowPath,
-        workflowName: workflow.name || selectedResumeTask?.workflowName || "Untitled flow",
-        source: "generated",
-        title: blockedResumeSummary.workLabel,
-        summary: blockedResumeSummary.reasonText,
-        contractLabel: "",
-        contractText: "",
-        inputText: "",
-        outputText: "",
-        readinessText: blockedResumeSummary.statusText,
-      }
-      : null,
-    [blockedResumeSummary, selectedResumeTask?.workflowName, selectedWorkflowPath, workflow.name],
+    () =>
+      blockedResumeSummary
+        ? {
+            workflowPath: selectedWorkflowPath,
+            workflowName:
+              workflow.name ||
+              selectedResumeTask?.workflowName ||
+              "Untitled flow",
+            source: "generated",
+            title: blockedResumeSummary.workLabel,
+            summary: blockedResumeSummary.reasonText,
+            contractLabel: "",
+            contractText: "",
+            inputText: "",
+            outputText: "",
+            readinessText: blockedResumeSummary.statusText,
+          }
+        : null,
+    [
+      blockedResumeSummary,
+      selectedResumeTask?.workflowName,
+      selectedWorkflowPath,
+      workflow.name,
+    ],
   )
 
-  const hasBlockedResumeState = (
-    runStatus === "idle"
-    && !hasActiveEntryState
-    && !showCreateDraftSkeleton
-    && blockedResumeSummary !== null
-  )
+  const hasBlockedResumeState =
+    runStatus === "idle" &&
+    !hasActiveEntryState &&
+    !showCreateDraftSkeleton &&
+    blockedResumeSummary !== null
   const showBlockedResumeHeader = viewMode === "list" && hasBlockedResumeState
 
-  const handleResumeTaskFieldChange = useCallback((field: HumanTaskField, value: unknown) => {
-    setResumeTaskAnswers((previous) => ({
-      ...previous,
-      [field.id]: value,
-    }))
-  }, [])
+  const handleResumeTaskFieldChange = useCallback(
+    (field: HumanTaskField, value: unknown) => {
+      setResumeTaskAnswers((previous) => ({
+        ...previous,
+        [field.id]: value,
+      }))
+    },
+    [],
+  )
 
   const submitResumeTask = useCallback(async () => {
     if (!selectedResumeTask) return false
-    if (hasMissingRequiredTaskAnswers(selectedResumeTask, resumeTaskAnswers)) return false
-    return window.api.submitHumanTask(selectedResumeTask.taskId, selectedResumeTask.workspace, {
-      answers: buildSubmitHumanTaskAnswers(selectedResumeTask, resumeTaskAnswers),
-    })
+    if (hasMissingRequiredTaskAnswers(selectedResumeTask, resumeTaskAnswers))
+      return false
+    return window.api.submitHumanTask(
+      selectedResumeTask.taskId,
+      selectedResumeTask.workspace,
+      {
+        answers: buildSubmitHumanTaskAnswers(
+          selectedResumeTask,
+          resumeTaskAnswers,
+        ),
+      },
+    )
   }, [resumeTaskAnswers, selectedResumeTask])
 
   const handleSubmitResumeTask = useCallback(async () => {
     if (!selectedResumeTask) return
+    if (hasMissingRequiredTaskAnswers(selectedResumeTask, resumeTaskAnswers))
+      return
     setResumeTaskSubmitting(true)
     try {
       const ok = await submitResumeTask()
@@ -218,6 +269,7 @@ export function useWorkflowBlockedResumeTask({
     onPrepareNewRun,
     onSelectPastRun,
     resetBlockedTaskState,
+    resumeTaskAnswers,
     selectedResumeTask,
     setSelectedInboxTaskKey,
     submitResumeTask,
@@ -225,6 +277,8 @@ export function useWorkflowBlockedResumeTask({
 
   const handleSubmitResumeTaskAndContinue = useCallback(async () => {
     if (!selectedResumeTask || !selectedWorkflowPath) return
+    if (hasMissingRequiredTaskAnswers(selectedResumeTask, resumeTaskAnswers))
+      return
     setResumeTaskSubmitting(true)
     try {
       const ok = await submitResumeTask()
@@ -246,6 +300,7 @@ export function useWorkflowBlockedResumeTask({
     onSelectPastRun,
     resetBlockedTaskState,
     selectedResumeTask,
+    resumeTaskAnswers,
     selectedWorkflowPath,
     setSelectedInboxTaskKey,
     submitResumeTask,
@@ -256,7 +311,10 @@ export function useWorkflowBlockedResumeTask({
     if (!selectedResumeTask) return
     setResumeTaskSubmitting(true)
     try {
-      const ok = await window.api.rejectHumanTask(selectedResumeTask.taskId, selectedResumeTask.workspace)
+      const ok = await window.api.rejectHumanTask(
+        selectedResumeTask.taskId,
+        selectedResumeTask.workspace,
+      )
       if (!ok) return
       setSelectedInboxTaskKey(null)
       resetBlockedTaskState()

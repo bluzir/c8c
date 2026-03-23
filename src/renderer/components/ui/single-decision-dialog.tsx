@@ -29,7 +29,10 @@ interface SingleDecisionDialogProps {
   preventOutsideDismiss?: boolean
 }
 
-const NOTE_TONE_CLASS: Record<NonNullable<SingleDecisionDialogProps["noteTone"]>, string> = {
+const NOTE_TONE_CLASS: Record<
+  NonNullable<SingleDecisionDialogProps["noteTone"]>,
+  string
+> = {
   danger: "text-status-danger",
   warning: "text-status-warning",
   muted: "text-muted-foreground",
@@ -72,13 +75,13 @@ export function SingleDecisionDialog({
           ) : null}
         </CanvasDialogHeader>
         {body ? (
-          <CanvasDialogBody className="space-y-3">
-            {body}
-          </CanvasDialogBody>
+          <CanvasDialogBody className="space-y-3">{body}</CanvasDialogBody>
         ) : null}
         <CanvasDialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost" size="sm" autoFocus>{cancelLabel}</Button>
+            <Button variant="ghost" size="sm" autoFocus>
+              {cancelLabel}
+            </Button>
           </DialogClose>
           <Button
             variant={confirmVariant}

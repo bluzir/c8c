@@ -1,8 +1,14 @@
 import * as React from "react"
 import { cn } from "@/lib/cn"
-import { AutosizeTextarea, type AutosizeTextareaProps } from "@/components/ui/autosize-textarea"
+import {
+  AutosizeTextarea,
+  type AutosizeTextareaProps,
+} from "@/components/ui/autosize-textarea"
 
-export interface PromptComposerProps extends Omit<AutosizeTextareaProps, "className"> {
+export interface PromptComposerProps extends Omit<
+  AutosizeTextareaProps,
+  "className"
+> {
   shellClassName?: string
   headerClassName?: string
   bodyClassName?: string
@@ -13,7 +19,10 @@ export interface PromptComposerProps extends Omit<AutosizeTextareaProps, "classN
   action?: React.ReactNode
 }
 
-export const PromptComposer = React.forwardRef<HTMLTextAreaElement, PromptComposerProps>(
+export const PromptComposer = React.forwardRef<
+  HTMLTextAreaElement,
+  PromptComposerProps
+>(
   (
     {
       shellClassName,
@@ -32,14 +41,12 @@ export const PromptComposer = React.forwardRef<HTMLTextAreaElement, PromptCompos
     return (
       <div
         className={cn(
-          "overflow-hidden rounded-[1.75rem] surface-soft shadow-inset-highlight-subtle ui-transition-surface focus-within:border-ring/50 focus-within:ring-[3px] focus-within:ring-ring/10",
+          "overflow-hidden rounded-2xl surface-panel ui-transition-surface focus-within:border-ring/50 focus-within:ring-[3px] focus-within:ring-ring/10",
           shellClassName,
         )}
       >
         {header ? (
-          <div className={cn("px-5 pt-4", headerClassName)}>
-            {header}
-          </div>
+          <div className={cn("px-5 pt-4", headerClassName)}>{header}</div>
         ) : null}
         <div className={cn("relative", bodyClassName)}>
           <AutosizeTextarea
@@ -56,13 +63,16 @@ export const PromptComposer = React.forwardRef<HTMLTextAreaElement, PromptCompos
             )}
           />
           {action ? (
-            <div className="absolute bottom-3 right-3">
-              {action}
-            </div>
+            <div className="absolute bottom-3 right-3">{action}</div>
           ) : null}
         </div>
         {footer ? (
-          <div className={cn("surface-depth-footer px-5 py-3.5", footerClassName)}>
+          <div
+            className={cn(
+              "border-t border-hairline px-5 py-3.5",
+              footerClassName,
+            )}
+          >
             {footer}
           </div>
         ) : null}

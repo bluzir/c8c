@@ -24,18 +24,29 @@ export interface DashboardEntry extends WorkflowExecutionState {
   pastRun: RunResult | null
 }
 
-export function isRunInFlight(status: WorkflowExecutionState["runStatus"]): boolean {
-  return status === "starting" || status === "running" || status === "paused" || status === "cancelling"
+export function isRunInFlight(
+  status: WorkflowExecutionState["runStatus"],
+): boolean {
+  return (
+    status === "starting" ||
+    status === "running" ||
+    status === "paused" ||
+    status === "cancelling"
+  )
 }
 
-export function isDashboardVisibleState(state: WorkflowExecutionState): boolean {
-  return isRunInFlight(state.runStatus)
-    || state.runOutcome !== null
-    || state.workspace !== null
-    || state.reportPath !== null
-    || state.finalContent.trim().length > 0
-    || state.lastError !== null
-    || Object.keys(state.nodeStates).length > 0
+export function isDashboardVisibleState(
+  state: WorkflowExecutionState,
+): boolean {
+  return (
+    isRunInFlight(state.runStatus) ||
+    state.runOutcome !== null ||
+    state.workspace !== null ||
+    state.reportPath !== null ||
+    state.finalContent.trim().length > 0 ||
+    state.lastError !== null ||
+    Object.keys(state.nodeStates).length > 0
+  )
 }
 
 export function folderName(path: string | null): string {
@@ -94,7 +105,11 @@ export function outcomeIcon(entry: DashboardEntry) {
     lastError: entry.lastError,
   })
 
-  if (runDisplayState.state === "starting" || runDisplayState.state === "running" || runDisplayState.state === "cancelling") {
+  if (
+    runDisplayState.state === "starting" ||
+    runDisplayState.state === "running" ||
+    runDisplayState.state === "cancelling"
+  ) {
     return <Loader2 size={12} className="animate-spin" aria-hidden="true" />
   }
   if (runDisplayState.state === "paused") {
@@ -112,11 +127,16 @@ export function outcomeIcon(entry: DashboardEntry) {
   return <CheckCircle2 size={12} aria-hidden="true" />
 }
 
-function buildNodeLabel(state: WorkflowExecutionState, nodeId: string | null): string | null {
+function buildNodeLabel(
+  state: WorkflowExecutionState,
+  nodeId: string | null,
+): string | null {
   if (!nodeId) return null
   const runtimeNode = state.runtimeNodes.find((node) => node.id === nodeId)
   if (runtimeNode) return getWorkflowNodeLabel(runtimeNode)
-  const workflowNode = state.workflowSnapshot?.nodes.find((node) => node.id === nodeId)
+  const workflowNode = state.workflowSnapshot?.nodes.find(
+    (node) => node.id === nodeId,
+  )
   if (workflowNode) return getWorkflowNodeLabel(workflowNode)
   if (nodeId.includes("::")) {
     const runtimeMeta = state.runtimeMeta[nodeId]
@@ -129,8 +149,10 @@ function buildNodeLabel(state: WorkflowExecutionState, nodeId: string | null): s
 
 export function summarizeExecution(state: WorkflowExecutionState) {
   const nodeTypeById = new Map(
-    (state.runtimeNodes.length > 0 ? state.runtimeNodes : state.workflowSnapshot?.nodes || [])
-      .map((node) => [node.id, node.type]),
+    (state.runtimeNodes.length > 0
+      ? state.runtimeNodes
+      : state.workflowSnapshot?.nodes || []
+    ).map((node) => [node.id, node.type]),
   )
   const stepNodeIds = new Set<string>()
   for (const [nodeId, nodeType] of nodeTypeById.entries()) {
@@ -140,7 +162,10 @@ export function summarizeExecution(state: WorkflowExecutionState) {
   }
   for (const nodeId of Object.keys(state.nodeStates)) {
     const nodeType = nodeTypeById.get(nodeId)
-    if ((nodeType && nodeType !== "input" && nodeType !== "output") || nodeId.includes("::")) {
+    if (
+      (nodeType && nodeType !== "input" && nodeType !== "output") ||
+      nodeId.includes("::")
+    ) {
       stepNodeIds.add(nodeId)
     }
   }
@@ -154,7 +179,8 @@ export function summarizeExecution(state: WorkflowExecutionState) {
     const status = state.nodeStates[nodeId]?.status || "pending"
     if (status === "completed" || status === "skipped") completedSteps += 1
     if (status === "running") runningSteps += 1
-    if (status === "waiting_approval" || status === "waiting_human") waitingApprovalSteps += 1
+    if (status === "waiting_approval" || status === "waiting_human")
+      waitingApprovalSteps += 1
     if (status === "failed") failedSteps += 1
   }
 
@@ -168,19 +194,30 @@ export function summarizeExecution(state: WorkflowExecutionState) {
 }
 
 function buildEntrySortTimestamp(entry: DashboardEntry): number {
-  return entry.lastUpdatedAt
-    || entry.completedAt
-    || entry.runStartedAt
-    || entry.pastRun?.completedAt
-    || entry.pastRun?.startedAt
-    || 0
+  return (
+    entry.lastUpdatedAt ||
+    entry.completedAt ||
+    entry.runStartedAt ||
+    entry.pastRun?.completedAt ||
+    entry.pastRun?.startedAt ||
+    0
+  )
 }
 
-export function summarizeCost(entry: DashboardEntry): { totalCost: number; totalTokens: number } {
-  if (entry.pastRun?.totalCost != null || entry.pastRun?.totalTokensIn != null || entry.pastRun?.totalTokensOut != null) {
+export function summarizeCost(entry: DashboardEntry): {
+  totalCost: number
+  totalTokens: number
+} {
+  if (
+    entry.pastRun?.totalCost != null ||
+    entry.pastRun?.totalTokensIn != null ||
+    entry.pastRun?.totalTokensOut != null
+  ) {
     return {
       totalCost: entry.pastRun.totalCost || 0,
-      totalTokens: (entry.pastRun.totalTokensIn || 0) + (entry.pastRun.totalTokensOut || 0),
+      totalTokens:
+        (entry.pastRun.totalTokensIn || 0) +
+        (entry.pastRun.totalTokensOut || 0),
     }
   }
 
@@ -189,7 +226,8 @@ export function summarizeCost(entry: DashboardEntry): { totalCost: number; total
   for (const nodeState of Object.values(entry.nodeStates)) {
     if (nodeState.metrics) {
       totalCost += nodeState.metrics.cost_usd || 0
-      totalTokens += (nodeState.metrics.tokens_in || 0) + (nodeState.metrics.tokens_out || 0)
+      totalTokens +=
+        (nodeState.metrics.tokens_in || 0) + (nodeState.metrics.tokens_out || 0)
     }
   }
   return { totalCost, totalTokens }
@@ -212,7 +250,8 @@ export function triageGroup(entry: DashboardEntry): DashboardEntryGroupId {
     lastError: entry.lastError,
   })
   if (runDisplayState.needsAttention) return "needs_action"
-  if (runDisplayState.state === "paused" || runDisplayState.isInFlight) return "running"
+  if (runDisplayState.state === "paused" || runDisplayState.isInFlight)
+    return "running"
   return "recent"
 }
 
@@ -243,7 +282,10 @@ function entryDurationMs(entry: DashboardEntry, now: number): number | null {
   return null
 }
 
-export function entryDurationLabel(entry: DashboardEntry, now: number): string | null {
+export function entryDurationLabel(
+  entry: DashboardEntry,
+  now: number,
+): string | null {
   const durationMs = entryDurationMs(entry, now)
   return durationMs == null ? null : formatDurationMs(durationMs)
 }
@@ -260,9 +302,7 @@ export function entryScanLine(entry: DashboardEntry, now: number): string {
     entry.approvalCount > 0
       ? `${entry.approvalCount} approval${entry.approvalCount === 1 ? "" : "s"} pending`
       : null,
-    isFailureEntry(entry) && !entry.approvalCount
-      ? "Needs review"
-      : null,
+    isFailureEntry(entry) && !entry.approvalCount ? "Needs review" : null,
   ].filter((value): value is string => Boolean(value))
 
   return parts.join(" · ")
@@ -338,7 +378,9 @@ export function groupMetaLabel(group: DashboardEntryGroupId): string {
   return "Recent"
 }
 
-export function toExecutionStateSnapshot(entry: DashboardEntry): WorkflowExecutionState {
+export function toExecutionStateSnapshot(
+  entry: DashboardEntry,
+): WorkflowExecutionState {
   const {
     workflowKey: _workflowKey,
     workflowPath: _workflowPath,
@@ -361,7 +403,11 @@ export function buildDashboardEntries({
   selectedWorkflowPath,
 }: {
   workflowExecutionStates: Record<string, WorkflowExecutionState>
-  approvalRequests: Array<{ workflowKey: string; message?: string | null; nodeId: string }>
+  approvalRequests: Array<{
+    workflowKey: string
+    message?: string | null
+    nodeId: string
+  }>
   pastRuns: RunResult[]
   selectedWorkflowPath: string | null
 }): DashboardEntry[] {
@@ -379,18 +425,24 @@ export function buildDashboardEntries({
   return Object.entries(workflowExecutionStates)
     .filter(([, state]) => isDashboardVisibleState(state))
     .map(([workflowKey, state]): DashboardEntry => {
-      const matchingRequests = approvalRequests.filter((request) => request.workflowKey === workflowKey)
+      const matchingRequests = approvalRequests.filter(
+        (request) => request.workflowKey === workflowKey,
+      )
       const workflowPath = workflowKey === "__draft__" ? null : workflowKey
       const matchingPastRun = state.workspace
         ? historyByWorkspace.get(state.workspace)
-        : (workflowPath ? historyByPath.get(workflowPath) : undefined)
+        : workflowPath
+          ? historyByPath.get(workflowPath)
+          : undefined
       const progress = summarizeExecution(state)
       return {
         ...state,
         workflowKey,
         workflowPath,
         approvalCount: matchingRequests.length,
-        approvalMessages: matchingRequests.map((request) => request.message || request.nodeId),
+        approvalMessages: matchingRequests.map(
+          (request) => request.message || request.nodeId,
+        ),
         isSelectedWorkflow: selectedWorkflowPath === workflowPath,
         activeNodeLabel: buildNodeLabel(state, state.activeNodeId),
         progress,
@@ -426,7 +478,9 @@ export function groupDashboardEntries(entries: DashboardEntry[]) {
 
 export function dashboardAggregateCounts(entries: DashboardEntry[]) {
   return {
-    needsAction: entries.filter((entry) => triageGroup(entry) === "needs_action").length,
+    needsAction: entries.filter(
+      (entry) => triageGroup(entry) === "needs_action",
+    ).length,
     running: entries.filter((entry) => triageGroup(entry) === "running").length,
     recent: entries.filter((entry) => triageGroup(entry) === "recent").length,
   }

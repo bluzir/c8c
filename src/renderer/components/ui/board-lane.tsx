@@ -3,22 +3,19 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/cn"
 
-const boardLaneVariants = cva(
-  "rounded-xl border p-4 space-y-4",
-  {
-    variants: {
-      tone: {
-        default: "border-hairline bg-surface-2/25",
-        info: "border-status-info/20 bg-status-info/5",
-        warning: "border-status-warning/20 bg-status-warning/5",
-        success: "border-status-success/20 bg-status-success/5",
-      },
-    },
-    defaultVariants: {
-      tone: "default",
+const boardLaneVariants = cva("rounded-xl p-4 space-y-4", {
+  variants: {
+    tone: {
+      default: "bg-surface-2/25",
+      info: "bg-status-info/5",
+      warning: "bg-status-warning/5",
+      success: "bg-status-success/5",
     },
   },
-)
+  defaultVariants: {
+    tone: "default",
+  },
+})
 
 export interface BoardLaneProps extends VariantProps<typeof boardLaneVariants> {
   title: string
@@ -51,7 +48,9 @@ export function BoardLane({
             ) : null}
           </div>
           {description ? (
-            <p className="mt-1 text-body-sm text-muted-foreground">{description}</p>
+            <p className="mt-1 text-body-sm text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </div>
         {actions}

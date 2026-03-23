@@ -6,21 +6,33 @@ function dotClass(state: ProcessSpineStage["state"]) {
   if (state === "current") return "bg-status-info border-status-info"
   if (state === "blocked") return "bg-status-warning border-status-warning"
   if (state === "next") return "border-status-info bg-transparent"
-  if (state === "available") return "bg-muted-foreground/45 border-muted-foreground/45"
+  if (state === "available")
+    return "bg-muted-foreground/45 border-muted-foreground/45"
   return "bg-transparent border-muted-foreground/35"
 }
 
 function rowClass(state: ProcessSpineStage["state"]) {
-  if (state === "done") return "border-status-success/22 bg-status-success/7 text-foreground"
-  if (state === "current") return "border-status-info/28 bg-status-info/9 text-foreground shadow-[inset_0_1px_0_hsl(var(--foreground)/0.05)]"
-  if (state === "blocked") return "border-status-warning/28 bg-status-warning/10 text-foreground"
-  if (state === "next") return "border-border/90 bg-surface-2/88 text-foreground"
-  if (state === "available") return "border-transparent bg-transparent text-muted-foreground"
+  if (state === "done")
+    return "border-status-success/22 bg-status-success/7 text-foreground"
+  if (state === "current")
+    return "border-status-info/28 bg-status-info/9 text-foreground"
+  if (state === "blocked")
+    return "border-status-warning/28 bg-status-warning/10 text-foreground"
+  if (state === "next")
+    return "border-border/90 bg-surface-2/88 text-foreground"
+  if (state === "available")
+    return "border-transparent bg-transparent text-muted-foreground"
   return "border-transparent bg-transparent text-muted-foreground"
 }
 
-function connectorClass(left: ProcessSpineStage["state"], right: ProcessSpineStage["state"]) {
-  if (left === "done" && (right === "done" || right === "current" || right === "next")) {
+function connectorClass(
+  left: ProcessSpineStage["state"],
+  right: ProcessSpineStage["state"],
+) {
+  if (
+    left === "done" &&
+    (right === "done" || right === "current" || right === "next")
+  ) {
     return "bg-status-success/30"
   }
   if (left === "current" || right === "current") {
@@ -55,7 +67,10 @@ export function ProcessSpine({
               {index > 0 && (
                 <div
                   aria-hidden="true"
-                  className={cn("h-px w-4 shrink-0", connectorClass(stages[index - 1].state, stage.state))}
+                  className={cn(
+                    "h-px w-4 shrink-0",
+                    connectorClass(stages[index - 1].state, stage.state),
+                  )}
                 />
               )}
               <div
@@ -68,17 +83,25 @@ export function ProcessSpine({
                 title={stage.label}
               >
                 {stage.state === "current" && isLive ? (
-                  <span className="ui-status-beacon shrink-0" aria-hidden="true">
+                  <span
+                    className="ui-status-beacon shrink-0"
+                    aria-hidden="true"
+                  >
                     <span className="ui-status-beacon-ring bg-status-info/35" />
                     <span className="ui-status-beacon-core bg-status-info" />
                   </span>
                 ) : (
                   <span
                     aria-hidden="true"
-                    className={cn("h-2 w-2 shrink-0 rounded-full border", dotClass(stage.state))}
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full border",
+                      dotClass(stage.state),
+                    )}
                   />
                 )}
-                <span className="max-w-[8.5rem] truncate whitespace-nowrap">{stage.label}</span>
+                <span className="max-w-[8.5rem] truncate whitespace-nowrap">
+                  {stage.label}
+                </span>
               </div>
             </div>
           ))}

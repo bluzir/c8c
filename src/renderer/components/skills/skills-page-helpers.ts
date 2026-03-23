@@ -78,19 +78,24 @@ function skillRefCandidates(skill: DiscoveredSkill): string[] {
   return Array.from(new Set([name, full])).filter(Boolean)
 }
 
-export function findWorkflowRefsBySkills(workflow: Workflow, candidateSkills: DiscoveredSkill[]): string[] {
+export function findWorkflowRefsBySkills(
+  workflow: Workflow,
+  candidateSkills: DiscoveredSkill[],
+): string[] {
   if (candidateSkills.length === 0) return []
   const candidates = new Set(candidateSkills.flatMap(skillRefCandidates))
   const impacted = new Set<string>()
 
   for (const node of workflow.nodes) {
     if (node.type !== "skill") continue
-    const rawRef = typeof node.config.skillRef === "string" ? node.config.skillRef : ""
+    const rawRef =
+      typeof node.config.skillRef === "string" ? node.config.skillRef : ""
     const normalizedRef = normalizeSkillRef(rawRef)
     if (!normalizedRef) continue
 
-    const matches = Array.from(candidates).some((candidate) =>
-      normalizedRef === candidate || normalizedRef.endsWith(`/${candidate}`),
+    const matches = Array.from(candidates).some(
+      (candidate) =>
+        normalizedRef === candidate || normalizedRef.endsWith(`/${candidate}`),
     )
     if (matches) impacted.add(rawRef)
   }
@@ -98,18 +103,26 @@ export function findWorkflowRefsBySkills(workflow: Workflow, candidateSkills: Di
   return Array.from(impacted)
 }
 
-export function formatPluginAssetCount(plugin: InstalledPlugin, capability: PluginCapability): string {
+export function formatPluginAssetCount(
+  plugin: InstalledPlugin,
+  capability: PluginCapability,
+): string {
   const asset = plugin.assets.find((item) => item.capability === capability)
   const count = asset?.count ?? 0
   if (capability === "skill") return `${count} skill${count === 1 ? "" : "s"}`
-  if (capability === "template") return `${count} library flow${count === 1 ? "" : "s"}`
+  if (capability === "template")
+    return `${count} library flow${count === 1 ? "" : "s"}`
   return `${count} MCP server${count === 1 ? "" : "s"}`
 }
 
-export function marketplaceBadgeVariant(marketplace: MarketplaceSource): "secondary" | "outline" {
+export function marketplaceBadgeVariant(
+  marketplace: MarketplaceSource,
+): "secondary" | "outline" {
   return marketplace.installed ? "secondary" : "outline"
 }
 
-export function pluginBadgeVariant(plugin: InstalledPlugin): "success" | "outline" {
+export function pluginBadgeVariant(
+  plugin: InstalledPlugin,
+): "success" | "outline" {
   return plugin.enabled ? "success" : "outline"
 }

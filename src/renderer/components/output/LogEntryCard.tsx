@@ -1,11 +1,7 @@
 import { memo, useState } from "react"
 
 import type { LogEntry } from "@shared/types"
-import {
-  ChevronRight,
-  FileCode2,
-  Wrench,
-} from "lucide-react"
+import { ChevronRight, FileCode2, Wrench } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/cn"
@@ -26,24 +22,30 @@ function PermissionHintNotice({
   return (
     <div className="mt-1 border-l-2 border-status-warning/35 pl-3 py-0.5">
       <p className="ui-meta-text text-status-warning">
-        Permission hint: add <span className="font-mono">{toolName}</span> to this skill step&apos;s Allowed Tools,
-        then rerun this step.
+        Permission hint: add <span className="font-mono">{toolName}</span> to
+        this skill step&apos;s Allowed Tools, then rerun this step.
       </p>
       {domain ? (
         <p className="ui-meta-text text-muted-foreground mt-1">
           If domain allowlist blocks access, add{" "}
-          <span className="font-mono">WebFetch(domain:{domain})</span>{" "}
-          to <span className="font-mono">.claude/settings.local.json</span>.
+          <span className="font-mono">WebFetch(domain:{domain})</span> to{" "}
+          <span className="font-mono">.claude/settings.local.json</span>.
         </p>
       ) : null}
     </div>
   )
 }
 
-export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEntry }) {
+export const LogEntryCard = memo(function LogEntryCard({
+  entry,
+}: {
+  entry: LogEntry
+}) {
   const permissionHint = getToolPermissionHint(entry)
   const [collapsed, setCollapsed] = useState(
-    entry.type === "thinking" || entry.type === "tool_use" || entry.type === "tool_result",
+    entry.type === "thinking" ||
+      entry.type === "tool_use" ||
+      entry.type === "tool_result",
   )
 
   if (entry.type === "thinking") {
@@ -52,15 +54,14 @@ export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEn
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand thinking block" : "Collapse thinking block"}
+          aria-label={
+            collapsed ? "Expand thinking block" : "Collapse thinking block"
+          }
           className="flex items-center gap-1 ui-meta-text text-muted-foreground hover:text-foreground ui-pressable"
         >
           <ChevronRight
             size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
+            className={cn("ui-chevron", !collapsed && "rotate-90")}
           />
           <span className="italic">thinking...</span>
         </button>
@@ -87,7 +88,9 @@ export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEn
 
     return (
       <div className="py-1">
-        <pre className="text-body-md whitespace-pre-wrap font-mono">{entry.content}</pre>
+        <pre className="text-body-md whitespace-pre-wrap font-mono">
+          {entry.content}
+        </pre>
       </div>
     )
   }
@@ -104,19 +107,24 @@ export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEn
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!collapsed}
-          aria-label={collapsed ? `Expand ${toolDisplayName} input` : `Collapse ${toolDisplayName} input`}
+          aria-label={
+            collapsed
+              ? `Expand ${toolDisplayName} input`
+              : `Collapse ${toolDisplayName} input`
+          }
           className="flex items-center gap-2 ui-meta-label text-foreground-subtle hover:text-foreground ui-pressable"
         >
           <ChevronRight
             size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
+            className={cn("ui-chevron", !collapsed && "rotate-90")}
           />
           <Wrench size={12} />
           <span>{toolDisplayName}</span>
-          {isMcp && <Badge variant="info" className="ui-meta-text px-1.5 py-0">{mcpServerLabel(entry.tool)}</Badge>}
+          {isMcp && (
+            <Badge variant="info" className="ui-meta-text px-1.5 py-0">
+              {mcpServerLabel(entry.tool)}
+            </Badge>
+          )}
         </button>
         {!collapsed && (
           <pre className="ui-meta-text text-muted-foreground whitespace-pre-wrap font-mono mt-1 max-h-60 overflow-y-auto ui-scroll-region">
@@ -150,20 +158,28 @@ export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEn
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!collapsed}
-          aria-label={collapsed ? `Expand ${toolDisplayName} result` : `Collapse ${toolDisplayName} result`}
-          className={cn("flex items-center gap-2 ui-meta-label ui-pressable", textColor)}
+          aria-label={
+            collapsed
+              ? `Expand ${toolDisplayName} result`
+              : `Collapse ${toolDisplayName} result`
+          }
+          className={cn(
+            "flex items-center gap-2 ui-meta-label ui-pressable",
+            textColor,
+          )}
         >
           <ChevronRight
             size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
+            className={cn("ui-chevron", !collapsed && "rotate-90")}
           />
           <span>
             {toolDisplayName} {isError ? "failed" : "result"}
           </span>
-          {isMcp && <Badge variant="info" className="ui-meta-text px-1.5 py-0">{mcpServerLabel(entry.tool)}</Badge>}
+          {isMcp && (
+            <Badge variant="info" className="ui-meta-text px-1.5 py-0">
+              {mcpServerLabel(entry.tool)}
+            </Badge>
+          )}
         </button>
         {permissionHint ? (
           <PermissionHintNotice
@@ -212,32 +228,36 @@ export const LogEntryCard = memo(function LogEntryCard({ entry }: { entry: LogEn
         >
           <ChevronRight
             size={12}
-            className={cn(
-              "ui-chevron",
-              !collapsed && "rotate-90",
-            )}
+            className={cn("ui-chevron", !collapsed && "rotate-90")}
           />
           <FileCode2 size={12} />
-          <span>{entry.files.length} file{entry.files.length !== 1 ? "s" : ""} changed</span>
+          <span>
+            {entry.files.length} file{entry.files.length !== 1 ? "s" : ""}{" "}
+            changed
+          </span>
         </button>
         {!collapsed && (
           <>
             <div className="mt-1 flex flex-wrap gap-1">
               {entry.files.map((file) => (
-                <span key={file} className="inline-flex items-center rounded-sm border border-hairline px-1.5 py-0 ui-meta-text text-muted-foreground bg-surface-1/80 font-mono">
+                <span
+                  key={file}
+                  className="inline-flex items-center rounded-sm border border-hairline px-1.5 py-0 ui-meta-text text-muted-foreground bg-surface-1/80 font-mono"
+                >
                   {file}
                 </span>
               ))}
             </div>
             <pre className="ui-meta-text whitespace-pre-wrap font-mono mt-2 max-h-80 overflow-y-auto ui-scroll-region">
               {entry.content.split("\n").map((line, index) => {
-                const color = line.startsWith("+") && !line.startsWith("+++")
-                  ? "text-status-success"
-                  : line.startsWith("-") && !line.startsWith("---")
-                    ? "text-status-danger"
-                    : line.startsWith("@@")
-                      ? "text-status-info"
-                      : "text-muted-foreground"
+                const color =
+                  line.startsWith("+") && !line.startsWith("+++")
+                    ? "text-status-success"
+                    : line.startsWith("-") && !line.startsWith("---")
+                      ? "text-status-danger"
+                      : line.startsWith("@@")
+                        ? "text-status-info"
+                        : "text-muted-foreground"
                 return (
                   <span key={index} className={color}>
                     {line}

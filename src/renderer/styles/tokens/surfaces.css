@@ -1,0 +1,50 @@
+/* ── Surface, glass, and overlay tokens ── */
+
+@layer base {
+  :root {
+    --overlay-scrim: oklch(0 0 0 / 0.2);
+
+    --inset-highlight: var(--glass-shine);
+
+    /* ── Glass ── */
+    --glass-blur-sm: 8px;
+    --glass-blur-md: 12px;
+    --glass-blur-lg: 16px;
+    --glass-saturate: 180%;
+    --glass-tint: var(--surface-1);
+    --glass-tint-opacity-subtle: 0.42;
+    --glass-tint-opacity-default: 0.58;
+    --glass-tint-opacity-strong: 0.72;
+
+    /* Borders: 3 tiers — subtle (panels), default (figure), strong (overlays) */
+    --glass-border-subtle: hsl(0 0% 0% / 0.03);
+    --glass-border: hsl(0 0% 0% / 0.07);
+    --glass-border-strong: hsl(0 0% 0% / 0.12);
+
+    /* Shine: figure-only top-edge highlight */
+    --glass-shine: inset 0 1px 0 hsl(0 0% 100% / 0.08);
+
+    /* Overlay shadow: floating elements only */
+    --shadow-overlay:
+      0 4px 16px hsl(0 0% 0% / 0.1), 0 1px 4px hsl(0 0% 0% / 0.06);
+  }
+
+  .dark {
+    --overlay-scrim: oklch(0 0 0 / 0.32);
+    --inset-highlight: var(--glass-shine);
+
+    /* ── Glass (dark) ── */
+    --glass-tint-opacity-subtle: 0.18;
+    --glass-tint-opacity-default: 0.3;
+    --glass-tint-opacity-strong: 0.42;
+
+    --glass-border-subtle: hsl(0 0% 100% / 0.04);
+    --glass-border: hsl(0 0% 100% / 0.09);
+    --glass-border-strong: hsl(0 0% 100% / 0.14);
+
+    --glass-shine: inset 0 1px 0 hsl(0 0% 100% / 0.05);
+
+    --shadow-overlay:
+      0 4px 16px hsl(0 0% 0% / 0.28), 0 1px 4px hsl(0 0% 0% / 0.18);
+  }
+}

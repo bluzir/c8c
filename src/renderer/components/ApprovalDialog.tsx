@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { approvalRequestsAtom, workflowExecutionStatesAtom } from "@/features/execution"
+import {
+  approvalRequestsAtom,
+  workflowExecutionStatesAtom,
+} from "@/features/execution"
 import { desktopRuntimeAtom, multiRunDashboardOpenAtom } from "@/lib/store"
 import {
   Dialog,
@@ -15,20 +18,32 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Check, X } from "lucide-react"
 import { toastError } from "@/lib/toast-error"
-import { DEFAULT_EXECUTION_IPC_TIMEOUT_MS, withIpcTimeout } from "@/features/execution"
+import {
+  DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+  withIpcTimeout,
+} from "@/features/execution"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
-import { consumeShortcut, isShortcutConsumed, matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
+import {
+  consumeShortcut,
+  isShortcutConsumed,
+  matchesPrimaryShortcut,
+} from "@/lib/keyboard-shortcuts"
 import { ExecutionApprovalSummary } from "@/components/ui/execution-approval-summary"
 import type { WorkflowNode } from "@shared/types"
 import { deriveExecutionLoopSummary } from "@/lib/execution-loops"
 import { ExecutionLoopCard } from "@/components/ui/execution-loop-card"
-import { getRuntimeNodeLabel, getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
+import {
+  getRuntimeNodeLabel,
+  getRuntimeStagePresentation,
+} from "@/lib/runtime-flow-labels"
 import { deriveExecutionLoopFlowRules } from "@/lib/flow-rules"
 import { FlowRulesPreview } from "@/components/ui/flow-rules-preview"
 
 type EvaluatorWorkflowNode = Extract<WorkflowNode, { type: "evaluator" }>
 
-function isEvaluatorNode(node: WorkflowNode | null | undefined): node is EvaluatorWorkflowNode {
+function isEvaluatorNode(
+  node: WorkflowNode | null | undefined,
+): node is EvaluatorWorkflowNode {
   return node?.type === "evaluator"
 }
 
@@ -53,19 +68,28 @@ export function ApprovalDialog() {
   const multiRunDashboardOpen = useAtomValue(multiRunDashboardOpenAtom)
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
   const [editedContent, setEditedContent] = useState("")
-  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null)
-  const [dismissedRequestKey, setDismissedRequestKey] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<
+    "approve" | "reject" | null
+  >(null)
+  const [dismissedRequestKey, setDismissedRequestKey] = useState<string | null>(
+    null,
+  )
   const mountedRef = useRef(true)
 
   const request = requests[0] ?? null
   const queueCount = requests.length
-  const requestKey = request ? `${request.workflowKey}::${request.runId}::${request.nodeId}` : null
+  const requestKey = request
+    ? `${request.workflowKey}::${request.runId}::${request.nodeId}`
+    : null
   const requestExecutionState = useMemo(
-    () => request
-      ? executionStates[request.workflowKey]
-        || Object.values(executionStates).find((state) => state.runId === request.runId)
-        || null
-      : null,
+    () =>
+      request
+        ? executionStates[request.workflowKey] ||
+          Object.values(executionStates).find(
+            (state) => state.runId === request.runId,
+          ) ||
+          null
+        : null,
     [executionStates, request],
   )
   const evaluatorSummary = useMemo(() => {
@@ -76,7 +100,9 @@ export function ApprovalDialog() {
       .filter((edge) => edge.target === request.nodeId)
       .map((edge) => edge.source)
     const directEvaluatorNode = directPredecessorIds
-      .map((nodeId) => workflow.nodes.find((node) => node.id === nodeId) || null)
+      .map(
+        (nodeId) => workflow.nodes.find((node) => node.id === nodeId) || null,
+      )
       .find(isEvaluatorNode)
     return deriveExecutionLoopSummary({
       workflow,
@@ -87,14 +113,18 @@ export function ApprovalDialog() {
     })
   }, [request, requestExecutionState])
   const primaryShortcutLabel = `${desktopRuntime.primaryModifierLabel}↵`
-  const failedCriterionCount = evaluatorSummary?.failedCriteriaCount || 0
   const requestContext = useMemo(() => {
     if (!request) return null
 
     const workflow = requestExecutionState?.workflowSnapshot
-    const workflowName = requestExecutionState?.workflowName.trim()
-      || labelFromPathLike(requestExecutionState?.runWorkflowPath, labelFromPathLike(request.workflowKey, "Flow"))
-    const stageNode = workflow?.nodes.find((node) => node.id === request.nodeId) || null
+    const workflowName =
+      requestExecutionState?.workflowName.trim() ||
+      labelFromPathLike(
+        requestExecutionState?.runWorkflowPath,
+        labelFromPathLike(request.workflowKey, "Flow"),
+      )
+    const stageNode =
+      workflow?.nodes.find((node) => node.id === request.nodeId) || null
     const stageLabel = stageNode
       ? getRuntimeNodeLabel(stageNode, { fallbackId: stageNode.id })
       : labelFromPathLike(request.nodeId, "Step")
@@ -102,13 +132,21 @@ export function ApprovalDialog() {
       ? getRuntimeStagePresentation(stageNode, { fallbackId: stageNode.id })
       : null
     const nextStageLabels = workflow
-      ? Array.from(new Set(
-        workflow.edges
-          .filter((edge) => edge.source === request.nodeId)
-          .map((edge) => workflow.nodes.find((node) => node.id === edge.target) || null)
-          .filter((node): node is WorkflowNode => Boolean(node))
-          .map((node) => getRuntimeNodeLabel(node, { fallbackId: node.id })),
-      ))
+      ? Array.from(
+          new Set(
+            workflow.edges
+              .filter((edge) => edge.source === request.nodeId)
+              .map(
+                (edge) =>
+                  workflow.nodes.find((node) => node.id === edge.target) ||
+                  null,
+              )
+              .filter((node): node is WorkflowNode => Boolean(node))
+              .map((node) =>
+                getRuntimeNodeLabel(node, { fallbackId: node.id }),
+              ),
+          ),
+        )
       : []
     const nextStageLabel = formatNextStageLabel(nextStageLabels)
 
@@ -116,7 +154,10 @@ export function ApprovalDialog() {
       workflowName,
       stageLabel,
       stageKind: stagePresentation?.group || "Step",
-      stepDescription: request.message || stagePresentation?.outcomeText || "Review this exact step before the flow continues.",
+      stepDescription:
+        request.message ||
+        stagePresentation?.outcomeText ||
+        "Review this exact step before the flow continues.",
       expectedResult: stagePresentation?.artifactLabel || "Reviewable result",
       approveConsequence: nextStageLabel
         ? `Continues to ${nextStageLabel}`
@@ -133,7 +174,8 @@ export function ApprovalDialog() {
   const gateTitle = requestContext
     ? `Approve ${requestContext.stageLabel}`
     : "Approve this step"
-  const gateDescription = request?.message || "Review this exact step before the flow continues."
+  const gateDescription =
+    request?.message || "Review this exact step before the flow continues."
   const dialogOpen = Boolean(request && requestKey !== dismissedRequestKey)
 
   useEffect(() => {
@@ -168,9 +210,20 @@ export function ApprovalDialog() {
     if (!request) return
 
     const handler = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isShortcutConsumed(event) || pendingAction !== null) return
+      if (
+        event.defaultPrevented ||
+        isShortcutConsumed(event) ||
+        pendingAction !== null
+      )
+        return
 
-      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey: desktopRuntime.primaryModifierKey })) return
+      if (
+        !matchesPrimaryShortcut(event, {
+          key: "Enter",
+          primaryModifierKey: desktopRuntime.primaryModifierKey,
+        })
+      )
+        return
       consumeShortcut(event)
       void handleApprove()
     }
@@ -245,18 +298,19 @@ export function ApprovalDialog() {
   }
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={(open) => {
-      if (!open) handleDismiss()
-    }}>
+    <Dialog
+      open={dialogOpen}
+      onOpenChange={(open) => {
+        if (!open) handleDismiss()
+      }}
+    >
       <DialogContent
         className="max-w-2xl max-h-[80vh] overflow-y-auto ui-scroll-region"
         data-approval-dialog="true"
       >
-        <DialogHeader className="sr-only">
+        <DialogHeader>
           <DialogTitle>{gateTitle}</DialogTitle>
-          <DialogDescription>
-            {gateDescription}
-          </DialogDescription>
+          <DialogDescription>{gateDescription}</DialogDescription>
         </DialogHeader>
 
         {requestContext && (
@@ -269,28 +323,37 @@ export function ApprovalDialog() {
             inputPreview={request.content}
             approveConsequence={requestContext.approveConsequence}
             rejectConsequence={requestContext.rejectConsequence}
-            topBadges={(
-              queueCount > 1 ? <Badge variant="secondary" size="compact">{queueCount - 1} more pending</Badge> : null
-            )}
+            topBadges={
+              queueCount > 1 ? (
+                <Badge variant="secondary" size="compact">
+                  {queueCount - 1} more pending
+                </Badge>
+              ) : null
+            }
           />
         )}
 
-        <FlowRulesPreview rules={flowRules} />
+        <FlowRulesPreview rules={flowRules} collapsible defaultOpen={false} />
 
         {evaluatorSummary && (
           <ExecutionLoopCard
             summary={evaluatorSummary}
             compact
             detailSummary="Why / checks"
+            surface="flat"
           />
         )}
 
-        {request.content && (
-          request.allowEdit ? (
-            <section className="space-y-2 rounded-lg bg-surface-2/45 p-3">
+        {request.content &&
+          (request.allowEdit ? (
+            <section className="space-y-2 ui-section-divider">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="ui-meta-label text-muted-foreground">Edit input before continue</p>
-                <Badge variant="outline" size="compact">Editable</Badge>
+                <p className="ui-meta-label text-muted-foreground">
+                  Edit input before continue
+                </p>
+                <Badge variant="outline" size="compact">
+                  Editable
+                </Badge>
               </div>
               <Textarea
                 value={editedContent}
@@ -300,21 +363,40 @@ export function ApprovalDialog() {
                 className="font-mono text-body-sm"
                 autoFocus
               />
-              <p className="ui-meta-text text-muted-foreground">Your edits will be used as the step output when approved.</p>
+              <p className="ui-meta-text text-muted-foreground">
+                Your edits will be used as the step output when approved.
+              </p>
             </section>
           ) : (
-            <DisclosurePanel summary="Show full input" surface="plain" className="mt-1" summaryClassName="px-0 py-1.5">
-              <div className="max-h-64 overflow-y-auto rounded-lg bg-surface-2/45 px-3 py-3 ui-scroll-region">
-                <pre className="text-body-sm text-foreground-subtle whitespace-pre-wrap">{request.content}</pre>
+            <DisclosurePanel
+              summary="Show full input"
+              surface="plain"
+              className="mt-1"
+              summaryClassName="px-0 py-1.5"
+            >
+              <div className="max-h-64 overflow-y-auto border-l border-hairline pl-3 ui-scroll-region">
+                <pre className="text-body-sm text-foreground-subtle whitespace-pre-wrap">
+                  {request.content}
+                </pre>
               </div>
             </DisclosurePanel>
-          )
-        )}
+          ))}
 
-        <DialogFooter className="border-t border-hairline/70 pt-3">
-          <div className="mr-auto flex min-w-0 flex-wrap items-center gap-2 ui-meta-text text-muted-foreground">
-            <span>Press {primaryShortcutLabel} to approve</span>
-            {queueCount > 1 ? <span>{queueCount - 1} more approval{queueCount - 1 === 1 ? "" : "s"} waiting</span> : null}
+        <DialogFooter className="ui-section-divider">
+          <div className="mr-auto min-w-0 space-y-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 ui-meta-text text-muted-foreground">
+              <span>Press {primaryShortcutLabel} to approve</span>
+              {queueCount > 1 ? (
+                <span>
+                  {queueCount - 1} more approval
+                  {queueCount - 1 === 1 ? "" : "s"} waiting
+                </span>
+              ) : null}
+            </div>
+            <p className="ui-meta-text text-muted-foreground">
+              Closing this dialog keeps the flow paused and moves it to the
+              dashboard.
+            </p>
           </div>
           <Button
             variant="destructive"

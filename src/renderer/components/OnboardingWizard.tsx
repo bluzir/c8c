@@ -91,12 +91,7 @@ export function OnboardingWizard() {
 
           <div className="overflow-hidden rounded-xl surface-panel">
             <div className="px-6 py-6 sm:px-8 sm:py-8">
-              <div
-                className={cn(
-                  "mx-auto w-full min-h-[30rem]",
-                  "max-w-xl",
-                )}
-              >
+              <div className={cn("mx-auto w-full min-h-[30rem]", "max-w-xl")}>
                 {step === 1 && <StepCheckCli />}
                 {step === 2 && (
                   <StepOpenProject
@@ -120,7 +115,12 @@ export function OnboardingWizard() {
               <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
                 <div>
                   {step > 1 && (
-                    <Button type="button" variant="ghost" size="sm" onClick={prev}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={prev}
+                    >
                       <ArrowLeft size={14} />
                       Back
                     </Button>
@@ -168,8 +168,12 @@ function StepCheckCli() {
   const [execDefaults, setExecDefaults] = useAtom(globalExecutionDefaultsAtom)
   const currentModelRef = useRef(execDefaults.model)
   const mountedRef = useRef(true)
-  const [diagnostics, setDiagnostics] = useState<ProviderDiagnostics | null>(null)
-  const [primaryProvider, setPrimaryProvider] = useState<ProviderId | null>(null)
+  const [diagnostics, setDiagnostics] = useState<ProviderDiagnostics | null>(
+    null,
+  )
+  const [primaryProvider, setPrimaryProvider] = useState<ProviderId | null>(
+    null,
+  )
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -184,13 +188,16 @@ function StepCheckCli() {
     }
   }, [])
 
-  const applyDiagnostics = useCallback((nextDiagnostics: ProviderDiagnostics) => {
-    if (!mountedRef.current) return
-    setDiagnostics(nextDiagnostics)
-    setProviderSettings(nextDiagnostics.settings)
-    setProviderAvailability(nextDiagnostics.health)
-    setProviderAuthStatus(nextDiagnostics.auth)
-  }, [setProviderAuthStatus, setProviderAvailability, setProviderSettings])
+  const applyDiagnostics = useCallback(
+    (nextDiagnostics: ProviderDiagnostics) => {
+      if (!mountedRef.current) return
+      setDiagnostics(nextDiagnostics)
+      setProviderSettings(nextDiagnostics.settings)
+      setProviderAvailability(nextDiagnostics.health)
+      setProviderAuthStatus(nextDiagnostics.auth)
+    },
+    [setProviderAuthStatus, setProviderAvailability, setProviderSettings],
+  )
 
   const refreshDiagnostics = useCallback(async () => {
     if (!mountedRef.current) return
@@ -228,7 +235,9 @@ function StepCheckCli() {
       }
     } catch (error) {
       if (!mountedRef.current) return
-      setLoadError(error instanceof Error ? error.message : "Could not check CLI status.")
+      setLoadError(
+        error instanceof Error ? error.message : "Could not check CLI status.",
+      )
     } finally {
       if (mountedRef.current) {
         setLoading(false)
@@ -246,7 +255,9 @@ function StepCheckCli() {
     const auth = diagnostics?.auth[provider]
     return Boolean(health?.available && auth?.authenticated)
   })
-  const hasMultipleAvailableProviders = providers.filter((provider) => diagnostics?.health[provider].available).length > 1
+  const hasMultipleAvailableProviders =
+    providers.filter((provider) => diagnostics?.health[provider].available)
+      .length > 1
 
   return (
     <div className="space-y-4">
@@ -274,43 +285,73 @@ function StepCheckCli() {
             const available = health?.available ?? false
             const authenticated = auth?.authenticated ?? false
             const authState = auth?.state ?? "unknown"
-            const verdict = resolveProviderReadinessVerdict(provider, health, auth)
+            const verdict = resolveProviderReadinessVerdict(
+              provider,
+              health,
+              auth,
+            )
             const installCommand = getProviderInstallCommand(provider)
             const loginCommand = getProviderLoginCommand(provider)
 
             return (
               <div
                 key={provider}
-                className={cn("space-y-2 py-3", provider !== providers[0] && "border-t border-hairline/70")}
+                className={cn(
+                  "space-y-2 py-3",
+                  provider !== providers[0] && "ui-section-divider",
+                )}
               >
-                <div className="ui-body-text-medium text-foreground">{PROVIDER_LABELS[provider]}</div>
+                <div className="text-body-md font-medium text-foreground">
+                  {PROVIDER_LABELS[provider]}
+                </div>
 
                 <div className="flex items-center gap-2 text-body-sm">
                   {available ? (
-                    <CheckCircle2 size={16} className="text-status-success shrink-0" />
+                    <CheckCircle2
+                      size={16}
+                      className="text-status-success shrink-0"
+                    />
                   ) : (
-                    <XCircle size={16} className="text-status-danger shrink-0" />
+                    <XCircle
+                      size={16}
+                      className="text-status-danger shrink-0"
+                    />
                   )}
-                  <span className={available ? "text-foreground" : "text-status-danger"}>
+                  <span
+                    className={
+                      available ? "text-foreground" : "text-status-danger"
+                    }
+                  >
                     CLI {available ? "detected" : "not found"}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 text-body-sm">
                   {authenticated ? (
-                    <CheckCircle2 size={16} className="text-status-success shrink-0" />
+                    <CheckCircle2
+                      size={16}
+                      className="text-status-success shrink-0"
+                    />
                   ) : authState === "unknown" ? (
-                    <Loader2 size={16} className="text-status-warning shrink-0" />
+                    <Loader2
+                      size={16}
+                      className="text-status-warning shrink-0"
+                    />
                   ) : (
-                    <XCircle size={16} className="text-status-danger shrink-0" />
+                    <XCircle
+                      size={16}
+                      className="text-status-danger shrink-0"
+                    />
                   )}
-                  <span className={
-                    authenticated
-                      ? "text-foreground"
-                      : authState === "unknown"
-                        ? "text-status-warning"
-                        : "text-status-danger"
-                  }>
+                  <span
+                    className={
+                      authenticated
+                        ? "text-foreground"
+                        : authState === "unknown"
+                          ? "text-status-warning"
+                          : "text-status-danger"
+                    }
+                  >
                     {available
                       ? authenticated
                         ? "Authenticated"
@@ -323,19 +364,22 @@ function StepCheckCli() {
 
                 {!available && (
                   <p className="text-body-sm text-muted-foreground">
-                    Install: <code className="inline-code">{installCommand}</code>
+                    Install:{" "}
+                    <code className="inline-code">{installCommand}</code>
                   </p>
                 )}
 
                 {available && authState === "unauthenticated" && (
                   <p className="text-body-sm text-muted-foreground">
-                    Authenticate: <code className="inline-code">{loginCommand}</code>
+                    Authenticate:{" "}
+                    <code className="inline-code">{loginCommand}</code>
                   </p>
                 )}
 
                 {available && authState === "unknown" && auth?.error ? (
                   <p className="text-body-sm text-muted-foreground">
-                    Status check: <code className="inline-code">{auth.error}</code>
+                    Status check:{" "}
+                    <code className="inline-code">{auth.error}</code>
                   </p>
                 ) : null}
               </div>
@@ -355,7 +399,8 @@ function StepCheckCli() {
             </p>
           ) : (
             <p className="ui-meta-text text-muted-foreground">
-              You can still continue setup and install or authenticate a CLI later.
+              You can still continue setup and install or authenticate a CLI
+              later.
             </p>
           )}
 
@@ -370,7 +415,11 @@ function StepCheckCli() {
               onClick={() => void refreshDiagnostics()}
               disabled={loading}
             >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Terminal size={14} />}
+              {loading ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Terminal size={14} />
+              )}
               Re-check CLI
             </Button>
           </div>
@@ -447,7 +496,8 @@ function StepOpenProject({
             {projectRequired.primaryActionLabel}
           </Button>
           <p className="ui-meta-text text-muted-foreground">
-            {projectRequired.blockerStatement} {projectRequired.actionInstruction}
+            {projectRequired.blockerStatement}{" "}
+            {projectRequired.actionInstruction}
           </p>
         </div>
       )}
@@ -468,7 +518,8 @@ function StepUnderstandWorkflow({
   onStartFlow: () => void
   onGoTemplates: () => void
 }) {
-  const examplePrompt = "Build a flow that reviews this codebase for risky files, then summarizes what to fix first."
+  const examplePrompt =
+    "Build a flow that reviews this codebase for risky files, then summarizes what to fix first."
   const flowSteps = [
     "Describe the result you want in plain language.",
     "The system picks the best starting path and runs the early stages.",
@@ -480,9 +531,12 @@ function StepUnderstandWorkflow({
       <div className="flex items-center gap-3">
         <Bot size={20} className="text-foreground" />
         <div className="space-y-1">
-          <h2 className="text-title-md text-foreground">Start your first flow</h2>
+          <h2 className="text-title-md text-foreground">
+            Start your first flow
+          </h2>
           <div className="ui-meta-text text-muted-foreground">
-            Describe the result you want in plain language, then let the system choose the best starting path.
+            Describe the result you want in plain language, then let the system
+            choose the best starting path.
           </div>
         </div>
       </div>
@@ -492,10 +546,20 @@ function StepUnderstandWorkflow({
           {examplePrompt}
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="default" size="sm" onClick={onStartFlow}>
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={onStartFlow}
+          >
             Start a flow
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onGoTemplates}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onGoTemplates}
+          >
             Browse starting points
           </Button>
         </div>
@@ -503,11 +567,12 @@ function StepUnderstandWorkflow({
           No custom skills needed to start.
         </p>
         <p className="ui-meta-text text-muted-foreground">
-          Tip: write the goal first. You can browse starting points if you want a curated way to begin.
+          Tip: write the goal first. You can browse starting points if you want
+          a curated way to begin.
         </p>
       </div>
 
-      <div className="space-y-2 border-t border-hairline/70 pt-3">
+      <div className="space-y-2 ui-section-divider">
         {flowSteps.map((stepLabel) => (
           <p key={stepLabel} className="text-body-sm text-muted-foreground">
             {stepLabel}

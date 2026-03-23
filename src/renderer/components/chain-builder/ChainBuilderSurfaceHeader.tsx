@@ -36,7 +36,9 @@ export function ChainBuilderSurfaceHeader({
           </p>
         </div>
         <div className="ui-meta-text tabular-nums text-muted-foreground">
-          {totalMonitoredSteps > 0 ? `${completedCount}/${totalMonitoredSteps} done` : `${totalSteps} steps`}
+          {totalMonitoredSteps > 0
+            ? `${completedCount}/${totalMonitoredSteps} done`
+            : `${totalSteps} steps`}
         </div>
       </div>
     )
@@ -48,17 +50,25 @@ export function ChainBuilderSurfaceHeader({
         <h2 className="section-kicker">Preview</h2>
         <div className="ui-badge-row">
           {reviewSnapshot && (
-            <Badge variant="outline" className="ui-meta-text px-2 py-0 text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="ui-meta-text px-2 py-0 text-muted-foreground"
+            >
               Saved run
             </Badge>
           )}
-          <Badge variant="outline" className="ui-meta-text px-2 py-0 text-muted-foreground">
+          <Badge
+            variant="outline"
+            className="ui-meta-text px-2 py-0 text-muted-foreground"
+          >
             Select step to inspect
           </Badge>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
-        <span className="ui-meta-text tabular-nums text-muted-foreground">{totalSteps} steps</span>
+        <span className="ui-meta-text tabular-nums text-muted-foreground">
+          {totalSteps} steps
+        </span>
       </div>
     </div>
   )

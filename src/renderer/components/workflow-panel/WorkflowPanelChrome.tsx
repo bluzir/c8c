@@ -1,6 +1,4 @@
-import {
-  Loader2,
-} from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,7 +35,10 @@ function shellBadgeVariant(state: WorkflowPanelShellState) {
   }
 }
 
-function shellBadgeLabel(state: WorkflowPanelShellState, runStatus: ExecutionRunStatus) {
+function shellBadgeLabel(
+  state: WorkflowPanelShellState,
+  runStatus: ExecutionRunStatus,
+) {
   switch (state) {
     case "blocked":
       return "Blocked"
@@ -95,14 +96,14 @@ export function WorkflowOpenErrorBanner({
     <div className="surface-danger-soft px-[var(--content-gutter)] py-2.5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="ui-meta-label text-status-danger">Could not open flow</div>
+          <div className="ui-meta-label text-status-danger">
+            Could not open flow
+          </div>
           <p className="mt-1 text-body-sm text-status-danger">
             Failed to open {flowLabel}. The previous flow remains open.
           </p>
           {message && (
-            <p className="mt-1 ui-meta-text text-status-danger/90">
-              {message}
-            </p>
+            <p className="mt-1 ui-meta-text text-status-danger/90">{message}</p>
           )}
         </div>
         <Button variant="ghost" size="sm" onClick={onDismiss}>
@@ -133,12 +134,19 @@ export function WorkflowPanelHeader({
   const badgeLabel = shellBadgeLabel(shellState, runStatus)
 
   return (
-    <div className="border-b border-hairline bg-surface-1">
-      <div className={cn("ui-content-gutter flex flex-wrap items-center gap-3", runStatus === "idle" ? "py-2.5" : "py-2")}>
+    <div className="border-b border-hairline bg-background">
+      <div
+        className={cn(
+          "ui-dialog-gutter flex flex-wrap items-center gap-3",
+          runStatus === "idle" ? "py-2.5" : "py-2",
+        )}
+      >
         <div className="min-w-[280px] flex-1">
           {shellState === "idle" ? (
             <>
-              <Label htmlFor="workflow-name" className="sr-only">Flow name</Label>
+              <Label htmlFor="workflow-name" className="sr-only">
+                Flow name
+              </Label>
               <Input
                 id="workflow-name"
                 type="text"
@@ -165,7 +173,10 @@ export function WorkflowPanelHeader({
 
         <div className="ml-auto flex items-center gap-2">
           {badgeLabel && (
-            <Badge variant={shellBadgeVariant(shellState)} className="ui-meta-text px-2.5 py-1">
+            <Badge
+              variant={shellBadgeVariant(shellState)}
+              className="ui-meta-text px-2.5 py-1"
+            >
               {badgeLabel}
             </Badge>
           )}

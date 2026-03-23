@@ -49,15 +49,23 @@ export function CostWarningDialog({
           </DialogDescription>
         </CanvasDialogHeader>
         <CanvasDialogBody className="space-y-4">
-          <div className="rounded-md bg-surface-2/70 px-3 py-3">
+          <div className="ui-inset-well">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
-                <div className="ui-meta-label text-status-warning">Worst-case estimate</div>
-                <p className="text-title-sm text-foreground">{estimatedCostLabel}</p>
+                <div className="ui-meta-label text-status-warning">
+                  Worst-case estimate
+                </div>
+                <p className="text-title-sm text-foreground">
+                  {estimatedCostLabel}
+                </p>
               </div>
               <div className="space-y-1 sm:text-right">
-                <div className="ui-meta-label text-muted-foreground">Skill invocations</div>
-                <p className="ui-body-text-medium text-foreground">{invocationLabel}</p>
+                <div className="ui-meta-label text-muted-foreground">
+                  Skill invocations
+                </div>
+                <p className="text-body-md font-medium text-foreground">
+                  {invocationLabel}
+                </p>
               </div>
             </div>
             <p className="mt-3 text-body-sm text-muted-foreground">
@@ -65,7 +73,9 @@ export function CostWarningDialog({
             </p>
           </div>
           <div className="space-y-1">
-            <div className="ui-meta-label text-muted-foreground">Worst-case breakdown</div>
+            <div className="ui-meta-label text-muted-foreground">
+              Worst-case breakdown
+            </div>
             <p className="text-body-sm leading-6 text-foreground break-words">
               {warning.detail}
             </p>
@@ -73,12 +83,11 @@ export function CostWarningDialog({
         </CanvasDialogBody>
         <CanvasDialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost" size="sm" autoFocus>Cancel</Button>
+            <Button variant="ghost" size="sm" autoFocus>
+              Cancel
+            </Button>
           </DialogClose>
-          <Button
-            size="sm"
-            onClick={onConfirm}
-          >
+          <Button size="sm" onClick={onConfirm}>
             Continue
           </Button>
         </CanvasDialogFooter>

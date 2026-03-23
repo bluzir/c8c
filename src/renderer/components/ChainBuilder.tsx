@@ -8,7 +8,12 @@ import {
   selectedNodeIdAtom,
   type WorkflowNode,
 } from "@/lib/store"
-import { activeNodeIdAtom, inspectedNodeIdAtom, nodeStatesAtom, runtimeMetaAtom } from "@/features/execution"
+import {
+  activeNodeIdAtom,
+  inspectedNodeIdAtom,
+  nodeStatesAtom,
+  runtimeMetaAtom,
+} from "@/features/execution"
 import type {
   ApprovalNodeConfig,
   EvaluatorNodeConfig,
@@ -21,7 +26,10 @@ import type {
   SkillNodeConfig,
 } from "@shared/types"
 import { NodeCard } from "./NodeCard"
-import { ArrowDown as ArrowDownIcon, ArrowRight as ArrowRightIcon } from "lucide-react"
+import {
+  ArrowDown as ArrowDownIcon,
+  ArrowRight as ArrowRightIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 import { cloneWorkflow } from "@/lib/workflow-graph-utils"
 import { ChainBuilderAddControls } from "@/components/chain-builder/ChainBuilderAddControls"
@@ -48,7 +56,10 @@ import { useChainBuilderRuntimeState } from "@/components/chain-builder/useChain
 interface ChainBuilderProps {
   compact?: boolean
   mode?: "edit" | "outline" | "monitor"
-  onStageSelect?: (payload: { nodeId: string; preferredTab: "nodes" | "log" | "result" }) => void
+  onStageSelect?: (payload: {
+    nodeId: string
+    preferredTab: "nodes" | "log" | "result"
+  }) => void
   reviewSnapshot?: PersistedRunSnapshot | null
 }
 
@@ -63,12 +74,16 @@ export function ChainBuilder({
   const [nodeStates] = useAtom(nodeStatesAtom)
   const [activeNodeId] = useAtom(activeNodeIdAtom)
   const [runtimeMeta] = useAtom(runtimeMetaAtom)
-  const [builderSelectedNodeId, setBuilderSelectedNodeId] = useAtom(selectedNodeIdAtom)
+  const [builderSelectedNodeId, setBuilderSelectedNodeId] =
+    useAtom(selectedNodeIdAtom)
   const [inspectedNodeId, setInspectedNodeId] = useAtom(inspectedNodeIdAtom)
   const [, openSkillPicker] = useAtom(openSkillPickerAtom)
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null)
   const isReorderSafe = isLinearChainReorderSafe(workflow)
-  const reorderBlockReason = useMemo(() => getLinearChainReorderBlockReason(workflow), [workflow])
+  const reorderBlockReason = useMemo(
+    () => getLinearChainReorderBlockReason(workflow),
+    [workflow],
+  )
   const draggedNodeIdRef = useRef<string | null>(null)
   const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null)
   const undoToastIdRef = useRef<string | number | null>(null)
@@ -141,35 +156,54 @@ export function ChainBuilder({
   useEffect(() => {
     if (!runtimeMode || !monitorFocusNodeId) return
     const step = stepRefs.current[monitorFocusNodeId]
-    step?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+    step?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    })
   }, [monitorFocusNodeId, runtimeMode])
 
   useEffect(() => {
     if (!runtimeMode || !monitorFocusNodeId) return
 
-    const selectedMonitorStatus = orderedMonitorStages.find((entry) => entry.node.id === resolvedSelectedNodeId)?.status || null
-    const shouldResyncSelection = !resolvedSelectedNodeId
-      || (
-        monitorCurrentStage !== null
-        && resolvedSelectedNodeId !== monitorCurrentStage.node.id
-        && (selectedMonitorStatus === "pending" || selectedMonitorStatus === "queued")
-      )
+    const selectedMonitorStatus =
+      orderedMonitorStages.find(
+        (entry) => entry.node.id === resolvedSelectedNodeId,
+      )?.status || null
+    const shouldResyncSelection =
+      !resolvedSelectedNodeId ||
+      (monitorCurrentStage !== null &&
+        resolvedSelectedNodeId !== monitorCurrentStage.node.id &&
+        (selectedMonitorStatus === "pending" ||
+          selectedMonitorStatus === "queued"))
 
     if (shouldResyncSelection) {
       setInspectedNodeId(monitorFocusNodeId)
     }
-  }, [monitorCurrentStage, monitorFocusNodeId, orderedMonitorStages, resolvedSelectedNodeId, runtimeMode, setInspectedNodeId])
+  }, [
+    monitorCurrentStage,
+    monitorFocusNodeId,
+    orderedMonitorStages,
+    resolvedSelectedNodeId,
+    runtimeMode,
+    setInspectedNodeId,
+  ])
 
   useEffect(() => {
     if (flowCardMode || !resolvedSelectedNodeId) return
     const step = stepRefs.current[resolvedSelectedNodeId]
-    step?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" })
+    step?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    })
   }, [flowCardMode, resolvedSelectedNodeId])
 
   const nodeLabelMap = useMemo(() => {
     const map = new Map<string, string>()
     for (const node of workflow.nodes) {
-      if (node.type === "skill") map.set(node.id, node.config.skillRef || "Skill")
+      if (node.type === "skill")
+        map.set(node.id, node.config.skillRef || "Skill")
       else if (node.type === "evaluator") map.set(node.id, "Check")
       else if (node.type === "splitter") map.set(node.id, "Split work")
       else if (node.type === "merger") map.set(node.id, "Merger")
@@ -181,14 +215,18 @@ export function ChainBuilder({
     }
     return map
   }, [workflow.nodes])
-  const getNodeDisplayLabel = (nodeId: string) => nodeLabelMap.get(nodeId) || nodeId
+  const getNodeDisplayLabel = (nodeId: string) =>
+    nodeLabelMap.get(nodeId) || nodeId
 
   const getAddedNodes = (previous: typeof workflow, next: typeof workflow) => {
     const previousIds = new Set(previous.nodes.map((node) => node.id))
     return next.nodes.filter((node) => !previousIds.has(node.id))
   }
 
-  const selectFirstNewNode = (previous: typeof workflow, next: typeof workflow) => {
+  const selectFirstNewNode = (
+    previous: typeof workflow,
+    next: typeof workflow,
+  ) => {
     return getAddedNodes(previous, next)[0]?.id ?? null
   }
 
@@ -221,7 +259,11 @@ export function ChainBuilder({
   }
 
   const moveNode = (nodeId: string, direction: "up" | "down") => {
-    const blockedReason = getMiddleNodeMoveBlockedReason(workflow, nodeId, direction)
+    const blockedReason = getMiddleNodeMoveBlockedReason(
+      workflow,
+      nodeId,
+      direction,
+    )
     if (blockedReason) {
       toast.warning(blockedReason, {
         duration: 8000,
@@ -233,12 +275,25 @@ export function ChainBuilder({
 
   const updateNodeConfig = (
     nodeId: string,
-    config: InputNodeConfig | OutputNodeConfig | SkillNodeConfig | EvaluatorNodeConfig | SplitterNodeConfig | MergerNodeConfig | ApprovalNodeConfig | HumanNodeConfig,
+    config:
+      | InputNodeConfig
+      | OutputNodeConfig
+      | SkillNodeConfig
+      | EvaluatorNodeConfig
+      | SplitterNodeConfig
+      | MergerNodeConfig
+      | ApprovalNodeConfig
+      | HumanNodeConfig,
   ) => {
-    setWorkflow((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } as typeof n : n)),
-    }), { coalesceKey: `node-config:${nodeId}` })
+    setWorkflow(
+      (prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) =>
+          n.id === nodeId ? ({ ...n, config } as typeof n) : n,
+        ),
+      }),
+      { coalesceKey: `node-config:${nodeId}` },
+    )
   }
 
   const addEvaluator = () => {
@@ -258,7 +313,10 @@ export function ChainBuilder({
     setWorkflow((prev) => {
       const next = addFanOutPatternToWorkflow(prev)
       const addedNodes = getAddedNodes(prev, next)
-      nextSelectedId = addedNodes.find((node) => node.type === "skill")?.id ?? addedNodes[0]?.id ?? null
+      nextSelectedId =
+        addedNodes.find((node) => node.type === "skill")?.id ??
+        addedNodes[0]?.id ??
+        null
       return next
     })
     if (nextSelectedId) {
@@ -318,7 +376,9 @@ export function ChainBuilder({
 
       const state = kbStateRef.current
       const selectedNode = state.selectedNodeId
-        ? state.workflowNodes.find((node) => node.id === state.selectedNodeId) ?? null
+        ? (state.workflowNodes.find(
+            (node) => node.id === state.selectedNodeId,
+          ) ?? null)
         : null
       const intent = resolveChainBuilderShortcutIntent({
         event,
@@ -358,7 +418,9 @@ export function ChainBuilder({
     return () => window.removeEventListener("keydown", handler)
   }, [flowCardMode, openSkillPicker])
 
-  const handleInsertBlock = (value: "evaluator" | "fanout" | "approval" | "human") => {
+  const handleInsertBlock = (
+    value: "evaluator" | "fanout" | "approval" | "human",
+  ) => {
     if (value === "evaluator") {
       addEvaluator()
       return
@@ -376,7 +438,10 @@ export function ChainBuilder({
     }
   }
 
-  const handleDragStart = (node: WorkflowNode, event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (
+    node: WorkflowNode,
+    event: React.DragEvent<HTMLDivElement>,
+  ) => {
     if (flowCardMode) return
     if (node.type === "input" || node.type === "output") return
     if (reorderBlockReason) {
@@ -391,9 +456,16 @@ export function ChainBuilder({
     event.dataTransfer.setData("text/plain", node.id)
   }
 
-  const handleDragOver = (node: WorkflowNode, event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (
+    node: WorkflowNode,
+    event: React.DragEvent<HTMLDivElement>,
+  ) => {
     if (!draggedNodeIdRef.current) return
-    if (node.type === "input" || node.type === "output" || draggedNodeIdRef.current === node.id) {
+    if (
+      node.type === "input" ||
+      node.type === "output" ||
+      draggedNodeIdRef.current === node.id
+    ) {
       if (dragOverNodeId) {
         setDragOverNodeId(null)
       }
@@ -404,14 +476,20 @@ export function ChainBuilder({
     setDragOverNodeId(node.id)
   }
 
-  const handleDragLeave = (nodeId: string, event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (
+    nodeId: string,
+    event: React.DragEvent<HTMLDivElement>,
+  ) => {
     if (dragOverNodeId !== nodeId) return
     const nextTarget = event.relatedTarget as Node | null
     if (nextTarget && event.currentTarget.contains(nextTarget)) return
     setDragOverNodeId(null)
   }
 
-  const handleDrop = (node: WorkflowNode, event: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (
+    node: WorkflowNode,
+    event: React.DragEvent<HTMLDivElement>,
+  ) => {
     if (flowCardMode) return
     if (!draggedNodeIdRef.current) return
     if (node.type === "input" || node.type === "output") return
@@ -425,7 +503,9 @@ export function ChainBuilder({
       return
     }
     event.preventDefault()
-    setWorkflow((prev) => moveMiddleNodeBeforeTarget(prev, draggedNodeIdRef.current!, node.id))
+    setWorkflow((prev) =>
+      moveMiddleNodeBeforeTarget(prev, draggedNodeIdRef.current!, node.id),
+    )
     setDragOverNodeId(null)
     draggedNodeIdRef.current = null
   }
@@ -438,12 +518,14 @@ export function ChainBuilder({
   const renderNodeStep = (node: WorkflowNode, i: number) => {
     const { effectiveState, runtimeBranchSummary } = getNodePresentation(node)
 
-    const moveUpBlockedReason = node.type === "input" || node.type === "output"
-      ? "Only editable steps can be reordered."
-      : getMiddleNodeMoveBlockedReason(workflow, node.id, "up")
-    const moveDownBlockedReason = node.type === "input" || node.type === "output"
-      ? "Only editable steps can be reordered."
-      : getMiddleNodeMoveBlockedReason(workflow, node.id, "down")
+    const moveUpBlockedReason =
+      node.type === "input" || node.type === "output"
+        ? "Only editable steps can be reordered."
+        : getMiddleNodeMoveBlockedReason(workflow, node.id, "up")
+    const moveDownBlockedReason =
+      node.type === "input" || node.type === "output"
+        ? "Only editable steps can be reordered."
+        : getMiddleNodeMoveBlockedReason(workflow, node.id, "down")
 
     return (
       <div
@@ -451,7 +533,12 @@ export function ChainBuilder({
         ref={(element) => {
           stepRefs.current[node.id] = element
         }}
-        draggable={!flowCardMode && node.type !== "input" && node.type !== "output" && isReorderSafe}
+        draggable={
+          !flowCardMode &&
+          node.type !== "input" &&
+          node.type !== "output" &&
+          isReorderSafe
+        }
         onDragStart={(event) => handleDragStart(node, event)}
         onDragEnd={clearDragState}
         onDragOver={(event) => handleDragOver(node, event)}
@@ -473,16 +560,27 @@ export function ChainBuilder({
           runtimeMode
             ? "w-full"
             : flowCardMode
-            ? "w-[14.5rem] shrink-0 snap-start md:w-[15rem] xl:w-[15.5rem]"
-            : "w-full",
-          dragOverNodeId === node.id && "ring-2 ring-primary/50 ring-offset-2 ring-offset-surface-1",
+              ? "w-[14.5rem] shrink-0 snap-start md:w-[15rem] xl:w-[15.5rem]"
+              : "w-full",
+          dragOverNodeId === node.id &&
+            "ring-2 ring-primary/50 ring-offset-2 ring-offset-surface-1",
         )}
       >
         {!flowCardMode && i > 0 && (
-          <div className={cn("flex flex-col items-center", compact ? "py-0.5" : "py-1")}>
+          <div
+            className={cn(
+              "flex flex-col items-center",
+              compact ? "py-0.5" : "py-1",
+            )}
+          >
             <div className="flex flex-col items-center">
-              <div className={cn("w-px bg-border", compact ? "h-1.5" : "h-3")} />
-              <ArrowDownIcon size={compact ? 8 : 10} className="text-muted-foreground/50 -mt-0.5" />
+              <div
+                className={cn("w-px bg-border", compact ? "h-1.5" : "h-3")}
+              />
+              <ArrowDownIcon
+                size={compact ? 8 : 10}
+                className="text-muted-foreground/50 -mt-0.5"
+              />
             </div>
             {!compact && node.type === "evaluator" && (
               <span className="ui-meta-text text-status-warning font-mono">
@@ -491,11 +589,15 @@ export function ChainBuilder({
             )}
           </div>
         )}
-        {!flowCardMode && !compact && node.type !== "input" && node.type !== "output" && isReorderSafe && (
-          <div className="px-1 pb-1 ui-meta-text text-muted-foreground/70">
-            Drag to reorder
-          </div>
-        )}
+        {!flowCardMode &&
+          !compact &&
+          node.type !== "input" &&
+          node.type !== "output" &&
+          isReorderSafe && (
+            <div className="px-1 pb-1 ui-meta-text text-muted-foreground/70">
+              Drag to reorder
+            </div>
+          )}
         <NodeCard
           node={node}
           index={i}
@@ -504,8 +606,12 @@ export function ChainBuilder({
           isActive={resolvedActiveNodeId === node.id}
           isSelected={resolvedSelectedNodeId === node.id}
           onRemove={() => confirmRemove(node.id)}
-          onMoveUp={moveUpBlockedReason ? undefined : () => moveNode(node.id, "up")}
-          onMoveDown={moveDownBlockedReason ? undefined : () => moveNode(node.id, "down")}
+          onMoveUp={
+            moveUpBlockedReason ? undefined : () => moveNode(node.id, "up")
+          }
+          onMoveDown={
+            moveDownBlockedReason ? undefined : () => moveNode(node.id, "down")
+          }
           moveUpDisabledReason={moveUpBlockedReason}
           moveDownDisabledReason={moveDownBlockedReason}
           onConfigChange={(config) => updateNodeConfig(node.id, config)}
@@ -517,7 +623,13 @@ export function ChainBuilder({
           compact={compact}
           runtimeMode={flowCardMode}
           runtimePresentationMode={runtimeMode ? "monitor" : "outline"}
-          runtimeFocusKind={monitorCurrentStage?.node.id === node.id ? "current" : monitorNextStage?.node.id === node.id ? "next" : null}
+          runtimeFocusKind={
+            monitorCurrentStage?.node.id === node.id
+              ? "current"
+              : monitorNextStage?.node.id === node.id
+                ? "next"
+                : null
+          }
           runtimeBranchSummary={runtimeBranchSummary}
         />
       </div>
@@ -534,21 +646,27 @@ export function ChainBuilder({
           : flowCardMode
             ? "surface-panel rounded-xl p-3.5 space-y-3 md:p-4"
             : compact
-              ? "surface-panel rounded-lg p-2.5 space-y-2"
-              : "surface-panel rounded-lg p-4 space-y-3",
+              ? "space-y-2"
+              : "space-y-3",
       )}
     >
       {flowCardMode ? (
         <ChainBuilderSurfaceHeader
           reviewSnapshot={Boolean(reviewSnapshot)}
           runtimeMode={runtimeMode}
-          currentStep={monitorCurrentStage
-            ? {
-              label: getNodeDisplayLabel(monitorCurrentStage.node.id),
-              status: monitorCurrentStage.status,
-            }
-            : null}
-          nextStepLabel={monitorNextStage ? getNodeDisplayLabel(monitorNextStage.node.id) : null}
+          currentStep={
+            monitorCurrentStage
+              ? {
+                  label: getNodeDisplayLabel(monitorCurrentStage.node.id),
+                  status: monitorCurrentStage.status,
+                }
+              : null
+          }
+          nextStepLabel={
+            monitorNextStage
+              ? getNodeDisplayLabel(monitorNextStage.node.id)
+              : null
+          }
           completedCount={monitorCounts.completed}
           pendingCount={monitorCounts.pending}
           totalMonitoredSteps={orderedMonitorStages.length}
@@ -559,13 +677,19 @@ export function ChainBuilder({
       )}
 
       <div className="space-y-0">
-        {!flowCardMode && !workflow.nodes.some((n) => n.type !== "input" && n.type !== "output") && (
-          <ChainBuilderStartHint compact={compact} onAddFirstStep={() => openSkillPicker()} />
-        )}
+        {!flowCardMode &&
+          !workflow.nodes.some(
+            (n) => n.type !== "input" && n.type !== "output",
+          ) && (
+            <ChainBuilderStartHint
+              compact={compact}
+              onAddFirstStep={() => openSkillPicker()}
+            />
+          )}
         {runtimeMode ? (
-          <div className="space-y-0 border-t border-hairline/70">
+          <div className="space-y-0 ui-section-divider">
             {orderedNodes.map((node, i) => (
-              <div key={node.id} className={cn(i > 0 && "border-t border-hairline/70")}>
+              <div key={node.id} className={cn(i > 0 && "ui-section-divider")}>
                 {renderNodeStep(node, i)}
               </div>
             ))}
@@ -579,7 +703,10 @@ export function ChainBuilder({
                   {i < orderedNodes.length - 1 && (
                     <div className="flex shrink-0 items-center justify-center gap-1 px-0.5">
                       <div className="h-px w-3 bg-border/70" />
-                      <ArrowRightIcon size={12} className="text-muted-foreground/45" />
+                      <ArrowRightIcon
+                        size={12}
+                        className="text-muted-foreground/45"
+                      />
                       <div className="h-px w-3 bg-border/70" />
                     </div>
                   )}
@@ -607,9 +734,21 @@ export function ChainBuilder({
         x={chainContextMenu?.x || 0}
         y={chainContextMenu?.y || 0}
         stepLabel={contextNode ? getNodeDisplayLabel(contextNode.id) : null}
-        moveUpDisabledReason={contextNode ? getMiddleNodeMoveBlockedReason(workflow, contextNode.id, "up") : null}
-        moveDownDisabledReason={contextNode ? getMiddleNodeMoveBlockedReason(workflow, contextNode.id, "down") : null}
-        removeDisabled={!contextNode || contextNode.type === "input" || contextNode.type === "output"}
+        moveUpDisabledReason={
+          contextNode
+            ? getMiddleNodeMoveBlockedReason(workflow, contextNode.id, "up")
+            : null
+        }
+        moveDownDisabledReason={
+          contextNode
+            ? getMiddleNodeMoveBlockedReason(workflow, contextNode.id, "down")
+            : null
+        }
+        removeDisabled={
+          !contextNode ||
+          contextNode.type === "input" ||
+          contextNode.type === "output"
+        }
         onOpenChange={(open) => {
           if (!open) setChainContextMenu(null)
         }}
@@ -629,7 +768,12 @@ export function ChainBuilder({
           setChainContextMenu(null)
         }}
         onRemove={() => {
-          if (!contextNode || contextNode.type === "input" || contextNode.type === "output") return
+          if (
+            !contextNode ||
+            contextNode.type === "input" ||
+            contextNode.type === "output"
+          )
+            return
           confirmRemove(contextNode.id)
           setChainContextMenu(null)
         }}

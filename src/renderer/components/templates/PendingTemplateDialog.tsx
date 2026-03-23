@@ -47,25 +47,38 @@ export function PendingTemplateDialog({
   onContinue: () => void
 }) {
   return (
-    <Dialog open={pendingTemplate !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={pendingTemplate !== null}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <CanvasDialogContent showCloseButton={false} size="lg">
         <CanvasDialogHeader>
           <DialogTitle>Start this flow</DialogTitle>
           <DialogDescription>
-            &ldquo;{pendingTemplate ? getWorkflowTemplateDisplayName(pendingTemplate) : ""}&rdquo; is ready. Choose how to apply it, then continue.
+            &ldquo;
+            {pendingTemplate
+              ? getWorkflowTemplateDisplayName(pendingTemplate)
+              : ""}
+            &rdquo; is ready. Choose how to apply it, then continue.
           </DialogDescription>
         </CanvasDialogHeader>
         <CanvasDialogBody className="space-y-4">
           {projects.length > 0 ? (
             <div className="space-y-1">
-              <p className="ui-meta-text text-muted-foreground">Selected project</p>
-              <Select value={targetProjectPath ?? ""} onValueChange={onTargetProjectPathChange}>
+              <p className="ui-meta-text text-muted-foreground">
+                Selected project
+              </p>
+              <Select
+                value={targetProjectPath ?? ""}
+                onValueChange={onTargetProjectPathChange}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select project" />
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((projectPath) => {
-                    const projectName = projectPath.split(/[\\/]/).pop() || projectPath
+                    const projectName =
+                      projectPath.split(/[\\/]/).pop() || projectPath
                     return (
                       <SelectItem key={projectPath} value={projectPath}>
                         {projectName}
@@ -93,9 +106,16 @@ export function PendingTemplateDialog({
                     : "border-hairline/70 hover:bg-surface-2/45"
                 }`}
               >
-                <p className="text-body-sm font-medium text-foreground">Create in selected project</p>
+                <p className="text-body-sm font-medium text-foreground">
+                  Create in selected project
+                </p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
-                  Make a new flow in {targetProjectPath ? (targetProjectPath.split(/[\\/]/).pop() || "the selected project") : "the selected project"}.
+                  Make a new flow in{" "}
+                  {targetProjectPath
+                    ? targetProjectPath.split(/[\\/]/).pop() ||
+                      "the selected project"
+                    : "the selected project"}
+                  .
                 </p>
               </button>
             ) : null}
@@ -111,7 +131,9 @@ export function PendingTemplateDialog({
                     : "border-hairline/70 hover:bg-surface-2/45"
                 }`}
               >
-                <p className="text-body-sm font-medium text-foreground">Replace current draft</p>
+                <p className="text-body-sm font-medium text-foreground">
+                  Replace current draft
+                </p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
                   Swap the current draft for this starting flow.
                 </p>
@@ -125,9 +147,15 @@ export function PendingTemplateDialog({
         </CanvasDialogBody>
         <CanvasDialogFooter>
           <DialogClose asChild>
-            <Button variant="ghost" size="sm">Cancel</Button>
+            <Button variant="ghost" size="sm">
+              Cancel
+            </Button>
           </DialogClose>
-          <Button size="sm" disabled={!pendingTemplate || !canContinue} onClick={onContinue}>
+          <Button
+            size="sm"
+            disabled={!pendingTemplate || !canContinue}
+            onClick={onContinue}
+          >
             Continue
           </Button>
         </CanvasDialogFooter>

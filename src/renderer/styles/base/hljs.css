@@ -1,0 +1,40 @@
+/* highlight.js theme for code blocks — adapts to light/dark via CSS custom properties */
+.hljs {
+  color: hsl(var(--foreground));
+  background: transparent;
+}
+.hljs-keyword,
+.hljs-selector-tag {
+  color: hsl(var(--hljs-keyword));
+}
+.hljs-string,
+.hljs-addition {
+  color: hsl(var(--hljs-string));
+}
+.hljs-number,
+.hljs-literal {
+  color: hsl(var(--hljs-number));
+}
+.hljs-comment,
+.hljs-quote {
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+.hljs-title,
+.hljs-section {
+  color: hsl(var(--hljs-title));
+}
+.hljs-built_in,
+.hljs-type {
+  color: hsl(var(--hljs-built-in));
+}
+.hljs-attr,
+.hljs-name {
+  color: hsl(var(--hljs-attr));
+}
+.hljs-deletion {
+  color: hsl(var(--hljs-deletion));
+}
+.hljs-meta {
+  color: hsl(var(--muted-foreground));
+}

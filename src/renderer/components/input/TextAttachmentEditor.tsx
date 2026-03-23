@@ -21,7 +21,11 @@ interface TextAttachmentEditorProps {
   editIndex?: number
 }
 
-export function TextAttachmentEditor({ open, onOpenChange, editIndex }: TextAttachmentEditorProps) {
+export function TextAttachmentEditor({
+  open,
+  onOpenChange,
+  editIndex,
+}: TextAttachmentEditorProps) {
   const [attachments, setAttachments] = useAtom(inputAttachmentsAtom)
   const [label, setLabel] = useState("")
   const [content, setContent] = useState("")
@@ -44,7 +48,9 @@ export function TextAttachmentEditor({ open, onOpenChange, editIndex }: TextAtta
     const entry = { kind: "text" as const, label: trimmedLabel, content }
 
     if (isEdit && editIndex != null) {
-      setAttachments((prev) => prev.map((a, i) => (i === editIndex ? entry : a)))
+      setAttachments((prev) =>
+        prev.map((a, i) => (i === editIndex ? entry : a)),
+      )
     } else {
       setAttachments((prev) => [...prev, entry])
     }
@@ -54,8 +60,10 @@ export function TextAttachmentEditor({ open, onOpenChange, editIndex }: TextAtta
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <CanvasDialogContent className="p-0 gap-0 flex flex-col" showCloseButton>
-        <CanvasDialogHeader className="surface-depth-header">
-          <DialogTitle>{isEdit ? "Edit Text Snippet" : "Add Text Snippet"}</DialogTitle>
+        <CanvasDialogHeader className="border-b border-hairline">
+          <DialogTitle>
+            {isEdit ? "Edit Text Snippet" : "Add Text Snippet"}
+          </DialogTitle>
           <DialogDescription className="sr-only">
             Enter a label and content for the text snippet
           </DialogDescription>
@@ -91,7 +99,11 @@ export function TextAttachmentEditor({ open, onOpenChange, editIndex }: TextAtta
         </CanvasDialogBody>
 
         <CanvasDialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button type="button" onClick={handleSave} disabled={!content.trim()}>

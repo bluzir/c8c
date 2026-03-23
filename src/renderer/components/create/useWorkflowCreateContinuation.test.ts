@@ -1,4 +1,8 @@
-import type { ArtifactRecord, CaseStateRecord, HumanTaskSummary } from "@shared/types"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  HumanTaskSummary,
+} from "@shared/types"
 import { describe, expect, it, vi } from "vitest"
 import {
   readWorkflowCreateContinuationResources,
@@ -21,9 +25,15 @@ describe("readWorkflowCreateContinuationResources", () => {
   it("returns all resources when every reader succeeds", async () => {
     const result = await readWorkflowCreateContinuationResources({
       projectPath: "/tmp/project",
-      listProjectArtifacts: vi.fn().mockResolvedValue([createArtifactRecord("artifact-1")]),
-      listProjectCaseStates: vi.fn().mockResolvedValue([createCaseStateRecord("case-1")]),
-      listHumanTasks: vi.fn().mockResolvedValue([createHumanTaskSummary("task-1")]),
+      listProjectArtifacts: vi
+        .fn()
+        .mockResolvedValue([createArtifactRecord("artifact-1")]),
+      listProjectCaseStates: vi
+        .fn()
+        .mockResolvedValue([createCaseStateRecord("case-1")]),
+      listHumanTasks: vi
+        .fn()
+        .mockResolvedValue([createHumanTaskSummary("task-1")]),
     })
 
     expect(result).toEqual({
@@ -39,9 +49,15 @@ describe("readWorkflowCreateContinuationResources", () => {
   it("keeps partial resources and returns a combined error when one reader fails", async () => {
     const result = await readWorkflowCreateContinuationResources({
       projectPath: "/tmp/project",
-      listProjectArtifacts: vi.fn().mockResolvedValue([createArtifactRecord("artifact-1")]),
-      listProjectCaseStates: vi.fn().mockRejectedValue(new Error("case states unavailable")),
-      listHumanTasks: vi.fn().mockResolvedValue([createHumanTaskSummary("task-1")]),
+      listProjectArtifacts: vi
+        .fn()
+        .mockResolvedValue([createArtifactRecord("artifact-1")]),
+      listProjectCaseStates: vi
+        .fn()
+        .mockRejectedValue(new Error("case states unavailable")),
+      listHumanTasks: vi
+        .fn()
+        .mockResolvedValue([createHumanTaskSummary("task-1")]),
     })
 
     expect(result.resources).toEqual({
@@ -56,14 +72,16 @@ describe("readWorkflowCreateContinuationResources", () => {
 
 describe("startWorkflowCreateContinuationResourceLoad", () => {
   it("ignores stale responses after a newer request starts", async () => {
-    let resolveFirst: ((value: {
-      resources: {
-        artifacts: ArtifactRecord[]
-        caseStates: CaseStateRecord[]
-        humanTasks: HumanTaskSummary[]
-      }
-      error: null
-    }) => void) | null = null
+    let resolveFirst:
+      | ((value: {
+          resources: {
+            artifacts: ArtifactRecord[]
+            caseStates: CaseStateRecord[]
+            humanTasks: HumanTaskSummary[]
+          }
+          error: null
+        }) => void)
+      | null = null
     const requestIdRef = { current: 0 }
     const loaded: Array<{
       artifacts: ArtifactRecord[]
@@ -76,9 +94,10 @@ describe("startWorkflowCreateContinuationResourceLoad", () => {
     startWorkflowCreateContinuationResourceLoad({
       projectPath: "/tmp/project-a",
       requestIdRef,
-      readResources: () => new Promise((resolve) => {
-        resolveFirst = resolve
-      }),
+      readResources: () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve
+        }),
       onReset: vi.fn(),
       onLoaded: (resources) => loaded.push(resources),
       onError: (error) => errors.push(error),
@@ -89,7 +108,11 @@ describe("startWorkflowCreateContinuationResourceLoad", () => {
       projectPath: "/tmp/project-b",
       requestIdRef,
       readResources: async () => ({
-        resources: { artifacts: [createArtifactRecord("fresh")], caseStates: [], humanTasks: [] },
+        resources: {
+          artifacts: [createArtifactRecord("fresh")],
+          caseStates: [],
+          humanTasks: [],
+        },
         error: null,
       }),
       onReset: vi.fn(),
@@ -99,13 +122,23 @@ describe("startWorkflowCreateContinuationResourceLoad", () => {
     })
 
     resolveFirst?.({
-      resources: { artifacts: [createArtifactRecord("stale")], caseStates: [], humanTasks: [] },
+      resources: {
+        artifacts: [createArtifactRecord("stale")],
+        caseStates: [],
+        humanTasks: [],
+      },
       error: null,
     })
     await Promise.resolve()
     await Promise.resolve()
 
-    expect(loaded).toEqual([{ artifacts: [createArtifactRecord("fresh")], caseStates: [], humanTasks: [] }])
+    expect(loaded).toEqual([
+      {
+        artifacts: [createArtifactRecord("fresh")],
+        caseStates: [],
+        humanTasks: [],
+      },
+    ])
     expect(errors).toEqual([])
     expect(loadingStates).toContain(true)
     expect(loadingStates.at(-1)).toBe(false)

@@ -4,7 +4,7 @@
 
 // Container Styles
 export const overlayContentBase =
-  "z-50 overflow-hidden rounded-lg border border-border bg-popover text-body-sm text-popover-foreground ui-elevation-overlay"
+  "z-50 overflow-hidden rounded-lg border border-border bg-popover text-body-sm text-popover-foreground"
 
 export const overlayMaxHeight = "max-h-[calc(100vh-32px)]"
 
@@ -22,8 +22,7 @@ export const overlayItemBase =
 
 export const overlayItemHover = "hover:bg-accent hover:text-accent-foreground"
 
-export const overlayItemFocus =
-  "focus:bg-accent focus:text-accent-foreground"
+export const overlayItemFocus = "focus:bg-accent focus:text-accent-foreground"
 
 export const overlayItemHighlighted =
   "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"

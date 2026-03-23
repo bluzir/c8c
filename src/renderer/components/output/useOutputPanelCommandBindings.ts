@@ -9,6 +9,7 @@ import {
   isEditableKeyboardTarget,
   isShortcutConsumed,
   matchesPrimaryShortcut,
+  type PrimaryModifierKey,
 } from "@/lib/keyboard-shortcuts"
 import { createDefaultOutputSurfaceCommandState } from "@/lib/output-surface-commands"
 import { subscribeOutputSurfaceCommands } from "@/lib/output-surface-command-bus"
@@ -33,7 +34,7 @@ export function useOutputPanelCommandBindings({
   onOpenHistory,
   onRerunFrom,
 }: {
-  primaryModifierKey: string
+  primaryModifierKey: PrimaryModifierKey
   activeTab: OutputTabValue
   showResultSurface: boolean
   canInspectActivity: boolean
@@ -60,7 +61,9 @@ export function useOutputPanelCommandBindings({
       log: canInspectLog,
       history: canInspectHistory,
       rerunFromStep: Boolean(selectedStageId && canRerunSelectedStage),
-      useInNewFlow: Boolean(onUseInNewFlow && showResultSurface && !reviewingRunHistory),
+      useInNewFlow: Boolean(
+        onUseInNewFlow && showResultSurface && !reviewingRunHistory,
+      ),
     })
 
     return () => {
@@ -96,7 +99,11 @@ export function useOutputPanelCommandBindings({
         onOpenHistory()
         return
       }
-      if (commandId === "output.rerun_from_step" && selectedStageId && canRerunSelectedStage) {
+      if (
+        commandId === "output.rerun_from_step" &&
+        selectedStageId &&
+        canRerunSelectedStage
+      ) {
         onRerunFrom(selectedStageId)
         return
       }
@@ -120,7 +127,11 @@ export function useOutputPanelCommandBindings({
 
   useEffect(() => {
     return subscribeDesktopCommands((commandId) => {
-      if (commandId === "flow.rerun_from_step" && selectedStageId && canRerunSelectedStage) {
+      if (
+        commandId === "flow.rerun_from_step" &&
+        selectedStageId &&
+        canRerunSelectedStage
+      ) {
         onRerunFrom(selectedStageId)
       }
     })
@@ -130,13 +141,14 @@ export function useOutputPanelCommandBindings({
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isShortcutConsumed(event)) return
       if (isEditableKeyboardTarget(event.target as HTMLElement | null)) return
-      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey })) return
+      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey }))
+        return
 
       if (
-        activeTab === "result"
-        && showArtifactContinuation
-        && canTriggerNextStageShortcut
-        && onRunNextStage
+        activeTab === "result" &&
+        showArtifactContinuation &&
+        canTriggerNextStageShortcut &&
+        onRunNextStage
       ) {
         consumeShortcut(event)
         void Promise.resolve(onRunNextStage())

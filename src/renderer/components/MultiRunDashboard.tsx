@@ -261,7 +261,7 @@ export function MultiRunDashboard() {
           size="xl"
           className="max-h-[86vh] flex flex-col p-0 gap-0"
         >
-          <CanvasDialogHeader className="surface-depth-header border-b border-hairline">
+          <CanvasDialogHeader className="surface-depth-header">
             <DialogTitle className="flex items-center gap-2">
               <Activity size={16} />
               Runs Dashboard

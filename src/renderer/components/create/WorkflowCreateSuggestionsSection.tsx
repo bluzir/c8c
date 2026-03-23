@@ -14,21 +14,23 @@ export function WorkflowCreateSuggestionsSection({
   loading,
   title,
   suggestions,
+  emptyPrompt,
   onBrowseLibrary,
   onSelectTemplate,
 }: {
   loading: boolean
   title: string
   suggestions: SuggestedTemplate[]
+  emptyPrompt?: string | null
   onBrowseLibrary: () => void
   onSelectTemplate: (template: WorkflowTemplate) => void
 }) {
-  if (!loading && suggestions.length === 0) return null
-
   return (
     <section aria-label={title} className="w-full space-y-2">
       <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-body-sm font-medium text-muted-foreground">{title}</p>
+        <p className="text-body-sm font-medium text-muted-foreground">
+          {title}
+        </p>
         <Button
           variant="ghost"
           size="xs"
@@ -41,12 +43,22 @@ export function WorkflowCreateSuggestionsSection({
 
       {loading ? (
         <div className="space-y-1">
-          {Array.from({ length: 2 }).map((_, index) => (
+          {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={`template-skeleton-${index}`}
-              className="h-16 animate-pulse rounded-xl bg-surface-2/55"
+              className="h-16 ui-skeleton rounded-xl"
             />
           ))}
+        </div>
+      ) : suggestions.length === 0 ? (
+        <div className="ui-empty-state-box px-4">
+          <p className="text-body-sm font-medium text-foreground">
+            No suggested starting points yet
+          </p>
+          <p className="mt-1 text-body-sm text-muted-foreground">
+            {emptyPrompt ||
+              "Describe what you want to accomplish and start from there."}
+          </p>
         </div>
       ) : (
         <div className="space-y-1">

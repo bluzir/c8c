@@ -1,12 +1,24 @@
 import { Inbox } from "lucide-react"
-import type { ArtifactRecord, HumanTaskField, HumanTaskSnapshot, HumanTaskSummary } from "@shared/types"
+import type {
+  ArtifactRecord,
+  HumanTaskField,
+  HumanTaskSnapshot,
+  HumanTaskSummary,
+} from "@shared/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SectionHeading } from "@/components/ui/page-shell"
 import { cn } from "@/lib/cn"
 import { formatRelativeTime } from "@/components/sidebar/projectSidebarUtils"
 import { SelectedTaskPanel } from "./SelectedTaskPanel"
-import { deriveTaskCardContext, taskActivityAt, taskKindLabel, taskSelectionKey, taskStageKey, type TaskStageMeta } from "./task-ui"
+import {
+  deriveTaskCardContext,
+  taskActivityAt,
+  taskKindLabel,
+  taskSelectionKey,
+  taskStageKey,
+  type TaskStageMeta,
+} from "./task-ui"
 
 interface HumanTaskInboxSectionProps {
   humanTasksLoading: boolean
@@ -60,26 +72,41 @@ export function HumanTaskInboxSection({
   onClearCaseFilter = null,
 }: HumanTaskInboxSectionProps) {
   return (
-    <section className={cn("rounded-xl p-5 space-y-4", openHumanTaskCount > 0 ? "surface-elevated" : "surface-panel")}>
+    <section className="space-y-4">
       <SectionHeading
         title="Waiting on you"
-        meta={(
+        meta={
           <span className="control-badge border border-hairline bg-surface-2/70 ui-meta-text text-muted-foreground">
             {humanTasksLoading ? "Loading..." : `${openHumanTaskCount} open`}
           </span>
-        )}
+        }
       />
       {humanTasksError ? (
         <article className="rounded-lg surface-danger-soft px-4 py-3 text-body-sm text-status-danger">
           {humanTasksError}
         </article>
+      ) : humanTasksLoading ? (
+        <div className="ui-slab overflow-hidden">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="space-y-2 border-b border-hairline px-4 py-3 last:border-b-0"
+            >
+              <div className="h-4 w-40 ui-skeleton" />
+              <div className="h-3 w-32 ui-skeleton" />
+              <div className="h-3 w-3/4 ui-skeleton" />
+            </div>
+          ))}
+        </div>
       ) : openHumanTaskCount === 0 && !humanTasksLoading ? (
-        <article className="rounded-lg border border-dashed border-hairline bg-surface-2/30 px-5 py-10 text-center">
-          <div className="mx-auto flex h-control-lg w-control-lg items-center justify-center rounded-lg border border-hairline bg-surface-2/80">
+        <article className="surface-figure px-5 py-10 text-center">
+          <div className="mx-auto flex h-control-lg w-control-lg items-center justify-center rounded-lg bg-surface-2/80">
             <Inbox size={20} className="text-muted-foreground" />
           </div>
           <p className="mt-4 text-body-md font-medium text-foreground">
-            {selectedCaseId ? "No open decisions for this flow" : "No open review or input tasks"}
+            {selectedCaseId
+              ? "No open decisions for this flow"
+              : "No open review or input tasks"}
           </p>
           <p className="mt-1 text-body-sm text-muted-foreground">
             {selectedCaseId
@@ -100,12 +127,18 @@ export function HumanTaskInboxSection({
         </article>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-          <div className="overflow-hidden rounded-lg surface-soft">
+          <div className="ui-slab overflow-hidden">
             {visibleHumanTasks.map((task) => {
-              const stageMeta = taskStageMetaByKey[taskStageKey(task) || ""] || null
-              const taskCaseId = caseIdByTaskKey.get(taskSelectionKey(task)) || null
-              const taskCaseLabel = taskCaseId ? caseLabelById.get(taskCaseId) || null : null
-              const latestArtifact = taskCaseId ? latestArtifactByCaseId.get(taskCaseId) || null : null
+              const stageMeta =
+                taskStageMetaByKey[taskStageKey(task) || ""] || null
+              const taskCaseId =
+                caseIdByTaskKey.get(taskSelectionKey(task)) || null
+              const taskCaseLabel = taskCaseId
+                ? caseLabelById.get(taskCaseId) || null
+                : null
+              const latestArtifact = taskCaseId
+                ? latestArtifactByCaseId.get(taskCaseId) || null
+                : null
               const taskCardContext = deriveTaskCardContext(task, {
                 stageLabel: stageMeta?.title || null,
                 latestArtifact,
@@ -116,21 +149,32 @@ export function HumanTaskInboxSection({
                   type="button"
                   onClick={() => onSelectTaskId(taskSelectionKey(task))}
                   className={cn(
-                    "ui-interactive-card-subtle w-full border-b border-hairline px-4 py-3 text-left last:border-b-0",
+                    "w-full border-b border-hairline px-4 py-3 text-left ui-motion-fast last:border-b-0",
                     selectedTaskId === taskSelectionKey(task)
-                      ? "bg-surface-1 ring-1 ring-primary/15"
-                      : "bg-transparent hover:bg-surface-1/70",
+                      ? "ui-selected-row-tint"
+                      : "bg-transparent hover:bg-surface-2/25",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="min-w-0 flex-1 truncate text-body-md font-semibold text-foreground">{task.title}</p>
-                        <Badge variant={task.kind === "approval" ? "warning" : "info"} size="pill">
+                        <p className="min-w-0 flex-1 truncate text-body-md font-semibold text-foreground">
+                          {task.title}
+                        </p>
+                        <Badge
+                          variant={
+                            task.kind === "approval" ? "warning" : "info"
+                          }
+                          size="pill"
+                        >
                           {taskKindLabel(task)}
                         </Badge>
                         {!selectedCaseId && taskCaseLabel && (
-                          <Badge variant="outline" size="pill" className="text-muted-foreground">
+                          <Badge
+                            variant="outline"
+                            size="pill"
+                            className="text-muted-foreground"
+                          >
                             {taskCaseLabel}
                           </Badge>
                         )}
@@ -138,15 +182,27 @@ export function HumanTaskInboxSection({
                       <div className="mt-1 flex flex-wrap items-center gap-2 ui-meta-text text-muted-foreground">
                         <span>{task.workflowName}</span>
                         {stageMeta && <span>· {stageMeta.title}</span>}
-                        {!stageMeta && task.kind === "approval" && <span>· Approval</span>}
+                        {!stageMeta && task.kind === "approval" && (
+                          <span>· Approval</span>
+                        )}
                       </div>
-                      {stageMeta?.group ? <p className="mt-1 ui-meta-text text-muted-foreground">{stageMeta.group}</p> : null}
-                      <p className="mt-2 text-body-sm text-muted-foreground">{taskCardContext.statusText}</p>
+                      {stageMeta?.group ? (
+                        <p className="mt-1 ui-meta-text text-muted-foreground">
+                          {stageMeta.group}
+                        </p>
+                      ) : null}
+                      <p className="mt-2 text-body-sm text-muted-foreground">
+                        {taskCardContext.statusText}
+                      </p>
                       {taskCardContext.detailText && (
-                        <p className="mt-1 line-clamp-2 ui-meta-text text-muted-foreground">{taskCardContext.detailText}</p>
+                        <p className="mt-1 line-clamp-2 ui-meta-text text-muted-foreground">
+                          {taskCardContext.detailText}
+                        </p>
                       )}
                     </div>
-                    <span className="shrink-0 ui-meta-text text-muted-foreground">{formatRelativeTime(taskActivityAt(task))}</span>
+                    <span className="shrink-0 ui-meta-text text-muted-foreground">
+                      {formatRelativeTime(taskActivityAt(task))}
+                    </span>
                   </div>
                 </button>
               )
@@ -160,7 +216,7 @@ export function HumanTaskInboxSection({
             taskAnswers={taskAnswers}
             selectedTaskStageMeta={selectedTaskStageMeta}
             primaryActionShortcutLabel={primaryActionShortcutLabel}
-            className="px-4 py-4"
+            className="surface-figure px-4 py-4"
             onOpenWorkflow={onOpenWorkflow}
             onFieldChange={onFieldChange}
             onSubmit={onSubmit}

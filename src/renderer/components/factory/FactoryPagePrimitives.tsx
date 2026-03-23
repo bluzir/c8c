@@ -13,15 +13,19 @@ export function StatCard({
   tone?: "default" | "info" | "warning" | "success"
 }) {
   return (
-    <article className={cn("rounded-xl border px-4 py-4", {
-      "surface-inset-card": tone === "default",
-      "surface-info-soft": tone === "info",
-      "surface-warning-soft": tone === "warning",
-      "surface-success-soft": tone === "success",
-    })}>
+    <article
+      className={cn("rounded-lg px-4 py-4", {
+        "ui-slab": tone === "default",
+        "bg-status-info/8": tone === "info",
+        "bg-status-warning/8": tone === "warning",
+        "bg-status-success/8": tone === "success",
+      })}
+    >
       <div className="ui-meta-label text-muted-foreground">{label}</div>
       <div className="mt-2 text-title-md text-foreground">{value}</div>
-      <div className="mt-1 line-clamp-2 text-body-sm text-muted-foreground">{hint}</div>
+      <div className="mt-1 line-clamp-2 text-body-sm text-muted-foreground">
+        {hint}
+      </div>
     </article>
   )
 }
@@ -43,7 +47,11 @@ export function BadgeGroup({
       {items.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {items.map((item) => (
-            <Badge key={`${label}:${item}`} variant={variant} className="ui-meta-text px-2 py-0">
+            <Badge
+              key={`${label}:${item}`}
+              variant={variant}
+              className="ui-meta-text px-2 py-0"
+            >
               {item}
             </Badge>
           ))}

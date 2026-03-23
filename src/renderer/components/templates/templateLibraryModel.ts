@@ -9,18 +9,22 @@ export const TEMPLATE_CATEGORY_ORDER: TemplateCategoryKey[] = [
   "content",
 ]
 
-export const TEMPLATE_CATEGORY_META: Record<TemplateCategoryKey, {
-  label: string
-  summary: string
-  detail?: string
-}> = {
+export const TEMPLATE_CATEGORY_META: Record<
+  TemplateCategoryKey,
+  {
+    label: string
+    summary: string
+    detail?: string
+  }
+> = {
   all: {
     label: "All",
     summary: "See the whole library first, then narrow it only if that helps.",
   },
   product: {
     label: "Development",
-    summary: "Repo work, specs, implementation planning, UI polish, and software audits.",
+    summary:
+      "Repo work, specs, implementation planning, UI polish, and software audits.",
   },
   marketing: {
     label: "Marketing",
@@ -32,13 +36,18 @@ export const TEMPLATE_CATEGORY_META: Record<TemplateCategoryKey, {
   },
 }
 
-export async function resolveHubTemplate(template: WorkflowTemplate): Promise<WorkflowTemplate> {
-  if (template.source !== "hub" || template.workflow.nodes.length > 0) return template
+export async function resolveHubTemplate(
+  template: WorkflowTemplate,
+): Promise<WorkflowTemplate> {
+  if (template.source !== "hub" || template.workflow.nodes.length > 0)
+    return template
   const full = await window.api.fetchHubTemplate(template.id)
   return { ...template, ...full, source: "hub" }
 }
 
-export function normalizeTemplateForWorkflowUse(template: WorkflowTemplate): WorkflowTemplate {
+export function normalizeTemplateForWorkflowUse(
+  template: WorkflowTemplate,
+): WorkflowTemplate {
   const name = getWorkflowTemplateDisplayName(template)
   if (name === template.name) return template
   return { ...template, name }

@@ -27,7 +27,11 @@ export function NotificationsScopeSection({
   onClearCase,
   onSelectCase,
 }: NotificationsScopeSectionProps) {
-  if (!selectedFactoryLabel && !selectedCaseLabel && visibleCaseOptions.length <= 1) {
+  if (
+    !selectedFactoryLabel &&
+    !selectedCaseLabel &&
+    visibleCaseOptions.length <= 1
+  ) {
     return null
   }
 
@@ -41,12 +45,19 @@ export function NotificationsScopeSection({
               ? "Resolving lab scope..."
               : `Showing ${openHumanTaskCount} open decision${openHumanTaskCount === 1 ? "" : "s"} for ${selectedFactoryLabel}.`
           }
-          actions={factoryBetaEnabled ? (
-            <Button type="button" variant="outline" size="sm" onClick={onOpenFactory}>
-              <ArrowUpRight size={14} />
-              Back to lab
-            </Button>
-          ) : undefined}
+          actions={
+            factoryBetaEnabled ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenFactory}
+              >
+                <ArrowUpRight size={14} />
+                Back to lab
+              </Button>
+            ) : undefined
+          }
         />
       ) : null}
 
@@ -58,11 +69,16 @@ export function NotificationsScopeSection({
               ? "Resolving track lineage..."
               : `Showing ${openHumanTaskCount} open decision${openHumanTaskCount === 1 ? "" : "s"} for ${selectedCaseLabel}${selectedFactoryLabel ? ` inside ${selectedFactoryLabel}` : ""}.`
           }
-          actions={(
-            <Button type="button" variant="ghost" size="sm" onClick={onClearCase}>
+          actions={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClearCase}
+            >
               Show all tracks
             </Button>
-          )}
+          }
         />
       ) : null}
 

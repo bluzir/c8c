@@ -211,7 +211,9 @@ export function McpToolPicker({
               >
                 <span className="font-mono">{display.label}</span>
                 {display.server && (
-                  <span className="ui-meta-text font-normal text-muted-foreground">{display.server}</span>
+                  <span className="ui-meta-text font-normal text-muted-foreground">
+                    {display.server}
+                  </span>
                 )}
                 <button
                   type="button"
@@ -294,7 +296,9 @@ export function McpToolPicker({
                     >
                       <span className="font-mono">{item.label}</span>
                       {item.description && (
-                        <span className="ml-2 ui-meta-text text-muted-foreground">{item.description}</span>
+                        <span className="ml-2 ui-meta-text text-muted-foreground">
+                          {item.description}
+                        </span>
                       )}
                     </button>
                   )

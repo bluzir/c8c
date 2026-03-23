@@ -43,14 +43,24 @@ export function GenerateWorkflow() {
   const [open, setOpen] = useAtom(generateDialogOpenAtom)
   const [workflow, setWorkflow] = useAtom(currentWorkflowAtom)
   const [detailBudget] = useAtom(globalDetailBudgetAtom)
-  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
-  const [selectedWorkflowTemplateContext] = useAtom(selectedWorkflowTemplateContextAtom)
+  const [selectedWorkflowPath, setSelectedWorkflowPath] = useAtom(
+    selectedWorkflowPathAtom,
+  )
+  const [selectedWorkflowTemplateContext] = useAtom(
+    selectedWorkflowTemplateContextAtom,
+  )
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [, setWorkflows] = useAtom(workflowsAtom)
-  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
+  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
+    selectedInboxTaskKeyAtom,
+  )
   const [selectedPastRun, setSelectedPastRun] = useAtom(selectedPastRunAtom)
-  const [workflowEntryState, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const [workflowEntryState, setWorkflowEntryState] = useAtom(
+    workflowEntryStateAtom,
+  )
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const [skills, setSkills] = useAtom(skillsAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [runStatus] = useAtom(runStatusAtom)
@@ -84,12 +94,14 @@ export function GenerateWorkflow() {
     detailBudget,
     onOpenChange: setOpen,
     onGenerated: ({ workflow: nextWorkflow, workflowPath, request }) => {
-      setWorkflowEntryState(buildGeneratedWorkflowEntryState({
-        workflow: nextWorkflow,
-        workflowPath,
-        request,
-        source: "generated",
-      }))
+      setWorkflowEntryState(
+        buildGeneratedWorkflowEntryState({
+          workflow: nextWorkflow,
+          workflowPath,
+          request,
+          source: "generated",
+        }),
+      )
     },
   })
 
@@ -97,22 +109,22 @@ export function GenerateWorkflow() {
     if (!open) return
     setTarget(selectedProject ? "new" : "replace")
   }, [open, selectedProject])
-  const replaceCurrentBlockedReason = getReplaceCurrentWorkflowBlockedReason(runStatus)
+  const replaceCurrentBlockedReason =
+    getReplaceCurrentWorkflowBlockedReason(runStatus)
 
   const progressLabel = progress
     ? STEP_LABELS[progress.step] || `${progress.step}...`
     : null
-  const targetLabel = selectedProject ? projectFolderName(selectedProject) : null
+  const targetLabel = selectedProject
+    ? projectFolderName(selectedProject)
+    : null
   const generateButtonLabel = useMemo(() => {
     if (generating) return "Preparing flow..."
     return "Prepare flow"
   }, [generating])
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleDialogOpenChange}
-    >
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <CanvasDialogContent className="max-w-lg" showCloseButton={false}>
         <CanvasDialogHeader className="surface-depth-header">
           <DialogTitle className="flex items-center gap-2">
@@ -121,9 +133,11 @@ export function GenerateWorkflow() {
           </DialogTitle>
         </CanvasDialogHeader>
 
-        <CanvasDialogBody className="space-y-3 pt-4 surface-soft">
+        <CanvasDialogBody className="space-y-3 pt-4 surface-panel">
           <p className="text-body-md text-muted-foreground">
-            Describe the job, the input you will give it, and the result you want back. The agent will prepare a runnable flow you can run or refine.
+            Describe the job, the input you will give it, and the result you
+            want back. The agent will prepare a runnable flow you can run or
+            refine.
           </p>
 
           <Textarea
@@ -139,14 +153,22 @@ export function GenerateWorkflow() {
           />
 
           {generating && progress && (
-            <div role="status" aria-live="polite" className="flex items-center gap-2 ui-meta-text text-muted-foreground">
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-2 ui-meta-text text-muted-foreground"
+            >
               <Loader2 size={12} className="animate-spin" />
               <span>{progressLabel}</span>
             </div>
           )}
 
           {error && (
-            <div role="alert" aria-live="assertive" className="ui-alert-danger text-status-danger">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="ui-alert-danger text-status-danger"
+            >
               {error}
             </div>
           )}
@@ -157,10 +179,12 @@ export function GenerateWorkflow() {
               : "No project skills discovered yet. The agent will still prepare a runnable draft."}
           </div>
 
-          <div className="rounded-lg border border-dashed border-hairline surface-inset-card px-3 py-3">
+          <div className="rounded-lg border border-dashed border-hairline ui-slab px-3 py-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="ui-meta-label text-muted-foreground">How to open the draft</p>
+                <p className="ui-meta-label text-muted-foreground">
+                  How to open the draft
+                </p>
                 <p className="mt-1 text-body-sm text-foreground">
                   {target === "new"
                     ? targetLabel
@@ -169,7 +193,9 @@ export function GenerateWorkflow() {
                     : "Use the current draft as the current flow."}
                 </p>
                 {target === "replace" && replaceCurrentBlockedReason && (
-                  <p className="mt-2 text-body-sm text-status-warning">{replaceCurrentBlockedReason}</p>
+                  <p className="mt-2 text-body-sm text-status-warning">
+                    {replaceCurrentBlockedReason}
+                  </p>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
@@ -214,7 +240,12 @@ export function GenerateWorkflow() {
               if (target === "replace" && replaceCurrentBlockedReason) return
               void generate(target)
             }}
-            disabled={!description.trim() || generating || (target === "new" && !selectedProject) || (target === "replace" && Boolean(replaceCurrentBlockedReason))}
+            disabled={
+              !description.trim() ||
+              generating ||
+              (target === "new" && !selectedProject) ||
+              (target === "replace" && Boolean(replaceCurrentBlockedReason))
+            }
           >
             {generating ? (
               <>

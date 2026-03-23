@@ -1,0 +1,20 @@
+.ui-progress-track {
+  height: 0.375rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: hsl(var(--surface-3));
+}
+
+.ui-progress-bar {
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  transform-origin: left;
+  transition:
+    transform var(--motion-slow) var(--ease-emphasis),
+    background-color var(--motion-fast) var(--ease-emphasis),
+    opacity var(--motion-fast) var(--ease-emphasis);
+  will-change: transform;
+}

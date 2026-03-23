@@ -90,7 +90,10 @@ export function SkillSourcesAdmin({
   const renderCardSkeletons = (keyPrefix: string) => (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-hidden="true">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={`${keyPrefix}-${index}`} className="rounded-lg surface-panel px-4 py-3">
+        <div
+          key={`${keyPrefix}-${index}`}
+          className="rounded-lg surface-panel px-4 py-3"
+        >
           <div className="flex items-start gap-3">
             <Skeleton className="h-control-lg w-control-lg rounded-lg" />
             <div className="min-w-0 flex-1 space-y-2">
@@ -112,24 +115,39 @@ export function SkillSourcesAdmin({
   return (
     <div className="space-y-6" aria-busy={loading}>
       <section className="space-y-3">
-        <SectionHeading title="Marketplaces" meta={<Badge variant="outline">{loading ? "Loading" : `${installedMarketplaces.length}/${totalMarketplaceCount}`}</Badge>} />
+        <SectionHeading
+          title="Marketplaces"
+          meta={
+            <Badge variant="outline">
+              {loading
+                ? "Loading"
+                : `${installedMarketplaces.length}/${totalMarketplaceCount}`}
+            </Badge>
+          }
+        />
 
-        {loading ? renderCardSkeletons("marketplace-skeleton") : filteredMarketplaces.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
+        {loading ? (
+          renderCardSkeletons("marketplace-skeleton")
+        ) : filteredMarketplaces.length === 0 ? (
+          <div className="ui-empty-state-box ui-empty-state px-4">
             No marketplaces match this filter.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {installedMarketplaces.map((marketplace) => {
-              const busy = refreshing || marketplaceAction?.id === marketplace.id
-              const actionLabel = marketplaceAction?.id === marketplace.id
-                ? MARKETPLACE_ACTION_LABEL[marketplaceAction.action]
-                : null
+              const busy =
+                refreshing || marketplaceAction?.id === marketplace.id
+              const actionLabel =
+                marketplaceAction?.id === marketplace.id
+                  ? MARKETPLACE_ACTION_LABEL[marketplaceAction.action]
+                  : null
               return (
                 <MarketplaceCard
                   key={marketplace.id}
                   marketplace={marketplace}
-                  pluginCount={(pluginsByMarketplaceId.get(marketplace.id) || []).length}
+                  pluginCount={
+                    (pluginsByMarketplaceId.get(marketplace.id) || []).length
+                  }
                   busy={busy}
                   actionLabel={actionLabel}
                   onInstall={() => undefined}
@@ -139,10 +157,12 @@ export function SkillSourcesAdmin({
               )
             })}
             {availableMarketplaces.map((marketplace) => {
-              const busy = refreshing || marketplaceAction?.id === marketplace.id
-              const actionLabel = marketplaceAction?.id === marketplace.id
-                ? MARKETPLACE_ACTION_LABEL[marketplaceAction.action]
-                : null
+              const busy =
+                refreshing || marketplaceAction?.id === marketplace.id
+              const actionLabel =
+                marketplaceAction?.id === marketplace.id
+                  ? MARKETPLACE_ACTION_LABEL[marketplaceAction.action]
+                  : null
               return (
                 <MarketplaceCard
                   key={marketplace.id}
@@ -161,19 +181,30 @@ export function SkillSourcesAdmin({
       </section>
 
       <section className="space-y-3">
-        <SectionHeading title="Enabled plugins" meta={<Badge variant="outline">{loading ? "Loading" : enabledPlugins.length}</Badge>} />
+        <SectionHeading
+          title="Enabled plugins"
+          meta={
+            <Badge variant="outline">
+              {loading ? "Loading" : enabledPlugins.length}
+            </Badge>
+          }
+        />
 
-        {loading ? renderCardSkeletons("enabled-plugin-skeleton") : enabledPlugins.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
-            Install a marketplace and enable a plugin pack to bring in skills, library flows, or MCP integrations.
+        {loading ? (
+          renderCardSkeletons("enabled-plugin-skeleton")
+        ) : enabledPlugins.length === 0 ? (
+          <div className="ui-empty-state-box ui-empty-state px-4">
+            Install a marketplace and enable a plugin pack to bring in skills,
+            library flows, or MCP integrations.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {enabledPlugins.map((plugin) => {
               const busy = refreshing || pluginAction?.id === plugin.id
-              const actionLabel = pluginAction?.id === plugin.id
-                ? PLUGIN_ACTION_LABEL[pluginAction.action]
-                : null
+              const actionLabel =
+                pluginAction?.id === plugin.id
+                  ? PLUGIN_ACTION_LABEL[pluginAction.action]
+                  : null
               return (
                 <PluginCard
                   key={plugin.id}
@@ -182,7 +213,9 @@ export function SkillSourcesAdmin({
                   mcpCount={(pluginMcpByPlugin.get(plugin.id) || []).length}
                   busy={busy}
                   actionLabel={actionLabel}
-                  onToggle={(nextChecked) => onSetPluginEnabled(plugin, nextChecked)}
+                  onToggle={(nextChecked) =>
+                    onSetPluginEnabled(plugin, nextChecked)
+                  }
                   onPreview={() => onPreviewPlugin(plugin)}
                 />
               )
@@ -193,19 +226,29 @@ export function SkillSourcesAdmin({
 
       {(disabledPlugins.length > 0 || hasQuery) && (
         <section className="space-y-3">
-          <SectionHeading title="Installed but disabled" meta={<Badge variant="outline">{loading ? "Loading" : disabledPlugins.length}</Badge>} />
+          <SectionHeading
+            title="Installed but disabled"
+            meta={
+              <Badge variant="outline">
+                {loading ? "Loading" : disabledPlugins.length}
+              </Badge>
+            }
+          />
 
-          {loading ? renderCardSkeletons("disabled-plugin-skeleton") : disabledPlugins.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
+          {loading ? (
+            renderCardSkeletons("disabled-plugin-skeleton")
+          ) : disabledPlugins.length === 0 ? (
+            <div className="ui-empty-state-box ui-empty-state px-4">
               No disabled plugins match this filter.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {disabledPlugins.map((plugin) => {
                 const busy = refreshing || pluginAction?.id === plugin.id
-                const actionLabel = pluginAction?.id === plugin.id
-                  ? PLUGIN_ACTION_LABEL[pluginAction.action]
-                  : null
+                const actionLabel =
+                  pluginAction?.id === plugin.id
+                    ? PLUGIN_ACTION_LABEL[pluginAction.action]
+                    : null
                 return (
                   <PluginCard
                     key={plugin.id}
@@ -214,7 +257,9 @@ export function SkillSourcesAdmin({
                     mcpCount={(pluginMcpByPlugin.get(plugin.id) || []).length}
                     busy={busy}
                     actionLabel={actionLabel}
-                    onToggle={(nextChecked) => onSetPluginEnabled(plugin, nextChecked)}
+                    onToggle={(nextChecked) =>
+                      onSetPluginEnabled(plugin, nextChecked)
+                    }
                     onPreview={() => onPreviewPlugin(plugin)}
                   />
                 )
@@ -225,27 +270,44 @@ export function SkillSourcesAdmin({
       )}
 
       <section className="space-y-3">
-        <SectionHeading title="Installed libraries" meta={<Badge variant="outline">{loading ? "Loading" : `${installedLibraries.length}/${libraries.length}`}</Badge>} />
+        <SectionHeading
+          title="Installed libraries"
+          meta={
+            <Badge variant="outline">
+              {loading
+                ? "Loading"
+                : `${installedLibraries.length}/${libraries.length}`}
+            </Badge>
+          }
+        />
 
-        {loading ? renderCardSkeletons("installed-library-skeleton") : installedLibraries.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
-            No libraries installed. Use plugin marketplaces above for the primary packaging model.
+        {loading ? (
+          renderCardSkeletons("installed-library-skeleton")
+        ) : installedLibraries.length === 0 ? (
+          <div className="ui-empty-state-box ui-empty-state px-4">
+            No libraries installed. Use plugin marketplaces above for the
+            primary packaging model.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {installedLibraries.map((library) => {
               const busy = refreshing || libraryAction?.id === library.id
-              const actionLabel = libraryAction?.id === library.id
-                ? LIBRARY_ACTION_LABEL[libraryAction.action]
-                : null
+              const actionLabel =
+                libraryAction?.id === library.id
+                  ? LIBRARY_ACTION_LABEL[libraryAction.action]
+                  : null
               return (
                 <SkillLibraryCard
                   key={library.id}
                   library={library}
-                  installedSkillsCount={skillsCountByLibrary.get(library.id) ?? 0}
+                  installedSkillsCount={
+                    skillsCountByLibrary.get(library.id) ?? 0
+                  }
                   busy={busy}
                   actionLabel={actionLabel}
-                  onToggle={(nextChecked) => onSetLibraryInstalled(library, nextChecked)}
+                  onToggle={(nextChecked) =>
+                    onSetLibraryInstalled(library, nextChecked)
+                  }
                   onUpdate={() => onUpdateLibrary(library)}
                   onPreview={() => onPreviewLibrary(library)}
                 />
@@ -256,10 +318,19 @@ export function SkillSourcesAdmin({
       </section>
 
       <section className="space-y-3">
-        <SectionHeading title="Library favorites" meta={<Badge variant="outline">{loading ? "Loading" : favoriteLibraries.length}</Badge>} />
+        <SectionHeading
+          title="Library favorites"
+          meta={
+            <Badge variant="outline">
+              {loading ? "Loading" : favoriteLibraries.length}
+            </Badge>
+          }
+        />
 
-        {loading ? renderCardSkeletons("favorite-library-skeleton") : favoriteLibraries.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
+        {loading ? (
+          renderCardSkeletons("favorite-library-skeleton")
+        ) : favoriteLibraries.length === 0 ? (
+          <div className="ui-empty-state-box ui-empty-state px-4">
             {hasQuery
               ? "No favorite libraries match this filter."
               : "Your favorite libraries are already installed."}
@@ -268,9 +339,10 @@ export function SkillSourcesAdmin({
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {favoriteLibraries.map((library) => {
               const busy = refreshing || libraryAction?.id === library.id
-              const actionLabel = libraryAction?.id === library.id
-                ? LIBRARY_ACTION_LABEL[libraryAction.action]
-                : null
+              const actionLabel =
+                libraryAction?.id === library.id
+                  ? LIBRARY_ACTION_LABEL[libraryAction.action]
+                  : null
               return (
                 <SkillLibraryCard
                   key={library.id}
@@ -278,7 +350,9 @@ export function SkillSourcesAdmin({
                   installedSkillsCount={0}
                   busy={busy}
                   actionLabel={actionLabel}
-                  onToggle={(nextChecked) => onSetLibraryInstalled(library, nextChecked)}
+                  onToggle={(nextChecked) =>
+                    onSetLibraryInstalled(library, nextChecked)
+                  }
                   onUpdate={() => undefined}
                   onPreview={() => onPreviewLibrary(library)}
                 />
@@ -290,19 +364,29 @@ export function SkillSourcesAdmin({
 
       {(availableLibraries.length > 0 || hasQuery) && (
         <section className="space-y-3">
-          <SectionHeading title="More libraries" meta={<Badge variant="outline">{loading ? "Loading" : availableLibraries.length}</Badge>} />
+          <SectionHeading
+            title="More libraries"
+            meta={
+              <Badge variant="outline">
+                {loading ? "Loading" : availableLibraries.length}
+              </Badge>
+            }
+          />
 
-          {loading ? renderCardSkeletons("available-library-skeleton") : availableLibraries.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-hairline bg-surface-2/25 ui-empty-state px-4 text-body-sm text-muted-foreground">
+          {loading ? (
+            renderCardSkeletons("available-library-skeleton")
+          ) : availableLibraries.length === 0 ? (
+            <div className="ui-empty-state-box ui-empty-state px-4">
               No other libraries match this filter.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {availableLibraries.map((library) => {
                 const busy = refreshing || libraryAction?.id === library.id
-                const actionLabel = libraryAction?.id === library.id
-                  ? LIBRARY_ACTION_LABEL[libraryAction.action]
-                  : null
+                const actionLabel =
+                  libraryAction?.id === library.id
+                    ? LIBRARY_ACTION_LABEL[libraryAction.action]
+                    : null
                 return (
                   <SkillLibraryCard
                     key={library.id}
@@ -310,7 +394,9 @@ export function SkillSourcesAdmin({
                     installedSkillsCount={0}
                     busy={busy}
                     actionLabel={actionLabel}
-                    onToggle={(nextChecked) => onSetLibraryInstalled(library, nextChecked)}
+                    onToggle={(nextChecked) =>
+                      onSetLibraryInstalled(library, nextChecked)
+                    }
                     onUpdate={() => undefined}
                     onPreview={() => onPreviewLibrary(library)}
                   />

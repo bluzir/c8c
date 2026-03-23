@@ -1,7 +1,13 @@
 import type { MergerNodeConfig } from "@shared/types"
 import { TextareaWithMention } from "@/components/input/TextareaWithMention"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { ValidationError } from "@/lib/validate-workflow"
 import {
   EDITOR_PANEL_CLASS,
@@ -30,12 +36,20 @@ export function MergerNodeEditor({
   return (
     <div className={EDITOR_PANEL_CLASS}>
       <div className="flex items-center gap-3">
-        <Label htmlFor={`merger-strategy-${nodeId}`} className="ui-meta-text text-muted-foreground">
+        <Label
+          htmlFor={`merger-strategy-${nodeId}`}
+          className="ui-meta-text text-muted-foreground"
+        >
           Strategy
         </Label>
         <Select
           value={config.strategy}
-          onValueChange={(value) => onConfigChange({ ...config, strategy: value as MergerNodeConfig["strategy"] })}
+          onValueChange={(value) =>
+            onConfigChange({
+              ...config,
+              strategy: value as MergerNodeConfig["strategy"],
+            })
+          }
         >
           <SelectTrigger
             id={`merger-strategy-${nodeId}`}
@@ -54,19 +68,27 @@ export function MergerNodeEditor({
         <FieldErrorMessage id={strategyErrorId} error={strategyError} />
       </div>
       <p className="ui-meta-text text-muted-foreground">
-        {config.strategy === "concatenate" && "Concatenate keeps all branch outputs in order without rewriting."}
-        {config.strategy === "summarize" && "Summarize compresses all branch outputs into a shorter synthesis."}
-        {config.strategy === "select_best" && "Select best picks a single strongest branch output."}
+        {config.strategy === "concatenate" &&
+          "Concatenate keeps all branch outputs in order without rewriting."}
+        {config.strategy === "summarize" &&
+          "Summarize compresses all branch outputs into a shorter synthesis."}
+        {config.strategy === "select_best" &&
+          "Select best picks a single strongest branch output."}
       </p>
       {config.strategy !== "concatenate" && (
         <div>
-          <Label htmlFor={`merge-prompt-${nodeId}`} className="ui-meta-text text-muted-foreground mb-1 block">
+          <Label
+            htmlFor={`merge-prompt-${nodeId}`}
+            className="ui-meta-text text-muted-foreground mb-1 block"
+          >
             Merge Instructions
           </Label>
           <TextareaWithMention
             id={`merge-prompt-${nodeId}`}
             value={config.prompt || ""}
-            onChange={(event) => onConfigChange({ ...config, prompt: event.target.value })}
+            onChange={(event) =>
+              onConfigChange({ ...config, prompt: event.target.value })
+            }
             rows={2}
             className="min-h-20 resize-y font-mono text-body-sm"
             placeholder="How to combine the results..."
@@ -80,7 +102,9 @@ export function MergerNodeEditor({
       <RuntimePolicyEditor
         nodeId={nodeId}
         config={config}
-        onConfigChange={onConfigChange as (next: RuntimeConfigurableNodeConfig) => void}
+        onConfigChange={
+          onConfigChange as (next: RuntimeConfigurableNodeConfig) => void
+        }
       />
     </div>
   )

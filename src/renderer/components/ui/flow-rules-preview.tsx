@@ -3,19 +3,17 @@ import { DisclosurePanel } from "@/components/ui/disclosure-panel"
 import { cn } from "@/lib/cn"
 import type { FlowRulePreview } from "@/lib/flow-rules"
 
-function FlowRulesList({
-  rules,
-}: {
-  rules: FlowRulePreview[]
-}) {
+function FlowRulesList({ rules }: { rules: FlowRulePreview[] }) {
   return (
     <div className="space-y-1.5">
       {rules.map((rule) => (
         <div
           key={rule.id}
-          className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-hairline bg-surface-2/45 px-2.5 py-2"
+          className="ui-inset-well flex flex-wrap items-start justify-between gap-2 px-2.5 py-2"
         >
-          <p className="min-w-0 flex-1 text-body-sm text-foreground">{rule.label}</p>
+          <p className="min-w-0 flex-1 text-body-sm text-foreground">
+            {rule.label}
+          </p>
           <Badge variant="outline" size="compact">
             {rule.scope}
           </Badge>
@@ -51,7 +49,7 @@ export function FlowRulesPreview({
     return (
       <DisclosurePanel
         summary={summary}
-        className={cn("border border-hairline bg-surface-1/75", className)}
+        className={cn("ui-chapter-shell", className)}
         summaryClassName="py-1.5"
         contentClassName="space-y-2"
         defaultOpen={defaultOpen}
@@ -62,7 +60,9 @@ export function FlowRulesPreview({
   }
 
   return (
-    <section className={cn("space-y-2 rounded-lg border border-hairline bg-surface-1/75 px-3 py-2.5", className)}>
+    <section
+      className={cn("ui-chapter-shell space-y-2 px-3 py-2.5", className)}
+    >
       <div className="flex items-center gap-2">
         <p className="ui-meta-label text-muted-foreground">Active rules</p>
         <Badge variant="outline" size="compact">

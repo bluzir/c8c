@@ -4,7 +4,10 @@ import { Zap } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/cn"
 import { NODE_ICONS, NODE_ICON_TONES } from "@/lib/node-ui-config"
-import { getRuntimeRoleMonogram, getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
+import {
+  getRuntimeRoleMonogram,
+  getRuntimeStagePresentation,
+} from "@/lib/runtime-flow-labels"
 import type { NodeState, WorkflowNode } from "@shared/types"
 
 import {
@@ -58,51 +61,69 @@ export function RuntimeNodeCard({
   const runtimeProgress = getRuntimeProgress(runtimeStatus)
   const runtimeStatusLabel = getRuntimeStatusLabel(runtimeStatus)
   const runtimeStatusDotStyle = getRuntimeStatusDotStyle(runtimeStatus)
-  const runtimeSurfaceClass = runtimeFocusKind === "current"
-    ? runtimeStatus === "running"
-      ? "border-status-info/30 bg-status-info/4"
-      : runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human"
-        ? "border-status-warning/30 bg-status-warning/5"
-        : runtimeStatus === "failed"
-          ? "border-status-danger/30 bg-status-danger/5"
-          : "border-primary/20 bg-primary/4"
-    : runtimeFocusKind === "next"
-      ? "border-border bg-surface-1"
-      : runtimeStatus === "running"
-        ? "border-border bg-status-info/3"
-        : runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human"
-          ? "border-border bg-status-warning/3"
+  const runtimeSurfaceClass =
+    runtimeFocusKind === "current"
+      ? runtimeStatus === "running"
+        ? "border-status-info/30 bg-status-info/4"
+        : runtimeStatus === "waiting_approval" ||
+            runtimeStatus === "waiting_human"
+          ? "border-status-warning/30 bg-status-warning/5"
           : runtimeStatus === "failed"
-            ? "border-border bg-status-danger/3"
-            : "border-border bg-surface-1"
-  const runtimeFocusLabel = runtimeFocusKind === "current"
-    ? runtimeStatusLabel
-    : runtimeFocusKind === "next"
-      ? "Next"
-      : null
-  const runtimeSelectionLabel = isSelected && runtimeFocusKind === null ? "Inspecting" : null
-  const runtimeAccentBarClass = runtimeFocusKind === "current"
-    ? runtimeStatus === "running"
-      ? "bg-status-info/80"
-      : runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human"
-        ? "bg-status-warning/85"
-        : runtimeStatus === "failed"
-          ? "bg-status-danger/85"
-          : "bg-primary/60"
-    : runtimeStatus === "failed"
-      ? "bg-status-danger/45"
-      : null
-  const primaryChips = Array.from(new Set([
-    ...(runtimeCardCopy.metricChips.length > 0 ? [runtimePresentation.artifactRoleLabel] : []),
-    ...runtimeCardCopy.metricChips,
-  ])).slice(0, 4)
-  const showFooter = Boolean(runtimeCardCopy.detail) || (runtimeStatus !== "pending" && runtimeStatus !== "queued")
+            ? "border-status-danger/30 bg-status-danger/5"
+            : "border-primary/20 bg-primary/4"
+      : runtimeFocusKind === "next"
+        ? "border-border bg-surface-1"
+        : runtimeStatus === "running"
+          ? "border-border bg-status-info/3"
+          : runtimeStatus === "waiting_approval" ||
+              runtimeStatus === "waiting_human"
+            ? "border-border bg-status-warning/3"
+            : runtimeStatus === "failed"
+              ? "border-border bg-status-danger/3"
+              : "border-border bg-surface-1"
+  const runtimeFocusLabel =
+    runtimeFocusKind === "current"
+      ? runtimeStatusLabel
+      : runtimeFocusKind === "next"
+        ? "Next"
+        : null
+  const runtimeSelectionLabel =
+    isSelected && runtimeFocusKind === null ? "Inspecting" : null
+  const runtimeAccentBarClass =
+    runtimeFocusKind === "current"
+      ? runtimeStatus === "running"
+        ? "bg-status-info/80"
+        : runtimeStatus === "waiting_approval" ||
+            runtimeStatus === "waiting_human"
+          ? "bg-status-warning/85"
+          : runtimeStatus === "failed"
+            ? "bg-status-danger/85"
+            : "bg-primary/60"
+      : runtimeStatus === "failed"
+        ? "bg-status-danger/45"
+        : null
+  const primaryChips = Array.from(
+    new Set([
+      ...(runtimeCardCopy.metricChips.length > 0
+        ? [runtimePresentation.artifactRoleLabel]
+        : []),
+      ...runtimeCardCopy.metricChips,
+    ]),
+  ).slice(0, 4)
+  const showFooter =
+    Boolean(runtimeCardCopy.detail) ||
+    (runtimeStatus !== "pending" && runtimeStatus !== "queued")
   const footerLabel = showFooter
-    ? runtimeCardCopy.detail || `${runtimePresentation.outcomeLabel}: ${runtimePresentation.artifactLabel}`
+    ? runtimeCardCopy.detail ||
+      `${runtimePresentation.outcomeLabel}: ${runtimePresentation.artifactLabel}`
     : null
 
   useEffect(() => {
-    if (runtimeStatus !== "running" && runtimeStatus !== "waiting_approval" && runtimeStatus !== "waiting_human") {
+    if (
+      runtimeStatus !== "running" &&
+      runtimeStatus !== "waiting_approval" &&
+      runtimeStatus !== "waiting_human"
+    ) {
       return
     }
     const intervalId = window.setInterval(() => {
@@ -112,13 +133,16 @@ export function RuntimeNodeCard({
   }, [runtimeStatus])
 
   if (presentationMode === "monitor") {
-    const inlineBits = runtimeStatus === "running"
-      ? [runtimeStatusLabel]
-      : runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human" || runtimeStatus === "failed"
+    const inlineBits =
+      runtimeStatus === "running"
         ? [runtimeStatusLabel]
-        : runtimeFocusKind === "next"
-          ? ["Next"]
-          : []
+        : runtimeStatus === "waiting_approval" ||
+            runtimeStatus === "waiting_human" ||
+            runtimeStatus === "failed"
+          ? [runtimeStatusLabel]
+          : runtimeFocusKind === "next"
+            ? ["Next"]
+            : []
 
     return (
       <button
@@ -128,7 +152,8 @@ export function RuntimeNodeCard({
           "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left ui-transition-colors ui-motion-fast",
           runtimeStatus === "running"
             ? "bg-status-info/8 text-foreground"
-            : runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human"
+            : runtimeStatus === "waiting_approval" ||
+                runtimeStatus === "waiting_human"
               ? "bg-status-warning/8 text-foreground"
               : runtimeStatus === "failed"
                 ? "bg-status-danger/8 text-foreground"
@@ -140,17 +165,32 @@ export function RuntimeNodeCard({
       >
         {runtimeStatusDotStyle.ring ? (
           <span className="ui-status-beacon shrink-0" aria-hidden="true">
-            <span className={cn("ui-status-beacon-ring", runtimeStatusDotStyle.ring)} />
-            <span className={cn("ui-status-beacon-core", runtimeStatusDotStyle.core)} />
+            <span
+              className={cn(
+                "ui-status-beacon-ring",
+                runtimeStatusDotStyle.ring,
+              )}
+            />
+            <span
+              className={cn(
+                "ui-status-beacon-core",
+                runtimeStatusDotStyle.core,
+              )}
+            />
           </span>
         ) : (
           <span
-            className={cn("h-2.5 w-2.5 shrink-0 rounded-full border border-surface-1/80 shadow-sm", runtimeStatusDotStyle.core)}
+            className={cn(
+              "h-2.5 w-2.5 shrink-0 rounded-full border border-surface-1/80 shadow-sm",
+              runtimeStatusDotStyle.core,
+            )}
             aria-hidden="true"
           />
         )}
         <span className="min-w-0 flex-1 truncate text-body-sm">
-          <span className="font-medium text-foreground">{runtimePresentation.title}</span>
+          <span className="font-medium text-foreground">
+            {runtimePresentation.title}
+          </span>
           {inlineBits.length > 0 ? (
             <span className="text-muted-foreground">{` · ${inlineBits.join(" · ")}`}</span>
           ) : null}
@@ -162,14 +202,21 @@ export function RuntimeNodeCard({
   return (
     <div
       className={cn(
-        "relative h-[224px] overflow-hidden rounded-lg border ui-elevation-base transition-[border-color,box-shadow,background-color] ui-motion-fast",
+        "relative h-[224px] overflow-hidden rounded-lg border transition-[border-color,background-color] ui-motion-fast",
         runtimeSurfaceClass,
-        isSelected && "ring-1 ring-foreground/10 shadow-[0_10px_30px_var(--shadow-card-sm)]",
-        (isActive || runtimeFocusKind === "current") && "shadow-[0_14px_36px_var(--shadow-card-lg)]",
+        isSelected && "ring-1 ring-foreground/10",
+        (isActive || runtimeFocusKind === "current") &&
+          "ring-1 ring-foreground/14",
       )}
     >
       {runtimeAccentBarClass && (
-        <div aria-hidden="true" className={cn("pointer-events-none absolute inset-x-0 top-0 h-1", runtimeAccentBarClass)} />
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 h-1",
+            runtimeAccentBarClass,
+          )}
+        />
       )}
       <button
         type="button"
@@ -185,12 +232,25 @@ export function RuntimeNodeCard({
               </div>
               {runtimeStatusDotStyle.ring ? (
                 <span className="ui-status-beacon" aria-hidden="true">
-                  <span className={cn("ui-status-beacon-ring", runtimeStatusDotStyle.ring)} />
-                  <span className={cn("ui-status-beacon-core", runtimeStatusDotStyle.core)} />
+                  <span
+                    className={cn(
+                      "ui-status-beacon-ring",
+                      runtimeStatusDotStyle.ring,
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "ui-status-beacon-core",
+                      runtimeStatusDotStyle.core,
+                    )}
+                  />
                 </span>
               ) : (
                 <span
-                  className={cn("h-2.5 w-2.5 shrink-0 rounded-full border border-surface-1/80 shadow-sm", runtimeStatusDotStyle.core)}
+                  className={cn(
+                    "h-2.5 w-2.5 shrink-0 rounded-full border border-surface-1/80 shadow-sm",
+                    runtimeStatusDotStyle.core,
+                  )}
                   aria-hidden="true"
                 />
               )}
@@ -214,10 +274,18 @@ export function RuntimeNodeCard({
                 variant="outline"
                 className={cn(
                   "max-w-full shrink-0 px-1.5 py-0 ui-meta-text",
-                  runtimeFocusKind === "current" && "border-hairline bg-surface-2 text-foreground",
-                  runtimeFocusKind === "current" && runtimeStatus === "running" && "ui-status-badge-info",
-                  runtimeFocusKind === "current" && (runtimeStatus === "waiting_approval" || runtimeStatus === "waiting_human") && "ui-status-badge-warning",
-                  runtimeFocusKind === "current" && runtimeStatus === "failed" && "ui-status-badge-danger",
+                  runtimeFocusKind === "current" &&
+                    "border-hairline bg-surface-2 text-foreground",
+                  runtimeFocusKind === "current" &&
+                    runtimeStatus === "running" &&
+                    "ui-status-badge-info",
+                  runtimeFocusKind === "current" &&
+                    (runtimeStatus === "waiting_approval" ||
+                      runtimeStatus === "waiting_human") &&
+                    "ui-status-badge-warning",
+                  runtimeFocusKind === "current" &&
+                    runtimeStatus === "failed" &&
+                    "ui-status-badge-danger",
                   runtimeFocusKind === "next" && "font-medium text-foreground",
                 )}
                 title={runtimeFocusLabel}
@@ -232,7 +300,8 @@ export function RuntimeNodeCard({
           <div
             className={cn(
               "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ui-elevation-inset",
-              NODE_ICON_TONES[node.type] || "border-hairline bg-surface-1 text-muted-foreground",
+              NODE_ICON_TONES[node.type] ||
+                "border-hairline bg-surface-1 text-muted-foreground",
             )}
           >
             {node.type === "skill" ? (
@@ -245,10 +314,16 @@ export function RuntimeNodeCard({
           </div>
 
           <div className="min-w-0 flex-1 space-y-1.5">
-            <div className="line-clamp-1 text-title-sm text-foreground" title={runtimePresentation.title}>
+            <div
+              className="line-clamp-1 text-title-sm text-foreground"
+              title={runtimePresentation.title}
+            >
               {runtimePresentation.title}
             </div>
-            <div className="line-clamp-1 ui-meta-text text-muted-foreground" title={runtimePresentation.artifactLabel}>
+            <div
+              className="line-clamp-1 ui-meta-text text-muted-foreground"
+              title={runtimePresentation.artifactLabel}
+            >
               {runtimePresentation.artifactLabel}
             </div>
           </div>
@@ -304,20 +379,32 @@ export function RuntimeNodeCard({
                     variant="outline"
                     className={cn(
                       "max-w-full gap-1 px-1.5 py-0 ui-meta-text",
-                      preview.status === "running" && "border-status-info/30 text-status-info",
-                      (preview.status === "waiting_approval" || preview.status === "waiting_human") && "border-status-warning/30 text-status-warning",
-                      preview.status === "failed" && "border-status-danger/30 text-status-danger",
-                      preview.status === "completed" && "border-status-success/30 text-status-success",
-                      (preview.status === "pending" || preview.status === "queued") && "text-muted-foreground",
+                      preview.status === "running" &&
+                        "border-status-info/30 text-status-info",
+                      (preview.status === "waiting_approval" ||
+                        preview.status === "waiting_human") &&
+                        "border-status-warning/30 text-status-warning",
+                      preview.status === "failed" &&
+                        "border-status-danger/30 text-status-danger",
+                      preview.status === "completed" &&
+                        "border-status-success/30 text-status-success",
+                      (preview.status === "pending" ||
+                        preview.status === "queued") &&
+                        "text-muted-foreground",
                     )}
                     title={preview.detail || preview.label}
                   >
                     <span className="truncate">{preview.label}</span>
-                    <span className="opacity-70">{getPreviewStatusLabel(preview.status)}</span>
+                    <span className="opacity-70">
+                      {getPreviewStatusLabel(preview.status)}
+                    </span>
                   </Badge>
                 ))}
                 {runtimeBranchSummary.previews.length > 3 && (
-                  <Badge variant="outline" className="px-1.5 py-0 ui-meta-text text-muted-foreground">
+                  <Badge
+                    variant="outline"
+                    className="px-1.5 py-0 ui-meta-text text-muted-foreground"
+                  >
                     +{runtimeBranchSummary.previews.length - 3}
                   </Badge>
                 )}
@@ -325,7 +412,10 @@ export function RuntimeNodeCard({
             </div>
           ) : runtimeCardCopy.detail ? (
             <div className="border-l border-hairline pl-2">
-              <div className="line-clamp-1 ui-meta-text text-muted-foreground" title={runtimeCardCopy.detail}>
+              <div
+                className="line-clamp-1 ui-meta-text text-muted-foreground"
+                title={runtimeCardCopy.detail}
+              >
                 {runtimeCardCopy.detail}
               </div>
             </div>
@@ -333,8 +423,11 @@ export function RuntimeNodeCard({
         </div>
 
         {footerLabel ? (
-          <div className="flex shrink-0 items-center justify-between gap-2 border-t border-hairline/80 pt-2.5">
-            <div className="min-w-0 line-clamp-1 ui-meta-text text-muted-foreground" title={footerLabel}>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-t border-hairline pt-2.5">
+            <div
+              className="min-w-0 line-clamp-1 ui-meta-text text-muted-foreground"
+              title={footerLabel}
+            >
               {footerLabel}
             </div>
             <span className="shrink-0 ui-meta-text text-muted-foreground transition-colors group-hover:text-foreground">

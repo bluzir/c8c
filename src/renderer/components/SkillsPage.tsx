@@ -50,22 +50,45 @@ export function SkillsPage() {
 
   const [marketplaces, setMarketplaces] = useState<MarketplaceSource[]>([])
   const [plugins, setPlugins] = useState<InstalledPlugin[]>([])
-  const [pluginMcpServers, setPluginMcpServers] = useState<PluginMcpServerInfo[]>([])
+  const [pluginMcpServers, setPluginMcpServers] = useState<
+    PluginMcpServerInfo[]
+  >([])
   const [query, setQuery] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
-  const [activeSection, setActiveSection] = useState<"attach" | "sources">(selectedWorkflowPath ? "attach" : "sources")
-  const [libraryAction, setLibraryAction] = useState<{ id: string; action: LibraryAction } | null>(null)
-  const [marketplaceAction, setMarketplaceAction] = useState<{ id: string; action: MarketplaceAction } | null>(null)
-  const [pluginAction, setPluginAction] = useState<{ id: string; action: PluginAction } | null>(null)
+  const [activeSection, setActiveSection] = useState<"attach" | "sources">(
+    selectedWorkflowPath ? "attach" : "sources",
+  )
+  const [libraryAction, setLibraryAction] = useState<{
+    id: string
+    action: LibraryAction
+  } | null>(null)
+  const [marketplaceAction, setMarketplaceAction] = useState<{
+    id: string
+    action: MarketplaceAction
+  } | null>(null)
+  const [pluginAction, setPluginAction] = useState<{
+    id: string
+    action: PluginAction
+  } | null>(null)
   const [statusMessage, setStatusMessage] = useState("")
-  const [pendingUninstall, setPendingUninstall] = useState<SkillLibrary | null>(null)
-  const [pendingDisablePlugin, setPendingDisablePlugin] = useState<InstalledPlugin | null>(null)
-  const [pendingRemoveMarketplace, setPendingRemoveMarketplace] = useState<MarketplaceSource | null>(null)
-  const [previewLibrary, setPreviewLibrary] = useState<SkillLibrary | null>(null)
-  const [previewPlugin, setPreviewPlugin] = useState<InstalledPlugin | null>(null)
+  const [pendingUninstall, setPendingUninstall] = useState<SkillLibrary | null>(
+    null,
+  )
+  const [pendingDisablePlugin, setPendingDisablePlugin] =
+    useState<InstalledPlugin | null>(null)
+  const [pendingRemoveMarketplace, setPendingRemoveMarketplace] =
+    useState<MarketplaceSource | null>(null)
+  const [previewLibrary, setPreviewLibrary] = useState<SkillLibrary | null>(
+    null,
+  )
+  const [previewPlugin, setPreviewPlugin] = useState<InstalledPlugin | null>(
+    null,
+  )
   const [acknowledgeBrokenRefs, setAcknowledgeBrokenRefs] = useState(false)
-  const [selectedSkill, setSelectedSkill] = useState<DiscoveredSkill | null>(null)
+  const [selectedSkill, setSelectedSkill] = useState<DiscoveredSkill | null>(
+    null,
+  )
   const refreshRequestIdRef = useRef(0)
 
   const refresh = useCallback(async () => {
@@ -73,12 +96,20 @@ export function SkillsPage() {
     refreshRequestIdRef.current = requestId
     setRefreshing(true)
     try {
-      const [loadedLibraries, loadedMarketplaces, loadedPlugins, loadedPluginMcpServers, scanned] = await Promise.all([
+      const [
+        loadedLibraries,
+        loadedMarketplaces,
+        loadedPlugins,
+        loadedPluginMcpServers,
+        scanned,
+      ] = await Promise.all([
         window.api.listLibraries(),
         window.api.listMarketplaces(),
         window.api.scanPlugins(),
         window.api.mcpListPluginServers(),
-        selectedProject ? window.api.scanSkills(selectedProject) : Promise.resolve([] as DiscoveredSkill[]),
+        selectedProject
+          ? window.api.scanSkills(selectedProject)
+          : Promise.resolve([] as DiscoveredSkill[]),
       ])
       if (refreshRequestIdRef.current !== requestId) return
       setLibraries(loadedLibraries)
@@ -102,7 +133,11 @@ export function SkillsPage() {
 
   useEffect(() => {
     setAcknowledgeBrokenRefs(false)
-  }, [pendingDisablePlugin?.id, pendingRemoveMarketplace?.id, pendingUninstall?.id])
+  }, [
+    pendingDisablePlugin?.id,
+    pendingRemoveMarketplace?.id,
+    pendingUninstall?.id,
+  ])
 
   const {
     skillsCountByLibrary,
@@ -144,64 +179,95 @@ export function SkillsPage() {
 
   useEffect(() => {
     if (!selectedSkill) return
-    const stillVisible = filteredSkills.some((skill) => skill.path === selectedSkill.path)
+    const stillVisible = filteredSkills.some(
+      (skill) => skill.path === selectedSkill.path,
+    )
     if (!stillVisible) {
       setSelectedSkill(null)
     }
   }, [filteredSkills, selectedSkill])
 
-  const setLibraryInstalled = useCallback(async (library: SkillLibrary, nextChecked: boolean) => {
-    if (!nextChecked) {
-      setPendingUninstall(library)
-      return
-    }
+  const setLibraryInstalled = useCallback(
+    async (library: SkillLibrary, nextChecked: boolean) => {
+      if (!nextChecked) {
+        setPendingUninstall(library)
+        return
+      }
 
-    setLibraryAction({ id: library.id, action: "installing" })
-    try {
-      await window.api.installLibrary(library.id)
-      toast.success(`Library installed: ${library.name}`)
-      setStatusMessage(`${library.name} installed`)
-      await refresh()
-    } catch (error) {
-      toastErrorFromCatch(`Could not install ${library.name}`, error)
-      setStatusMessage(`Failed to install ${library.name}`)
-    } finally {
-      setLibraryAction(null)
-    }
-  }, [refresh])
+      setLibraryAction({ id: library.id, action: "installing" })
+      try {
+        await window.api.installLibrary(library.id)
+        toast.success(`Library installed: ${library.name}`)
+        setStatusMessage(`${library.name} installed`)
+        await refresh()
+      } catch (error) {
+        toastErrorFromCatch(`Could not install ${library.name}`, error)
+        setStatusMessage(`Failed to install ${library.name}`)
+      } finally {
+        setLibraryAction(null)
+      }
+    },
+    [refresh],
+  )
 
-  const mutateMarketplace = useCallback(async (
-    marketplace: MarketplaceSource,
-    action: MarketplaceAction,
-    operation: () => Promise<boolean>,
-  ) => {
-    setMarketplaceAction({ id: marketplace.id, action })
-    try {
-      await operation()
-      const verb = action === "installing" ? "installed" : action === "updating" ? "updated" : "removed"
-      toast.success(`Marketplace ${verb}: ${marketplace.name}`)
-      setStatusMessage(`${marketplace.name} ${verb}`)
-      await refresh()
-    } catch (error) {
-      const verb = action === "installing" ? "install" : action === "updating" ? "update" : "remove"
-      toastErrorFromCatch(`Could not ${verb} ${marketplace.name}`, error)
-      setStatusMessage(`Failed to ${verb} ${marketplace.name}`)
-    } finally {
-      setMarketplaceAction(null)
-    }
-  }, [refresh])
+  const mutateMarketplace = useCallback(
+    async (
+      marketplace: MarketplaceSource,
+      action: MarketplaceAction,
+      operation: () => Promise<boolean>,
+    ) => {
+      setMarketplaceAction({ id: marketplace.id, action })
+      try {
+        await operation()
+        const verb =
+          action === "installing"
+            ? "installed"
+            : action === "updating"
+              ? "updated"
+              : "removed"
+        toast.success(`Marketplace ${verb}: ${marketplace.name}`)
+        setStatusMessage(`${marketplace.name} ${verb}`)
+        await refresh()
+      } catch (error) {
+        const verb =
+          action === "installing"
+            ? "install"
+            : action === "updating"
+              ? "update"
+              : "remove"
+        toastErrorFromCatch(`Could not ${verb} ${marketplace.name}`, error)
+        setStatusMessage(`Failed to ${verb} ${marketplace.name}`)
+      } finally {
+        setMarketplaceAction(null)
+      }
+    },
+    [refresh],
+  )
 
-  const installMarketplace = useCallback(async (marketplace: MarketplaceSource) => {
-    await mutateMarketplace(marketplace, "installing", () => window.api.installMarketplace(marketplace.id))
-  }, [mutateMarketplace])
+  const installMarketplace = useCallback(
+    async (marketplace: MarketplaceSource) => {
+      await mutateMarketplace(marketplace, "installing", () =>
+        window.api.installMarketplace(marketplace.id),
+      )
+    },
+    [mutateMarketplace],
+  )
 
-  const updateMarketplace = useCallback(async (marketplace: MarketplaceSource) => {
-    await mutateMarketplace(marketplace, "updating", () => window.api.updateMarketplace(marketplace.id))
-  }, [mutateMarketplace])
+  const updateMarketplace = useCallback(
+    async (marketplace: MarketplaceSource) => {
+      await mutateMarketplace(marketplace, "updating", () =>
+        window.api.updateMarketplace(marketplace.id),
+      )
+    },
+    [mutateMarketplace],
+  )
 
-  const requestRemoveMarketplace = useCallback((marketplace: MarketplaceSource) => {
-    setPendingRemoveMarketplace(marketplace)
-  }, [])
+  const requestRemoveMarketplace = useCallback(
+    (marketplace: MarketplaceSource) => {
+      setPendingRemoveMarketplace(marketplace)
+    },
+    [],
+  )
 
   const commitRemoveMarketplace = useCallback(async () => {
     const marketplace = pendingRemoveMarketplace
@@ -210,29 +276,39 @@ export function SkillsPage() {
       return
     }
     setPendingRemoveMarketplace(null)
-    await mutateMarketplace(marketplace, "removing", () => window.api.removeMarketplace(marketplace.id))
+    await mutateMarketplace(marketplace, "removing", () =>
+      window.api.removeMarketplace(marketplace.id),
+    )
     setAcknowledgeBrokenRefs(false)
-  }, [acknowledgeBrokenRefs, mutateMarketplace, pendingRemoveMarketplace, pendingRemoveMarketplaceRefs.length])
+  }, [
+    acknowledgeBrokenRefs,
+    mutateMarketplace,
+    pendingRemoveMarketplace,
+    pendingRemoveMarketplaceRefs.length,
+  ])
 
-  const setPluginEnabled = useCallback(async (plugin: InstalledPlugin, nextChecked: boolean) => {
-    if (!nextChecked) {
-      setPendingDisablePlugin(plugin)
-      return
-    }
+  const setPluginEnabled = useCallback(
+    async (plugin: InstalledPlugin, nextChecked: boolean) => {
+      if (!nextChecked) {
+        setPendingDisablePlugin(plugin)
+        return
+      }
 
-    setPluginAction({ id: plugin.id, action: "enabling" })
-    try {
-      await window.api.setPluginEnabled(plugin.id, true)
-      toast.success(`Plugin enabled: ${plugin.name}`)
-      setStatusMessage(`${plugin.name} enabled`)
-      await refresh()
-    } catch (error) {
-      toastErrorFromCatch(`Could not enable ${plugin.name}`, error)
-      setStatusMessage(`Failed to enable ${plugin.name}`)
-    } finally {
-      setPluginAction(null)
-    }
-  }, [refresh])
+      setPluginAction({ id: plugin.id, action: "enabling" })
+      try {
+        await window.api.setPluginEnabled(plugin.id, true)
+        toast.success(`Plugin enabled: ${plugin.name}`)
+        setStatusMessage(`${plugin.name} enabled`)
+        await refresh()
+      } catch (error) {
+        toastErrorFromCatch(`Could not enable ${plugin.name}`, error)
+        setStatusMessage(`Failed to enable ${plugin.name}`)
+      } finally {
+        setPluginAction(null)
+      }
+    },
+    [refresh],
+  )
 
   const commitDisablePlugin = useCallback(async () => {
     const plugin = pendingDisablePlugin
@@ -254,22 +330,30 @@ export function SkillsPage() {
       setPluginAction(null)
       setAcknowledgeBrokenRefs(false)
     }
-  }, [acknowledgeBrokenRefs, pendingDisablePlugin, pendingDisablePluginRefs.length, refresh])
+  }, [
+    acknowledgeBrokenRefs,
+    pendingDisablePlugin,
+    pendingDisablePluginRefs.length,
+    refresh,
+  ])
 
-  const updateLibrary = useCallback(async (library: SkillLibrary) => {
-    setLibraryAction({ id: library.id, action: "updating" })
-    try {
-      await window.api.installLibrary(library.id)
-      toast.success(`Library updated: ${library.name}`)
-      setStatusMessage(`${library.name} updated`)
-      await refresh()
-    } catch (error) {
-      toastErrorFromCatch(`Could not update ${library.name}`, error)
-      setStatusMessage(`Failed to update ${library.name}`)
-    } finally {
-      setLibraryAction(null)
-    }
-  }, [refresh])
+  const updateLibrary = useCallback(
+    async (library: SkillLibrary) => {
+      setLibraryAction({ id: library.id, action: "updating" })
+      try {
+        await window.api.installLibrary(library.id)
+        toast.success(`Library updated: ${library.name}`)
+        setStatusMessage(`${library.name} updated`)
+        await refresh()
+      } catch (error) {
+        toastErrorFromCatch(`Could not update ${library.name}`, error)
+        setStatusMessage(`Failed to update ${library.name}`)
+      } finally {
+        setLibraryAction(null)
+      }
+    },
+    [refresh],
+  )
 
   const commitUninstall = useCallback(async () => {
     const library = pendingUninstall
@@ -291,7 +375,12 @@ export function SkillsPage() {
       setLibraryAction(null)
       setAcknowledgeBrokenRefs(false)
     }
-  }, [acknowledgeBrokenRefs, pendingUninstall, pendingUninstallRefs.length, refresh])
+  }, [
+    acknowledgeBrokenRefs,
+    pendingUninstall,
+    pendingUninstallRefs.length,
+    refresh,
+  ])
 
   const addToWorkflowDisabledReason = !selectedProject
     ? "Select a project first."
@@ -299,35 +388,45 @@ export function SkillsPage() {
       ? "Open a flow first."
       : null
 
-  const addSkillToWorkflow = useCallback((skill: DiscoveredSkill) => {
-    if (!selectedProject) {
-      toastError("Select a project first.")
-      return
-    }
-    if (!selectedWorkflowPath) {
-      toastError("Open a flow first, then attach a skill.")
-      return
-    }
+  const addSkillToWorkflow = useCallback(
+    (skill: DiscoveredSkill) => {
+      if (!selectedProject) {
+        toastError("Select a project first.")
+        return
+      }
+      if (!selectedWorkflowPath) {
+        toastError("Open a flow first, then attach a skill.")
+        return
+      }
 
-    let nextSelectedId: string | null = null
-    setCurrentWorkflow((prev) => {
-      const next = addSkillNodeToWorkflow(prev, skill)
-      const previousIds = new Set(prev.nodes.map((node) => node.id))
-      nextSelectedId = next.nodes.find((node) => !previousIds.has(node.id))?.id ?? null
-      return next
-    })
-    if (nextSelectedId) {
-      setSelectedNodeId(nextSelectedId)
-    }
-    toast.success(`Skill attached: ${skill.name}`, {
-      description: "The new step is ready in Edit flow.",
-      action: {
-        label: "Edit flow",
-        onClick: () => setMainView("thread"),
-      },
-    })
-    setStatusMessage(`${skill.name} attached to flow`)
-  }, [selectedProject, selectedWorkflowPath, setCurrentWorkflow, setMainView, setSelectedNodeId])
+      let nextSelectedId: string | null = null
+      setCurrentWorkflow((prev) => {
+        const next = addSkillNodeToWorkflow(prev, skill)
+        const previousIds = new Set(prev.nodes.map((node) => node.id))
+        nextSelectedId =
+          next.nodes.find((node) => !previousIds.has(node.id))?.id ?? null
+        return next
+      })
+      if (nextSelectedId) {
+        setSelectedNodeId(nextSelectedId)
+      }
+      toast.success(`Skill attached: ${skill.name}`, {
+        description: "The new step is ready in Edit flow.",
+        action: {
+          label: "Edit flow",
+          onClick: () => setMainView("thread"),
+        },
+      })
+      setStatusMessage(`${skill.name} attached to flow`)
+    },
+    [
+      selectedProject,
+      selectedWorkflowPath,
+      setCurrentWorkflow,
+      setMainView,
+      setSelectedNodeId,
+    ],
+  )
 
   const createSkill = async () => {
     if (!selectedProject) {
@@ -341,7 +440,8 @@ export function SkillsPage() {
       const fileName = skillPath.split("/").pop() || "skill file"
       if (openError) {
         toast.success(`Skill created: ${fileName}`, {
-          description: "Starter file is ready. Open it from your file explorer.",
+          description:
+            "Starter file is ready. Open it from your file explorer.",
           action: {
             label: "Open file",
             onClick: () => void window.api.openPath(skillPath),
@@ -358,9 +458,13 @@ export function SkillsPage() {
   }
 
   const previewItems = previewLibrary
-    ? (skillsByLibrary.get(previewLibrary.id) || []).map((skill) => `${skill.category}/${skill.name}`)
+    ? (skillsByLibrary.get(previewLibrary.id) || []).map(
+        (skill) => `${skill.category}/${skill.name}`,
+      )
     : []
-  const previewHints = previewLibrary ? (LIBRARY_PREVIEW_HINTS[previewLibrary.id] || []) : []
+  const previewHints = previewLibrary
+    ? LIBRARY_PREVIEW_HINTS[previewLibrary.id] || []
+    : []
   const currentLibraryActionLabel = libraryAction
     ? `${LIBRARY_ACTION_LABEL[libraryAction.action]} ${libraryById.get(libraryAction.id)?.name || "library"}...`
     : null
@@ -371,10 +475,14 @@ export function SkillsPage() {
     ? `${PLUGIN_ACTION_LABEL[pluginAction.action]} ${plugins.find((item) => item.id === pluginAction.id)?.name || "plugin"}...`
     : null
   const previewPluginSkills = previewPlugin
-    ? (skillsByPlugin.get(previewPlugin.id) || []).map((skill) => `${skill.category}/${skill.name}`)
+    ? (skillsByPlugin.get(previewPlugin.id) || []).map(
+        (skill) => `${skill.category}/${skill.name}`,
+      )
     : []
   const previewPluginMcpServers = previewPlugin
-    ? (pluginMcpByPlugin.get(previewPlugin.id) || []).map((server) => server.name)
+    ? (pluginMcpByPlugin.get(previewPlugin.id) || []).map(
+        (server) => server.name,
+      )
     : []
   const initialLoading = refreshing && !hasLoadedOnce
   const toolbarSummary = initialLoading
@@ -396,18 +504,22 @@ export function SkillsPage() {
         searchAriaLabel="Search skills, plugins, and sources"
         summary={toolbarSummary}
         surface="flat"
-        action={(
+        action={
           <Button
             size="sm"
             variant="outline"
             onClick={() => void createSkill()}
             disabled={!selectedProject}
-            title={selectedProject ? undefined : "Select a project first to create a skill."}
+            title={
+              selectedProject
+                ? undefined
+                : "Select a project first to create a skill."
+            }
           >
             <Plus size={14} />
             New skill
           </Button>
-        )}
+        }
       />
 
       <SkillsActionStatus
@@ -416,7 +528,13 @@ export function SkillsPage() {
         pluginActionLabel={currentPluginActionLabel}
       />
 
-      <Tabs value={activeSection} onValueChange={(value) => setActiveSection(value as "attach" | "sources")} className="space-y-4">
+      <Tabs
+        value={activeSection}
+        onValueChange={(value) =>
+          setActiveSection(value as "attach" | "sources")
+        }
+        className="space-y-4"
+      >
         <TabsList aria-label="Skills page sections">
           <TabsTrigger value="attach">Attach to flow</TabsTrigger>
           <TabsTrigger value="sources">Manage sources</TabsTrigger>
@@ -459,19 +577,29 @@ export function SkillsPage() {
             refreshing={refreshing}
             loading={initialLoading}
             hasQuery={Boolean(query.trim())}
-            onSetLibraryInstalled={(library, nextChecked) => void setLibraryInstalled(library, nextChecked)}
+            onSetLibraryInstalled={(library, nextChecked) =>
+              void setLibraryInstalled(library, nextChecked)
+            }
             onUpdateLibrary={(library) => void updateLibrary(library)}
             onPreviewLibrary={setPreviewLibrary}
-            onInstallMarketplace={(marketplace) => void installMarketplace(marketplace)}
-            onUpdateMarketplace={(marketplace) => void updateMarketplace(marketplace)}
+            onInstallMarketplace={(marketplace) =>
+              void installMarketplace(marketplace)
+            }
+            onUpdateMarketplace={(marketplace) =>
+              void updateMarketplace(marketplace)
+            }
             onRequestRemoveMarketplace={requestRemoveMarketplace}
-            onSetPluginEnabled={(plugin, nextChecked) => void setPluginEnabled(plugin, nextChecked)}
+            onSetPluginEnabled={(plugin, nextChecked) =>
+              void setPluginEnabled(plugin, nextChecked)
+            }
             onPreviewPlugin={setPreviewPlugin}
           />
         </TabsContent>
       </Tabs>
 
-      <div aria-live="polite" className="sr-only">{statusMessage}</div>
+      <div aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
 
       <SkillsPageDialogs
         pendingUninstall={pendingUninstall}

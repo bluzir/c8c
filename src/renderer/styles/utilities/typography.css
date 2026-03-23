@@ -1,0 +1,83 @@
+/* ────────────────────────────────────────────────────────
+   Typography utilities — section kickers, titles, meta
+   labels, body text, metrics, inline code, and prose.
+   Extracted from globals.css.
+   ──────────────────────────────────────────────────────── */
+
+.section-kicker {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+:where(.ui-meta-text) {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+:where(.ui-meta-label) {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.ui-metric-text {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  font-size: 0.625rem;
+  line-height: 0.875rem;
+  font-weight: 500;
+}
+
+.inline-code {
+  border-radius: 0.375rem;
+  background: hsl(var(--surface-2));
+  padding: 0.125rem 0.25rem;
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: hsl(var(--foreground));
+}
+
+.prose-c8c {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  word-break: break-word;
+}
+
+.prose-c8c a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+.prose-c8c blockquote {
+  border-left: 2px solid hsl(var(--hairline));
+  padding-left: 0.75rem;
+}
+
+.prose-c8c code {
+  border-radius: 0.25rem;
+  background: hsl(var(--surface-3) / 0.6);
+  padding: 0.125rem 0.25rem;
+}
+
+.prose-c8c pre {
+  overflow-x: auto;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--hairline) / 0.4);
+  background: hsl(var(--surface-3) / 0.5);
+  padding: 0.5rem;
+}
+
+.prose-c8c p {
+  margin-block: 0.5rem;
+}
+
+.prose-c8c ul,
+.prose-c8c ol {
+  margin-block: 0.5rem;
+  padding-left: 1.25rem;
+}

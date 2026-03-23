@@ -40,7 +40,9 @@ function createCompletedNodeState(overrides?: Partial<NodeState>): NodeState {
   }
 }
 
-function createEvalResult(overrides?: Partial<EvaluationResult>): EvaluationResult {
+function createEvalResult(
+  overrides?: Partial<EvaluationResult>,
+): EvaluationResult {
   return {
     attempt: 1,
     score: 8.5,
@@ -50,7 +52,9 @@ function createEvalResult(overrides?: Partial<EvaluationResult>): EvaluationResu
   }
 }
 
-function createExecutionLoopSummary(overrides?: Partial<ExecutionLoopSummary>): ExecutionLoopSummary {
+function createExecutionLoopSummary(
+  overrides?: Partial<ExecutionLoopSummary>,
+): ExecutionLoopSummary {
   return {
     evaluatorNodeId: "result",
     loopLabel: "Review loop",
@@ -133,16 +137,19 @@ describe("deriveVerdictData", () => {
             metadata: {
               source: "agent",
               artifact_label: "QA report",
-              reason: "Accessibility review failed on contrast and focus order.",
+              reason:
+                "Accessibility review failed on contrast and focus order.",
             },
           },
         }),
       },
       evalResults: {
-        result: [createEvalResult({
-          passed: false,
-          reason: "Evaluator said something less specific",
-        })],
+        result: [
+          createEvalResult({
+            passed: false,
+            reason: "Evaluator said something less specific",
+          }),
+        ],
       },
       selectedResultNodeId: "result",
       selectedResultPresentation: RESULT_PRESENTATION,
@@ -159,10 +166,14 @@ describe("deriveVerdictData", () => {
       runOutcome: "failed",
       hasPrimaryContinuation: false,
       isDisplayedResultEmpty: true,
-      failedNodeErrors: [["result", { error: "Raw stack trace line 1\nline 2" }]],
+      failedNodeErrors: [
+        ["result", { error: "Raw stack trace line 1\nline 2" }],
+      ],
     })
 
-    expect(result.headline).toBe("Accessibility review failed on contrast and focus order.")
+    expect(result.headline).toBe(
+      "Accessibility review failed on contrast and focus order.",
+    )
     expect(result.tone).toBe("danger")
     expect(result.preservedText).toBe("Previous 1 step remains available.")
   })
@@ -203,7 +214,9 @@ describe("deriveVerdictData", () => {
       runOutcome: null,
       hasPrimaryContinuation: false,
       isDisplayedResultEmpty: true,
-      failedNodeErrors: [["system_mapper", { error: "CLI crashed while mapping the repo." }]],
+      failedNodeErrors: [
+        ["system_mapper", { error: "CLI crashed while mapping the repo." }],
+      ],
     })
 
     expect(result.terminalVariant).toBe("failed")
@@ -217,15 +230,17 @@ describe("deriveVerdictData", () => {
         result: createCompletedNodeState(),
       },
       evalResults: {
-        result: [createEvalResult({
-          score: 6.5,
-          passed: false,
-          criteria: [
-            { id: "clarity", score: 7 },
-            { id: "accessibility", score: 5 },
-          ],
-          fix_instructions: "Fix contrast and focus order first.",
-        })],
+        result: [
+          createEvalResult({
+            score: 6.5,
+            passed: false,
+            criteria: [
+              { id: "clarity", score: 7 },
+              { id: "accessibility", score: 5 },
+            ],
+            fix_instructions: "Fix contrast and focus order first.",
+          }),
+        ],
       },
       selectedResultNodeId: "result",
       selectedResultPresentation: RESULT_PRESENTATION,
@@ -272,7 +287,8 @@ describe("deriveVerdictData", () => {
                   {
                     id: "approval-dialog-unmount",
                     label: "Approval dialog unmounts on navigation",
-                    detail: "Users can lose a live approval request when they leave the workflow view.",
+                    detail:
+                      "Users can lose a live approval request when they leave the workflow view.",
                     severity: "danger",
                   },
                 ],
@@ -312,7 +328,8 @@ describe("deriveVerdictData", () => {
       {
         id: "approval-dialog-unmount",
         title: "Approval dialog unmounts on navigation",
-        detail: "Users can lose a live approval request when they leave the workflow view.",
+        detail:
+          "Users can lose a live approval request when they leave the workflow view.",
       },
     ])
   })

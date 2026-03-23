@@ -1,6 +1,10 @@
 import type { Ref } from "react"
 import { PanelLeft, PanelLeftOpen } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 
@@ -33,11 +37,15 @@ export function SidebarVisibilityToggle({
     ? desktopRuntime.platform === "macos"
       ? {
           top: 12,
-          left: sidebarOpen
-            ? Math.max(12, Math.round(sidebarWidth - 28))
-            : 96,
+          left: sidebarOpen ? Math.max(12, Math.round(sidebarWidth - 28)) : 96,
         }
-      : { top: Math.max(6, Math.round((desktopRuntime.titlebarHeight - 20) / 2)), left: 12 }
+      : {
+          top: Math.max(
+            6,
+            Math.round((desktopRuntime.titlebarHeight - 20) / 2),
+          ),
+          left: 12,
+        }
     : { top: 12, left: 12 }
 
   return (
@@ -57,7 +65,9 @@ export function SidebarVisibilityToggle({
             <Icon size={17} strokeWidth={1.8} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{label} ({shortcutLabel})</TooltipContent>
+        <TooltipContent>
+          {label} ({shortcutLabel})
+        </TooltipContent>
       </Tooltip>
     </div>
   )

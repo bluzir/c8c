@@ -83,10 +83,14 @@ export function useNodeCardState({
   resolveNodeLabel?: (nodeId: string) => string
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [validationNavigationTarget, setValidationNavigationTarget] = useAtom(validationNavigationTargetAtom)
+  const [validationNavigationTarget, setValidationNavigationTarget] = useAtom(
+    validationNavigationTargetAtom,
+  )
   const [allValidationErrors] = useAtom(validationErrorsAtom)
   const nodeValidationErrors = allValidationErrors[node.id] || []
-  const hasValidationErrors = nodeValidationErrors.some((error) => error.severity === "error")
+  const hasValidationErrors = nodeValidationErrors.some(
+    (error) => error.severity === "error",
+  )
   const remainingValidationErrors = nodeValidationErrors.filter((error) => {
     const field = error.field.replace(/^config\./, "")
     return !FIELD_ERRORS_RENDERED_INLINE.has(field)
@@ -101,7 +105,15 @@ export function useNodeCardState({
   const isMerger = node.type === "merger"
   const isApproval = node.type === "approval"
   const isHuman = node.type === "human"
-  const isExpandable = isInput || isOutput || isSkill || isEvaluator || isSplitter || isMerger || isApproval || isHuman
+  const isExpandable =
+    isInput ||
+    isOutput ||
+    isSkill ||
+    isEvaluator ||
+    isSplitter ||
+    isMerger ||
+    isApproval ||
+    isHuman
   const isTerminal = isInput || isOutput
   const inputConfig = isInput ? (node.config as InputNodeConfig) : null
   const outputConfig = isOutput ? (node.config as OutputNodeConfig) : null
@@ -124,32 +136,44 @@ export function useNodeCardState({
     ? resolveNodeLabel?.(evalConfig.retryFrom) || evalConfig.retryFrom
     : null
 
-  const statusLabel = state?.status ? STATUS_LABELS[state.status] || state.status : null
+  const statusLabel = state?.status
+    ? STATUS_LABELS[state.status] || state.status
+    : null
   const statusClass = state?.status ? (STATUS_CLASSES[state.status] ?? "") : ""
-  const showStatusBadge = statusLabel
-    && statusLabel !== "pending"
-    && (!compact || state?.status === "running" || state?.status === "failed" || state?.status === "waiting_approval" || state?.status === "waiting_human")
-  const showInlineInput = !runtimeMode && compact && isInput && Boolean(inputConfig)
+  const showStatusBadge =
+    statusLabel &&
+    statusLabel !== "pending" &&
+    (!compact ||
+      state?.status === "running" ||
+      state?.status === "failed" ||
+      state?.status === "waiting_approval" ||
+      state?.status === "waiting_human")
+  const showInlineInput =
+    !runtimeMode && compact && isInput && Boolean(inputConfig)
   const hasExpandedPanel = Boolean(
-    (isInput && inputConfig)
-    || (isOutput && outputConfig)
-    || (isSkill && skillConfig)
-    || (isEvaluator && evalConfig)
-    || (isSplitter && splitterConfig)
-    || (isMerger && mergerConfig)
-    || (isApproval && approvalConfig)
-    || (isHuman && humanConfig)
+    (isInput && inputConfig) ||
+    (isOutput && outputConfig) ||
+    (isSkill && skillConfig) ||
+    (isEvaluator && evalConfig) ||
+    (isSplitter && splitterConfig) ||
+    (isMerger && mergerConfig) ||
+    (isApproval && approvalConfig) ||
+    (isHuman && humanConfig),
   )
-  const moveUpDisabledReason = moveUpDisabledReasonProp ?? (!onMoveUp
-    ? "Reordering is only available for linear flows."
-    : index <= 1
-      ? "This step is already the first editable step."
-      : null)
-  const moveDownDisabledReason = moveDownDisabledReasonProp ?? (!onMoveDown
-    ? "Reordering is only available for linear flows."
-    : index >= total - 2
-      ? "This step is already the last editable step."
-      : null)
+  const moveUpDisabledReason =
+    moveUpDisabledReasonProp ??
+    (!onMoveUp
+      ? "Reordering is only available for linear flows."
+      : index <= 1
+        ? "This step is already the first editable step."
+        : null)
+  const moveDownDisabledReason =
+    moveDownDisabledReasonProp ??
+    (!onMoveDown
+      ? "Reordering is only available for linear flows."
+      : index >= total - 2
+        ? "This step is already the last editable step."
+        : null)
 
   useEffect(() => {
     if (runtimeMode) {
@@ -164,7 +188,11 @@ export function useNodeCardState({
 
   useEffect(() => {
     if (runtimeMode || !validationNavigationTarget) return
-    if (validationNavigationTarget.nodeId && validationNavigationTarget.nodeId !== node.id) return
+    if (
+      validationNavigationTarget.nodeId &&
+      validationNavigationTarget.nodeId !== node.id
+    )
+      return
 
     let cancelled = false
     let timeoutId: number | null = null
@@ -197,7 +225,14 @@ export function useNodeCardState({
         window.clearTimeout(timeoutId)
       }
     }
-  }, [expanded, hasExpandedPanel, node.id, runtimeMode, setValidationNavigationTarget, validationNavigationTarget])
+  }, [
+    expanded,
+    hasExpandedPanel,
+    node.id,
+    runtimeMode,
+    setValidationNavigationTarget,
+    validationNavigationTarget,
+  ])
 
   return {
     expanded,

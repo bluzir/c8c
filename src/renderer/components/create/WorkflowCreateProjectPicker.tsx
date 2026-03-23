@@ -34,9 +34,17 @@ export function WorkflowCreateProjectPicker({
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm" aria-label="Select project" className="no-drag">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          aria-label="Select project"
+          className="no-drag"
+        >
           <Folder size={14} />
-          <span className="max-w-56 truncate">{targetProjectName || "Select project"}</span>
+          <span className="max-w-56 truncate">
+            {targetProjectName || "Select project"}
+          </span>
           <ChevronRight
             size={14}
             className={cn(
@@ -51,7 +59,7 @@ export function WorkflowCreateProjectPicker({
         sideOffset={10}
         className="w-[min(28rem,calc(100vw-2rem))] rounded-lg p-2"
       >
-        <DropdownMenuLabel className="px-3 pb-3 pt-2 ui-body-text-medium text-muted-foreground">
+        <DropdownMenuLabel className="px-3 pb-3 pt-2 text-body-md font-medium text-muted-foreground">
           Select project
         </DropdownMenuLabel>
         {projects.map((projectPath) => {
@@ -66,7 +74,9 @@ export function WorkflowCreateProjectPicker({
               <span className="min-w-0 flex-1 truncate font-medium">
                 {projectNameForPath(projectPath)}
               </span>
-              {isActive ? <Check size={18} className="shrink-0 text-foreground" /> : null}
+              {isActive ? (
+                <Check size={18} className="shrink-0 text-foreground" />
+              ) : null}
             </DropdownMenuItem>
           )
         })}
@@ -77,7 +87,10 @@ export function WorkflowCreateProjectPicker({
           className="h-auto items-center gap-3 rounded-md px-3 py-3 text-body-md text-foreground"
         >
           {openingProject ? (
-            <Loader2 size={18} className="shrink-0 animate-spin text-muted-foreground" />
+            <Loader2
+              size={18}
+              className="shrink-0 animate-spin text-muted-foreground"
+            />
           ) : (
             <FolderPlus size={18} className="shrink-0 text-muted-foreground" />
           )}

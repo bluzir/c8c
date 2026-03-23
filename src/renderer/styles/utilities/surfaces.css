@@ -1,0 +1,84 @@
+/* ────────────────────────────────────────────────────────
+   Surface utilities — glass panels, depth headers, soft
+   severity tints, inset cards, and elevation helpers.
+   Extracted from globals.css.
+   ──────────────────────────────────────────────────────── */
+
+/* Panel: glass with visible border, no shine (cards, settings sections) */
+.surface-panel {
+  backdrop-filter: blur(var(--glass-blur-sm)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-sm))
+    saturate(var(--glass-saturate));
+  background: hsl(var(--glass-tint) / var(--glass-tint-opacity-subtle));
+  border: 1px solid var(--glass-border);
+}
+
+/* Overlay: strongest glass + border + shadow (dropdowns, dialogs, popovers) */
+.surface-elevated {
+  backdrop-filter: blur(var(--glass-blur-lg)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg))
+    saturate(var(--glass-saturate));
+  background: hsl(var(--glass-tint) / var(--glass-tint-opacity-strong));
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--glass-shine), var(--shadow-overlay);
+}
+
+/* Figure: the ONE focal card per state — glass + visible border + shine */
+.surface-figure {
+  backdrop-filter: blur(var(--glass-blur-md)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-md))
+    saturate(var(--glass-saturate));
+  background: hsl(var(--glass-tint) / var(--glass-tint-opacity-default));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-container);
+  box-shadow: var(--glass-shine);
+}
+
+.surface-depth-header {
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--surface-1)),
+    hsl(var(--surface-2) / 0.7)
+  );
+  border-bottom: 1px solid hsl(var(--hairline));
+}
+
+.surface-depth-footer {
+  background: linear-gradient(
+    to top,
+    hsl(var(--surface-2) / 0.9),
+    hsl(var(--surface-1) / 0.9)
+  );
+  border-top: 1px solid hsl(var(--hairline));
+}
+
+.surface-inset-card {
+  border-radius: var(--radius-container);
+  border: 1px solid hsl(var(--hairline));
+  background: hsl(var(--surface-2) / 0.7);
+  padding: 0.75rem;
+}
+
+.surface-danger-soft {
+  border: 1px solid hsl(var(--status-danger) / 0.12);
+  background: hsl(var(--status-danger) / 0.05);
+}
+
+.surface-info-soft {
+  border: 1px solid hsl(var(--status-info) / 0.12);
+  background: hsl(var(--status-info) / 0.05);
+}
+
+.surface-success-soft {
+  border: 1px solid hsl(var(--status-success) / 0.12);
+  background: hsl(var(--status-success) / 0.05);
+}
+
+.surface-warning-soft {
+  border: 1px solid hsl(var(--status-warning) / 0.12);
+  background: hsl(var(--status-warning) / 0.05);
+}
+
+.ui-elevation-inset {
+  box-shadow: var(--glass-shine);
+}

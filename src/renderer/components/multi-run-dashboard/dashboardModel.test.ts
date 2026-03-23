@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { createEmptyWorkflowExecutionState, type WorkflowExecutionState } from "@/lib/workflow-execution"
+import {
+  createEmptyWorkflowExecutionState,
+  type WorkflowExecutionState,
+} from "@/lib/workflow-execution"
 import {
   outcomeClasses,
   outcomeLabel,

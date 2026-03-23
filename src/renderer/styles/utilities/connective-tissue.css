@@ -1,0 +1,91 @@
+/* ────────────────────────────────────────────────────────
+   Connective tissue — Level 0-2 grouping without cards
+   See DESIGN_SYSTEM.md Surface Weight Ladder
+   Extracted from globals.css.
+   ──────────────────────────────────────────────────────── */
+
+/* Context strip: binds identity/status/scope above a figure or section. Level 0-1. */
+.ui-context-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid hsl(var(--hairline) / 0.7);
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+/* Slab: light tinted region grouping sibling rows. Level 2 (tint only). */
+.ui-slab {
+  border-radius: var(--radius-container);
+  background: hsl(var(--surface-2) / 0.25);
+  padding: var(--space-4);
+}
+
+/* Chapter shell: weak section owner for compound admin pages. Border + faint fill, no elevation. */
+.ui-chapter-shell {
+  border: 1px solid hsl(var(--hairline) / 0.8);
+  border-radius: var(--radius-container);
+  background: hsl(var(--surface-2) / 0.18);
+  padding: var(--space-4);
+}
+
+/* Inset well: focal area inside an owner surface for next-action / status / warning. Level 2. */
+.ui-inset-well {
+  border-radius: var(--radius-control);
+  background: hsl(var(--surface-2) / 0.38);
+  padding: 0.625rem 0.75rem;
+}
+
+/* Selected row tint: marks current item in a flat list. Level 2. */
+.ui-selected-row-tint {
+  background: hsl(var(--surface-1) / 0.6);
+  border-left: 2px solid hsl(var(--foreground) / 0.15);
+}
+
+/* Section divider: standardized hairline between logical sections. Level 1. */
+.ui-section-divider {
+  border-top: 1px solid hsl(var(--hairline) / 0.7);
+  padding-top: var(--space-3);
+}
+
+/* ────────────────────────────────────────────────────────
+   Empty state container — standardized dashed-box pattern
+   ──────────────────────────────────────────────────────── */
+.ui-empty-state-box {
+  border-radius: var(--radius-container);
+  border: 1px dashed hsl(var(--hairline));
+  background: hsl(var(--surface-2) / 0.25);
+  padding: 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ────────────────────────────────────────────────────────
+   Evidence primitives — compact fact display in verdicts
+   ──────────────────────────────────────────────────────── */
+.ui-evidence-item {
+  border-radius: var(--radius-control);
+  background: hsl(var(--surface-2) / 0.38);
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+/* ────────────────────────────────────────────────────────
+   Skeleton — standardized loading placeholder
+   ──────────────────────────────────────────────────────── */
+.ui-skeleton {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: var(--radius-control);
+  background: hsl(var(--surface-2) / 0.55);
+}
+
+/* ────────────────────────────────────────────────────────
+   Interactive selection — selected item in a selectable list
+   ──────────────────────────────────────────────────────── */
+.ui-item-selected {
+  background: hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.15);
+}

@@ -1,8 +1,15 @@
 import type { Ref } from "react"
 import { Check, MessageSquare, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { WorkflowActionMenu, type WorkflowActionMenuAction } from "@/components/toolbar/WorkflowActionMenu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  WorkflowActionMenu,
+  type WorkflowActionMenuAction,
+} from "@/components/toolbar/WorkflowActionMenu"
 
 interface WorkflowPrimaryActionsProps {
   controlGroupClass: string
@@ -15,6 +22,8 @@ interface WorkflowPrimaryActionsProps {
   chatShortcutLabel: string
   agentToggleRef?: Ref<HTMLButtonElement>
   actionMenuDisabled?: boolean
+  canOpenDefaults?: boolean
+  flowDefaultsOpen?: boolean
   canManageCurrentFlow?: boolean
   canDeleteCurrentFlow?: boolean
   canDuplicateCurrentFlow?: boolean
@@ -34,6 +43,8 @@ export function WorkflowPrimaryActions({
   chatShortcutLabel,
   agentToggleRef,
   actionMenuDisabled = false,
+  canOpenDefaults = false,
+  flowDefaultsOpen = false,
   canManageCurrentFlow = false,
   canDeleteCurrentFlow = false,
   canDuplicateCurrentFlow = false,
@@ -60,7 +71,12 @@ export function WorkflowPrimaryActions({
               onClick={onSave}
               isLoading={isSaving}
             >
-              {!isSaving && (saveFlash === "saved" ? <Check size={14} /> : <Save size={14} />)}
+              {!isSaving &&
+                (saveFlash === "saved" ? (
+                  <Check size={14} />
+                ) : (
+                  <Save size={14} />
+                ))}
               {saveLabel}
             </Button>
           </TooltipTrigger>
@@ -83,12 +99,16 @@ export function WorkflowPrimaryActions({
             Agent
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Toggle Agent panel ({chatShortcutLabel})</TooltipContent>
+        <TooltipContent>
+          Toggle Agent panel ({chatShortcutLabel})
+        </TooltipContent>
       </Tooltip>
 
       {showActionMenu ? (
         <WorkflowActionMenu
           disabled={actionMenuDisabled}
+          canOpenDefaults={canOpenDefaults}
+          flowDefaultsOpen={flowDefaultsOpen}
           canManageCurrentFlow={canManageCurrentFlow}
           canDelete={canDeleteCurrentFlow}
           canDuplicate={canDuplicateCurrentFlow}

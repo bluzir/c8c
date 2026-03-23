@@ -1,8 +1,5 @@
 import { Eye, Library, Loader2, Package, RefreshCw, Store } from "lucide-react"
-import type {
-  InstalledPlugin,
-  MarketplaceSource,
-} from "@shared/types"
+import type { InstalledPlugin, MarketplaceSource } from "@shared/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -39,20 +36,29 @@ export function MarketplaceCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-body-md font-semibold truncate">{marketplace.name}</h3>
+          <h3 className="text-body-md font-semibold truncate">
+            {marketplace.name}
+          </h3>
           <Badge variant={marketplaceBadgeVariant(marketplace)} size="pill">
             {marketplace.installed ? "installed" : "available"}
           </Badge>
           {pluginCount > 0 && (
-            <Badge variant="outline" size="compact">{pluginCount} plugin{pluginCount === 1 ? "" : "s"}</Badge>
+            <Badge variant="outline" size="compact">
+              {pluginCount} plugin{pluginCount === 1 ? "" : "s"}
+            </Badge>
           )}
           {actionLabel && (
-            <Badge variant="secondary" size="compact">{actionLabel}</Badge>
+            <Badge variant="secondary" size="compact">
+              {actionLabel}
+            </Badge>
           )}
         </div>
-        <p className="text-body-sm text-muted-foreground line-clamp-2">{marketplace.description}</p>
+        <p className="text-body-sm text-muted-foreground line-clamp-2">
+          {marketplace.description}
+        </p>
         <p className="ui-meta-text text-muted-foreground mt-0.5">
-          {marketplace.owner ? `${marketplace.owner} · ` : ""}{marketplace.repo}
+          {marketplace.owner ? `${marketplace.owner} · ` : ""}
+          {marketplace.repo}
         </p>
       </div>
 
@@ -66,7 +72,11 @@ export function MarketplaceCard({
               disabled={busy}
               aria-label={`Update ${marketplace.name}`}
             >
-              {busy && actionLabel === "Updating" ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              {busy && actionLabel === "Updating" ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <RefreshCw size={14} />
+              )}
             </Button>
             <Button
               variant="outline"
@@ -123,7 +133,9 @@ export function PluginCard({
             {plugin.enabled ? "enabled" : "disabled"}
           </Badge>
           {actionLabel && (
-            <Badge variant="secondary" size="compact">{actionLabel}</Badge>
+            <Badge variant="secondary" size="compact">
+              {actionLabel}
+            </Badge>
           )}
           {plugin.capabilities.map((capability) => (
             <Badge key={capability} variant="outline" size="compact">
@@ -132,13 +144,18 @@ export function PluginCard({
           ))}
         </div>
         <p className="text-body-sm text-muted-foreground line-clamp-2">
-          {plugin.description || "Plugin bundle for executable pipeline assets."}
+          {plugin.description ||
+            "Plugin bundle for executable pipeline assets."}
         </p>
         <p className="ui-meta-text text-muted-foreground mt-0.5">
           {plugin.marketplaceName}
           {plugin.version ? ` · v${plugin.version}` : ""}
-          {skillsCount > 0 ? ` · ${skillsCount} discovered skill${skillsCount === 1 ? "" : "s"}` : ""}
-          {mcpCount > 0 ? ` · ${mcpCount} MCP pack${mcpCount === 1 ? "" : "s"}` : ""}
+          {skillsCount > 0
+            ? ` · ${skillsCount} discovered skill${skillsCount === 1 ? "" : "s"}`
+            : ""}
+          {mcpCount > 0
+            ? ` · ${mcpCount} MCP pack${mcpCount === 1 ? "" : "s"}`
+            : ""}
         </p>
       </div>
 
@@ -156,7 +173,9 @@ export function PluginCard({
           checked={plugin.enabled}
           onCheckedChange={onToggle}
           disabled={busy}
-          aria-label={plugin.enabled ? `Disable ${plugin.name}` : `Enable ${plugin.name}`}
+          aria-label={
+            plugin.enabled ? `Disable ${plugin.name}` : `Enable ${plugin.name}`
+          }
         />
       </div>
     </article>
@@ -193,15 +212,13 @@ export function SkillLibraryCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h3 className="text-body-md font-semibold truncate">{library.name}</h3>
+          <h3 className="text-body-md font-semibold truncate">
+            {library.name}
+          </h3>
           {library.installed && (
-            <Badge variant="outline">
-              {installedSkillsCount} skills
-            </Badge>
+            <Badge variant="outline">{installedSkillsCount} skills</Badge>
           )}
-          {actionLabel && (
-            <Badge variant="secondary">{actionLabel}</Badge>
-          )}
+          {actionLabel && <Badge variant="secondary">{actionLabel}</Badge>}
         </div>
         <p className="text-body-sm text-muted-foreground truncate">
           {library.description}
@@ -237,7 +254,11 @@ export function SkillLibraryCard({
           checked={library.installed}
           onCheckedChange={onToggle}
           disabled={busy}
-          aria-label={library.installed ? `Uninstall ${library.name}` : `Install ${library.name}`}
+          aria-label={
+            library.installed
+              ? `Uninstall ${library.name}`
+              : `Install ${library.name}`
+          }
         />
       </div>
     </article>

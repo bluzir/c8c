@@ -607,9 +607,7 @@ export function OutputPanel({
           {savedRunSnapshotNotice}
           {(!reviewingRunHistory || canInspectSavedRun) && (
             <div
-              className={cn(
-                activityOwnsSurface && "rounded-xl surface-elevated px-4 py-4",
-              )}
+              className={cn(activityOwnsSurface && "surface-figure px-4 py-4")}
             >
               <ActivityTab
                 showIdleState={showIdleState}

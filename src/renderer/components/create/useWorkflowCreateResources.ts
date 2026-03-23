@@ -11,9 +11,14 @@ export function useWorkflowCreateResources({
   targetProjectPath: string | null
   popularTemplateLimit: number
 }) {
-  const [projectInspection, setProjectInspection] = useState<ProjectInspectionSummary | null>(null)
-  const [popularTemplates, setPopularTemplates] = useState<WorkflowTemplate[]>([])
-  const [availableTemplates, setAvailableTemplates] = useState<WorkflowTemplate[]>([])
+  const [projectInspection, setProjectInspection] =
+    useState<ProjectInspectionSummary | null>(null)
+  const [popularTemplates, setPopularTemplates] = useState<WorkflowTemplate[]>(
+    [],
+  )
+  const [availableTemplates, setAvailableTemplates] = useState<
+    WorkflowTemplate[]
+  >([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const templateLoadRequestIdRef = useRef(0)
   const projectInspectionRequestIdRef = useRef(0)
@@ -37,7 +42,10 @@ export function useWorkflowCreateResources({
           } catch (error) {
             if (templateLoadRequestIdRef.current !== requestId) return
             if (!String(error).includes("No handler registered")) {
-              toastErrorFromCatch("Could not load popular starting points", error)
+              toastErrorFromCatch(
+                "Could not load popular starting points",
+                error,
+              )
             }
           }
         }
@@ -45,7 +53,9 @@ export function useWorkflowCreateResources({
         if (templateLoadRequestIdRef.current !== requestId) return
         setAvailableTemplates(templates)
         const seen = new Set(popular.map((template) => template.id))
-        const supplemented = templates.filter((template) => !seen.has(template.id))
+        const supplemented = templates.filter(
+          (template) => !seen.has(template.id),
+        )
         setPopularTemplates(
           [...popular, ...supplemented].slice(0, popularTemplateLimit),
         )
@@ -75,9 +85,11 @@ export function useWorkflowCreateResources({
       return
     }
 
-    const inspectCreateEntryProject = (window.api as typeof window.api & {
-      inspectCreateEntryProject?: typeof window.api.inspectCreateEntryProject
-    }).inspectCreateEntryProject
+    const inspectCreateEntryProject = (
+      window.api as typeof window.api & {
+        inspectCreateEntryProject?: typeof window.api.inspectCreateEntryProject
+      }
+    ).inspectCreateEntryProject
 
     if (!inspectCreateEntryProject) {
       projectInspectionRequestIdRef.current += 1
@@ -95,7 +107,10 @@ export function useWorkflowCreateResources({
       })
       .catch((error) => {
         if (projectInspectionRequestIdRef.current !== requestId) return
-        console.error("[workflow-create] Could not inspect create-entry project", error)
+        console.error(
+          "[workflow-create] Could not inspect create-entry project",
+          error,
+        )
         setProjectInspection(null)
       })
 

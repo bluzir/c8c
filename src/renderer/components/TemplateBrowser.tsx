@@ -34,7 +34,10 @@ import { toast } from "sonner"
 import { toastError } from "@/lib/toast-error"
 import { cloneWorkflow } from "@/lib/workflow-graph-utils"
 import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
-import { getTemplateSourceKind, getTemplateSourceLabel } from "@/lib/template-source"
+import {
+  getTemplateSourceKind,
+  getTemplateSourceLabel,
+} from "@/lib/template-source"
 import {
   deriveTemplateCardCopy,
   deriveTemplateExecutionDisciplineLabels,
@@ -50,26 +53,41 @@ interface TemplateBrowserProps {
   initialTemplates?: WorkflowTemplate[]
 }
 
-export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserProps = {}) {
+export function TemplateBrowser({
+  onApply,
+  initialTemplates,
+}: TemplateBrowserProps = {}) {
   const [open, setOpen] = useAtom(templateBrowserOpenAtom)
   const [workflow, setWorkflow] = useAtom(currentWorkflowAtom)
   const [inputAttachments, setInputAttachments] = useAtom(inputAttachmentsAtom)
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
-  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
+  const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
+    selectedInboxTaskKeyAtom,
+  )
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [selectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
   const [selectedResultModeId] = useAtom(selectedResultModeIdAtom)
   const [selectedPastRun, setSelectedPastRun] = useAtom(selectedPastRunAtom)
-  const [workflowEntryState, setWorkflowEntryState] = useAtom(workflowEntryStateAtom)
-  const [selectedWorkflowTemplateContext] = useAtom(selectedWorkflowTemplateContextAtom)
-  const setWorkflowTemplateContextForKey = useSetAtom(setWorkflowTemplateContextForKeyAtom)
+  const [workflowEntryState, setWorkflowEntryState] = useAtom(
+    workflowEntryStateAtom,
+  )
+  const [selectedWorkflowTemplateContext] = useAtom(
+    selectedWorkflowTemplateContextAtom,
+  )
+  const setWorkflowTemplateContextForKey = useSetAtom(
+    setWorkflowTemplateContextForKeyAtom,
+  )
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
   const [runStatus] = useAtom(runStatusAtom)
-  const [templates, setTemplates] = useState<WorkflowTemplate[]>(initialTemplates ?? [])
+  const [templates, setTemplates] = useState<WorkflowTemplate[]>(
+    initialTemplates ?? [],
+  )
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [confirmPending, setConfirmPending] = useState<WorkflowTemplate | null>(null)
+  const [confirmPending, setConfirmPending] = useState<WorkflowTemplate | null>(
+    null,
+  )
 
   const loadTemplates = useCallback(async () => {
     if (initialTemplates) {
@@ -102,7 +120,10 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
     [selectedResultModeId, templates],
   )
   const quickStartById = useMemo(
-    () => new Map(templateSplit.quickStarts.map((entry) => [entry.template.id, entry])),
+    () =>
+      new Map(
+        templateSplit.quickStarts.map((entry) => [entry.template.id, entry]),
+      ),
     [templateSplit.quickStarts],
   )
   const orderedTemplates = useMemo(
@@ -111,7 +132,11 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
       ...templateSplit.modeTemplates,
       ...templateSplit.otherTemplates,
     ],
-    [templateSplit.modeTemplates, templateSplit.otherTemplates, templateSplit.quickStarts],
+    [
+      templateSplit.modeTemplates,
+      templateSplit.otherTemplates,
+      templateSplit.quickStarts,
+    ],
   )
 
   useEffect(() => {
@@ -120,16 +145,25 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
   }, [loadTemplates, open])
 
   const selected = orderedTemplates.find((t) => t.id === selectedId)
-  const selectedOptionId = selectedId ? `template-option-${selectedId}` : undefined
-  const selectedQuickStart = selected ? quickStartById.get(selected.id) || null : null
-  const selectedDisciplineLabels = selected ? deriveTemplateExecutionDisciplineLabels(selected) : []
+  const selectedOptionId = selectedId
+    ? `template-option-${selectedId}`
+    : undefined
+  const selectedQuickStart = selected
+    ? quickStartById.get(selected.id) || null
+    : null
+  const selectedDisciplineLabels = selected
+    ? deriveTemplateExecutionDisciplineLabels(selected)
+    : []
   const selectedSourceKind = selected ? getTemplateSourceKind(selected) : null
   const selectedSourceLabel = selected ? getTemplateSourceLabel(selected) : null
   const selectedExecutionSummary = selected
-    ? selected.executionPolicy?.summary?.trim()
-      || (selectedDisciplineLabels.length > 0 ? selectedDisciplineLabels.join(", ") : null)
+    ? selected.executionPolicy?.summary?.trim() ||
+      (selectedDisciplineLabels.length > 0
+        ? selectedDisciplineLabels.join(", ")
+        : null)
     : null
-  const selectedExecutionDescription = selected?.executionPolicy?.description?.trim() || null
+  const selectedExecutionDescription =
+    selected?.executionPolicy?.description?.trim() || null
   const selectedPrimaryActionLabel = selectedQuickStart
     ? `Start ${selectedQuickStart.label}`
     : "Start with this"
@@ -139,9 +173,13 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
     setConfirmPending(null)
     setSelectedId(null)
   }, [setOpen])
-  const replaceCurrentBlockedReason = getReplaceCurrentWorkflowBlockedReason(runStatus)
+  const replaceCurrentBlockedReason =
+    getReplaceCurrentWorkflowBlockedReason(runStatus)
 
-  const doApply = (previousWorkflow: unknown, templateToApply: WorkflowTemplate) => {
+  const doApply = (
+    previousWorkflow: unknown,
+    templateToApply: WorkflowTemplate,
+  ) => {
     if (replaceCurrentBlockedReason) {
       toastError("Cannot replace the current flow while a run is active", {
         description: replaceCurrentBlockedReason,
@@ -149,7 +187,10 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
       return
     }
 
-    const nextWorkflow = resolveTemplateWorkflow(templateToApply, webSearchBackend)
+    const nextWorkflow = resolveTemplateWorkflow(
+      templateToApply,
+      webSearchBackend,
+    )
     const resolvedTemplate: WorkflowTemplate = {
       ...templateToApply,
       workflow: nextWorkflow,
@@ -195,16 +236,24 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
           setSelectedInboxTaskKey(previousState.selectedInboxTaskKey)
           setSelectedPastRun(previousState.selectedPastRun)
           setWorkflowEntryState(previousState.workflowEntryState)
-          setWorkflowTemplateContextForKey({ key: workflowKey, context: previousState.templateContext })
+          setWorkflowTemplateContextForKey({
+            key: workflowKey,
+            context: previousState.templateContext,
+          })
         },
       },
     })
   }
 
-  const applyTemplate = (templateToApply: WorkflowTemplate | null = selected ?? null) => {
+  const applyTemplate = (
+    templateToApply: WorkflowTemplate | null = selected ?? null,
+  ) => {
     if (!templateToApply) return
     const previousWorkflow = cloneWorkflow(workflow)
-    const nextWorkflow = resolveTemplateWorkflow(templateToApply, webSearchBackend)
+    const nextWorkflow = resolveTemplateWorkflow(
+      templateToApply,
+      webSearchBackend,
+    )
     const replacingCurrentWorkflow =
       JSON.stringify(previousWorkflow) !== JSON.stringify(nextWorkflow)
     if (replacingCurrentWorkflow) {
@@ -219,7 +268,10 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
     const idx = orderedTemplates.findIndex((t) => t.id === selectedId)
     if (e.key === "ArrowDown") {
       e.preventDefault()
-      setSelectedId(orderedTemplates[Math.min(idx + 1, orderedTemplates.length - 1)]?.id ?? null)
+      setSelectedId(
+        orderedTemplates[Math.min(idx + 1, orderedTemplates.length - 1)]?.id ??
+          null,
+      )
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
       setSelectedId(orderedTemplates[Math.max(idx - 1, 0)]?.id ?? null)
@@ -243,15 +295,20 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
         closeBrowser()
       }}
     >
-        <CanvasDialogContent size="xl" className="max-h-[80vh] flex flex-col p-0 gap-0" showCloseButton={false}>
+      <CanvasDialogContent
+        size="xl"
+        className="max-h-[80vh] flex flex-col p-0 gap-0"
+        showCloseButton={false}
+      >
         <CanvasDialogHeader className="surface-depth-header">
           <DialogTitle>Browse starting points</DialogTitle>
           <DialogDescription className="sr-only">
-            Browse ready-to-run flows, preview their fit, and apply one to the current flow.
+            Browse ready-to-run flows, preview their fit, and apply one to the
+            current flow.
           </DialogDescription>
         </CanvasDialogHeader>
 
-        <CanvasDialogBody className="grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] gap-3 flex-1 min-h-0 pt-4 surface-soft">
+        <CanvasDialogBody className="grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] gap-3 flex-1 min-h-0 pt-4 surface-panel">
           <div
             role="listbox"
             aria-label="Flow library"
@@ -261,15 +318,21 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
             onKeyDown={handleListKeyDown}
           >
             {isLoading && (
-              <p className="text-body-md text-muted-foreground px-1 py-4 text-center">Loading library…</p>
+              <p className="text-body-md text-muted-foreground px-1 py-4 text-center">
+                Loading library…
+              </p>
             )}
             {!isLoading && loadError && (
-                <div className="rounded-lg surface-danger-soft px-4 py-4 text-center">
-                  <div className="ui-status-halo-danger mx-auto flex h-control-lg w-control-lg items-center justify-center rounded-full">
-                    <AlertTriangle size={18} />
-                  </div>
-                <p className="mt-3 ui-body-text-medium text-foreground">Could not load starting points</p>
-                <p className="mt-1 text-body-sm text-status-danger">{loadError}</p>
+              <div className="rounded-lg surface-danger-soft px-4 py-4 text-center">
+                <div className="ui-status-halo-danger mx-auto flex h-control-lg w-control-lg items-center justify-center rounded-full">
+                  <AlertTriangle size={18} />
+                </div>
+                <p className="mt-3 text-body-md font-medium text-foreground">
+                  Could not load starting points
+                </p>
+                <p className="mt-1 text-body-sm text-status-danger">
+                  {loadError}
+                </p>
                 <Button
                   type="button"
                   variant="outline"
@@ -308,9 +371,10 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                           variant="ghost"
                           size="auto"
                           className={cn(
-                            "ui-interactive-card h-auto w-full justify-start rounded-md surface-soft p-3 text-left whitespace-normal",
+                            "ui-interactive-card h-auto w-full justify-start rounded-md bg-surface-1/50 p-3 text-left whitespace-normal",
                             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70",
-                            isSelected && "surface-inset-card ring-2 ring-foreground/20 shadow-inset-highlight",
+                            isSelected &&
+                              "surface-inset-card ring-2 ring-foreground/20",
                           )}
                           onClick={() => setSelectedId(template.id)}
                           onDoubleClick={() => {
@@ -319,7 +383,12 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <span className="mt-0.5 text-lg flex-shrink-0" aria-hidden>{template.emoji}</span>
+                            <span
+                              className="mt-0.5 text-lg flex-shrink-0"
+                              aria-hidden
+                            >
+                              {template.emoji}
+                            </span>
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <Badge variant="outline" size="compact">
@@ -331,10 +400,15 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                                   </Badge>
                                 ) : null}
                               </div>
-                              <span className="mt-2 ui-body-text-medium block truncate">{entry.label}</span>
-                              <p className="ui-meta-text mt-1">{entry.summary}</p>
+                              <span className="mt-2 text-body-md font-medium block truncate">
+                                {entry.label}
+                              </span>
+                              <p className="ui-meta-text mt-1">
+                                {entry.summary}
+                              </p>
                               <p className="mt-2 ui-meta-text text-muted-foreground">
-                                {template.headline || getTemplateSourceLabel(template)}
+                                {template.headline ||
+                                  getTemplateSourceLabel(template)}
                               </p>
                             </div>
                           </div>
@@ -363,9 +437,10 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                           variant="ghost"
                           size="auto"
                           className={cn(
-                            "ui-interactive-card h-auto w-full justify-start rounded-md surface-soft p-3 text-left whitespace-normal",
+                            "ui-interactive-card h-auto w-full justify-start rounded-md bg-surface-1/50 p-3 text-left whitespace-normal",
                             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70",
-                            isSelected && "surface-inset-card ring-2 ring-foreground/20 shadow-inset-highlight",
+                            isSelected &&
+                              "surface-inset-card ring-2 ring-foreground/20",
                           )}
                           onClick={() => setSelectedId(template.id)}
                           onDoubleClick={() => {
@@ -374,13 +449,22 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <span className="text-lg mt-0.5 flex-shrink-0" aria-hidden>{template.emoji}</span>
+                            <span
+                              className="text-lg mt-0.5 flex-shrink-0"
+                              aria-hidden
+                            >
+                              {template.emoji}
+                            </span>
                             <div className="flex-1 min-w-0">
-                              <span className="ui-body-text-medium block truncate">{template.headline}</span>
+                              <span className="text-body-md font-medium block truncate">
+                                {template.headline}
+                              </span>
                               <p className="ui-meta-text mt-1">
                                 {deriveTemplateCardCopy(template)}
                               </p>
-                              {(sourceKind === "plugin" || sourceKind === "user" || sourceKind === "hub") && (
+                              {(sourceKind === "plugin" ||
+                                sourceKind === "user" ||
+                                sourceKind === "hub") && (
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                   <Badge variant="secondary" size="compact">
                                     {getTemplateSourceLabel(template)}
@@ -397,7 +481,9 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
 
                 {templateSplit.otherTemplates.length > 0 && (
                   <div className="space-y-2">
-                    <p className="px-1 ui-meta-label text-muted-foreground">Also available</p>
+                    <p className="px-1 ui-meta-label text-muted-foreground">
+                      Also available
+                    </p>
                     {templateSplit.otherTemplates.map((template) => {
                       const isSelected = selectedId === template.id
                       const sourceKind = getTemplateSourceKind(template)
@@ -412,9 +498,10 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                           variant="ghost"
                           size="auto"
                           className={cn(
-                            "ui-interactive-card h-auto w-full justify-start rounded-md surface-soft p-3 text-left whitespace-normal",
+                            "ui-interactive-card h-auto w-full justify-start rounded-md bg-surface-1/50 p-3 text-left whitespace-normal",
                             "focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70",
-                            isSelected && "surface-inset-card ring-2 ring-foreground/20 shadow-inset-highlight",
+                            isSelected &&
+                              "surface-inset-card ring-2 ring-foreground/20",
                           )}
                           onClick={() => setSelectedId(template.id)}
                           onDoubleClick={() => {
@@ -423,13 +510,22 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                           }}
                         >
                           <div className="flex items-start gap-3">
-                            <span className="text-lg mt-0.5 flex-shrink-0" aria-hidden>{template.emoji}</span>
+                            <span
+                              className="text-lg mt-0.5 flex-shrink-0"
+                              aria-hidden
+                            >
+                              {template.emoji}
+                            </span>
                             <div className="flex-1 min-w-0">
-                              <span className="ui-body-text-medium block truncate">{template.headline}</span>
+                              <span className="text-body-md font-medium block truncate">
+                                {template.headline}
+                              </span>
                               <p className="ui-meta-text mt-1">
                                 {deriveTemplateCardCopy(template)}
                               </p>
-                              {(sourceKind === "plugin" || sourceKind === "user" || sourceKind === "hub") && (
+                              {(sourceKind === "plugin" ||
+                                sourceKind === "user" ||
+                                sourceKind === "hub") && (
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                   <Badge variant="secondary" size="compact">
                                     {getTemplateSourceLabel(template)}
@@ -447,7 +543,7 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
             )}
           </div>
 
-          <div className="rounded-lg surface-soft min-h-44 overflow-y-auto p-3 ui-scroll-region">
+          <div className="rounded-lg border border-hairline bg-surface-1/50 min-h-44 overflow-y-auto p-3 ui-scroll-region">
             {!selected ? (
               <p className="text-body-md text-muted-foreground">
                 {loadError
@@ -458,7 +554,9 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
               <div className="space-y-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="ui-body-text-medium">{selectedQuickStart?.label || selected.name}</h4>
+                    <h4 className="text-body-md font-medium">
+                      {selectedQuickStart?.label || selected.name}
+                    </h4>
                     <Badge size="compact" variant="secondary">
                       {getTemplateSourceLabel(selected)}
                     </Badge>
@@ -469,51 +567,73 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                     ) : null}
                   </div>
                   {selected.description ? (
-                    <p className="ui-meta-text mt-1">
-                      {selected.description}
-                    </p>
+                    <p className="ui-meta-text mt-1">{selected.description}</p>
                   ) : null}
                 </div>
 
                 <div className="space-y-2">
                   <div>
-                    <span className="ui-meta-label text-muted-foreground">Best when</span>
-                    <p className="text-body-sm">{deriveTemplateUseWhen(selected)}</p>
+                    <span className="ui-meta-label text-muted-foreground">
+                      Best when
+                    </span>
+                    <p className="text-body-sm">
+                      {deriveTemplateUseWhen(selected)}
+                    </p>
                   </div>
                   <div>
-                    <span className="ui-meta-label text-muted-foreground">You'll give</span>
+                    <span className="ui-meta-label text-muted-foreground">
+                      You'll give
+                    </span>
                     <p className="text-body-sm">{selected.input}</p>
                   </div>
                   <div>
-                    <span className="ui-meta-label text-muted-foreground">You'll get</span>
+                    <span className="ui-meta-label text-muted-foreground">
+                      You'll get
+                    </span>
                     <p className="text-body-sm">{selected.output}</p>
                   </div>
                 </div>
 
                 {(selectedExecutionSummary || selectedExecutionDescription) && (
                   <div>
-                    <span className="ui-meta-label text-muted-foreground">Flow rules</span>
+                    <span className="ui-meta-label text-muted-foreground">
+                      Flow rules
+                    </span>
                     {selectedExecutionSummary ? (
-                      <p className="text-body-sm text-foreground">{selectedExecutionSummary}</p>
+                      <p className="text-body-sm text-foreground">
+                        {selectedExecutionSummary}
+                      </p>
                     ) : null}
-                    {selectedExecutionDescription && selectedExecutionDescription !== selectedExecutionSummary ? (
-                      <p className="mt-2 text-body-sm text-muted-foreground">{selectedExecutionDescription}</p>
+                    {selectedExecutionDescription &&
+                    selectedExecutionDescription !==
+                      selectedExecutionSummary ? (
+                      <p className="mt-2 text-body-sm text-muted-foreground">
+                        {selectedExecutionDescription}
+                      </p>
                     ) : null}
                   </div>
                 )}
 
                 {selected.how ? (
                   <DisclosurePanel summary="Why this start works">
-                    <p className="mt-3 text-body-sm text-muted-foreground">{selected.how}</p>
+                    <p className="mt-3 text-body-sm text-muted-foreground">
+                      {selected.how}
+                    </p>
                   </DisclosurePanel>
                 ) : null}
 
-                {(selectedSourceKind === "plugin" || selectedSourceKind === "user" || selectedSourceKind === "hub") && (
+                {(selectedSourceKind === "plugin" ||
+                  selectedSourceKind === "user" ||
+                  selectedSourceKind === "hub") && (
                   <div>
-                    <span className="ui-meta-label text-muted-foreground">Source</span>
+                    <span className="ui-meta-label text-muted-foreground">
+                      Source
+                    </span>
                     <p className="text-body-sm text-foreground">
                       {selectedSourceLabel}
-                      {selected.marketplaceName ? ` via ${selected.marketplaceName}` : ""}
+                      {selected.marketplaceName
+                        ? ` via ${selected.marketplaceName}`
+                        : ""}
                     </p>
                   </div>
                 )}
@@ -521,7 +641,9 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
                 <DisclosurePanel summary="Inside this flow">
                   <ol className="list-decimal list-inside space-y-1 mt-3 text-muted-foreground">
                     {selected.steps.map((step, i) => (
-                      <li key={i} className="text-body-sm">{step}</li>
+                      <li key={i} className="text-body-sm">
+                        {step}
+                      </li>
                     ))}
                   </ol>
                 </DisclosurePanel>
@@ -533,7 +655,8 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
         {confirmPending ? (
           <div className="mx-6 mt-2 rounded-lg surface-warning-soft p-3">
             <p className="text-body-md">
-              Replace the current flow with <strong>{confirmPending.name}</strong>?
+              Replace the current flow with{" "}
+              <strong>{confirmPending.name}</strong>?
             </p>
             <div className="flex gap-2 mt-2">
               <Button
@@ -542,7 +665,11 @@ export function TemplateBrowser({ onApply, initialTemplates }: TemplateBrowserPr
               >
                 Replace
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setConfirmPending(null)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setConfirmPending(null)}
+              >
                 Cancel
               </Button>
             </div>

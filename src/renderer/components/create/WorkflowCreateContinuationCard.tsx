@@ -8,11 +8,15 @@ import type { WorkflowCreateContinuationCandidate } from "@/lib/workflow-create-
 
 const MAX_COLLAPSED_SECONDARY_CONTINUATIONS = 2
 
-function continuationStatusLabel(status: WorkflowCreateContinuationCandidate["status"]) {
+function continuationStatusLabel(
+  status: WorkflowCreateContinuationCandidate["status"],
+) {
   return status === "blocked" ? "Waiting on you" : "Ready"
 }
 
-function continuationStatusVariant(status: WorkflowCreateContinuationCandidate["status"]) {
+function continuationStatusVariant(
+  status: WorkflowCreateContinuationCandidate["status"],
+) {
   return status === "blocked" ? "warning" : "success"
 }
 
@@ -24,7 +28,9 @@ function compactSupportText(value: string | null | undefined) {
     .trim()
 }
 
-function buildContinuationMetaLine(continuation: WorkflowCreateContinuationCandidate) {
+function buildContinuationMetaLine(
+  continuation: WorkflowCreateContinuationCandidate,
+) {
   const supportText = compactSupportText(continuation.supportText)
   const routeLabel = continuation.nextStepLabel
     ? supportText
@@ -32,23 +38,36 @@ function buildContinuationMetaLine(continuation: WorkflowCreateContinuationCandi
       : continuation.latestStepLabel
         ? `${continuation.latestStepLabel} -> ${continuation.nextStepLabel}`
         : `Next: ${continuation.nextStepLabel}`
-    : supportText || continuation.latestResultLabel || continuation.latestStepLabel || null
+    : supportText ||
+      continuation.latestResultLabel ||
+      continuation.latestStepLabel ||
+      null
 
   return [
     routeLabel,
-    continuation.lastGateText ? `Latest check: ${continuation.lastGateText}` : null,
+    continuation.lastGateText
+      ? `Latest check: ${continuation.lastGateText}`
+      : null,
     `Updated ${formatRelativeTime(continuation.updatedAt) || "recently"}`,
-  ].filter(Boolean).join(" · ")
+  ]
+    .filter(Boolean)
+    .join(" · ")
 }
 
-export function buildContinuationActionLabel(continuation: WorkflowCreateContinuationCandidate): string {
+export function buildContinuationActionLabel(
+  continuation: WorkflowCreateContinuationCandidate,
+): string {
   if (continuation.action.kind === "open_blocked_work") {
-    return continuation.action.task.kind === "approval" ? "Open approval" : "Provide input"
+    return continuation.action.task.kind === "approval"
+      ? "Open approval"
+      : "Provide input"
   }
   return "Continue work"
 }
 
-export function buildContinuationStepChips(continuation: WorkflowCreateContinuationCandidate): string[] {
+export function buildContinuationStepChips(
+  continuation: WorkflowCreateContinuationCandidate,
+): string[] {
   const chips: string[] = []
   if (continuation.latestStepLabel) {
     chips.push(`Latest step: ${continuation.latestStepLabel}`)
@@ -69,8 +88,12 @@ export function deriveSecondaryContinuationVisibility(
 
   return {
     visibleContinuations,
-    hiddenCount: Math.max(0, secondaryContinuations.length - visibleContinuations.length),
-    canToggle: secondaryContinuations.length > MAX_COLLAPSED_SECONDARY_CONTINUATIONS,
+    hiddenCount: Math.max(
+      0,
+      secondaryContinuations.length - visibleContinuations.length,
+    ),
+    canToggle:
+      secondaryContinuations.length > MAX_COLLAPSED_SECONDARY_CONTINUATIONS,
   }
 }
 
@@ -90,17 +113,27 @@ export function WorkflowCreateContinuationCard({
   const [secondaryExpanded, setSecondaryExpanded] = useState(false)
 
   useEffect(() => {
-    if (secondaryContinuations.length <= MAX_COLLAPSED_SECONDARY_CONTINUATIONS) {
+    if (
+      secondaryContinuations.length <= MAX_COLLAPSED_SECONDARY_CONTINUATIONS
+    ) {
       setSecondaryExpanded(false)
     }
   }, [secondaryContinuations.length])
 
   if (!loading && !continuation) return null
-  const primaryMetaLine = continuation ? buildContinuationMetaLine(continuation) : ""
-  const secondaryVisibility = deriveSecondaryContinuationVisibility(secondaryContinuations, secondaryExpanded)
+  const primaryMetaLine = continuation
+    ? buildContinuationMetaLine(continuation)
+    : ""
+  const secondaryVisibility = deriveSecondaryContinuationVisibility(
+    secondaryContinuations,
+    secondaryExpanded,
+  )
 
   return (
-    <section aria-label="Continue saved work" className="w-full space-y-2 border-t border-hairline/70 pt-3">
+    <section
+      aria-label="Continue saved work"
+      className="w-full space-y-2 ui-section-divider"
+    >
       <div className="flex justify-end px-1">
         {secondaryVisibility.canToggle ? (
           <Button
@@ -127,15 +160,33 @@ export function WorkflowCreateContinuationCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-body-sm font-medium text-foreground">{continuation.title}</p>
-                <Badge variant={continuationStatusVariant(continuation.status)} className="ui-meta-text px-2 py-0">
+                <p className="text-body-sm font-medium text-foreground">
+                  {continuation.title}
+                </p>
+                <Badge
+                  variant={continuationStatusVariant(continuation.status)}
+                  className="ui-meta-text px-2 py-0"
+                >
                   {continuationStatusLabel(continuation.status)}
                 </Badge>
               </div>
-              {primaryMetaLine ? <p className="text-body-sm text-muted-foreground">{primaryMetaLine}</p> : null}
+              {primaryMetaLine ? (
+                <p className="text-body-sm text-muted-foreground">
+                  {primaryMetaLine}
+                </p>
+              ) : null}
             </div>
-            <Button size="sm" onClick={() => onContinue(continuation)} disabled={pending} className="shrink-0">
-              {pending ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpRight size={14} />}
+            <Button
+              size="sm"
+              onClick={() => onContinue(continuation)}
+              disabled={pending}
+              className="shrink-0"
+            >
+              {pending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <ArrowUpRight size={14} />
+              )}
               {buildContinuationActionLabel(continuation)}
             </Button>
           </div>
@@ -144,34 +195,41 @@ export function WorkflowCreateContinuationCard({
 
       {secondaryVisibility.visibleContinuations.length > 0 && (
         <div className="space-y-2">
-          <p className="px-1 text-body-xs font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
+          <p className="section-kicker px-1 text-muted-foreground/80">
             More saved work
           </p>
           <div className="space-y-0">
             {secondaryVisibility.visibleContinuations.map((item, index) => {
-              const itemSupportLine = compactSupportText(item.supportText) || item.readinessText
+              const itemSupportLine =
+                compactSupportText(item.supportText) || item.readinessText
               const itemMetaLine = buildContinuationMetaLine(item)
 
               return (
                 <div
                   key={item.caseId}
-                  className={cn(
-                    "px-1 py-3",
-                    index > 0 && "border-t border-hairline/70",
-                  )}
+                  className={cn("px-1 py-3", index > 0 && "ui-section-divider")}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-body-sm font-medium text-foreground">{item.title}</p>
-                        <Badge variant={continuationStatusVariant(item.status)} className="ui-meta-text px-2 py-0">
+                        <p className="text-body-sm font-medium text-foreground">
+                          {item.title}
+                        </p>
+                        <Badge
+                          variant={continuationStatusVariant(item.status)}
+                          className="ui-meta-text px-2 py-0"
+                        >
                           {continuationStatusLabel(item.status)}
                         </Badge>
                       </div>
                       {itemMetaLine ? (
-                        <p className="text-body-sm text-muted-foreground">{itemMetaLine}</p>
+                        <p className="text-body-sm text-muted-foreground">
+                          {itemMetaLine}
+                        </p>
                       ) : itemSupportLine ? (
-                        <p className="text-body-sm text-muted-foreground">{itemSupportLine}</p>
+                        <p className="text-body-sm text-muted-foreground">
+                          {itemSupportLine}
+                        </p>
                       ) : null}
                     </div>
                     <Button

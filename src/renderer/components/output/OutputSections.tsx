@@ -50,7 +50,14 @@ const STATUS_LABELS: Record<string, string> = {
   waiting_human: "waiting for input",
 }
 
-const LOG_ENTRY_TYPES = ["thinking", "text", "tool_use", "tool_result", "error", "diff"] as const
+const LOG_ENTRY_TYPES = [
+  "thinking",
+  "text",
+  "tool_use",
+  "tool_result",
+  "error",
+  "diff",
+] as const
 type LogEntryType = (typeof LOG_ENTRY_TYPES)[number]
 
 const LOG_TYPE_LABELS: Record<LogEntryType, string> = {
@@ -77,7 +84,11 @@ function getEntrySearchText(entry: LogEntry): string {
   }
 }
 
-function getLogEntryKey(selectedNodeId: string, entry: LogEntry, index: number): string {
+function getLogEntryKey(
+  selectedNodeId: string,
+  entry: LogEntry,
+  index: number,
+): string {
   switch (entry.type) {
     case "thinking":
     case "text":
@@ -111,11 +122,21 @@ export function NodesTab({
   onRerunFrom?: (nodeId: string) => void
   surface?: "card" | "flat"
 }) {
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    nodeId: string
+  } | null>(null)
 
   return (
     <>
-      <div className={cn(surface === "card" ? "rounded-lg surface-soft overflow-hidden" : "overflow-hidden")}>
+      <div
+        className={cn(
+          surface === "card"
+            ? "rounded-lg ui-slab overflow-hidden"
+            : "overflow-hidden",
+        )}
+      >
         {nodes.length === 0 && (
           <div className="px-3 py-4 text-body-md text-muted-foreground text-center">
             No skill steps in this flow
@@ -127,10 +148,17 @@ export function NodesTab({
           const Icon = STATUS_ICONS[status] || Clock
           const statusLabel = STATUS_LABELS[status] || status
           const isActive = node.id === activeNodeId
-          const splitterTotalSubtasks = state?.output?.metadata?.splitter_total_subtasks
-          const splitterUsedSubtasks = state?.output?.metadata?.splitter_used_subtasks
-          const splitterTruncated = Boolean(state?.output?.metadata?.splitter_truncated)
-          const canRerunNode = canRerun && (status === "completed" || status === "failed") && Boolean(onRerunFrom)
+          const splitterTotalSubtasks =
+            state?.output?.metadata?.splitter_total_subtasks
+          const splitterUsedSubtasks =
+            state?.output?.metadata?.splitter_used_subtasks
+          const splitterTruncated = Boolean(
+            state?.output?.metadata?.splitter_truncated,
+          )
+          const canRerunNode =
+            canRerun &&
+            (status === "completed" || status === "failed") &&
+            Boolean(onRerunFrom)
 
           let durationMs: number | undefined
           if (state?.startedAt && state?.completedAt) {
@@ -138,8 +166,13 @@ export function NodesTab({
           }
 
           const metaBits: string[] = []
-          if (state?.metrics && (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0)) {
-            metaBits.push(`${formatTokens(state.metrics.tokens_in + state.metrics.tokens_out)}t`)
+          if (
+            state?.metrics &&
+            (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0)
+          ) {
+            metaBits.push(
+              `${formatTokens(state.metrics.tokens_in + state.metrics.tokens_out)}t`,
+            )
           }
           if (state?.metrics && state.metrics.cost_usd > 0) {
             metaBits.push(formatCost(state.metrics.cost_usd))
@@ -148,7 +181,9 @@ export function NodesTab({
             metaBits.push(`${(durationMs / 1000).toFixed(1)}s`)
           }
           if (splitterTruncated) {
-            metaBits.push(`truncated ${splitterUsedSubtasks || "?"}/${splitterTotalSubtasks || "?"}`)
+            metaBits.push(
+              `truncated ${splitterUsedSubtasks || "?"}/${splitterTotalSubtasks || "?"}`,
+            )
           }
           if ((state?.retriesUsed || 0) > 0) {
             metaBits.push(`retry x${state?.retriesUsed}`)
@@ -157,14 +192,18 @@ export function NodesTab({
             metaBits.push(state.policyApplied)
           }
           if (evalResults[node.id]?.length > 0) {
-            const latestEval = evalResults[node.id][evalResults[node.id].length - 1]
+            const latestEval =
+              evalResults[node.id][evalResults[node.id].length - 1]
             metaBits.push(`eval ${latestEval.score}/10`)
           }
 
           const metaSummary = metaBits.join(" · ")
 
           return (
-            <div key={node.id} className="border-b border-hairline last:border-b-0">
+            <div
+              key={node.id}
+              className="border-b border-hairline last:border-b-0"
+            >
               <button
                 type="button"
                 className={cn(
@@ -189,20 +228,36 @@ export function NodesTab({
                     status === "completed" && "text-status-success",
                     status === "failed" && "text-status-danger",
                     status === "running" && "text-status-info animate-spin",
-                    (status === "pending" || status === "queued" || status === "skipped") &&
+                    (status === "pending" ||
+                      status === "queued" ||
+                      status === "skipped") &&
                       "text-muted-foreground",
                   )}
                 />
                 <span className="sr-only">Status: {statusLabel}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-body-md font-medium">{node.label}</div>
+                  <div className="truncate text-body-md font-medium">
+                    {node.label}
+                  </div>
                   {state?.error ? (
-                    <div className={cn("ui-meta-text text-status-danger truncate", PREVIEW_MAX_W)} title={state.error}>
-                      {state?.errorKind ? `[${ERROR_KIND_LABELS[state.errorKind] || state.errorKind}] ` : ""}
-                      {state.error.slice(0, 80)}{state.error.length > 80 ? "..." : ""}
+                    <div
+                      className={cn(
+                        "ui-meta-text text-status-danger truncate",
+                        PREVIEW_MAX_W,
+                      )}
+                      title={state.error}
+                    >
+                      {state?.errorKind
+                        ? `[${ERROR_KIND_LABELS[state.errorKind] || state.errorKind}] `
+                        : ""}
+                      {state.error.slice(0, 80)}
+                      {state.error.length > 80 ? "..." : ""}
                     </div>
                   ) : metaSummary ? (
-                    <div className="ui-meta-text truncate text-muted-foreground" title={metaSummary}>
+                    <div
+                      className="ui-meta-text truncate text-muted-foreground"
+                      title={metaSummary}
+                    >
                       {metaSummary}
                     </div>
                   ) : null}
@@ -212,7 +267,9 @@ export function NodesTab({
                     "ui-meta-text ui-status-badge",
                     status === "completed" && "ui-status-badge-success",
                     status === "failed" && "ui-status-badge-danger",
-                    status !== "completed" && status !== "failed" && "border-hairline bg-surface-2 text-muted-foreground",
+                    status !== "completed" &&
+                      status !== "failed" &&
+                      "border-hairline bg-surface-2 text-muted-foreground",
                   )}
                 >
                   {statusLabel}
@@ -236,7 +293,10 @@ export function NodesTab({
       >
         {contextMenu && (
           <>
-            <DropdownMenuLabel>{nodes.find((node) => node.id === contextMenu.nodeId)?.label || "Step"}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {nodes.find((node) => node.id === contextMenu.nodeId)?.label ||
+                "Step"}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               onSelect={() => {
                 onSelectNode(contextMenu.nodeId)
@@ -247,7 +307,13 @@ export function NodesTab({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              disabled={!canRerun || !onRerunFrom || !["completed", "failed"].includes(nodeStates[contextMenu.nodeId]?.status || "pending")}
+              disabled={
+                !canRerun ||
+                !onRerunFrom ||
+                !["completed", "failed"].includes(
+                  nodeStates[contextMenu.nodeId]?.status || "pending",
+                )
+              }
               onSelect={() => {
                 if (!onRerunFrom) return
                 onRerunFrom(contextMenu.nodeId)
@@ -301,23 +367,35 @@ function EvalResultsSection({
                 : "border-status-warning/40 text-status-warning",
             )}
           >
-            Attempt {er.attempt}: {er.score}/10 {er.passed ? "PASS" : "FAIL"} — {er.reason}
+            Attempt {er.attempt}: {er.score}/10 {er.passed ? "PASS" : "FAIL"} —{" "}
+            {er.reason}
           </div>
           {er.criteria && er.criteria.length > 0 && (
             <div className="pl-3 space-y-1">
               {er.criteria.map((c: EvalCriterion) => (
-                <div key={c.id} className="flex items-center gap-2 ui-meta-text">
-                  <span className="w-20 truncate text-muted-foreground">{c.id}</span>
+                <div
+                  key={c.id}
+                  className="flex items-center gap-2 ui-meta-text"
+                >
+                  <span className="w-20 truncate text-muted-foreground">
+                    {c.id}
+                  </span>
                   <div className="flex-1 h-1.5 bg-surface-3 rounded-full overflow-hidden">
                     <div
                       className={cn(
-                        "h-full w-full origin-left rounded-full ui-transition-transform ui-motion-standard",
-                        c.score >= 7 ? "bg-status-success" : c.score >= 4 ? "bg-status-warning" : "bg-status-danger",
+                        "h-full w-full origin-left rounded-full transition-transform ui-motion-standard",
+                        c.score >= 7
+                          ? "bg-status-success"
+                          : c.score >= 4
+                            ? "bg-status-warning"
+                            : "bg-status-danger",
                       )}
                       style={{ transform: `scaleX(${c.score / 10})` }}
                     />
                   </div>
-                  <span className="w-8 text-right font-mono text-muted-foreground">{c.score}/10</span>
+                  <span className="w-8 text-right font-mono text-muted-foreground">
+                    {c.score}/10
+                  </span>
                 </div>
               ))}
             </div>
@@ -325,7 +403,9 @@ function EvalResultsSection({
           {er.fix_instructions && (
             <div className="pl-3 ui-meta-text">
               <span className="font-medium text-foreground-subtle">Fix: </span>
-              <span className="text-muted-foreground">{er.fix_instructions}</span>
+              <span className="text-muted-foreground">
+                {er.fix_instructions}
+              </span>
             </div>
           )}
         </div>
@@ -333,7 +413,8 @@ function EvalResultsSection({
       {isWaitingForOverride && !overridden && (
         <div className="border-l-2 border-status-warning/35 pl-3 py-0.5 space-y-2">
           <div className="ui-meta-text text-status-warning">
-            Check failed after all retries. The flow is paused waiting for your decision.
+            Check failed after all retries. The flow is paused waiting for your
+            decision.
           </div>
           <button
             type="button"
@@ -399,7 +480,8 @@ export function LogTab({
     const query = searchQuery.toLowerCase()
     return log.filter((entry) => {
       if (!activeTypeFilters.has(entry.type)) return false
-      if (query && !getEntrySearchText(entry).toLowerCase().includes(query)) return false
+      if (query && !getEntrySearchText(entry).toLowerCase().includes(query))
+        return false
       return true
     })
   }, [log, searchQuery, activeTypeFilters])
@@ -416,13 +498,18 @@ export function LogTab({
     })
   }
 
-  const hasActiveFilters = searchQuery !== "" || activeTypeFilters.size !== LOG_ENTRY_TYPES.length
-  const isNearBottom = useMemo(() => () => {
-    const container = scrollContainerRef.current
-    if (!container) return true
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-    return distanceFromBottom <= 96
-  }, [])
+  const hasActiveFilters =
+    searchQuery !== "" || activeTypeFilters.size !== LOG_ENTRY_TYPES.length
+  const isNearBottom = useMemo(
+    () => () => {
+      const container = scrollContainerRef.current
+      if (!container) return true
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight
+      return distanceFromBottom <= 96
+    },
+    [],
+  )
 
   useEffect(() => {
     prevLogLengthRef.current = rawLog.length
@@ -454,25 +541,31 @@ export function LogTab({
 
   if (log.length === 0 && !state?.error) {
     return (
-      <div className="px-1 py-3 text-body-sm text-muted-foreground">
+      <div className="py-3 text-body-sm text-muted-foreground">
         {state?.status === "pending" || state?.status === "queued"
           ? "Waiting to execute..."
           : state?.status === "running"
             ? "Running... output will appear here soon."
             : state?.status === "waiting_human"
               ? "Waiting for human input..."
-            : state?.status === "waiting_approval"
-              ? "Waiting for approval..."
-            : "No log entries"}
+              : state?.status === "waiting_approval"
+                ? "Waiting for approval..."
+                : "No log entries"}
       </div>
     )
   }
 
+  const showDebugDetails = Boolean(
+    selectedNodeId &&
+    state &&
+    (state.status === "completed" || state.status === "failed"),
+  )
+
   return (
-    <section className="space-y-3">
+    <section className="space-y-4">
       {/* Search and filter controls */}
       {log.length > 0 && (
-        <div className="space-y-2 border-b border-hairline px-1 pb-3">
+        <div className="ui-slab space-y-3">
           {/* Search input */}
           <div className="relative">
             <Search
@@ -509,11 +602,13 @@ export function LogTab({
                   type="button"
                   onClick={() => toggleTypeFilter(type)}
                   className={cn(
-                    "rounded-full px-2.5 py-0.5 ui-meta-text border ui-pressable",
+                    "rounded-full border px-2.5 py-1 ui-meta-text ui-pressable",
                     isActive
                       ? cn(
-                          "bg-surface-2/70 border-hairline",
-                          type === "error" ? "text-status-danger" : "text-foreground",
+                          "bg-surface-1 border-hairline",
+                          type === "error"
+                            ? "text-status-danger"
+                            : "text-foreground",
                         )
                       : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-2/45",
                   )}
@@ -537,27 +632,53 @@ export function LogTab({
       {/* Scrollable log content */}
       <div
         ref={scrollContainerRef}
-        className="max-h-[min(24rem,calc(100vh-18rem))] overflow-y-auto ui-scroll-region space-y-1 px-1 py-1"
+        className="ui-slab max-h-[min(24rem,calc(100vh-18rem))] overflow-y-auto px-3 py-3 ui-scroll-region"
       >
-        {state?.metrics && (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0) && (
-          <div className="mb-2 flex flex-wrap items-center gap-3 border-b border-hairline/70 pb-2 ui-meta-text font-mono text-muted-foreground">
-            <span title="Input tokens">In: {formatTokens(state.metrics.tokens_in)}</span>
-            <span title="Output tokens">Out: {formatTokens(state.metrics.tokens_out)}</span>
-            {state.metrics.cost_usd > 0 && <span title="Estimated cost">{formatCost(state.metrics.cost_usd)}</span>}
-            {Number.isFinite(state.metrics.latency_ms) && state.metrics.latency_ms >= 0 && (
-              <span title="Latency">{(state.metrics.latency_ms / 1000).toFixed(1)}s</span>
-            )}
-            {state.meta?.model_id && <span className="text-muted-foreground/60">{state.meta.model_id}</span>}
-          </div>
-        )}
+        {state?.metrics &&
+          (state.metrics.tokens_in > 0 || state.metrics.tokens_out > 0) && (
+            <div className="mb-3 flex flex-wrap items-center gap-3 border-b border-hairline/70 pb-3 ui-meta-text font-mono text-muted-foreground">
+              <span title="Input tokens">
+                In: {formatTokens(state.metrics.tokens_in)}
+              </span>
+              <span title="Output tokens">
+                Out: {formatTokens(state.metrics.tokens_out)}
+              </span>
+              {state.metrics.cost_usd > 0 && (
+                <span title="Estimated cost">
+                  {formatCost(state.metrics.cost_usd)}
+                </span>
+              )}
+              {Number.isFinite(state.metrics.latency_ms) &&
+                state.metrics.latency_ms >= 0 && (
+                  <span title="Latency">
+                    {(state.metrics.latency_ms / 1000).toFixed(1)}s
+                  </span>
+                )}
+              {state.meta?.model_id && (
+                <span className="text-muted-foreground/60">
+                  {state.meta.model_id}
+                </span>
+              )}
+            </div>
+          )}
         {state?.error && (
-          <div className="mb-2 border-l-2 border-status-danger/35 pl-3 ui-meta-text text-status-danger">
-            <span className="font-medium">{state.errorKind ? ERROR_KIND_LABELS[state.errorKind] || state.errorKind : "Error"}:</span> {state.error}
+          <div className="mb-3 rounded-md surface-danger-soft px-3 py-2 ui-meta-text text-status-danger">
+            <span className="font-medium">
+              {state.errorKind
+                ? ERROR_KIND_LABELS[state.errorKind] || state.errorKind
+                : "Error"}
+              :
+            </span>{" "}
+            {state.error}
             {(state.retriesUsed || 0) > 0 && (
-              <span className="ml-2 text-status-warning">retry x{state.retriesUsed}</span>
+              <span className="ml-2 text-status-warning">
+                retry x{state.retriesUsed}
+              </span>
             )}
             {state.policyApplied && (
-              <span className="ml-2 text-muted-foreground">policy: {state.policyApplied}</span>
+              <span className="ml-2 text-muted-foreground">
+                policy: {state.policyApplied}
+              </span>
             )}
           </div>
         )}
@@ -567,26 +688,32 @@ export function LogTab({
           </div>
         )}
         {filteredLog.map((entry, index) => (
-          <LogEntryCard key={getLogEntryKey(selectedNodeId, entry, index)} entry={entry} />
+          <LogEntryCard
+            key={getLogEntryKey(selectedNodeId, entry, index)}
+            entry={entry}
+          />
         ))}
         {selectedNodeId && evalResults[selectedNodeId]?.length > 0 && (
           <EvalResultsSection
             selectedNodeId={selectedNodeId}
             evalResults={evalResults}
             runId={runId}
-            isWaitingForOverride={evalOverrideNodeIds?.has(selectedNodeId) ?? false}
-          />
-        )}
-        {selectedNodeId && state && (state.status === "completed" || state.status === "failed") && (
-          <DebugDetailsPanel
-            state={state}
-            rawLog={rawLog}
-            evalResults={evalResults[selectedNodeId] || []}
-            workflowNode={workflowNode}
+            isWaitingForOverride={
+              evalOverrideNodeIds?.has(selectedNodeId) ?? false
+            }
           />
         )}
         <div ref={scrollRef} />
       </div>
+
+      {showDebugDetails && state && selectedNodeId && (
+        <DebugDetailsPanel
+          state={state}
+          rawLog={rawLog}
+          evalResults={evalResults[selectedNodeId] || []}
+          workflowNode={workflowNode}
+        />
+      )}
     </section>
   )
 }

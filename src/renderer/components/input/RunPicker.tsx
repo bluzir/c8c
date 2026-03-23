@@ -54,7 +54,8 @@ export function RunPicker({ open, onOpenChange }: RunPickerProps) {
   }, [completedRuns, search])
 
   const existingRunIds = useMemo(
-    () => new Set(attachments.filter((a) => a.kind === "run").map((a) => a.runId)),
+    () =>
+      new Set(attachments.filter((a) => a.kind === "run").map((a) => a.runId)),
     [attachments],
   )
 
@@ -74,7 +75,10 @@ export function RunPicker({ open, onOpenChange }: RunPickerProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <CanvasDialogContent className="p-0 gap-0 max-h-[75vh] flex flex-col" showCloseButton>
+      <CanvasDialogContent
+        className="p-0 gap-0 max-h-[75vh] flex flex-col"
+        showCloseButton
+      >
         <CanvasDialogHeader className="surface-depth-header">
           <DialogTitle>Attach Saved Result</DialogTitle>
           <DialogDescription className="sr-only">
@@ -83,7 +87,7 @@ export function RunPicker({ open, onOpenChange }: RunPickerProps) {
         </CanvasDialogHeader>
 
         <CanvasDialogBody className="flex flex-col min-h-0 p-0">
-          <div className="ui-dialog-gutter py-3 border-b border-hairline bg-surface-1/70">
+          <div className="ui-dialog-gutter py-3 border-b border-hairline">
             <div className="relative">
               <Search
                 size={14}
@@ -102,7 +106,7 @@ export function RunPicker({ open, onOpenChange }: RunPickerProps) {
             </div>
           </div>
 
-          <div className="ui-scroll-region flex-1 overflow-y-auto px-3 py-2 bg-surface-1/40">
+          <div className="ui-slab ui-scroll-region flex-1 overflow-y-auto px-3 py-2">
             {completedRuns.length === 0 && (
               <div className="ui-empty-state text-body-md text-muted-foreground">
                 No completed runs found.
@@ -116,16 +120,16 @@ export function RunPicker({ open, onOpenChange }: RunPickerProps) {
             {filtered.map((run) => {
               const alreadyAdded = existingRunIds.has(run.runId)
               return (
-                      <Button
-                        type="button"
-                        key={run.runId}
+                <Button
+                  type="button"
+                  key={run.runId}
                   onClick={() => handleSelect(run)}
                   disabled={alreadyAdded}
-                        aria-label={`Attach result from ${run.workflowName}`}
-                        variant="ghost"
-                        size="auto"
-                        className="ui-interactive-card-subtle h-auto w-full justify-start items-center gap-3 rounded-md px-2 py-2 text-left whitespace-normal disabled:opacity-40"
-                      >
+                  aria-label={`Attach result from ${run.workflowName}`}
+                  variant="ghost"
+                  size="auto"
+                  className="ui-interactive-card-subtle h-auto w-full justify-start items-center gap-3 rounded-md px-2 py-2 text-left whitespace-normal disabled:opacity-40"
+                >
                   <History
                     size={14}
                     aria-hidden="true"
@@ -136,24 +140,26 @@ export function RunPicker({ open, onOpenChange }: RunPickerProps) {
                       <span className="text-body-sm font-medium truncate">
                         {run.workflowName}
                       </span>
-                            <span className="control-badge control-badge-compact border border-border bg-surface-1/70 ui-meta-text text-muted-foreground">
-                              {run.runId.slice(0, 8)}
-                            </span>
-                            <span className="ui-status-badge ui-status-badge-success ui-meta-text">
-                              Completed
-                            </span>
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2 ui-meta-text text-muted-foreground">
-                            <span>{formatRelativeDate(run.startedAt)}</span>
-                            {run.totalCost != null && <span>{formatCost(run.totalCost)}</span>}
-                          </div>
-                        </div>
-                        {alreadyAdded && (
-                          <span className="control-badge control-badge-compact border border-status-success/30 bg-status-success/10 ui-meta-text text-status-success">
-                            Added
-                          </span>
-                        )}
-                      </Button>
+                      <span className="control-badge control-badge-compact border border-border bg-surface-1/70 ui-meta-text text-muted-foreground">
+                        {run.runId.slice(0, 8)}
+                      </span>
+                      <span className="ui-status-badge ui-status-badge-success ui-meta-text">
+                        Completed
+                      </span>
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 ui-meta-text text-muted-foreground">
+                      <span>{formatRelativeDate(run.startedAt)}</span>
+                      {run.totalCost != null && (
+                        <span>{formatCost(run.totalCost)}</span>
+                      )}
+                    </div>
+                  </div>
+                  {alreadyAdded && (
+                    <span className="control-badge control-badge-compact surface-success-soft ui-meta-text text-status-success">
+                      Added
+                    </span>
+                  )}
+                </Button>
               )
             })}
           </div>

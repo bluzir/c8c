@@ -5,7 +5,11 @@ import { selectTemplatesForResultChaining } from "@/lib/result-flow-chaining"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { selectArtifactsForTemplateContracts } from "@/lib/workflow-entry"
 import type { WebSearchBackend } from "@/lib/web-search-backend"
-import type { ArtifactRecord, InputAttachment, WorkflowTemplate } from "@shared/types"
+import type {
+  ArtifactRecord,
+  InputAttachment,
+  WorkflowTemplate,
+} from "@shared/types"
 
 interface OpenWorkflowCreateOptions {
   projectPath?: string | null
@@ -42,22 +46,28 @@ export function useWorkflowUseInNewFlow({
   const [useInNewFlowOpen, setUseInNewFlowOpen] = useState(false)
   const [useInNewFlowLoading, setUseInNewFlowLoading] = useState(false)
   const [useInNewFlowPending, setUseInNewFlowPending] = useState(false)
-  const [useInNewFlowTemplates, setUseInNewFlowTemplates] = useState<WorkflowTemplate[]>([])
-  const [selectedUseInNewFlowTemplateId, setSelectedUseInNewFlowTemplateId] = useState<string | null>(null)
+  const [useInNewFlowTemplates, setUseInNewFlowTemplates] = useState<
+    WorkflowTemplate[]
+  >([])
+  const [selectedUseInNewFlowTemplateId, setSelectedUseInNewFlowTemplateId] =
+    useState<string | null>(null)
   const [useInNewFlowIntent, setUseInNewFlowIntent] = useState("")
   const useInNewFlowTemplatesRequestIdRef = useRef(0)
 
   const suggestedUseInNewFlowTemplates = useMemo(
-    () => selectTemplatesForResultChaining({
-      templates: useInNewFlowTemplates,
-      sourceArtifacts: artifactRecords,
-    }),
+    () =>
+      selectTemplatesForResultChaining({
+        templates: useInNewFlowTemplates,
+        sourceArtifacts: artifactRecords,
+      }),
     [artifactRecords, useInNewFlowTemplates],
   )
 
   const handleOpenUseInNewFlow = useCallback(() => {
     if (!selectedProject || !canUseInNewFlow) {
-      toastError("Open a project and finish a result before starting a new flow from it.")
+      toastError(
+        "Open a project and finish a result before starting a new flow from it.",
+      )
       return
     }
     if (artifactRecords.length === 0) {
@@ -71,12 +81,21 @@ export function useWorkflowUseInNewFlow({
     setUseInNewFlowIntent("")
     setSelectedUseInNewFlowTemplateId(null)
     setUseInNewFlowOpen(true)
-  }, [artifactRecords.length, canUseInNewFlow, openWorkflowCreate, resultSourceAttachments, selectedProject])
+  }, [
+    artifactRecords.length,
+    canUseInNewFlow,
+    openWorkflowCreate,
+    resultSourceAttachments,
+    selectedProject,
+  ])
 
   const handleConfirmUseInNewFlow = useCallback(async () => {
     if (!selectedProject || useInNewFlowPending) return
 
-    const selectedTemplate = suggestedUseInNewFlowTemplates.find((template) => template.id === selectedUseInNewFlowTemplateId) || null
+    const selectedTemplate =
+      suggestedUseInNewFlowTemplates.find(
+        (template) => template.id === selectedUseInNewFlowTemplateId,
+      ) || null
     if (!selectedTemplate && !useInNewFlowIntent.trim()) return
 
     setUseInNewFlowPending(true)
@@ -86,7 +105,10 @@ export function useWorkflowUseInNewFlow({
           projectPath: selectedProject,
           template: selectedTemplate,
           webSearchBackend,
-          artifacts: selectArtifactsForTemplateContracts(selectedTemplate.contractIn, artifactRecords),
+          artifacts: selectArtifactsForTemplateContracts(
+            selectedTemplate.contractIn,
+            artifactRecords,
+          ),
         })
         openPreparedTemplateStage(launch, {
           autoRunIfAllowed: false,
@@ -131,7 +153,8 @@ export function useWorkflowUseInNewFlow({
     useInNewFlowTemplatesRequestIdRef.current = requestId
     setUseInNewFlowLoading(true)
 
-    void window.api.listTemplates()
+    void window.api
+      .listTemplates()
       .then((templates) => {
         if (useInNewFlowTemplatesRequestIdRef.current !== requestId) return
         setUseInNewFlowTemplates(templates)

@@ -165,6 +165,23 @@ Rules:
 - A Level 3 figure may contain Level 0-2 internals only.
 - When in doubt, flatten first and escalate only if the surface truly owns the state.
 
+### No Nested Borders
+
+A bordered container (`surface-panel`, `surface-figure`, `surface-elevated`, `border border-hairline`, `ui-chapter-shell`, `surface-inset-card`) must NEVER appear inside another bordered container. This creates double/triple border lines that break visual clarity.
+
+Common violations and fixes:
+
+| Violation                                                                  | Fix                                                                          |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `surface-panel` inside a dialog (`surface-elevated`)                       | Remove `surface-panel`, use `border-b border-hairline` for section breaks    |
+| `surface-depth-header` inside `surface-panel`                              | Remove `surface-depth-header`, use flat flex row                             |
+| `surface-inset-card` inside `surface-panel`                                | Replace with `ui-inset-well` (tint only, no border)                          |
+| `border border-hairline` div inside `surface-figure`                       | Replace with `ui-section-divider` or spacing                                 |
+| Form inputs (Textarea/Input) inside bordered card                          | Acceptable — inputs are interactive controls with their own border semantics |
+| `surface-depth-header` adding `border-b` inside an already-bordered parent | Replace with `border-b border-hairline` only (no gradient)                   |
+
+Before adding a border to any element, check: does the nearest ancestor already have a border? If yes, use a Level 0-1 pattern instead (spacing, tint, divider).
+
 ### Grouping Without New Figures
 
 Flattening nested cards does not mean flattening relationships.
@@ -174,6 +191,7 @@ If a screen becomes hard to scan after card removal, repair it with Level 0-2 co
 | --------------------- | ----------------------- | ----- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | **Context strip**     | `.ui-context-strip`     | 0-1   | Binds local identity, status, and scope above the owner surface       | result scope, selected step context, section identity                 |
 | **Slab / lane**       | `.ui-slab`              | 1-2   | Groups sibling rows into one readable region without card weight      | Lab track lanes, provider groups, inbox buckets                       |
+| **Chapter shell**     | `.ui-chapter-shell`     | 2     | Binds a heading and long section body on compound admin pages         | settings chapters, account/preferences panels, privacy/control groups |
 | **Inset well**        | `.ui-inset-well`        | 2     | Creates a local focal point inside the owner surface or selected item | next action, API key override, current branch summary, warning bridge |
 | **Selected row tint** | `.ui-selected-row-tint` | 2     | Marks the current item without promoting it to a second figure        | selected case, selected artifact, active provider row                 |
 | **Section divider**   | `.ui-section-divider`   | 1     | Standardized hairline between logical sections                        | settings sections, factory sections, approval sections                |
@@ -183,11 +201,14 @@ Rules:
 - Use one of these patterns before introducing a second Level 3 shell.
 - Rounded corners alone do not create figure weight. The escalation happens only when border + background + elevation combine into a competing object.
 - A slab, lane, or inset well may make relationships legible, but it must still read as belonging to the owner surface.
+- `Chapter shell` is the only approved Level 2 section owner for compound admin pages. It uses border + faint fill and explicitly forbids elevation.
+- A compound admin page may use one figure plus 2-4 chapter shells below it when the page answers several durable administrative questions at once.
+- Never nest chapter shells inside chapter shells. Inside a chapter shell, use flat content, section dividers, slabs, and inset wells only.
 
 Examples:
 
 - **Run summary:** one owner surface inside the output shell, then hairline-separated summary rows and one status-toned inset well for the current issue or next action.
-- **Settings:** one provider-status figure, flat provider rows below it, and one inset well for the `CODEX_API_KEY` override instead of a new card.
+- **Settings:** one provider-status figure, then chapter shells for `Access & Providers`, `Run behavior`, and `App controls`. Provider rows stay flat inside the chapter shell, and the `CODEX_API_KEY` override stays one inset well instead of a new card.
 - **Lab:** one owner surface per populated state (`selected case detail`, `next actions`, or the empty-state launch surface). Overview rails, lanes, and selected-row tint keep the page connected without turning every row into a card.
 
 ### Sidebar
@@ -272,8 +293,6 @@ Use these **exclusively** in sidebar — not generic `text-body-*` or `ui-meta-t
 | Class                         | Effect                                                                                                                                                                                                                                 |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.section-kicker`             | 11px, fw 600, uppercase, 0.11em tracking — structural section dividers                                                                                                                                                                 |
-| `.ui-title-text`              | 28px, fw 600, -0.015em tracking — page titles                                                                                                                                                                                          |
-| `.ui-body-text`               | 14px, lh 1.25rem — body text                                                                                                                                                                                                           |
 | `.ui-meta-text`               | 12px, lh 1rem, muted-foreground — metadata in main content                                                                                                                                                                             |
 | `.control-cluster-compact`    | Reduced-padding variant for dense picker/toolbelt rows under composers and inline cards                                                                                                                                                |
 | `.control-badge`              | Compact control-height badge chrome for counters, inline meta chips, and small status quantities                                                                                                                                       |

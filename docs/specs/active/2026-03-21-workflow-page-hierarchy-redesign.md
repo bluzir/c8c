@@ -54,6 +54,7 @@ This redesign is **implemented** for the workflow/runtime shell pass:
 5. **No Cards Inside Cards** — flat content inside cards
 6. **Contextual Depth, Not Page Chrome** — if an inspect/result state becomes a dead end without depth access, allow local depth navigation inside the owner surface. This may be one low-emphasis advanced link or a compact content-aware tab strip (`Result`, `Activity`, `Step log`, `History`). Never render empty tabs, and never use page-chrome tabs for idle/create states.
 7. **One Page Header** — the workflow may have one strong top-level header. Child surfaces below it use flat context strips, not second-level hero headers.
+8. **Add connective tissue before reintroducing card weight** — when flattening removes too much coherence, repair with grouped rows, context strips, lanes, and inset wells inside the owner surface rather than spawning new peer cards.
 
 ---
 
@@ -254,9 +255,17 @@ The Task Panel must be **self-sufficient** — readable without relying on chrom
 | Chrome | Flow name + 3 tabs | Flow name + compact status token (running badge + elapsed time). No tabs. |
 | RunStrip | Separate `border-b` bar with progress + View activity button | **Merged into chrome.** Status token in chrome IS the run strip. One bar, not two. |
 | ChainBuilder | All cards at full `border ui-elevation-base` weight | **All steps are flat rows** — completed steps get a checkmark, active step gets a highlight (background tint, no border), pending steps are dimmed. No card treatment on any individual step. |
-| OutputPanel | Full 4-tab bar. Activity shows live data. | **Activity content as the figure — gets the card treatment.** Subtle surface lift on the streaming area. Use a compact, content-aware local tab strip inside the OutputPanel header: `Activity` appears on run start, `Result` on first output, `Step log` when a step is inspectable. No idle/empty tabs, and no page-chrome tabs. |
+| OutputPanel | Full 4-tab bar. Activity shows live data. | **One summary owner surface inside OutputPanel.** The owner surface gets the single card treatment and contains: selected-step summary, grouped rows for run progress / result availability / fan-out, and at most one status-toned inset well. Use a compact, content-aware local tab strip inside the OutputPanel header: `Summary` appears on run start, `Result` on first output, `Step log` when a step is inspectable. No idle/empty tabs, and no page-chrome tabs. |
 
-**Figure/card alignment:** The activity feed area gets the single card treatment (subtle `bg-surface-1` lift or light border). Steps above are flat context rows. Chrome is a thin status bar. This ensures the streaming content — where the user should be looking — is the clear visual figure.
+**Figure/card alignment:** The output shell owns one summary surface. Steps above are flat context rows. Inside the owner surface, the current-step block may lead, but progress/result/fan-out stay visually tied through hairlines and inset wells rather than turning into mini-cards. Chrome is a thin status bar. This keeps the user's eye on one owner surface without losing local cohesion.
+
+**Owner-surface anatomy (running / paused):**
+
+- flat scope strip above the owner surface
+- one selected-step summary at the top of the owner surface
+- hairline-separated rows for `Run progress`, `Result`, and `Fan-out`
+- one optional status-toned inset well for the current blocker, warning, or active branch summary
+- local depth navigation stays low-emphasis in the owner header, not as page chrome
 
 **Resulting layout:**
 ```
@@ -268,14 +277,19 @@ The Task Panel must be **self-sufficient** — readable without relying on chrom
 │  ○ Review                                                         │
 │  ○ Check                                                          │
 │                                                                   │
-│  ┌─ Live Activity (THE figure) ──────────────────────────────┐    │
-│  │  [streaming output...]                                     │    │
+│  ┌─ Summary owner surface (THE figure) ─────────────────────┐    │
+│  │  Apply changes · current step summary                    │    │
+│  │  ──────────────────────────────────────────────────────  │    │
+│  │  2/5 done · 1 running · 0:42                            │    │
+│  │  Result: not ready yet                                  │    │
+│  │  Fan-out: 3 active · 1 blocked                          │    │
+│  │  [active branch well / attention well when needed]      │    │
 │  └────────────────────────────────────────────────────────────┘    │
 │                                                                   │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-**Bordered containers:** 1 (activity feed area). Steps above are flat rows (Level 0-2). Active step uses Level 2 (background tint only, no border).
+**Bordered containers:** 1 (summary owner surface). Steps above are flat rows (Level 0-2). Active step uses Level 2 (background tint only, no border).
 **Visible actions:** Cancel, Agent toggle, Cmd+K / right-click = 3.
 
 ---
@@ -328,6 +342,14 @@ That's it inside the card. Four lines. No paragraphs. No badges that repeat what
 - Below it, render a **flat result strip** with artifact title, time, compact evidence line, and low-emphasis local navigation.
 - The **document body** gets the single Level 3 treatment.
 - Do not wrap artifact metadata in a second hero card.
+- If a next action exists, allow **one inset continuation well** between the flat result strip and the document body. Do not create a separate summary card above the document.
+
+**Owner-surface anatomy (completed / document-first):**
+
+- flat result strip for provenance, time, compact evidence, and local inspect links
+- optional one-line continuation well when there is a real next action
+- one document shell as the only Level 3 figure
+- no metrics rail, badge stack, or storage panel competing above the document
 
 **Resulting layout:**
 ```
@@ -494,7 +516,7 @@ These are brief transitions (<2s typically). They render identically to RUNNING 
 | `WorkflowPanelChrome.tsx` | Remove tab switcher entirely. Graph/Defaults/Edit flow accessible via menu bar (View) and Cmd+K. Merge RunStrip into chrome status token. | Medium |
 | `WorkflowPanelTabContents.tsx` | Conditional OutputPanel rendering. Chain builder → flat rows (Level 0-1), compact spine after completion. | Medium |
 | `WorkflowPanelInlineSections.tsx` | Flatten ScopeBanner grid cards → label+value. Keep StageInput below header (flat, not absorbed). Merge Resume context into Task Panel for blocked. Self-sufficient Task Panel (flow name, step input, approve/reject consequences). | Large |
-| `OutputPanelHeader.tsx` | Replace always-visible tabs with a compact content-aware local tab strip. Activity on run start, Result on first output, Step log when inspectable, History when runs exist. Keep readiness pulse and saved-run context. | Medium |
+| `OutputPanelHeader.tsx` | Replace always-visible tabs with a compact content-aware local tab strip. Summary on run start, Result on first output, Step log when inspectable, History when runs exist. Keep readiness pulse and saved-run context. | Medium |
 | `OutputPanel.tsx` | Not rendered until first run. Activity feed gets Level 3 card treatment during running (the figure). | Medium |
 | `Toolbar.tsx` / `WorkflowRunControls.tsx` | State-dependent collapse. Idle: Run + Agent. Ready: Agent only (Run hidden). Running: Cancel + Agent. Undo/Redo via menu bar (Edit) in all states. | Medium |
 | `WorkflowPanel.tsx` | Orchestrate new visibility rules per state. Toolbar Run hidden when Resume Header visible. | Large |
@@ -585,7 +607,7 @@ Order: `Summary → Result → Step log → History` (Summary always first)
 
 ### Phase 2: Progressive Rendering (implemented)
 - OutputPanel absent until first run starts
-- Tabs appear individually: Activity on run start, Result on first output, History on first completed run
+- Tabs appear individually: Summary on run start, Result on first output, History on first completed run
 - Chain builder collapses to compact spine row after run completion
 - Graph/Defaults/Edit flow → menu bar (View) + Cmd+K
 - Undo/Redo → menu bar (Edit) + Cmd+Z/Cmd+Shift+Z

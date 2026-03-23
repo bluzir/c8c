@@ -6,7 +6,9 @@ import {
   deriveSecondaryContinuationVisibility,
 } from "./WorkflowCreateContinuationCard"
 
-function createContinuation(overrides: Partial<WorkflowCreateContinuationCandidate> = {}): WorkflowCreateContinuationCandidate {
+function createContinuation(
+  overrides: Partial<WorkflowCreateContinuationCandidate> = {},
+): WorkflowCreateContinuationCandidate {
   return {
     caseId: "case-1",
     title: "Seller photo upload",
@@ -54,62 +56,74 @@ describe("WorkflowCreateContinuationCard helpers", () => {
   })
 
   it("omits empty step chips", () => {
-    expect(buildContinuationStepChips(createContinuation({
-      latestStepLabel: null,
-      nextStepLabel: null,
-    }))).toEqual([])
+    expect(
+      buildContinuationStepChips(
+        createContinuation({
+          latestStepLabel: null,
+          nextStepLabel: null,
+        }),
+      ),
+    ).toEqual([])
   })
 
   it("uses action-specific labels for blocked continuations", () => {
-    expect(buildContinuationActionLabel(createContinuation({
-      status: "blocked",
-      action: {
-        kind: "open_blocked_work",
-        task: {
-          task: "Ship approval",
-          taskId: "task-1",
-          kind: "approval",
-          status: "open",
-          workspace: "/tmp/workspace",
-          chainId: "chain-1",
-          sourceRunId: "run-1",
-          nodeId: "approval-1",
-          workflowName: "Ship flow",
-          workflowPath: "/tmp/project/ship.flow.yaml",
-          projectPath: "/tmp/project",
-          title: "Ship approval",
-          createdAt: 1,
-          updatedAt: 1,
-          responseRevision: 0,
-          allowEdit: true,
-        },
-      },
-    }))).toBe("Open approval")
+    expect(
+      buildContinuationActionLabel(
+        createContinuation({
+          status: "blocked",
+          action: {
+            kind: "open_blocked_work",
+            task: {
+              task: "Ship approval",
+              taskId: "task-1",
+              kind: "approval",
+              status: "open",
+              workspace: "/tmp/workspace",
+              chainId: "chain-1",
+              sourceRunId: "run-1",
+              nodeId: "approval-1",
+              workflowName: "Ship flow",
+              workflowPath: "/tmp/project/ship.flow.yaml",
+              projectPath: "/tmp/project",
+              title: "Ship approval",
+              createdAt: 1,
+              updatedAt: 1,
+              responseRevision: 0,
+              allowEdit: true,
+            },
+          },
+        }),
+      ),
+    ).toBe("Open approval")
 
-    expect(buildContinuationActionLabel(createContinuation({
-      status: "blocked",
-      action: {
-        kind: "open_blocked_work",
-        task: {
-          task: "Missing input",
-          taskId: "task-2",
-          kind: "form",
-          status: "open",
-          workspace: "/tmp/workspace",
-          chainId: "chain-2",
-          sourceRunId: "run-2",
-          nodeId: "form-1",
-          workflowName: "Plan flow",
-          workflowPath: "/tmp/project/plan.flow.yaml",
-          projectPath: "/tmp/project",
-          title: "Missing project input",
-          createdAt: 1,
-          updatedAt: 1,
-          responseRevision: 0,
-          allowEdit: true,
-        },
-      },
-    }))).toBe("Provide input")
+    expect(
+      buildContinuationActionLabel(
+        createContinuation({
+          status: "blocked",
+          action: {
+            kind: "open_blocked_work",
+            task: {
+              task: "Missing input",
+              taskId: "task-2",
+              kind: "form",
+              status: "open",
+              workspace: "/tmp/workspace",
+              chainId: "chain-2",
+              sourceRunId: "run-2",
+              nodeId: "form-1",
+              workflowName: "Plan flow",
+              workflowPath: "/tmp/project/plan.flow.yaml",
+              projectPath: "/tmp/project",
+              title: "Missing project input",
+              createdAt: 1,
+              updatedAt: 1,
+              responseRevision: 0,
+              allowEdit: true,
+            },
+          },
+        }),
+      ),
+    ).toBe("Provide input")
   })
 
   it("collapses long secondary continuation lists until expanded", () => {
@@ -121,13 +135,17 @@ describe("WorkflowCreateContinuationCard helpers", () => {
       createContinuation({ caseId: "case-5", title: "Case 5" }),
     ]
 
-    expect(deriveSecondaryContinuationVisibility(continuations, false)).toMatchObject({
+    expect(
+      deriveSecondaryContinuationVisibility(continuations, false),
+    ).toMatchObject({
       visibleContinuations: continuations.slice(0, 2),
       hiddenCount: 3,
       canToggle: true,
     })
 
-    expect(deriveSecondaryContinuationVisibility(continuations, true)).toMatchObject({
+    expect(
+      deriveSecondaryContinuationVisibility(continuations, true),
+    ).toMatchObject({
       visibleContinuations: continuations,
       hiddenCount: 0,
       canToggle: true,

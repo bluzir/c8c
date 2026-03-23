@@ -54,11 +54,18 @@ export function ExecutionSurfaceNoticeBanner({
     <div className={cn("rounded-lg px-3 py-3", tone.containerClass, className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className={cn("flex items-center gap-2 ui-meta-label", tone.labelClass)}>
+          <div
+            className={cn(
+              "flex items-center gap-2 ui-meta-label",
+              tone.labelClass,
+            )}
+          >
             <tone.Icon size={14} aria-hidden="true" />
             {notice.title}
           </div>
-          <p className="mt-1 text-body-sm text-foreground">{notice.description}</p>
+          <p className="mt-1 text-body-sm text-foreground">
+            {notice.description}
+          </p>
           {children ? <div className="mt-2">{children}</div> : null}
         </div>
         {(actions || onAction || onDismiss) && (
@@ -66,12 +73,22 @@ export function ExecutionSurfaceNoticeBanner({
             {actions || (
               <>
                 {onAction && (
-                  <Button type="button" variant="outline" size="sm" onClick={onAction}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onAction}
+                  >
                     {notice.actionLabel}
                   </Button>
                 )}
                 {onDismiss && (
-                  <Button type="button" variant="ghost" size="sm" onClick={onDismiss}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onDismiss}
+                  >
                     <X size={14} />
                     Dismiss
                   </Button>

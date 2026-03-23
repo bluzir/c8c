@@ -27,22 +27,24 @@ export function CollectionToolbar({
 }: CollectionToolbarProps) {
   return (
     <section
-      className={surface === "card" ? "rounded-xl surface-soft p-3 space-y-3" : "space-y-2 px-1"}
+      className={
+        surface === "card"
+          ? "rounded-xl border-b border-hairline p-3 space-y-3"
+          : "space-y-2 px-1"
+      }
       aria-label={ariaLabel}
     >
       <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 flex-1">
           <div className="relative min-w-0 flex-1 sm:max-w-md">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-            />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder={searchPlaceholder}
               aria-label={searchAriaLabel || searchPlaceholder}
-              className="h-control-sm bg-surface-1 pl-8 shadow-none"
+              className="h-control-sm bg-input-background pl-8 shadow-none"
             />
           </div>
         </div>

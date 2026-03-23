@@ -31,7 +31,7 @@ export function ResultModeCard({
       <div className="flex w-full items-start gap-3">
         <div
           className={cn(
-            "shrink-0 rounded-lg border border-hairline bg-surface-2/80 shadow-inset-highlight-subtle",
+            "shrink-0 rounded-lg bg-surface-2/80",
             compact
               ? "flex h-9 w-9 items-center justify-center text-lg"
               : "flex h-11 w-11 items-center justify-center text-xl",
@@ -41,9 +41,11 @@ export function ResultModeCard({
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-body-md font-semibold text-foreground">{mode.label}</h3>
+            <h3 className="text-body-md font-semibold text-foreground">
+              {mode.label}
+            </h3>
             {mode.id === "development" ? (
-              <span className="rounded-full surface-inset-card px-2 py-0.5 ui-meta-text text-foreground">
+              <span className="rounded-full ui-inset-well px-2 py-0.5 ui-meta-text text-foreground">
                 Primary
               </span>
             ) : null}
@@ -53,46 +55,57 @@ export function ResultModeCard({
               {mode.runtimeLine || mode.summary}
             </p>
           ) : (
-            <p className="text-body-sm text-foreground">
-              {mode.summary}
-            </p>
+            <p className="text-body-sm text-foreground">{mode.summary}</p>
           )}
         </div>
       </div>
 
       {compact ? (
         <div className="mt-1 w-full space-y-2">
-          <p className="line-clamp-2 text-body-sm text-foreground">{mode.youGetFirst}</p>
+          <p className="line-clamp-2 text-body-sm text-foreground">
+            {mode.youGetFirst}
+          </p>
           {mode.guidedPath?.length ? (
             <div className="flex flex-wrap gap-1">
-                {mode.guidedPath.map((stage) => (
-                  <span
-                    key={`${mode.id}-${stage}`}
-                    className="rounded-full border border-hairline bg-surface-2/80 px-2 py-0.5 ui-meta-text text-muted-foreground"
-                  >
-                    {stage}
-                  </span>
-                ))}
+              {mode.guidedPath.map((stage) => (
+                <span
+                  key={`${mode.id}-${stage}`}
+                  className="rounded-full border border-hairline bg-surface-2/80 px-2 py-0.5 ui-meta-text text-muted-foreground"
+                >
+                  {stage}
+                </span>
+              ))}
             </div>
           ) : null}
         </div>
       ) : (
-        <div className={cn("mt-4 grid w-full gap-3", "grid-cols-1 md:grid-cols-2 xl:grid-cols-4")}>
+        <div
+          className={cn(
+            "mt-4 grid w-full gap-3",
+            "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
+          )}
+        >
           <div className="space-y-1">
             <p className="ui-meta-label text-muted-foreground">Use this for</p>
             <p className="text-body-sm text-muted-foreground">{mode.useFor}</p>
           </div>
           <div className="space-y-1">
             <p className="ui-meta-label text-muted-foreground">You provide</p>
-            <p className="text-body-sm text-muted-foreground">{mode.youProvide}</p>
+            <p className="text-body-sm text-muted-foreground">
+              {mode.youProvide}
+            </p>
           </div>
           <div className="space-y-1">
             <p className="ui-meta-label text-muted-foreground">You get first</p>
-            <p className="text-body-sm text-muted-foreground">{mode.youGetFirst}</p>
+            <p className="text-body-sm text-muted-foreground">
+              {mode.youGetFirst}
+            </p>
           </div>
           <div className="space-y-1">
             <p className="ui-meta-label text-muted-foreground">Your role</p>
-            <p className="text-body-sm text-muted-foreground">{mode.userRole}</p>
+            <p className="text-body-sm text-muted-foreground">
+              {mode.userRole}
+            </p>
           </div>
         </div>
       )}
