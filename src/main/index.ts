@@ -25,6 +25,7 @@ import {
 } from "./deep-links"
 import { initHubCatalogRefresh } from "./lib/templates/hub-catalog"
 import { registerMainHandlers } from "./register-handlers"
+import { initDomains } from "./lib/domain-init"
 import {
   applyRuntimePathOverrides,
   shouldSuppressStartupSideEffects,
@@ -336,6 +337,7 @@ app.whenReady().then(async () => {
     }
   }
 
+  initDomains()
   logInfo("main", "register_handlers_started")
   registerMainHandlers(() => mainWindow)
 

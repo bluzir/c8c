@@ -1,7 +1,10 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
 import { App } from "./App"
+import { initDomains } from "./lib/domain-init"
 import "./styles/globals.css"
+
+initDomains()
 
 // Force light grayscale theme for the current redesign pass.
 document.documentElement.classList.remove("dark")
