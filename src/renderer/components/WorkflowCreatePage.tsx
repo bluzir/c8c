@@ -78,6 +78,7 @@ import {
 } from "@/lib/result-mode-config"
 import { getResultMode } from "@/lib/result-modes"
 import { sanitizeDirectCreateFallbackTemplateId } from "@shared/create-entry-routing"
+import { isGuidedDomain } from "@shared/domains"
 import {
   buildCreateRoutingPreview,
   type CreateRoutingPreview,
@@ -424,9 +425,7 @@ export function WorkflowCreatePage() {
     hasWorkflowCreatePromptContent(draftPrompt, promptScaffold) ||
     preSelectedModeConfigFieldCount > 0
   const preRoutingActive =
-    submitting &&
-    (preSelectedResultMode.id === "development" ||
-      preSelectedResultMode.id === "content")
+    submitting && isGuidedDomain(preSelectedResultMode.id)
   const {
     loading: continuationLoading,
     primaryContinuation,
@@ -920,9 +919,7 @@ export function WorkflowCreatePage() {
     setRouteClarification(null)
     setRoutingPreview(null)
     void window.api.trackUiEvent("point_b_entered").catch(() => undefined)
-    const isGuidedRouting =
-      selectedResultMode.id === "development" ||
-      selectedResultMode.id === "content"
+    const isGuidedRouting = isGuidedDomain(selectedResultMode.id)
     if (isGuidedRouting) {
       setRoutingPhase("inspecting")
     }

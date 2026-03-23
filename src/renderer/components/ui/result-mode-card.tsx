@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import type { WorkflowResultMode } from "@/lib/result-modes"
+import { getDomain } from "@shared/domains"
 
 interface ResultModeCardProps {
   mode: WorkflowResultMode
@@ -44,7 +45,7 @@ export function ResultModeCard({
             <h3 className="text-body-md font-semibold text-foreground">
               {mode.label}
             </h3>
-            {mode.id === "development" ? (
+            {getDomain(mode.id).primaryDomain ? (
               <span className="rounded-full ui-inset-well px-2 py-0.5 ui-meta-text text-foreground">
                 Primary
               </span>

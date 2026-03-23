@@ -6,6 +6,7 @@ import type {
   ResultModeId,
   WorkflowTemplate,
 } from "@shared/types"
+import { isGuidedDomain } from "@shared/domains"
 import type { WorkflowCreateContinuationPresentation } from "@/lib/workflow-create-continuation"
 
 import { projectFolderName } from "@/components/sidebar/projectSidebarUtils"
@@ -271,7 +272,7 @@ export function useWorkflowCreateDerivedState({
   const canSubmitPrompt =
     hasWorkflowCreatePromptContent(draftPrompt, promptScaffold) ||
     selectedModeConfigFieldCount > 0
-  const routingActive = submitting && selectedResultMode.id === "development"
+  const routingActive = submitting && isGuidedDomain(selectedResultMode.id)
   const createSeedMessage = useMemo(
     () =>
       canSubmitPrompt
@@ -404,14 +405,13 @@ export function useWorkflowCreateDerivedState({
     ]
       .slice(0, 6)
       .map((entry) => {
-        const preview =
-          selectedResultMode.id === "development"
-            ? buildCreateRoutingPreview({
-                templateId: entry.template.id,
-                templates: availableTemplates,
-                routeOptions,
-              })
-            : null
+        const preview = isGuidedDomain(selectedResultMode.id)
+          ? buildCreateRoutingPreview({
+              templateId: entry.template.id,
+              templates: availableTemplates,
+              routeOptions,
+            })
+          : null
 
         return {
           template: entry.template,

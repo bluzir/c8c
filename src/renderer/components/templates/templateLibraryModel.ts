@@ -1,4 +1,5 @@
 import type { ResultModeId, WorkflowTemplate } from "@shared/types"
+import { allDomains } from "@shared/domains"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import type { TemplateCategoryKey } from "@/lib/template-filters"
 
@@ -58,8 +59,12 @@ export function deriveCreateModeId(
   fallbackModeId: ResultModeId,
   selectedTemplate: WorkflowTemplate | null,
 ): ResultModeId {
-  if (selectedTemplate?.pack?.id === "courses-factory-alpha") return "courses"
-  if (selectedTemplate?.pack?.id === "content-factory-alpha") return "content"
+  if (selectedTemplate?.pack?.id) {
+    const domain = allDomains().find((d) =>
+      d.packIds.includes(selectedTemplate.pack!.id),
+    )
+    if (domain) return domain.id
+  }
   if (activeCategory === "product") return "development"
   if (activeCategory === "marketing") return "marketing"
   if (activeCategory === "content") return "content"

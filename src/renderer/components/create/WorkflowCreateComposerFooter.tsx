@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { CreateEntryHelpModeHint, ResultModeId } from "@shared/types"
+import { isGuidedDomain } from "@shared/domains"
 import { RESULT_MODES, type WorkflowResultMode } from "@/lib/result-modes"
 import {
   DETAIL_BUDGET_PRESETS,
@@ -95,8 +96,7 @@ export function WorkflowCreateComposerFooter({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            {selectedResultMode.id === "development" ||
-            selectedResultMode.id === "content" ? (
+            {isGuidedDomain(selectedResultMode.id) ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
