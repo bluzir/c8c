@@ -687,7 +687,7 @@ async function executeEvaluatorNode(
       persistSession: evalProviderId === "claude",
       resumeSessionId: evalResumeSessionId,
       executionMode: context.workflow.defaults?.permissionMode,
-      mcpConfigPath: context.mcpConfigPath,
+      mcpConfigPath: undefined, // evaluator should only assess text, not use tools
       disableBuiltInTools: evalProviderId === "claude",
       addDirs: evalAdditionalDirs.length > 0 ? evalAdditionalDirs : undefined,
       abortSignal: context.runtime.controller.signal,

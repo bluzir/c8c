@@ -91,9 +91,9 @@ nodes:
       x: 640
       y: 200
     config:
-      criteria: "Score 1-10: each trend backed by concrete evidence, no hallucinated trends, covers stated niche, themes are specific not generic."
-      threshold: 7
-      maxRetries: 2
+      criteria: "Score 1-10: digest is structured with named themes, has real source links or citations (not invented), covers the topic from the user request. Do NOT re-search or re-scrape — only evaluate the text quality of the existing output."
+      threshold: 5
+      maxRetries: 1
       retryFrom: trend-watch-1
   - id: output-1
     type: output
