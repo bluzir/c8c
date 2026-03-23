@@ -65,10 +65,6 @@ nodes:
     config:
       skillRef: researcher
       prompt: >-
-        The user's input is your PRIMARY assignment — follow it exactly.
-        If they specify a platform (Reddit, X, web), prioritize that.
-        If they specify a topic, search for exactly that topic.
-
         Build a Trend Digest by actively searching for signals. Use TWO
         sources in parallel:
 

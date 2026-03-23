@@ -374,6 +374,13 @@ async function executeSkillNode(
       `Workspace: ${context.workspace}`,
       `Content file: ${contentFile}`,
       "",
+      ...(effectiveInput.trim()
+        ? [
+            "User request (PRIORITY — follow this exactly):",
+            effectiveInput.trim(),
+            "",
+          ]
+        : []),
       ...(manifestLines.length > 0
         ? ["Available upstream outputs:", ...manifestLines, ""]
         : []),
@@ -675,7 +682,7 @@ async function executeEvaluatorNode(
       workdir: context.projectPath || context.workspace,
       prompt: evalPrompt,
       model: evalModel,
-      maxTurns: 1,
+      maxTurns: 100,
       persistSession: evalProviderId === "claude",
       resumeSessionId: evalResumeSessionId,
       executionMode: context.workflow.defaults?.permissionMode,
