@@ -8,6 +8,7 @@ export const TEMPLATE_CATEGORY_ORDER: TemplateCategoryKey[] = [
   "product",
   "marketing",
   "content",
+  "research",
 ]
 
 export const TEMPLATE_CATEGORY_META: Record<
@@ -34,6 +35,11 @@ export const TEMPLATE_CATEGORY_META: Record<
   content: {
     label: "Content",
     summary: "Texts, publishing systems, course work, and launch assets.",
+  },
+  research: {
+    label: "Research",
+    summary:
+      "Deep research, trend monitoring, competitor intelligence, and market analysis.",
   },
 }
 
@@ -68,5 +74,6 @@ export function deriveCreateModeId(
   if (activeCategory === "product") return "development"
   if (activeCategory === "marketing") return "marketing"
   if (activeCategory === "content") return "content"
+  if (activeCategory === "research") return "research"
   return fallbackModeId
 }

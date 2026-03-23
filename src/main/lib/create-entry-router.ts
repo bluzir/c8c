@@ -298,10 +298,10 @@ function buildRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous between distinct job entries inside that intent.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses","reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses|research","reason":"one sentence","confidence":0.0}',
     "",
     "Clarification output schema:",
-    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
+    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses|research","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
   ].join("\n")
 }
 
@@ -361,6 +361,58 @@ function buildContentRouterPrompt(
   ].join("\n")
 }
 
+function buildResearchRouterPrompt(
+  input: CreateEntryRouteInput,
+  allowedOptions: CreateEntryRouteOption[],
+): string {
+  const requestSections = {
+    draftPrompt: normalize(input.draftPrompt),
+    requestedResult: normalize(input.requestedResult),
+    helpModeHint: input.helpModeHint || null,
+  }
+
+  const allowedOptionSummary = allowedOptions
+    .map(
+      (option) =>
+        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+    )
+    .join("\n")
+
+  return [
+    "You are c8c's bounded entry router for the Research domain.",
+    "Choose the best FIRST starting point for the user's research request. Return JSON only.",
+    "",
+    "Research domain contract:",
+    "- The user wants to gather and analyze external information — trends, competitors, segments, positioning, or a decision that needs data.",
+    "- Deep research is the right first step when the user has a broad question or needs multi-lens investigation.",
+    "- Trend watching is right when the user wants to monitor signals, themes, and launches in a topic space.",
+    "- Segment research is right when the user wants to analyze a specific market segment.",
+    "- Competitor intelligence is right when the user needs to scan competitor ads, positioning, and messaging.",
+    "- JTBD research is right when the user wants to understand jobs-to-be-done for product or positioning decisions.",
+    "- Lead research is right when the user needs to find and qualify leads or accounts.",
+    "- Positioning research is right when the user is exploring resonance, differentiation, or messaging fit.",
+    "- Help mode is a hard constraint when present.",
+    "- Handle English, Russian, and mixed-language requests.",
+    "",
+    "Allowed starting points:",
+    allowedOptionSummary,
+    "",
+    "User request:",
+    JSON.stringify(requestSections, null, 2),
+    "",
+    "Clarification policy:",
+    "- Use `help_mode` clarification when the ambiguity is mainly about kind of help: Do it vs Plan it vs Review it.",
+    "- Use `job_route` clarification when the ambiguity is between different research jobs (e.g., deep research vs segment analysis vs competitor intelligence).",
+    "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous.",
+    "",
+    "Route output schema:",
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"research","reason":"one sentence","confidence":0.0}',
+    "",
+    "Clarification output schema:",
+    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"research","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
+  ].join("\n")
+}
+
 function extractRouterJsonCandidate(rawText: string) {
   const trimmed = rawText.trim()
   if (!trimmed) return ""
@@ -405,10 +457,9 @@ async function runAgentRouteDecision(
   const allowedTemplateIds = new Set(
     allowedOptions.map((option) => option.templateId),
   )
-  // Content domain uses a specialised prompt with artifact context; all other
-  // domains use the default router prompt.  This is the ONE remaining
-  // mode-specific check — the prompt functions are defined in this file and
-  // cannot be moved to shared domain data.
+  // Content and research domains use specialised prompts; all other
+  // domains use the default router prompt.  These prompt functions are defined
+  // in this file and cannot be moved to shared domain data.
   let prompt: string
   if (input.modeId === "content") {
     const artifacts = await listProjectArtifacts(
@@ -416,6 +467,8 @@ async function runAgentRouteDecision(
     ).catch(() => [])
     const contentContext = buildContentDomainContext(artifacts)
     prompt = buildContentRouterPrompt(input, contentContext, allowedOptions)
+  } else if (input.modeId === "research") {
+    prompt = buildResearchRouterPrompt(input, allowedOptions)
   } else {
     prompt = buildRouterPrompt(input, projectInspection, allowedOptions)
   }

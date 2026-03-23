@@ -2,7 +2,12 @@ import type { WorkflowTemplate } from "@shared/types"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
 
-export type TemplateCategoryKey = "all" | "product" | "marketing" | "content"
+export type TemplateCategoryKey =
+  | "all"
+  | "product"
+  | "marketing"
+  | "content"
+  | "research"
 export type TemplateLibraryFilterKey = "all" | `job:${string}`
 
 const PRODUCT_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
@@ -66,6 +71,21 @@ const MARKETING_TEXT_RE =
   /\b(marketing|growth|seo|geo|reddit|hacker news|hacker-news|twitter|x posting|landing page|positioning|messaging|outreach|campaign|cold email|lead|prospect|editorial|distribution|go-to-market|gtm|show hn|ask hn|social media|trend|segment|audience|jtbd|competitive|ad intelligence|research)\b/i
 const CONTENT_TEXT_RE =
   /\b(content|post|copy|text|editorial|newsletter|draft|publish|writing|course|curriculum|lesson|module|education|workshop|cohort|training|launch asset|video|script)\b/i
+
+const RESEARCH_TEMPLATE_IDS = new Set([
+  "deep-research",
+  "content-trend-watch",
+  "segment-research-gate",
+  "lead-research-machine",
+  "competitor-ad-intelligence",
+  "vertical-pain-to-target-list",
+  "seed-account-map-pipeline",
+  "indispensable-jtbd-pipeline",
+  "irresistible-resonance-pipeline",
+])
+
+const RESEARCH_TEXT_RE =
+  /\b(research|trend|competitor|segment|audience|market|positioning|jtbd|lead|analysis|intelligence|deep research|exa)\b/i
 
 const PRODUCT_SKILL_RE = /^(dev|frontend|design|qa|gstack)\//i
 const PRODUCT_SKILL_HINT_RE =
@@ -172,6 +192,14 @@ export function isContentTemplate(template: WorkflowTemplate): boolean {
   )
 }
 
+export function isResearchTemplate(template: WorkflowTemplate): boolean {
+  if (RESEARCH_TEMPLATE_IDS.has(template.id)) return true
+  if (template.stage === "research") return true
+
+  const metadataText = getTemplateMetadataText(template)
+  return RESEARCH_TEXT_RE.test(metadataText)
+}
+
 export function templateMatchesCategory(
   template: WorkflowTemplate,
   category: TemplateCategoryKey,
@@ -179,6 +207,7 @@ export function templateMatchesCategory(
   if (category === "all") return true
   if (category === "product") return isProductTemplate(template)
   if (category === "marketing") return isMarketingTemplate(template)
+  if (category === "research") return isResearchTemplate(template)
   return isContentTemplate(template)
 }
 
