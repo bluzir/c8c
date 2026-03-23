@@ -7,6 +7,7 @@ import {
   validateMcpServerScope,
 } from "../lib/mcp-validation"
 import {
+  clearMcpIntegration,
   configureMcpIntegration,
   getMcpIntegrationStatuses,
   listMcpIntegrations,
@@ -78,7 +79,11 @@ export function registerMcpHandlers() {
           undefined,
           safeProjectPath,
         )
-      } catch {
+      } catch (error) {
+        logWarn("mcp-ipc", "list_servers_failed", {
+          action: "mcp:list-servers",
+          error: errorMessage(error),
+        })
         return []
       }
     },
@@ -89,7 +94,11 @@ export function registerMcpHandlers() {
     async (_event, provider: ProviderId) => {
       try {
         return resolveMcpProvider(provider).listAllServers?.() ?? []
-      } catch {
+      } catch (error) {
+        logWarn("mcp-ipc", "list_all_servers_failed", {
+          action: "mcp:list-all-servers",
+          error: errorMessage(error),
+        })
         return []
       }
     },
@@ -151,6 +160,17 @@ export function registerMcpHandlers() {
         "mcp:test-integration",
       )
       return testMcpIntegration(integrationId, safeProjectPath)
+    },
+  )
+
+  ipcMain.handle(
+    "mcp:clear-integration",
+    async (_event, integrationId: string, projectPath?: string) => {
+      const safeProjectPath = await resolveOptionalProjectPath(
+        projectPath,
+        "mcp:clear-integration",
+      )
+      return clearMcpIntegration(integrationId, safeProjectPath)
     },
   )
 
@@ -371,7 +391,11 @@ export function registerMcpHandlers() {
           serverName,
           safeProjectPath,
         )
-      } catch {
+      } catch (error) {
+        logWarn("mcp-ipc", "discover_tools_failed", {
+          action: "mcp:discover-tools",
+          error: errorMessage(error),
+        })
         return []
       }
     },

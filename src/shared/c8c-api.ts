@@ -321,6 +321,10 @@ export interface C8cApi {
     integrationId: string,
     projectPath?: string,
   ) => Promise<McpIntegrationTestResult>
+  clearMcpIntegration: (
+    integrationId: string,
+    projectPath?: string,
+  ) => Promise<void>
   mcpAddServer: (
     provider: ProviderId,
     server: McpServerInfo,

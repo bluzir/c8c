@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { writeFileAtomic } from "./atomic-write"
+import { logWarn } from "./structured-log"
 
 export interface McpIntegrationKeyringEntry {
   keys: string[]
@@ -102,7 +103,16 @@ async function readKeyringFile(
 ): Promise<McpIntegrationKeyringFile> {
   if (!existsSync(filePath)) return {}
   const raw = await readFile(filePath, "utf8")
-  const parsed = JSON.parse(raw) as unknown
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch (error) {
+    logWarn("mcp-keyring", "keyring_parse_failed", {
+      filePath,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return {}
+  }
   return isObject(parsed) ? (parsed as McpIntegrationKeyringFile) : {}
 }
 
@@ -187,6 +197,32 @@ export async function saveMcpIntegrationValues(
     filePath: defaultPath,
     entry: nextEntry,
   }
+}
+
+export async function clearMcpIntegrationKeys(
+  integrationId: string,
+  projectPath?: string,
+): Promise<{ filePath: string }> {
+  const providerId = integrationId.trim()
+  if (!providerId) {
+    throw new Error("Integration id is required.")
+  }
+
+  const { keyring } = await loadMcpIntegrationKeyring(projectPath)
+  const defaultPath = resolveDefaultMcpIntegrationKeyringPath()
+
+  // Remove the integration entry entirely from the keyring
+  const nextKeyring = { ...keyring }
+  delete nextKeyring[providerId]
+
+  await mkdir(dirname(defaultPath), { recursive: true })
+  await writeFileAtomic(
+    defaultPath,
+    `${JSON.stringify(nextKeyring, null, 2)}\n`,
+    { mode: 0o600 },
+  )
+
+  return { filePath: defaultPath }
 }
 
 export function parseSecretsFromEnv(envValue: string | undefined): string[] {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { selectedProjectAtom, webSearchBackendAtom } from "@/lib/store"
 import { toastErrorFromCatch } from "@/lib/toast-error"
+import { toast } from "sonner"
 import { McpIntegrationSetupDialog } from "@/components/integrations/McpIntegrationSetupDialog"
 
 function statusLabel(status: McpIntegrationStatus): {
@@ -47,6 +48,8 @@ export function McpIntegrationsSection() {
   )
   const [values, setValues] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const [testingId, setTestingId] = useState<string | null>(null)
+  const [disconnectingId, setDisconnectingId] = useState<string | null>(null)
 
   const activeIntegrationStatus = useMemo(
     () =>
@@ -75,6 +78,21 @@ export function McpIntegrationsSection() {
     })
   }, [refresh])
 
+  // Re-fetch statuses when the window regains focus so that env var changes
+  // or config file edits made outside the app are picked up.
+  useEffect(() => {
+    const handleFocus = () => {
+      void refresh().catch(() => {
+        // Silently ignore — stale statuses remain until next successful fetch.
+      })
+    }
+
+    window.addEventListener("focus", handleFocus)
+    return () => {
+      window.removeEventListener("focus", handleFocus)
+    }
+  }, [refresh])
+
   const handleOpenSetup = useCallback((status: McpIntegrationStatus) => {
     setActiveIntegrationId(status.integration.id)
     setValues(buildInitialFieldValues(status))
@@ -83,6 +101,16 @@ export function McpIntegrationsSection() {
 
   const handleConfirmSetup = useCallback(async () => {
     if (!activeIntegrationStatus || saving) return
+
+    const requiredFields = activeIntegrationStatus.integration.fields
+    const missingFields = requiredFields.filter(
+      (field) => !values[field.id]?.trim(),
+    )
+    if (missingFields.length > 0) {
+      const names = missingFields.map((f) => f.label).join(", ")
+      toast.error(`Required fields cannot be empty: ${names}`)
+      return
+    }
 
     setSaving(true)
     try {
@@ -114,6 +142,49 @@ export function McpIntegrationsSection() {
     values,
     webSearchBackend,
   ])
+
+  const handleTest = useCallback(
+    async (integrationId: string) => {
+      setTestingId(integrationId)
+      try {
+        const result = await window.api.testMcpIntegration(
+          integrationId,
+          selectedProject ?? undefined,
+        )
+        if (result.healthy) {
+          toast.success("Integration is healthy")
+        } else {
+          toast.error("Integration test failed", {
+            description: result.error ?? "Unknown error",
+          })
+        }
+      } catch (error) {
+        toastErrorFromCatch("Integration test failed", error)
+      } finally {
+        setTestingId(null)
+      }
+    },
+    [selectedProject],
+  )
+
+  const handleDisconnect = useCallback(
+    async (status: McpIntegrationStatus) => {
+      setDisconnectingId(status.integration.id)
+      try {
+        await window.api.clearMcpIntegration(
+          status.integration.id,
+          selectedProject ?? undefined,
+        )
+        toast.success(`${status.integration.label} disconnected`)
+        await refresh()
+      } catch (error) {
+        toastErrorFromCatch("Could not disconnect integration", error)
+      } finally {
+        setDisconnectingId(null)
+      }
+    },
+    [refresh, selectedProject],
+  )
 
   return (
     <>
@@ -153,6 +224,36 @@ export function McpIntegrationsSection() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {status.configured && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={testingId === status.integration.id}
+                            onClick={() => handleTest(status.integration.id)}
+                          >
+                            {testingId === status.integration.id
+                              ? "Testing..."
+                              : "Test"}
+                          </Button>
+                          {status.source === "keyring" && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={
+                                disconnectingId === status.integration.id
+                              }
+                              onClick={() => handleDisconnect(status)}
+                            >
+                              {disconnectingId === status.integration.id
+                                ? "Removing..."
+                                : "Remove"}
+                            </Button>
+                          )}
+                        </>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"

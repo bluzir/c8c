@@ -587,6 +587,12 @@ const api: C8cApi = {
       integrationId,
       projectPath,
     ),
+  clearMcpIntegration: (integrationId: string, projectPath?: string) =>
+    invokeIpc<C8cApi["clearMcpIntegration"]>(
+      "mcp:clear-integration",
+      integrationId,
+      projectPath,
+    ),
   mcpAddServer: (
     provider: ProviderId,
     server: McpServerInfo,

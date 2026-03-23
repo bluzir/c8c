@@ -11,6 +11,7 @@ import {
   resolveRequestedMcpIntegrationIds,
 } from "./mcp-integration-registry"
 import {
+  clearMcpIntegrationKeys,
   loadMcpIntegrationKeyring,
   parseSecretsFromEnv,
   saveMcpIntegrationValues,
@@ -200,4 +201,15 @@ export async function testMcpIntegration(
   }
 
   return { healthy: true }
+}
+
+export async function clearMcpIntegration(
+  integrationId: string,
+  projectPath?: string,
+): Promise<void> {
+  const entry = resolveMcpIntegrationRegistryEntry(integrationId)
+  if (!entry) {
+    throw new Error(`Unknown MCP integration "${integrationId}".`)
+  }
+  await clearMcpIntegrationKeys(integrationId, projectPath)
 }

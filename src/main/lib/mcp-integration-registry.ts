@@ -179,6 +179,14 @@ const MCP_INTEGRATION_REGISTRY: readonly McpIntegrationRegistryEntry[] = [
   },
 ] as const
 
+/**
+ * Runtime MCP server connection descriptor.
+ *
+ * SECURITY: `env` and `headers` may contain integration secrets (API keys,
+ * bearer tokens). Never log, serialize to error objects, or send these fields
+ * over IPC. They are only intended for writing to temp `.mcp.json` files that
+ * the Claude subprocess reads at startup.
+ */
 export interface RuntimeMcpServerEntry {
   type?: "stdio" | "http" | "sse"
   command?: string
@@ -288,6 +296,8 @@ export async function buildConfiguredMcpIntegrationServerEntries(
     }
 
     if (entry.runtime.type === "stdio") {
+      // SECURITY: env contains the integration secret. Never log or serialize
+      // this object in error paths — it would leak credentials.
       const env = {
         ...(entry.runtime.env ?? {}),
         ...(entry.runtime.authEnvVar
@@ -303,6 +313,9 @@ export async function buildConfiguredMcpIntegrationServerEntries(
       continue
     }
 
+    // SECURITY: headers contains the integration secret (e.g. Bearer token).
+    // Never log or serialize this object in error paths — it would leak
+    // credentials.
     const headers = {
       ...(entry.runtime.headers ?? {}),
       ...(entry.runtime.authHeader

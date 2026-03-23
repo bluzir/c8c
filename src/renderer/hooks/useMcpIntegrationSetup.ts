@@ -87,6 +87,24 @@ export function useMcpIntegrationSetup({
     })
   }, [loadStatuses, suggestedTools])
 
+  // Re-fetch integration statuses when the window regains focus so that
+  // environment variable changes or config edits made outside the app
+  // are picked up without requiring a manual refresh.
+  useEffect(() => {
+    if (suggestedTools.length === 0) return
+
+    const handleFocus = () => {
+      void loadStatuses().catch(() => {
+        // Silently ignore — stale statuses remain until next successful fetch.
+      })
+    }
+
+    window.addEventListener("focus", handleFocus)
+    return () => {
+      window.removeEventListener("focus", handleFocus)
+    }
+  }, [loadStatuses, suggestedTools.length])
+
   const openSetupDialog = useCallback(
     (status: McpIntegrationStatus, mode: PermissionMode | null) => {
       setActiveIntegrationId(status.integration.id)
