@@ -329,7 +329,6 @@ export function WorkflowPanel() {
     showCreateDraftSkeleton,
     showResumeHeader: showEntryResumeHeader,
     showIdleReviewMode,
-    showIdleInputPanel,
     showProjectArtifactsPanel,
   } = useWorkflowPanelEntryState({
     workflow,
@@ -507,11 +506,9 @@ export function WorkflowPanel() {
     idleStageContract,
     canShowTerminalResultSurface,
     liveTerminalResultOwnsLayout,
-    showOutputPanel,
     resultSourceAttachments,
     resultSourceLabel,
     canUseInNewFlow,
-    showIdleStageContract,
     showProcessSpine,
     primaryScreenState,
   } = useWorkflowPanelShellDerivations({
@@ -1111,7 +1108,6 @@ export function WorkflowPanel() {
                 listScrollRegionRef={listScrollRegionRef}
                 listShellClass={listShellClass}
                 showCreateDraftSkeleton={showCreateDraftSkeleton}
-                showResumeHeader={showSavedWorkResumeHeader}
                 listSurfaceIntent={listSurfaceIntent}
                 activeEntryState={effectiveEntryState}
                 workflowName={workflow.name}
@@ -1157,17 +1153,11 @@ export function WorkflowPanel() {
                 onOpenArtifact={(artifact) => {
                   void handleOpenArtifact(artifact)
                 }}
-                showIdleStageContract={showIdleStageContract}
                 idleStageContract={idleStageContract}
-                showIdleInputPanel={
-                  showIdleInputPanel &&
-                  primaryScreenState !== "blocked_decision"
-                }
-                showReviewOutputMode={showAnyReviewMode}
-                showReviewOutputPanel={
+                reviewMode={showAnyReviewMode}
+                reviewOutputVisible={
                   !showBlockedResumeHeader || blockedInspectionVisible
                 }
-                showLiveOutputPanel={showOutputPanel}
                 terminalResultOwnsLayout={liveTerminalResultOwnsLayout}
                 blockedTaskPanel={blockedTaskPanel}
                 outputPanelRef={outputPanelRef}

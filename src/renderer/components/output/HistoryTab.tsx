@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { cn } from "@/lib/cn"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
-import { Copy } from "lucide-react"
+import { Copy, Lightbulb } from "lucide-react"
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -96,6 +97,104 @@ function joinMeta(parts: Array<string | null | undefined>) {
 function formatRunIdShort(runId: string): string {
   return runId.length > 10 ? `${runId.slice(0, 8)}…` : runId
 }
+
+// ── Improvement recommendation formatting ──────────────
+
+function formatPercent(rate: number | undefined): string | null {
+  if (rate == null || !Number.isFinite(rate)) return null
+  return `${Math.round(rate * 100)}%`
+}
+
+function formatRecommendationVerdict(
+  rec: FlowImprovementRecommendation,
+): string {
+  const stepLabel = rec.nodeLabel || rec.nodeId || "A step"
+  const m = rec.metrics
+
+  if (rec.kind === "prefer_variant") {
+    const candidateRate = formatPercent(m?.candidateSuccessRate)
+    const baselineRate = formatPercent(m?.comparisonSuccessRate)
+    const comparison =
+      candidateRate && baselineRate
+        ? ` — succeeds ${candidateRate} vs ${baselineRate}`
+        : ""
+    return `${stepLabel} has a better variant${comparison}`
+  }
+
+  if (rec.kind === "stabilize_step") {
+    const successRate = formatPercent(m?.candidateSuccessRate)
+    const runs = rec.supportingRunCount
+    const rate = successRate
+      ? `${successRate} success rate`
+      : "low success rate"
+    return `${stepLabel} needs attention — ${rate} across ${runs} run${runs === 1 ? "" : "s"}`
+  }
+
+  if (rec.kind === "reduce_manual_edits") {
+    const editRate = formatPercent(m?.editRate)
+    const rate = editRate || "most"
+    return `Approval at ${stepLabel} keeps getting rewritten — ${rate} of runs edited`
+  }
+
+  return rec.summary
+}
+
+function recommendationKindLabel(
+  kind: FlowImprovementRecommendation["kind"],
+): string {
+  if (kind === "prefer_variant") return "Better variant"
+  if (kind === "stabilize_step") return "Needs attention"
+  if (kind === "reduce_manual_edits") return "Frequent edits"
+  return "Suggestion"
+}
+
+function RecommendationItem({
+  recommendation,
+}: {
+  recommendation: FlowImprovementRecommendation
+}) {
+  return (
+    <div
+      className="surface-info-soft rounded-md px-3 py-2.5"
+      data-testid="recommendation-item"
+    >
+      <div className="flex items-start gap-2">
+        <Lightbulb
+          size={14}
+          className="mt-0.5 shrink-0 text-status-info"
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-body-sm font-medium text-foreground">
+              {formatRecommendationVerdict(recommendation)}
+            </span>
+            <Badge
+              variant={
+                recommendation.confidence === "high" ? "info" : "secondary"
+              }
+              size="compact"
+            >
+              {recommendation.confidence === "high" ? "High" : "Medium"}{" "}
+              confidence
+            </Badge>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 ui-meta-text text-muted-foreground">
+            <span>{recommendationKindLabel(recommendation.kind)}</span>
+            <span>
+              {`${recommendation.supportingRunCount} run${recommendation.supportingRunCount === 1 ? "" : "s"} analyzed`}
+            </span>
+          </div>
+          <div className="mt-1 ui-meta-text text-muted-foreground">
+            {recommendation.evidence}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── HistoryTab ──────────────────────────────────────────
 
 export interface HistoryTabProps {
   pastRuns: RunResult[]
@@ -297,10 +396,22 @@ export function HistoryTab({
           </div>
         )}
 
-        {improvementRecommendations.length > 0 && (
+        {improvementRecommendations.length > 0 &&
+          improvementRecommendations.length <= 2 && (
+            <div className="space-y-2">
+              {improvementRecommendations.map((recommendation) => (
+                <RecommendationItem
+                  key={recommendation.id}
+                  recommendation={recommendation}
+                />
+              ))}
+            </div>
+          )}
+
+        {improvementRecommendations.length > 2 && (
           <div className="px-1">
             <DisclosurePanel
-              summary={`Learned from recent runs (${improvementRecommendations.length})`}
+              summary={`Improvement suggestions (${improvementRecommendations.length})`}
               surface="plain"
               className="border-b border-hairline"
               summaryClassName="px-0 py-2"
@@ -308,15 +419,10 @@ export function HistoryTab({
               unmountWhenClosed
             >
               {improvementRecommendations.map((recommendation) => (
-                <div
+                <RecommendationItem
                   key={recommendation.id}
-                  className="py-1 text-left text-body-sm text-foreground"
-                >
-                  <div className="font-medium">{recommendation.summary}</div>
-                  <div className="mt-0.5 ui-meta-text text-muted-foreground">
-                    {recommendation.evidence}
-                  </div>
-                </div>
+                  recommendation={recommendation}
+                />
               ))}
             </DisclosurePanel>
           </div>

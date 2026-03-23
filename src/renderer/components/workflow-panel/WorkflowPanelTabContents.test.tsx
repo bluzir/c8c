@@ -29,7 +29,6 @@ function createBaseProps(): Parameters<typeof WorkflowListTab>[0] {
     listScrollRegionRef: createRef<HTMLDivElement>(),
     listShellClass: "space-y-3",
     showCreateDraftSkeleton: false,
-    showResumeHeader: true,
     listSurfaceIntent: "resume_ready",
     activeEntryState: {
       workflowPath: "/tmp/project/ship.chain",
@@ -69,12 +68,9 @@ function createBaseProps(): Parameters<typeof WorkflowListTab>[0] {
     projectArtifactsError: null,
     requiredContracts: [],
     onOpenArtifact: vi.fn(),
-    showIdleStageContract: false,
     idleStageContract: null,
-    showIdleInputPanel: false,
-    showReviewOutputMode: false,
-    showReviewOutputPanel: false,
-    showLiveOutputPanel: false,
+    reviewMode: false,
+    reviewOutputVisible: false,
     terminalResultOwnsLayout: false,
     blockedTaskPanel: null,
     outputPanelRef: createRef<HTMLDivElement>(),
@@ -120,17 +116,14 @@ describe("WorkflowListTab", () => {
     const user = userEvent.setup()
     renderListTab({
       ...createBaseProps(),
-      showResumeHeader: false,
       listSurfaceIntent: "start_ready",
       activeEntryState: null,
-      showIdleStageContract: true,
       idleStageContract: {
         title: "Review before ship",
         resultLabel: "Review report",
         summary: "Run the first review step with the current input.",
         inputLabels: ["Current work"],
       },
-      showIdleInputPanel: true,
     })
 
     expect(screen.getByText("Next step")).toBeTruthy()
@@ -144,18 +137,15 @@ describe("WorkflowListTab", () => {
   it("shows start-contract input inline when the step still needs input", () => {
     renderListTab({
       ...createBaseProps(),
-      showResumeHeader: false,
       listSurfaceIntent: "start_needs_input",
       activeEntryState: null,
       readyToRun: false,
-      showIdleStageContract: true,
       idleStageContract: {
         title: "Review before ship",
         resultLabel: "Review report",
         summary: "Run the first review step with the current input.",
         inputLabels: ["Current work"],
       },
-      showIdleInputPanel: true,
     })
 
     expect(
