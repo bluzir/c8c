@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { errorToUserMessage } from "@/lib/error-message"
 import { useAtom, useAtomValue } from "jotai"
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock3,
-} from "lucide-react"
+import { AlertTriangle, CheckCircle2, Clock3 } from "lucide-react"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
 import { buildProjectCaseIndex } from "@/lib/case-summary"
 import {
@@ -28,8 +24,20 @@ import { useChainExecution } from "@/hooks/useChainExecution"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { pastRunsAtom, selectedPastRunAtom } from "@/features/execution"
-import { consumeShortcut, isShortcutConsumed, matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
-import type { ArtifactRecord, CaseStateRecord, HumanTaskField, HumanTaskSnapshot, HumanTaskSummary, RunResult, Workflow } from "@shared/types"
+import {
+  consumeShortcut,
+  isShortcutConsumed,
+  matchesPrimaryShortcut,
+} from "@/lib/keyboard-shortcuts"
+import type {
+  ArtifactRecord,
+  CaseStateRecord,
+  HumanTaskField,
+  HumanTaskSnapshot,
+  HumanTaskSummary,
+  RunResult,
+  Workflow,
+} from "@shared/types"
 import {
   buildInitialHumanTaskAnswers,
   buildSubmitHumanTaskAnswers,
@@ -46,7 +54,10 @@ import { NotificationsScopeSection } from "@/components/notifications/Notificati
 import { RecentEventsSection } from "@/components/notifications/RecentEventsSection"
 import { toast } from "sonner"
 
-const LEVEL_META: Record<InboxNotification["level"], { icon: typeof CheckCircle2; tone: string; badgeClass: string }> = {
+const LEVEL_META: Record<
+  InboxNotification["level"],
+  { icon: typeof CheckCircle2; tone: string; badgeClass: string }
+> = {
   info: {
     icon: Clock3,
     tone: "text-status-info",
@@ -74,10 +85,15 @@ interface OpenWorkflowPathOptions {
   pastRun?: RunResult | null
 }
 
-function deriveTaskStageMeta(workflow: Workflow, nodeId: string): TaskStageMeta | null {
+function deriveTaskStageMeta(
+  workflow: Workflow,
+  nodeId: string,
+): TaskStageMeta | null {
   const node = workflow.nodes.find((candidate) => candidate.id === nodeId)
   if (!node) return null
-  const presentation = getRuntimeStagePresentation(node, { fallbackId: node.id })
+  const presentation = getRuntimeStagePresentation(node, {
+    fallbackId: node.id,
+  })
   return {
     title: presentation.title,
     group: presentation.group,
@@ -101,27 +117,30 @@ export function NotificationsPage() {
   const { continueWithWorkflow } = useChainExecution()
   const { markRead, markAllRead, clearAll } = useInboxNotifications()
   const [showUnreadOnly, setShowUnreadOnly] = useState(false)
-  const [sourceFilter, setSourceFilter] = useState<"all" | InboxNotification["source"]>("all")
+  const [sourceFilter, setSourceFilter] = useState<
+    "all" | InboxNotification["source"]
+  >("all")
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([])
   const [caseStates, setCaseStates] = useState<CaseStateRecord[]>([])
   const [artifactsLoading, setArtifactsLoading] = useState(false)
+  const [artifactsError, setArtifactsError] = useState<string | null>(null)
   const [humanTasks, setHumanTasks] = useState<HumanTaskSummary[]>([])
   const [humanTasksLoading, setHumanTasksLoading] = useState(false)
   const [humanTasksError, setHumanTasksError] = useState<string | null>(null)
   const [selectedTaskId, setSelectedTaskId] = useAtom(selectedInboxTaskKeyAtom)
-  const [selectedTask, setSelectedTask] = useState<HumanTaskSnapshot | null>(null)
+  const [selectedTask, setSelectedTask] = useState<HumanTaskSnapshot | null>(
+    null,
+  )
   const [taskAnswers, setTaskAnswers] = useState<Record<string, unknown>>({})
   const [taskLoading, setTaskLoading] = useState(false)
   const [taskSubmitting, setTaskSubmitting] = useState(false)
-  const [taskStageMetaByKey, setTaskStageMetaByKey] = useState<Record<string, TaskStageMeta>>({})
+  const [taskStageMetaByKey, setTaskStageMetaByKey] = useState<
+    Record<string, TaskStageMeta>
+  >({})
   const humanTasksRequestIdRef = useRef(0)
   const artifactsRequestIdRef = useRef(0)
   const selectedTaskRequestIdRef = useRef(0)
   const taskStageMetaRequestIdRef = useRef(0)
-
-  useEffect(() => {
-    markAllRead()
-  }, [markAllRead])
 
   const refreshHumanTasks = useCallback(async () => {
     const requestId = humanTasksRequestIdRef.current + 1
@@ -129,7 +148,9 @@ export function NotificationsPage() {
     setHumanTasksLoading(true)
     setHumanTasksError(null)
     try {
-      const tasks = await window.api.listHumanTasks(selectedProject || undefined)
+      const tasks = await window.api.listHumanTasks(
+        selectedProject || undefined,
+      )
       if (humanTasksRequestIdRef.current !== requestId) return
       setHumanTasks(tasks)
     } catch (error) {
@@ -149,13 +170,17 @@ export function NotificationsPage() {
       setArtifacts([])
       setCaseStates([])
       setArtifactsLoading(false)
+      setArtifactsError(null)
       return
     }
     setArtifactsLoading(true)
+    setArtifactsError(null)
     try {
       const [nextArtifacts, nextCaseStates] = await Promise.all([
         window.api.listProjectArtifacts(selectedProject),
-        window.api.listProjectCaseStates(selectedProject).catch(() => [] as CaseStateRecord[]),
+        window.api
+          .listProjectCaseStates(selectedProject)
+          .catch(() => [] as CaseStateRecord[]),
       ])
       if (artifactsRequestIdRef.current !== requestId) return
       setArtifacts(nextArtifacts)
@@ -164,47 +189,64 @@ export function NotificationsPage() {
       if (artifactsRequestIdRef.current !== requestId) return
       setArtifacts([])
       setCaseStates([])
+      setArtifactsError(
+        "Could not refresh case context. Tasks are still available.",
+      )
     } finally {
       if (artifactsRequestIdRef.current !== requestId) return
       setArtifactsLoading(false)
     }
   }, [selectedProject])
 
+  const refreshInboxData = useCallback(async () => {
+    await Promise.all([refreshHumanTasks(), refreshArtifacts()])
+  }, [refreshArtifacts, refreshHumanTasks])
+
   useEffect(() => {
-    void refreshHumanTasks()
-    void refreshArtifacts()
+    void refreshInboxData()
     // selectedTask is intentionally excluded so project changes don't retrigger on local detail updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProject, refreshArtifacts, refreshHumanTasks])
+  }, [refreshInboxData, selectedProject])
 
   const caseIndex = useMemo(
-    () => buildProjectCaseIndex({
-      artifacts,
-      caseStates,
-      workflowTemplateContexts,
-    }),
+    () =>
+      buildProjectCaseIndex({
+        artifacts,
+        caseStates,
+        workflowTemplateContexts,
+      }),
     [artifacts, caseStates, workflowTemplateContexts],
   )
 
   const visibleCaseOptions = useMemo(
-    () => selectedFactoryId
-      ? caseIndex.caseOptions.filter((entry) => entry.factoryId === selectedFactoryId)
-      : caseIndex.caseOptions,
+    () =>
+      selectedFactoryId
+        ? caseIndex.caseOptions.filter(
+            (entry) => entry.factoryId === selectedFactoryId,
+          )
+        : caseIndex.caseOptions,
     [caseIndex.caseOptions, selectedFactoryId],
   )
 
   const selectedFactoryLabel = useMemo(() => {
     if (!selectedFactoryId) return null
-    return visibleCaseOptions[0]?.factoryLabel
-      || artifacts.find((artifact) => artifact.factoryId === selectedFactoryId)?.factoryLabel
-      || (selectedFactoryId.startsWith("pack:") ? selectedFactoryId.replace(/^pack:/, "") : "Lab")
+    return (
+      visibleCaseOptions[0]?.factoryLabel ||
+      artifacts.find((artifact) => artifact.factoryId === selectedFactoryId)
+        ?.factoryLabel ||
+      (selectedFactoryId.startsWith("pack:")
+        ? selectedFactoryId.replace(/^pack:/, "")
+        : "Lab")
+    )
   }, [artifacts, selectedFactoryId, visibleCaseOptions])
 
   const caseIdByTaskKey = useMemo(() => {
     const next = new Map<string, string>()
     for (const task of humanTasks) {
-      const caseId = (task.workflowPath && caseIndex.caseByWorkflowPath.get(task.workflowPath))
-        || caseIndex.caseByRunId.get(task.sourceRunId)
+      const caseId =
+        (task.workflowPath &&
+          caseIndex.caseByWorkflowPath.get(task.workflowPath)) ||
+        caseIndex.caseByRunId.get(task.sourceRunId)
       if (!caseId) continue
       next.set(taskSelectionKey(task), caseId)
     }
@@ -212,7 +254,8 @@ export function NotificationsPage() {
   }, [caseIndex.caseByRunId, caseIndex.caseByWorkflowPath, humanTasks])
 
   const caseLabelById = useMemo(
-    () => new Map(caseIndex.caseOptions.map((entry) => [entry.id, entry.label])),
+    () =>
+      new Map(caseIndex.caseOptions.map((entry) => [entry.id, entry.label])),
     [caseIndex.caseOptions],
   )
 
@@ -220,7 +263,9 @@ export function NotificationsPage() {
     const filteredTasks = humanTasks.filter((task) => {
       const taskCaseId = caseIdByTaskKey.get(taskSelectionKey(task)) || null
       if (selectedFactoryId) {
-        const taskCase = taskCaseId ? caseIndex.caseById.get(taskCaseId) || null : null
+        const taskCase = taskCaseId
+          ? caseIndex.caseById.get(taskCaseId) || null
+          : null
         if (!taskCase || taskCase.factoryId !== selectedFactoryId) return false
       }
       if (selectedCaseId) {
@@ -229,10 +274,17 @@ export function NotificationsPage() {
       return true
     })
     return sortHumanTasksByActivity(filteredTasks)
-  }, [caseIdByTaskKey, caseIndex.caseById, humanTasks, selectedCaseId, selectedFactoryId])
+  }, [
+    caseIdByTaskKey,
+    caseIndex.caseById,
+    humanTasks,
+    selectedCaseId,
+    selectedFactoryId,
+  ])
 
   const selectedCaseOption = useMemo(
-    () => visibleCaseOptions.find((entry) => entry.id === selectedCaseId) || null,
+    () =>
+      visibleCaseOptions.find((entry) => entry.id === selectedCaseId) || null,
     [selectedCaseId, visibleCaseOptions],
   )
   const primaryActionShortcutLabel = `${desktopRuntime.primaryModifierLabel}↵`
@@ -245,15 +297,24 @@ export function NotificationsPage() {
   }, [selectedCaseId, setSelectedCaseId, visibleCaseOptions])
 
   useEffect(() => {
-    if (selectedTaskId && visibleHumanTasks.some((task) => taskSelectionKey(task) === selectedTaskId)) {
+    if (
+      selectedTaskId &&
+      visibleHumanTasks.some(
+        (task) => taskSelectionKey(task) === selectedTaskId,
+      )
+    ) {
       return
     }
-    setSelectedTaskId(visibleHumanTasks[0] ? taskSelectionKey(visibleHumanTasks[0]) : null)
+    setSelectedTaskId(
+      visibleHumanTasks[0] ? taskSelectionKey(visibleHumanTasks[0]) : null,
+    )
   }, [selectedTaskId, setSelectedTaskId, visibleHumanTasks])
 
   useEffect(() => {
     const summary = selectedTaskId
-      ? visibleHumanTasks.find((task) => taskSelectionKey(task) === selectedTaskId) || null
+      ? visibleHumanTasks.find(
+          (task) => taskSelectionKey(task) === selectedTaskId,
+        ) || null
       : null
     if (!summary) {
       selectedTaskRequestIdRef.current += 1
@@ -270,19 +331,23 @@ export function NotificationsPage() {
     setTaskAnswers({})
     setTaskLoading(true)
     setHumanTasksError(null)
-    void window.api.loadHumanTask(summary.taskId, summary.workspace).then((task) => {
-      if (selectedTaskRequestIdRef.current !== requestId) return
-      setSelectedTask(task)
-      setTaskAnswers(buildInitialHumanTaskAnswers(task))
-    }).catch((error) => {
-      if (selectedTaskRequestIdRef.current !== requestId) return
-      setHumanTasksError(errorToUserMessage(error))
-      setSelectedTask(null)
-      setTaskAnswers({})
-    }).finally(() => {
-      if (selectedTaskRequestIdRef.current !== requestId) return
-      setTaskLoading(false)
-    })
+    void window.api
+      .loadHumanTask(summary.taskId, summary.workspace)
+      .then((task) => {
+        if (selectedTaskRequestIdRef.current !== requestId) return
+        setSelectedTask(task)
+        setTaskAnswers(buildInitialHumanTaskAnswers(task))
+      })
+      .catch((error) => {
+        if (selectedTaskRequestIdRef.current !== requestId) return
+        setHumanTasksError(errorToUserMessage(error))
+        setSelectedTask(null)
+        setTaskAnswers({})
+      })
+      .finally(() => {
+        if (selectedTaskRequestIdRef.current !== requestId) return
+        setTaskLoading(false)
+      })
 
     return () => {
       if (selectedTaskRequestIdRef.current === requestId) {
@@ -292,11 +357,16 @@ export function NotificationsPage() {
   }, [selectedTaskId, visibleHumanTasks])
 
   useEffect(() => {
-    const workflowPaths = Array.from(new Set(
-      humanTasks
-        .map((task) => task.workflowPath)
-        .filter((value): value is string => typeof value === "string" && value.length > 0),
-    ))
+    const workflowPaths = Array.from(
+      new Set(
+        humanTasks
+          .map((task) => task.workflowPath)
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
+          ),
+      ),
+    )
     if (workflowPaths.length === 0) {
       taskStageMetaRequestIdRef.current += 1
       setTaskStageMetaByKey({})
@@ -310,23 +380,30 @@ export function NotificationsPage() {
         workflowPath,
         workflow: await window.api.loadWorkflow(workflowPath),
       })),
-    ).then((loaded) => {
-      if (taskStageMetaRequestIdRef.current !== requestId) return
-      const next: Record<string, TaskStageMeta> = {}
-      for (const task of humanTasks) {
-        const key = taskStageKey(task)
-        if (!key || !task.workflowPath) continue
-        const workflow = loaded.find((entry) => entry.workflowPath === task.workflowPath)?.workflow
-        if (!workflow) continue
-        const meta = deriveTaskStageMeta(workflow, task.nodeId)
-        if (meta) next[key] = meta
-      }
-      setTaskStageMetaByKey(next)
-    }).catch((error) => {
-      if (taskStageMetaRequestIdRef.current !== requestId) return
-      console.error("[notifications] Could not load task stage metadata", error)
-      setTaskStageMetaByKey({})
-    })
+    )
+      .then((loaded) => {
+        if (taskStageMetaRequestIdRef.current !== requestId) return
+        const next: Record<string, TaskStageMeta> = {}
+        for (const task of humanTasks) {
+          const key = taskStageKey(task)
+          if (!key || !task.workflowPath) continue
+          const workflow = loaded.find(
+            (entry) => entry.workflowPath === task.workflowPath,
+          )?.workflow
+          if (!workflow) continue
+          const meta = deriveTaskStageMeta(workflow, task.nodeId)
+          if (meta) next[key] = meta
+        }
+        setTaskStageMetaByKey(next)
+      })
+      .catch((error) => {
+        if (taskStageMetaRequestIdRef.current !== requestId) return
+        console.error(
+          "[notifications] Could not load task stage metadata",
+          error,
+        )
+        setTaskStageMetaByKey({})
+      })
 
     return () => {
       if (taskStageMetaRequestIdRef.current === requestId) {
@@ -339,13 +416,16 @@ export function NotificationsPage() {
     () =>
       notifications.filter((notification) => {
         if (showUnreadOnly && notification.read) return false
-        if (sourceFilter !== "all" && notification.source !== sourceFilter) return false
+        if (sourceFilter !== "all" && notification.source !== sourceFilter)
+          return false
         return true
       }),
     [notifications, showUnreadOnly, sourceFilter],
   )
 
-  const unreadCount = notifications.filter((notification) => !notification.read).length
+  const unreadCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length
   const pastRunByWorkspace = useMemo(
     () =>
       new Map(
@@ -360,19 +440,31 @@ export function NotificationsPage() {
     [pastRuns],
   )
   const openHumanTaskCount = visibleHumanTasks.length
-  const selectedTaskStageMeta = selectedTask ? taskStageMetaByKey[taskStageKey(selectedTask) || ""] || null : null
-  const openWorkflowPath = useCallback(async (workflowPath: string, options?: OpenWorkflowPathOptions) => {
-    const workflow = await window.api.loadWorkflow(workflowPath)
-    setWorkflow(workflow)
-    setWorkflowSavedSnapshot(workflowSnapshot(workflow))
-    setSelectedWorkflowPath(workflowPath)
-    if (!options?.preserveSelectedTask) {
-      setSelectedTaskId(null)
-    }
-    setSelectedPastRun(options?.pastRun ?? null)
-    setMainView("thread")
-    return workflow
-  }, [setMainView, setSelectedPastRun, setSelectedTaskId, setSelectedWorkflowPath, setWorkflow, setWorkflowSavedSnapshot])
+  const selectedTaskStageMeta = selectedTask
+    ? taskStageMetaByKey[taskStageKey(selectedTask) || ""] || null
+    : null
+  const openWorkflowPath = useCallback(
+    async (workflowPath: string, options?: OpenWorkflowPathOptions) => {
+      const workflow = await window.api.loadWorkflow(workflowPath)
+      setWorkflow(workflow)
+      setWorkflowSavedSnapshot(workflowSnapshot(workflow))
+      setSelectedWorkflowPath(workflowPath)
+      if (!options?.preserveSelectedTask) {
+        setSelectedTaskId(null)
+      }
+      setSelectedPastRun(options?.pastRun ?? null)
+      setMainView("thread")
+      return workflow
+    },
+    [
+      setMainView,
+      setSelectedPastRun,
+      setSelectedTaskId,
+      setSelectedWorkflowPath,
+      setWorkflow,
+      setWorkflowSavedSnapshot,
+    ],
+  )
 
   const handleOpenWorkflow = async () => {
     if (!selectedTask?.workflowPath) return
@@ -410,20 +502,29 @@ export function NotificationsPage() {
   const submitSelectedTask = async () => {
     if (!selectedTask) return false
     if (hasMissingRequiredTaskAnswers(selectedTask, taskAnswers)) return false
-    const ok = await window.api.submitHumanTask(selectedTask.taskId, selectedTask.workspace, {
-      answers: buildSubmitHumanTaskAnswers(selectedTask, taskAnswers),
-    })
+    const ok = await window.api.submitHumanTask(
+      selectedTask.taskId,
+      selectedTask.workspace,
+      {
+        answers: buildSubmitHumanTaskAnswers(selectedTask, taskAnswers),
+      },
+    )
     return ok
   }
 
   const handleSubmitHumanTask = async () => {
     if (!selectedTask) return
+    if (hasMissingRequiredTaskAnswers(selectedTask, taskAnswers)) return
     setTaskSubmitting(true)
     try {
       const ok = await submitSelectedTask()
       if (ok) {
-        toast.success(selectedTask.kind === "approval" ? "Decision recorded" : "Response submitted")
-        await refreshHumanTasks()
+        toast.success(
+          selectedTask.kind === "approval"
+            ? "Decision recorded"
+            : "Response submitted",
+        )
+        await refreshInboxData()
       }
     } finally {
       setTaskSubmitting(false)
@@ -432,13 +533,19 @@ export function NotificationsPage() {
 
   const handleSubmitAndContinue = async () => {
     if (!selectedTask?.workflowPath) return
+    if (hasMissingRequiredTaskAnswers(selectedTask, taskAnswers)) return
     setTaskSubmitting(true)
     try {
       const ok = await submitSelectedTask()
       if (!ok) return
-      toast.success(selectedTask.kind === "approval" ? "Decision recorded" : "Response submitted", {
-        description: "Returning to the flow.",
-      })
+      toast.success(
+        selectedTask.kind === "approval"
+          ? "Decision recorded"
+          : "Response submitted",
+        {
+          description: "Returning to the flow.",
+        },
+      )
       const continuationRun = toContinuationRun(selectedTask)
       const workflow = await openWorkflowPath(selectedTask.workflowPath, {
         pastRun: continuationRun,
@@ -452,7 +559,7 @@ export function NotificationsPage() {
         setMainView("thread")
         return
       }
-      await refreshHumanTasks()
+      await refreshInboxData()
     } finally {
       setTaskSubmitting(false)
     }
@@ -462,10 +569,17 @@ export function NotificationsPage() {
     if (!selectedTask) return
     setTaskSubmitting(true)
     try {
-      const ok = await window.api.rejectHumanTask(selectedTask.taskId, selectedTask.workspace)
+      const ok = await window.api.rejectHumanTask(
+        selectedTask.taskId,
+        selectedTask.workspace,
+      )
       if (ok) {
-        toast.success(selectedTask.kind === "approval" ? "Decision rejected" : "Task rejected")
-        await refreshHumanTasks()
+        toast.info(
+          selectedTask.kind === "approval"
+            ? "Decision rejected"
+            : "Task rejected",
+        )
+        await refreshInboxData()
       }
     } finally {
       setTaskSubmitting(false)
@@ -477,7 +591,14 @@ export function NotificationsPage() {
 
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isShortcutConsumed(event)) return
-      if (!matchesPrimaryShortcut(event, { key: "Enter", primaryModifierKey: desktopRuntime.primaryModifierKey })) return
+      if (
+        !matchesPrimaryShortcut(event, {
+          key: "Enter",
+          primaryModifierKey: desktopRuntime.primaryModifierKey,
+        })
+      )
+        return
+      if (hasMissingRequiredTaskAnswers(selectedTask, taskAnswers)) return
       consumeShortcut(event)
       if (selectedTask.workflowPath) {
         void handleSubmitAndContinue()
@@ -502,7 +623,7 @@ export function NotificationsPage() {
       <PageHeader
         title="Inbox"
         subtitle="Pending decisions and recent activity."
-        actions={(
+        actions={
           <NotificationsHeaderActions
             selectedCaseId={selectedCaseId}
             factoryBetaEnabled={factoryBetaEnabled}
@@ -510,18 +631,23 @@ export function NotificationsPage() {
             unreadCount={unreadCount}
             hasNotifications={notifications.length > 0}
             onBackToTrack={() => setMainView("factory")}
-            onRefresh={() => { void refreshHumanTasks() }}
+            onRefresh={() => {
+              void refreshInboxData()
+            }}
             onToggleUnreadOnly={() => setShowUnreadOnly((value) => !value)}
             onMarkAllRead={markAllRead}
             onClearAll={clearAll}
           />
-        )}
+        }
       />
 
       <NotificationsScopeSection
         selectedFactoryLabel={selectedFactoryLabel}
         selectedCaseLabel={selectedCaseOption?.label || null}
-        visibleCaseOptions={visibleCaseOptions.map((entry) => ({ id: entry.id, label: entry.label }))}
+        visibleCaseOptions={visibleCaseOptions.map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+        }))}
         selectedCaseId={selectedCaseId}
         openHumanTaskCount={openHumanTaskCount}
         artifactsLoading={artifactsLoading}
@@ -530,6 +656,10 @@ export function NotificationsPage() {
         onClearCase={() => setSelectedCaseId(null)}
         onSelectCase={setSelectedCaseId}
       />
+
+      {artifactsError ? (
+        <p className="text-body-sm text-status-warning">{artifactsError}</p>
+      ) : null}
 
       <HumanTaskInboxSection
         humanTasksLoading={humanTasksLoading}
@@ -549,25 +679,38 @@ export function NotificationsPage() {
         taskAnswers={taskAnswers}
         selectedTaskStageMeta={selectedTaskStageMeta}
         primaryActionShortcutLabel={primaryActionShortcutLabel}
-        onOpenWorkflow={() => { void handleOpenWorkflow() }}
+        onOpenWorkflow={() => {
+          void handleOpenWorkflow()
+        }}
         onFieldChange={handleTaskFieldChange}
-        onSubmit={() => { void handleSubmitHumanTask() }}
-        onSubmitAndContinue={() => { void handleSubmitAndContinue() }}
-        onReject={() => { void handleRejectHumanTask() }}
-        onClearCaseFilter={selectedCaseId ? () => setSelectedCaseId(null) : null}
+        onSubmit={() => {
+          void handleSubmitHumanTask()
+        }}
+        onSubmitAndContinue={() => {
+          void handleSubmitAndContinue()
+        }}
+        onReject={() => {
+          void handleRejectHumanTask()
+        }}
+        onClearCaseFilter={
+          selectedCaseId ? () => setSelectedCaseId(null) : null
+        }
       />
 
-      <RecentEventsSection
-        notifications={notifications}
-        unreadCount={unreadCount}
-        visibleNotifications={visibleNotifications}
-        sourceFilter={sourceFilter}
-        emphasized={openHumanTaskCount === 0}
-        onSourceFilterChange={setSourceFilter}
-        onNotificationAction={(notification) => { void handleNotificationAction(notification) }}
-        onMarkRead={markRead}
-        levelMeta={LEVEL_META}
-      />
+      {notifications.length > 0 ? (
+        <RecentEventsSection
+          notifications={notifications}
+          unreadCount={unreadCount}
+          visibleNotifications={visibleNotifications}
+          sourceFilter={sourceFilter}
+          onSourceFilterChange={setSourceFilter}
+          onNotificationAction={(notification) => {
+            void handleNotificationAction(notification)
+          }}
+          onMarkRead={markRead}
+          levelMeta={LEVEL_META}
+        />
+      ) : null}
     </PageShell>
   )
 }
