@@ -25,6 +25,17 @@
   color: hsl(var(--muted-foreground));
 }
 
+/* Compound text + color shortcuts — reduce repeated class pairs */
+:where(.ui-subtext) {
+  color: hsl(var(--muted-foreground));
+}
+
+:where(.ui-meta-hint) {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: hsl(var(--muted-foreground));
+}
+
 .ui-metric-text {
   font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
   font-size: 0.625rem;

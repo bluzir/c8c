@@ -1,3 +1,4 @@
+import { errorMessage } from "./error-utils"
 import { BrowserWindow } from "electron"
 import {
   createWorkflowRunner,
@@ -51,14 +52,14 @@ function streamEventsToWindow(
           logWarn("workflow-runner-adapter", "send_workflow_event_failed", {
             runId: handle.runId,
             eventType: event.type,
-            error: error instanceof Error ? error.message : String(error),
+            error: errorMessage(error),
           })
         }
       }
     } catch (error) {
       logWarn("workflow-runner-adapter", "event_stream_failed", {
         runId: handle.runId,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
       handle.cancel("workflow event stream failed")
       if (!window.isDestroyed()) {
@@ -74,10 +75,7 @@ function streamEventsToWindow(
             "send_stream_failure_event_failed",
             {
               runId: handle.runId,
-              error:
-                sendError instanceof Error
-                  ? sendError.message
-                  : String(sendError),
+              error: errorMessage(sendError),
             },
           )
         }

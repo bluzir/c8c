@@ -1,6 +1,6 @@
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
+import { errorMessage } from "../error-utils"
+
+export { errorMessage }
 
 export function execErrorOutput(error: unknown): string {
   if (typeof error === "object" && error !== null) {

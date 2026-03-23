@@ -1,5 +1,6 @@
 id: cto-product-spec
 stage: strategy
+stage_family: design
 emoji: "\U0001F4DD"
 headline: Go from idea to CTO-grade product spec
 how: Breaks the idea into modules, makes stack and architecture decisions per module, then assembles everything into one spec

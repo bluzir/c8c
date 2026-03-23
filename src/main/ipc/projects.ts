@@ -1,5 +1,6 @@
 import { ipcMain, dialog, BrowserWindow } from "electron"
 import { mergeProjectOrderWithCurrent } from "@shared/project-order"
+import { errorMessage } from "../lib/error-utils"
 import { loadProjectsConfig, saveProjectsConfig } from "../lib/projects-config"
 import { logInfo, logWarn } from "../lib/structured-log"
 
@@ -11,7 +12,7 @@ function runSerializedConfigOperation<T>(
   const next = configMutationQueue.then(() => operation())
   configMutationQueue = next.catch((error) => {
     logWarn("projects-ipc", "serialized_config_operation_failed", {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     })
   })
   return next

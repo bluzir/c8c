@@ -9,6 +9,7 @@ import {
   setPluginEnabled,
   updateMarketplace,
 } from "../lib/plugins"
+import { errorMessage } from "../lib/error-utils"
 import { logError, logInfo } from "../lib/structured-log"
 
 const mutationQueueByMarketplaceId = new Map<string, Promise<void>>()
@@ -85,7 +86,7 @@ export function registerPluginsHandlers() {
         logError("plugins-ipc", "install_failed", {
           marketplaceId: id,
           queueWaitMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }
@@ -126,7 +127,7 @@ export function registerPluginsHandlers() {
         logError("plugins-ipc", "update_failed", {
           marketplaceId: id,
           queueWaitMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }
@@ -167,7 +168,7 @@ export function registerPluginsHandlers() {
         logError("plugins-ipc", "remove_failed", {
           marketplaceId: id,
           queueWaitMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }
@@ -196,7 +197,7 @@ export function registerPluginsHandlers() {
       } catch (error) {
         logError("plugins-ipc", "scan_failed", {
           pendingMutations,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }

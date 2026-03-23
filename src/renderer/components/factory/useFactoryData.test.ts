@@ -78,7 +78,7 @@ describe("selectFactoryCaseNextTemplates", () => {
     const unrelatedTemplate = createTemplate({
       id: "ai-cmo-geo-engine",
       name: "AI CMO: GEO Engine Execute",
-      stage: "execute",
+      stage: "operations",
       pack: {
         id: "ai-cmo-engine",
         label: "AI CMO",

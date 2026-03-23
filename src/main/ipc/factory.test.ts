@@ -6,7 +6,7 @@ import type {
 
 const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>()
 
-const allowedProjectRootsMock = vi.fn<() => Promise<string[]>>()
+const allowedProjectRootsMock = vi.fn()
 const assertWithinRootsMock = vi.fn()
 const loadProjectFactoryBlueprintMock = vi.fn()
 const saveProjectFactoryBlueprintMock = vi.fn()
@@ -24,8 +24,8 @@ vi.mock("electron", () => ({
 }))
 
 vi.mock("../lib/security-paths", () => ({
-  allowedProjectRoots: (...args: unknown[]) => allowedProjectRootsMock(...args),
-  assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
+  allowedProjectRoots: (...args: any[]) => allowedProjectRootsMock(...args),
+  assertWithinRoots: (...args: any[]) => assertWithinRootsMock(...args),
 }))
 
 vi.mock("../lib/project-factory-blueprint", () => ({

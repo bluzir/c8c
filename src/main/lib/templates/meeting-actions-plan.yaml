@@ -1,5 +1,6 @@
 id: meeting-actions-plan
 stage: operations
+stage_family: design
 emoji: "\U0001F4CB"
 headline: Turn meeting transcripts into action plans
 how: Analyzes meeting transcript, extracts action items, prioritizes and plans each, and compiles into a project document

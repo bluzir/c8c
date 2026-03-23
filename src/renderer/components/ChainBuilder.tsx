@@ -211,7 +211,7 @@ export function ChainBuilder({
       else if (node.type === "human") map.set(node.id, "Human")
       else if (node.type === "input") map.set(node.id, "Input")
       else if (node.type === "output") map.set(node.id, "Output")
-      else map.set(node.id, node.id)
+      else map.set((node as WorkflowNode).id, (node as WorkflowNode).id)
     }
     return map
   }, [workflow.nodes])

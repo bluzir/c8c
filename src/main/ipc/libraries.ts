@@ -6,6 +6,7 @@ import {
   PREDEFINED_LIBRARIES,
   scanAllLibraries,
 } from "../lib/libraries"
+import { errorMessage } from "../lib/error-utils"
 import { trackTelemetryEvent } from "../lib/telemetry/service"
 import { logError, logInfo } from "../lib/structured-log"
 import type { DiscoveredSkill } from "@shared/types"
@@ -125,7 +126,7 @@ export function registerLibrariesHandlers() {
         logError("libraries-ipc", "install_failed", {
           libraryId: id,
           queueWaitMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }
@@ -192,7 +193,7 @@ export function registerLibrariesHandlers() {
         logError("libraries-ipc", "remove_failed", {
           libraryId: id,
           queueWaitMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }
@@ -253,7 +254,7 @@ export function registerLibrariesHandlers() {
         logError("libraries-ipc", "scan_failed", {
           pendingMutations,
           mutationWaitMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         })
         throw error
       }

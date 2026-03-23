@@ -12,6 +12,7 @@ import type {
   SettingSource,
 } from "@anthropic-ai/claude-agent-sdk"
 import { findClaudeExecutable } from "./claude-cli"
+import { errorMessage } from "./error-utils"
 import { LogParser, type UsageStats } from "./log-parser"
 import { buildClaudeSdkMcpServers } from "./mcp-config"
 
@@ -21,10 +22,6 @@ let cachedClaudeSdkQuery: ClaudeSdkQueryFn | null = null
 const HEARTBEAT_THRESHOLDS_MS = [15_000, 30_000, 60_000] as const
 const HEARTBEAT_REPEAT_MS = 60_000
 const HEARTBEAT_CHECK_INTERVAL_MS = 5_000
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 function resolveClaudeExecutablePath(): string | undefined {
   try {

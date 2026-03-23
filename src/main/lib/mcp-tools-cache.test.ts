@@ -7,9 +7,11 @@ import {
   setCachedTools,
 } from "./mcp-tools-cache"
 
-function createTool(name: string): McpToolInfo {
+function createTool(name: string, serverName = "test-server"): McpToolInfo {
   return {
     name,
+    serverName,
+    qualifiedName: `${serverName}/${name}`,
     description: `${name} description`,
   }
 }

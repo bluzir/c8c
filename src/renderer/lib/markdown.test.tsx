@@ -1,11 +1,13 @@
+import type { ComponentProps } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import ReactMarkdown from "react-markdown"
 import { describe, expect, it } from "vitest"
 import { DEFAULT_MARKDOWN_PROPS, sanitizeMarkdownHref } from "./markdown"
 
 function renderMarkdown(markdown: string) {
+  const props = DEFAULT_MARKDOWN_PROPS as ComponentProps<typeof ReactMarkdown>
   return renderToStaticMarkup(
-    <ReactMarkdown {...DEFAULT_MARKDOWN_PROPS}>{markdown}</ReactMarkdown>,
+    <ReactMarkdown {...props}>{markdown}</ReactMarkdown>,
   )
 }
 

@@ -1,3 +1,4 @@
+import { errorMessage } from "./error-utils"
 import {
   app,
   type BrowserWindow,
@@ -1703,11 +1704,7 @@ export function runElectronSmokeScenarioIfRequested(window: BrowserWindow) {
       }
 
       artifacts = await captureFocusedArtifacts(window, scenario, outputDir)
-      recordAssertion(
-        assertions,
-        "Scenario failed",
-        error instanceof Error ? error.message : String(error),
-      )
+      recordAssertion(assertions, "Scenario failed", errorMessage(error))
       const importantRendererConsole = rawRendererConsole.filter(
         importantConsoleEntry,
       )
@@ -1730,7 +1727,7 @@ export function runElectronSmokeScenarioIfRequested(window: BrowserWindow) {
         ignoredRendererConsole,
         invariants,
         artifacts,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       }
       await writeFile(reportPath, JSON.stringify(report, null, 2))
       app.exit(1)

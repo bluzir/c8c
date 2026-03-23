@@ -1,3 +1,4 @@
+import { errorMessage } from "./error-utils"
 import { BrowserWindow } from "electron"
 import { cancelWorkflowRun, runWorkflow } from "./workflow-runner"
 import {
@@ -244,7 +245,7 @@ export async function runBatch(
             logWarn("batch-runner", "timed_out_run_error_swallowed", {
               batchId,
               runId,
-              error: error instanceof Error ? error.message : String(error),
+              error: errorMessage(error),
             })
           })
         }
@@ -255,7 +256,7 @@ export async function runBatch(
           eval_scores: {},
           cost_usd: 0,
           duration_ms: Date.now() - startedAt,
-          error: err instanceof Error ? err.message : String(err),
+          error: errorMessage(err),
         }
       } finally {
         controller.signal.removeEventListener("abort", abortRun)
@@ -339,17 +340,14 @@ export async function runBatch(
   } catch (err) {
     logWarn("batch-runner", "batch_failed", {
       batchId,
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMessage(err),
     })
     send(window, {
       type: "batch-error",
       batchId,
       error: String(err),
     })
-    await persistSnapshot(
-      "failed",
-      err instanceof Error ? err.message : String(err),
-    )
+    await persistSnapshot("failed", errorMessage(err))
   } finally {
     activeBatches.delete(batchId)
     activeBatchRuns.delete(batchId)

@@ -1,5 +1,6 @@
 id: delivery-investigate-bug
 stage: code
+stage_family: understand
 emoji: "\U0001F41E"
 headline: Investigate and fix a bug
 how: Reproduce the problem, trace the root cause, choose a fix approach, implement, and verify the fix does not regress.

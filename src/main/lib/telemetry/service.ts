@@ -1,3 +1,4 @@
+import { errorMessage } from "../error-utils"
 import { app } from "electron"
 import { randomUUID } from "node:crypto"
 import { mkdir, readFile } from "node:fs/promises"
@@ -197,7 +198,7 @@ export async function initTelemetryService(): Promise<void> {
       }
       initPromise = null
       logWarn("telemetry-service", "init_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
   })()

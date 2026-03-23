@@ -67,6 +67,7 @@ describe("resolveWorkflowPrimaryScreenState", () => {
         nextStageTemplate: {
           id: "delivery-plan-phase",
           name: "Delivery plan",
+          description: "",
           stage: "code",
           emoji: "x",
           headline: "",

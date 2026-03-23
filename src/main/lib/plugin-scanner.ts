@@ -2,6 +2,7 @@ import { access, readdir, readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { basename, join, relative, resolve } from "node:path"
 import type { InstalledPlugin, PluginAssetSummary } from "@shared/types"
+import { errorMessage } from "./error-utils"
 import { logWarn } from "./structured-log"
 
 interface MarketplaceOwnerManifest {
@@ -67,10 +68,6 @@ function errorCode(error: unknown): string | undefined {
     if (typeof code === "string") return code
   }
   return undefined
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function normalizeString(value: unknown): string | undefined {

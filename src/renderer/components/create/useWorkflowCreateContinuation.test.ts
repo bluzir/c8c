@@ -81,7 +81,7 @@ describe("startWorkflowCreateContinuationResourceLoad", () => {
           }
           error: null
         }) => void)
-      | null = null
+      | undefined
     const requestIdRef = { current: 0 }
     const loaded: Array<{
       artifacts: ArtifactRecord[]

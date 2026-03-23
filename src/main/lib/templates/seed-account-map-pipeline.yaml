@@ -1,5 +1,6 @@
 id: seed-account-map-pipeline
 stage: research
+stage_family: understand
 emoji: "\U0001F3AF"
 headline: Turn best customers into target accounts
 how: Captures why existing wins closed, converts that into explicit buying hypotheses, builds and enriches an account table, then tiers who deserves attention now

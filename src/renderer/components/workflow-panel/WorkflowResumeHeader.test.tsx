@@ -91,6 +91,8 @@ describe("WorkflowResumeHeader", () => {
           findings: [],
           primaryArtifact: null,
           primaryActionLabel: "Open task",
+          executionLoopSummary: null,
+          flowRules: [],
         }}
         nextStepLabel="Review the result."
         inputLabels={[]}

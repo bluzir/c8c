@@ -1,3 +1,4 @@
+import { errorMessage } from "../lib/error-utils"
 import { open, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
 import type {
@@ -165,7 +166,7 @@ export async function loadPersistedNodeLogs(
     }
     logWarn("run-snapshot-ipc", "load_persisted_node_logs_failed", {
       workspace,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     })
     return {}
   }

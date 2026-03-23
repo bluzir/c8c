@@ -19,16 +19,7 @@ import {
   assertRegisteredProjectPath as assertRegisteredProjectRoot,
   assertWithinRoots,
 } from "../lib/security-paths"
-
-async function pathExists(path: string): Promise<boolean> {
-  const { access } = await import("node:fs/promises")
-  try {
-    await access(path)
-    return true
-  } catch {
-    return false
-  }
-}
+import { pathExists } from "../lib/fs-utils"
 
 async function uniqueWorkflowPath(
   dir: string,

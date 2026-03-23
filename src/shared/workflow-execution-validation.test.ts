@@ -62,7 +62,7 @@ describe("workflow execution validation", () => {
           id: "skill-1",
           type: "skill",
           position: { x: 0, y: 0 },
-          config: {},
+          config: { prompt: "" },
         },
         {
           id: "skill-1",

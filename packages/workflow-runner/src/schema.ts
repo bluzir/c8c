@@ -440,6 +440,7 @@ export interface NodeInput {
     error_policy_applied?: NodeOnErrorPolicy
     error_envelope?: boolean
     skipped?: boolean
+    overridden?: boolean
   }
 }
 

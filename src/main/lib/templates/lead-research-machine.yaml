@@ -1,5 +1,6 @@
 id: lead-research-machine
 stage: research
+stage_family: understand
 emoji: "\U0001F50E"
 headline: Find and prioritize leads in any vertical
 how: Researches a market vertical, splits into segments, finds leads per segment, and compiles a prioritized list

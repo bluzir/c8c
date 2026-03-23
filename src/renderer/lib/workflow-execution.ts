@@ -79,8 +79,10 @@ export interface ApprovalRequest {
   allowEdit: boolean
 }
 
+export type ApprovalRequestPayload = Omit<ApprovalRequest, "workflowKey">
+
 export interface WorkflowExecutionEventEffects {
-  approvalRequest?: ApprovalRequest
+  approvalRequest?: ApprovalRequestPayload
   refreshPastRuns?: boolean
   runFinished?: boolean
   runFailedMessage?: string

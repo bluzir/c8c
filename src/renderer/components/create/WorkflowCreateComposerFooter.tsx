@@ -99,13 +99,7 @@ export function WorkflowCreateComposerFooter({
       <div className="flex flex-wrap items-center gap-1.5">
         {showSupportControls ? (
           <>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <span
-                className="ui-meta-text"
-                title="How deeply to explore your project before choosing a starting point."
-              >
-                Depth
-              </span>
+            <div className="flex items-center text-muted-foreground">
               <Select
                 value={selectedDetailBudgetPreset.id}
                 onValueChange={(value) => {
@@ -114,10 +108,11 @@ export function WorkflowCreateComposerFooter({
                 }}
               >
                 <SelectTrigger
-                  className="h-7 w-[6.75rem] border-0 bg-surface-2/90 px-2 text-body-sm shadow-none"
+                  className="h-7 gap-1 border-0 bg-transparent px-2 text-body-sm text-muted-foreground hover:text-foreground"
                   aria-label="Exploration depth"
                   title="How deeply to explore your project before choosing a starting point."
                 >
+                  <span className="text-muted-foreground">Depth</span>{" "}
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

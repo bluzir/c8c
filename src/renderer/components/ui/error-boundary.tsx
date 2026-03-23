@@ -26,7 +26,7 @@ export class SectionErrorBoundary extends Component<
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error(
       `[SectionErrorBoundary] ${this.props.sectionName || "section"} crashed:`,
       error,
@@ -39,7 +39,7 @@ export class SectionErrorBoundary extends Component<
     this.props.onReset?.()
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div className="surface-danger-soft flex h-full min-h-[140px] flex-col items-center justify-center gap-3 rounded-lg p-4 text-center">

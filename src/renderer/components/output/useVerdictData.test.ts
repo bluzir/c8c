@@ -89,7 +89,7 @@ function createReviewRun(overrides?: Partial<RunResult>): RunResult {
     completedAt: 2,
     durationMs: 1_000,
     workspace: "/tmp/workspace",
-    reportPath: null,
+    reportPath: "",
     totalCost: 1.23,
     ...overrides,
   }

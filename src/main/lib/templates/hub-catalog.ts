@@ -1,3 +1,4 @@
+import { errorMessage } from "../error-utils"
 import { net } from "electron"
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { join } from "node:path"
@@ -70,7 +71,7 @@ async function writeDiskCache(cache: HubCatalogCache): Promise<void> {
     await writeFile(cacheFile(), JSON.stringify(cache), "utf8")
   } catch (error) {
     logWarn("hub-catalog", "disk_cache_write_failed", {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     })
   }
 }
@@ -143,7 +144,7 @@ export async function refreshHubCatalog(): Promise<void> {
     })
   } catch (error) {
     logWarn("hub-catalog", "catalog_refresh_failed", {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     })
 
     // Fall back to disk cache if memory is stale

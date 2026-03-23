@@ -428,6 +428,14 @@ export type WorkflowTemplateStage =
   | "outreach"
   | "operations"
 
+export type StageFamily =
+  | "understand"
+  | "design"
+  | "execute"
+  | "evaluate"
+  | "validate"
+  | "deliver"
+
 export type KnownArtifactKind =
   | "codebase_map"
   | "project_brief"
@@ -826,6 +834,7 @@ export interface WorkflowTemplate {
   name: string
   description: string
   stage: WorkflowTemplateStage
+  stageFamily?: StageFamily
   emoji: string
   headline: string
   how: string

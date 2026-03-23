@@ -675,16 +675,15 @@ export function Toolbar({
             )}
           </div>
 
-          {workflowDirty && (
-            <span
-              className="h-2 w-2 shrink-0 rounded-full bg-status-warning"
-              title={`Unsaved changes — ${primaryShortcutLabel}S to save`}
-              aria-label={`Unsaved changes — ${primaryShortcutLabel}S to save`}
-            />
-          )}
-
-          {(shellBadgeLabel || shellDetail) && (
+          {(shellBadgeLabel || shellDetail || workflowDirty) && (
             <div className="min-w-0 flex items-center gap-2">
+              {workflowDirty && (
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full bg-status-warning"
+                  title={`Unsaved changes — ${primaryShortcutLabel}S to save`}
+                  aria-label={`Unsaved changes — ${primaryShortcutLabel}S to save`}
+                />
+              )}
               {shellBadgeLabel && (
                 <Badge
                   variant={shellBadgeVariant}

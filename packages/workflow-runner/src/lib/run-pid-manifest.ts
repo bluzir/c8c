@@ -8,7 +8,7 @@ import { logWarn } from "./structured-log"
 const RUN_PID_MANIFEST_VERSION = 1
 const RUN_PID_MANIFEST_FILE = "run-pids.json"
 
-export type RunPidManifestMode = "run" | "rerun"
+export type RunPidManifestMode = "run" | "rerun" | "continue"
 
 export interface RunPidProcessEntry {
   pid: number

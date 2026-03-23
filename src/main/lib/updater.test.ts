@@ -4,9 +4,9 @@ type UpdateHandler = (...args: any[]) => void
 
 const updaterState = vi.hoisted(() => ({
   handlers: new Map<string, UpdateHandler>(),
-  checkForUpdates: vi.fn(async () => undefined),
+  checkForUpdates: vi.fn(),
   quitAndInstall: vi.fn(),
-  trackTelemetryEvent: vi.fn(async () => undefined),
+  trackTelemetryEvent: vi.fn(),
   windows: [] as Array<{
     isDestroyed: () => boolean
     webContents: { send: ReturnType<typeof vi.fn> }

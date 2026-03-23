@@ -1,3 +1,4 @@
+import { errorMessage } from "./error-utils"
 import { access, readFile } from "node:fs/promises"
 import { join, relative, resolve } from "node:path"
 import type { McpTransportType, PluginMcpServerInfo } from "@shared/types"
@@ -90,7 +91,7 @@ async function readJsonFile<T>(path: string): Promise<T | undefined> {
     }
     logWarn("plugin-mcp", "manifest_read_failed", {
       path,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     })
     return undefined
   }

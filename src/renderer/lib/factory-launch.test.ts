@@ -178,7 +178,7 @@ describe("prepareTemplateStageLaunch", () => {
   })
 
   it("does not wait for template usage recording before returning launch data", async () => {
-    let resolveUsage: (() => void) | null = null
+    let resolveUsage: (() => void) | undefined
     const usagePromise = new Promise<void>((resolve) => {
       resolveUsage = resolve
     })

@@ -18,6 +18,7 @@ import { registerFactoryHandlers } from "./ipc/factory"
 import { registerTestHarnessHandlers } from "./ipc/test-harness"
 import { withGuardedIpcRegistration } from "./lib/ipc-guard"
 import { isTestMode } from "./lib/runtime-paths"
+import { errorMessage } from "./lib/error-utils"
 import { logError, logInfo } from "./lib/structured-log"
 
 export function registerMainHandlers(
@@ -53,7 +54,7 @@ export function registerMainHandlers(
       failedDomains.push(name)
       logError("register-handlers", "domain_registration_failed", {
         name,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
   }

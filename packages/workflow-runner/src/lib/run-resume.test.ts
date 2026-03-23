@@ -20,7 +20,7 @@ function createWorkflow(): Workflow {
         id: "splitter",
         type: "splitter",
         position: { x: 100, y: 0 },
-        config: { maxBranches: 8 },
+        config: { strategy: "auto", maxBranches: 8 },
       },
       {
         id: "audit",
@@ -121,14 +121,12 @@ describe("run-resume", () => {
           branchIndex: 0,
           totalBranches: 2,
           templateId: "audit",
-          splitterId: "splitter",
         },
         "audit::quality": {
           subtaskKey: "quality",
           branchIndex: 1,
           totalBranches: 2,
           templateId: "audit",
-          splitterId: "splitter",
         },
       },
       input: { type: "text", value: "Audit this repo" },

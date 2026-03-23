@@ -12,9 +12,8 @@ const cancelChatSessionMock = vi.fn()
 const getActiveChatSessionMock = vi.fn()
 const loadChatHistoryMock = vi.fn()
 const clearChatHistoryMock = vi.fn()
-const allowedWorkflowRootsMock = vi.fn<() => Promise<string[]>>()
-const assertRegisteredProjectPathMock =
-  vi.fn<(projectPath: string) => Promise<string>>()
+const allowedWorkflowRootsMock = vi.fn()
+const assertRegisteredProjectPathMock = vi.fn()
 const assertWithinRootsMock = vi.fn()
 const logErrorMock = vi.fn()
 const logInfoMock = vi.fn()
@@ -46,11 +45,10 @@ vi.mock("../lib/chat-storage", () => ({
 }))
 
 vi.mock("../lib/security-paths", () => ({
-  allowedWorkflowRoots: (...args: unknown[]) =>
-    allowedWorkflowRootsMock(...args),
-  assertRegisteredProjectPath: (...args: unknown[]) =>
+  allowedWorkflowRoots: (...args: any[]) => allowedWorkflowRootsMock(...args),
+  assertRegisteredProjectPath: (...args: any[]) =>
     assertRegisteredProjectPathMock(...args),
-  assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
+  assertWithinRoots: (...args: any[]) => assertWithinRootsMock(...args),
 }))
 
 vi.mock("../lib/structured-log", () => ({

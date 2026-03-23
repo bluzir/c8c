@@ -7,6 +7,7 @@ import {
   type BrowserWindowConstructorOptions,
 } from "electron"
 import { join } from "path"
+import { errorMessage } from "./lib/error-utils"
 import { emitDesktopRuntimeUpdate } from "./ipc/system"
 import {
   flushTelemetryService,
@@ -268,7 +269,7 @@ function createWindow() {
     })
     .catch((error) => {
       logWarn("main", "create_window_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     })
     .finally(() => {
@@ -289,7 +290,7 @@ app.whenReady().then(async () => {
       }
     } catch (error) {
       logWarn("main", "dock_icon_set_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
   }
@@ -300,7 +301,7 @@ app.whenReady().then(async () => {
       await trackTelemetryEvent("app_started")
     } catch (error) {
       logWarn("main", "telemetry_init_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
 
@@ -317,7 +318,7 @@ app.whenReady().then(async () => {
       })
     } catch (error) {
       logWarn("main", "runtime_recovery_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
 
@@ -330,7 +331,7 @@ app.whenReady().then(async () => {
       })
     } catch (error) {
       logWarn("main", "batch_recovery_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
   }
@@ -354,7 +355,7 @@ app.whenReady().then(async () => {
       })
     } catch (error) {
       logWarn("main", "telemetry_app_ready_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     }
   }
@@ -380,7 +381,7 @@ app.on("before-quit", (event) => {
       await flushTelemetryService()
     } catch (error) {
       logWarn("main", "telemetry_quit_flush_failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage(error),
       })
     } finally {
       app.quit()

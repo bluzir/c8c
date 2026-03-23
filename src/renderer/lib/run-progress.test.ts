@@ -73,7 +73,7 @@ describe("buildRunProgressSummary", () => {
           id: "fanout",
           type: "splitter",
           position: { x: 120, y: 0 },
-          config: { maxBranches: 8 },
+          config: { strategy: "auto", maxBranches: 8 },
         },
         {
           id: "audit",

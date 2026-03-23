@@ -2,6 +2,7 @@ import { access, readdir, readFile } from "node:fs/promises"
 import { basename, extname, join, resolve } from "node:path"
 import type { InstalledPlugin, WorkflowTemplate } from "@shared/types"
 import { ensurePluginMarketplacesDir, listInstalledPlugins } from "../plugins"
+import { errorMessage } from "../error-utils"
 import { logWarn } from "../structured-log"
 import { parseTemplate } from "./parse"
 
@@ -24,10 +25,6 @@ function errorCode(error: unknown): string | undefined {
     if (typeof code === "string") return code
   }
   return undefined
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function normalizeString(value: unknown): string | undefined {

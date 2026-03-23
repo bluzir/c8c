@@ -121,6 +121,8 @@ describe("SelectedTaskPanel", () => {
           executionLoopSummary: {
             loopLabel: "Review loop",
             title: "Ship review gate",
+            evaluatorNodeId: "eval-1",
+            criteriaText: "Ship review criteria",
             outcome: "human decision",
             outcomeLabel: "Decision required",
             score: 6,

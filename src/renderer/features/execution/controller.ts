@@ -325,15 +325,16 @@ export class WorkflowExecutionController {
     this.updateExecutionForKey(workflowKey, transition.nextState)
 
     if (transition.effects.approvalRequest) {
+      const approvalPayload = transition.effects.approvalRequest
       this.commitApprovalRequests((previous) => {
-        const nextRequest = {
+        const nextRequest: ApprovalRequest = {
           workflowKey,
-          ...transition.effects.approvalRequest,
+          ...approvalPayload,
         }
         const existingIndex = previous.findIndex(
           (request) =>
             request.workflowKey === workflowKey &&
-            request.nodeId === transition.effects.approvalRequest?.nodeId,
+            request.nodeId === approvalPayload.nodeId,
         )
         if (existingIndex === -1) {
           return [...previous, nextRequest]

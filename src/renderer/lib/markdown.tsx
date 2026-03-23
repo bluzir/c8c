@@ -82,9 +82,14 @@ export const MARKDOWN_REHYPE_PLUGINS = [
   [rehypeSanitize, MARKDOWN_SANITIZE_SCHEMA],
 ] as const
 
+/** Mutable copy for ReactMarkdown prop compatibility */
+const MARKDOWN_REHYPE_PLUGINS_MUTABLE = [
+  ...MARKDOWN_REHYPE_PLUGINS,
+] as unknown as ComponentProps<typeof ReactMarkdown>["rehypePlugins"]
+
 export const DEFAULT_MARKDOWN_PROPS = {
   remarkPlugins: MARKDOWN_REMARK_PLUGINS,
-  rehypePlugins: MARKDOWN_REHYPE_PLUGINS,
+  rehypePlugins: MARKDOWN_REHYPE_PLUGINS_MUTABLE,
   components: MARKDOWN_COMPONENTS,
 } satisfies Pick<
   ComponentProps<typeof ReactMarkdown>,

@@ -1,13 +1,24 @@
 import { readFile, readdir, mkdir, stat } from "node:fs/promises"
 import { join, basename } from "node:path"
 import type { Workflow, WorkflowFile } from "@shared/types"
+import {
+  formatSchemaValidationError,
+  workflowSchema,
+} from "@shared/workflow-schemas"
 import { normalizeWorkflowTitle } from "@shared/workflow-name"
 import { writeFileAtomic } from "./atomic-write"
 import { logWarn } from "./structured-log"
 
 export async function loadChain(filePath: string): Promise<Workflow> {
   const content = await readFile(filePath, "utf-8")
-  return JSON.parse(content) as Workflow
+  const parsed = JSON.parse(content)
+  const result = workflowSchema.safeParse(parsed)
+  if (!result.success) {
+    throw new Error(
+      formatSchemaValidationError("Invalid workflow JSON", result.error),
+    )
+  }
+  return result.data as Workflow
 }
 
 export async function saveChain(

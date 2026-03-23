@@ -175,7 +175,9 @@ async function loadProviderState(): Promise<ProviderSettingsState> {
 
 async function saveProviderState(state: ProviderSettingsState): Promise<void> {
   const path = providerSettingsPath()
-  const encoded = state.codexApiKey ? encodeSecret(state.codexApiKey) : {}
+  const encoded: { encrypted?: string } = state.codexApiKey
+    ? encodeSecret(state.codexApiKey)
+    : {}
   const payload: PersistedProviderSettings = {
     defaultProvider: state.settings.defaultProvider,
     safetyProfile: state.settings.safetyProfile,

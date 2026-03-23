@@ -364,9 +364,6 @@ describe("workflow-entry factory helpers", () => {
     expect(
       deriveTemplateContextJourneyStageLabel({
         templateId: "gstack-preflight-gate",
-        workflowPath: "/tmp/preflight.chain",
-        workflowName: "Preflight",
-        source: "template",
         pack: {
           id: "gstack-team",
           label: "Gstack Team",
@@ -393,9 +390,6 @@ describe("workflow-entry factory helpers", () => {
       deriveTemplateContextDisplayLabel({
         templateId: "gstack-preflight-gate",
         templateName: "Gstack Team: Preflight Gate",
-        workflowPath: "/tmp/preflight.chain",
-        workflowName: "Preflight",
-        source: "template",
         pack: {
           id: "gstack-team",
           label: "Gstack Team",

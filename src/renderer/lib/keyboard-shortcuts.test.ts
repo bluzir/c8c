@@ -9,7 +9,7 @@ import {
 } from "./keyboard-shortcuts"
 
 function event(overrides: Partial<KeyboardEvent> = {}) {
-  return {
+  const obj: Record<string, unknown> = {
     key: "",
     altKey: false,
     ctrlKey: false,
@@ -17,12 +17,13 @@ function event(overrides: Partial<KeyboardEvent> = {}) {
     shiftKey: false,
     defaultPrevented: false,
     preventDefault() {
-      this.defaultPrevented = true
+      obj.defaultPrevented = true
     },
     stopPropagation() {},
     stopImmediatePropagation() {},
     ...overrides,
-  } as KeyboardEvent
+  }
+  return obj as unknown as KeyboardEvent
 }
 
 describe("keyboard-shortcuts", () => {

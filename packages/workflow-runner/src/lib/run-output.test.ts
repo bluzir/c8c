@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import type { NodeState, WorkflowNode } from "../schema"
+import type { NodeState, SkillNodeConfig, WorkflowNode } from "../schema"
 import {
   buildSkillNodeOutput,
   createAgentNodeOutput,
@@ -46,7 +46,7 @@ describe("run-output", () => {
       id: "audit",
       type: "skill",
       position: { x: 0, y: 0 },
-      config: { skillRef: "dev/audit" },
+      config: { skillRef: "dev/audit", prompt: "" },
     }
 
     const output = createAgentNodeOutput(
@@ -84,13 +84,13 @@ describe("run-output", () => {
       id: "audit",
       type: "skill",
       position: { x: 0, y: 0 },
-      config: { skillRef: "dev/audit", outputMode: "auto" },
+      config: { skillRef: "dev/audit", prompt: "", outputMode: "auto" },
     }
 
     const output = await buildSkillNodeOutput(
       { warn: () => {} },
       node,
-      node.config,
+      node.config as SkillNodeConfig,
       "thinking...\nwriting the output to the content file",
       contentFile,
       "Original input",

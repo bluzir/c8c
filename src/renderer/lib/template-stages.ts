@@ -1,4 +1,4 @@
-import type { WorkflowTemplateStage } from "@shared/types"
+import type { StageFamily, WorkflowTemplateStage } from "@shared/types"
 
 export const STAGE_ORDER: WorkflowTemplateStage[] = [
   "research",
@@ -48,5 +48,50 @@ export const STAGE_META: Record<
     shortLabel: "Ops",
     description:
       "Organize admin, extract structured data, and tame recurring busywork.",
+  },
+}
+
+export const STAGE_FAMILY_ORDER: StageFamily[] = [
+  "understand",
+  "design",
+  "execute",
+  "evaluate",
+  "validate",
+  "deliver",
+]
+
+export const STAGE_FAMILY_META: Record<
+  StageFamily,
+  { label: string; shortLabel: string; description: string }
+> = {
+  understand: {
+    label: "Understand",
+    shortLabel: "Understand",
+    description: "Research, explore, and gather context before acting.",
+  },
+  design: {
+    label: "Design",
+    shortLabel: "Design",
+    description: "Plan, architect, and define what to build.",
+  },
+  execute: {
+    label: "Execute",
+    shortLabel: "Execute",
+    description: "Build, write, and produce the primary output.",
+  },
+  evaluate: {
+    label: "Evaluate",
+    shortLabel: "Evaluate",
+    description: "Review, audit, and assess quality.",
+  },
+  validate: {
+    label: "Validate",
+    shortLabel: "Validate",
+    description: "Test, verify, and confirm correctness.",
+  },
+  deliver: {
+    label: "Deliver",
+    shortLabel: "Deliver",
+    description: "Ship, publish, and hand off the result.",
   },
 }

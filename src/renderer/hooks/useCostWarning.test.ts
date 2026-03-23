@@ -9,6 +9,9 @@ function createBudgetWarning(
     kind: "token_budget",
     title: "Budget warning",
     message: "Large run cost",
+    detail: "",
+    estimatedCostUsd: 0,
+    worstCaseInvocations: 0,
     ...overrides,
   }
 }
@@ -27,7 +30,7 @@ describe("createCostWarningController", () => {
           kind: "provider_auth",
           title: "Auth",
           message: "Please sign in",
-        },
+        } as unknown as PreflightWarning,
       ]),
     ).resolves.toBe(true)
     expect(states).toEqual([])

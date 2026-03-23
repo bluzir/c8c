@@ -1,5 +1,6 @@
 id: irresistible-resonance-pipeline
 stage: strategy
+stage_family: understand
 emoji: "\U0001F4A1"
 headline: Craft messaging that resonates at every awareness level
 how: Extracts signal from product data, maps audience awareness levels, sharpens messaging, and generates awareness-matched headlines

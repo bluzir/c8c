@@ -1,5 +1,6 @@
 id: delivery-map-codebase
 stage: research
+stage_family: understand
 emoji: "\U0001F5FA"
 headline: Map an existing codebase before planning changes
 how: Build a fast orientation map of the repository, its architecture, and the highest-risk areas before you shape work.

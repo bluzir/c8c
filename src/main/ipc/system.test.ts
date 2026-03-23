@@ -16,9 +16,8 @@ const getUpdateStatusMock = vi.fn()
 const getClaudeCodeSubscriptionStatusMock = vi.fn()
 const allowedProjectRootsMock = vi.fn()
 const allowedOpenPathRootsMock = vi.fn()
-const isRegisteredRootMock =
-  vi.fn<(candidatePath: string, rootPath: string) => boolean>()
-const assertWithinRootsMock = vi.fn((candidatePath: string) => candidatePath)
+const isRegisteredRootMock = vi.fn()
+const assertWithinRootsMock = vi.fn((...args: unknown[]) => args[0] as string)
 const resolveAgentProviderMock = vi.fn()
 
 vi.mock("electron", () => ({

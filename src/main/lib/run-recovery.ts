@@ -15,7 +15,11 @@ const execFile = promisify(execFileCb)
 const RUN_RESULT_FILE = "run-result.json"
 
 interface RunRecoveryBindings {
-  execFile: typeof execFile
+  execFile: (
+    file: string,
+    args: string[],
+    options?: Record<string, unknown>,
+  ) => Promise<{ stdout: string; stderr: string }>
   kill: (pid: number, signal?: NodeJS.Signals | 0) => void
   sleep: (ms: number) => Promise<void>
   now: () => number

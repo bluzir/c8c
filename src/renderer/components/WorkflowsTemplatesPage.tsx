@@ -54,6 +54,7 @@ import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation
 import {
   resolveProjectRequiredContract,
   splitGuidedTemplateEntryContracts,
+  type GuidedTemplateEntryContract,
 } from "@/lib/entry-state-contracts"
 import {
   deriveTemplateExecutionDisciplineLabels,
@@ -84,6 +85,7 @@ import {
   TEMPLATE_CATEGORY_ORDER,
 } from "@/components/templates/templateLibraryModel"
 import { buildTemplateRoutingPreview } from "@/lib/create-routing-preview"
+import { getTemplateSourceLabel } from "@/lib/template-source"
 
 export function WorkflowsTemplatesPage() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([])
@@ -414,7 +416,7 @@ export function WorkflowsTemplatesPage() {
         )
         return
       }
-      void doCreateFromTemplate(template, preferredProjectPath)
+      void doCreateFromTemplate(template, preferredProjectPath!)
       return
     }
 

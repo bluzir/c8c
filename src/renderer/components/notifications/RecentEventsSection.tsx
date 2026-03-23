@@ -97,9 +97,7 @@ export function RecentEventsSection({
                 key={notification.id}
                 className={cn(
                   "border-b border-hairline px-4 py-3 last:border-b-0",
-                  !notification.read
-                    ? "ui-selected-row-tint"
-                    : "bg-transparent",
+                  !notification.read && "bg-surface-1/40",
                 )}
               >
                 <div className="flex items-start gap-3">

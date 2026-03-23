@@ -11,10 +11,7 @@ import { setPluginMcpServerApproved } from "../lib/plugins"
 import { resolveMcpProvider } from "../lib/providers"
 import { allowedProjectRoots, assertWithinRoots } from "../lib/security-paths"
 import { logWarn } from "../lib/structured-log"
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
+import { errorMessage } from "../lib/error-utils"
 
 function scopeRequiresProjectPath(scope: McpServerScope): boolean {
   return scope === "local" || scope === "project"
@@ -156,7 +153,7 @@ export function registerMcpHandlers() {
           "mcp:update-server",
         )
         return mcpProvider.updateServer(
-          normalizedName.value.name,
+          normalizedName.value,
           validatedServer.value,
           safeProjectPath,
         )
@@ -191,7 +188,7 @@ export function registerMcpHandlers() {
           "mcp:remove-server",
         )
         return resolveMcpProvider(provider).removeServer(
-          normalizedName.value.name,
+          normalizedName.value,
           normalizedScope.value,
           safeProjectPath,
         )
@@ -227,7 +224,7 @@ export function registerMcpHandlers() {
           "mcp:toggle-server",
         )
         return resolveMcpProvider(provider).toggleServer(
-          normalizedName.value.name,
+          normalizedName.value,
           normalizedScope.value,
           disabled,
           safeProjectPath,
@@ -273,7 +270,7 @@ export function registerMcpHandlers() {
           "mcp:test-server",
         )
         return resolveMcpProvider(provider).testServer(
-          normalizedName.value.name,
+          normalizedName.value,
           normalizedScope.value,
           safeProjectPath,
         )
@@ -301,7 +298,7 @@ export function registerMcpHandlers() {
         if (!normalizedName.ok) {
           return []
         }
-        serverName = normalizedName.value.name
+        serverName = normalizedName.value
       }
 
       try {

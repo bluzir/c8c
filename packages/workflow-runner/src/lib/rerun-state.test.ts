@@ -56,7 +56,7 @@ describe("prepareRerunState", () => {
         attempts: 2,
         log: [{ type: "error", content: "merge failed", timestamp: 2 }],
         error: "merge failed",
-        meta: { subtaskKey: "branch-b" },
+        meta: { model_id: "sonnet", prompt_hash: "abc", skill_ref: "branch-b" },
       },
       "branch-c": {
         status: "completed",
@@ -91,7 +91,7 @@ describe("prepareRerunState", () => {
     expect(result.nodeStates["branch-b"]).toMatchObject({
       status: "pending",
       attempts: 0,
-      meta: { subtaskKey: "branch-b" },
+      meta: { model_id: "sonnet", prompt_hash: "abc", skill_ref: "branch-b" },
     })
     expect(result.nodeStates["branch-b"].log).toEqual([])
     expect(result.nodeStates.merger.status).toBe("pending")

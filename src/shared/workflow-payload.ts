@@ -54,7 +54,7 @@ function parseWorkflowNode(
     throw new Error(`${label} node "${input.id}" config must be an object.`)
   }
 
-  return input as WorkflowNode
+  return input as unknown as WorkflowNode
 }
 
 function parseWorkflowEdge(
@@ -82,7 +82,7 @@ function parseWorkflowEdge(
     throw new Error(`${label} edge "${input.id}" has an unsupported type.`)
   }
 
-  return input as WorkflowEdge
+  return input as unknown as WorkflowEdge
 }
 
 export function parseWorkflowPayload(
@@ -92,7 +92,11 @@ export function parseWorkflowPayload(
   if (!isRecord(input)) {
     throw new Error(`${label} must be an object.`)
   }
-  if (!Number.isInteger(input.version) || input.version <= 0) {
+  if (
+    typeof input.version !== "number" ||
+    !Number.isInteger(input.version) ||
+    input.version <= 0
+  ) {
     throw new Error(`${label} version must be a positive integer.`)
   }
   if (typeof input.name !== "string") {
@@ -124,7 +128,7 @@ export function parseWorkflowPayload(
 
   return {
     ...(typeof input.id === "string" ? { id: input.id } : {}),
-    version: input.version,
+    version: input.version as number,
     name: input.name,
     ...(typeof input.description === "string"
       ? { description: input.description }

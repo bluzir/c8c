@@ -1,4 +1,5 @@
 import { ipcMain } from "electron"
+import { errorMessage } from "../lib/error-utils"
 import { mergeDiscoveredSkills } from "../lib/skill-scanner"
 import { scanAllLibraries } from "../lib/libraries"
 import {
@@ -11,22 +12,14 @@ import { summarizeMissingWorkflowSkillRefs } from "../lib/telemetry/workflow-usa
 import { logError, logInfo } from "../lib/structured-log"
 import { writeFileAtomic } from "../lib/atomic-write"
 import type { DiscoveredSkill, Workflow } from "@shared/types"
-import { mkdir, access, readFile } from "node:fs/promises"
+import { mkdir, readFile } from "node:fs/promises"
 import { basename, join, resolve } from "node:path"
 import {
   allowedSkillContentRoots,
   assertRegisteredProjectPath,
   assertWithinRoots,
 } from "../lib/security-paths"
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path)
-    return true
-  } catch {
-    return false
-  }
-}
+import { pathExists } from "../lib/fs-utils"
 
 const scanInFlightByProject = new Map<string, Promise<DiscoveredSkill[]>>()
 
@@ -110,7 +103,7 @@ export function registerSkillsHandlers() {
           })
           logError("skills-ipc", "scan_failed", {
             projectPath: safeProjectPath,
-            error: error instanceof Error ? error.message : String(error),
+            error: errorMessage(error),
           })
           throw error
         }
@@ -189,7 +182,7 @@ export function registerSkillsHandlers() {
     const stem = "new-skill"
     let index = 1
     let filePath = join(skillsDir, `${stem}.md`)
-    while (await exists(filePath)) {
+    while (await pathExists(filePath)) {
       index += 1
       filePath = join(skillsDir, `${stem}-${index}.md`)
     }

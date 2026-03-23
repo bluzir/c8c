@@ -1,5 +1,6 @@
 id: segment-research-gate
 stage: research
+stage_family: understand
 emoji: "\U0001F3AF"
 headline: Validate market segments with evidence
 how: Analyzes input context first, then generates grounded segment hypotheses, researches each, and filters by quality check

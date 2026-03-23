@@ -10,8 +10,7 @@ const scanAllSkillsMock =
   vi.fn<(...args: unknown[]) => Promise<DiscoveredSkill[]>>()
 const scanAllLibrariesMock =
   vi.fn<(...args: unknown[]) => Promise<DiscoveredSkill[]>>()
-const assertRegisteredProjectPathMock =
-  vi.fn<(...args: unknown[]) => Promise<string>>()
+const assertRegisteredProjectPathMock = vi.fn()
 const allowedSkillContentRootsMock =
   vi.fn<(...args: unknown[]) => Promise<string[]>>()
 const assertWithinRootsMock = vi.fn<(...args: unknown[]) => string>(

@@ -1,3 +1,4 @@
+import { errorMessage } from "../error-utils"
 import { readFile, writeFile, mkdir, stat } from "node:fs/promises"
 import { join } from "node:path"
 import type { WorkflowTemplate } from "@shared/types"
@@ -43,7 +44,7 @@ async function writeCachedTemplate(
   } catch (error) {
     logWarn("hub-template-cache", "write_failed", {
       id,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     })
   }
 }

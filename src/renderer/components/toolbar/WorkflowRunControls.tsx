@@ -111,9 +111,9 @@ export function WorkflowRunControls({
             <TooltipTrigger asChild>
               <span className="inline-flex">
                 <Button
-                  variant={isPaused ? "outline" : "destructive"}
+                  variant="outline"
                   size="sm"
-                  className="ui-fade-slide-in-trailing gap-1.5"
+                  className="ui-fade-slide-in-trailing gap-1.5 hover:border-status-danger/40 hover:text-status-danger hover:bg-status-danger/5"
                   onClick={onCancel}
                   disabled={isCancelling}
                 >

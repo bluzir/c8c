@@ -126,12 +126,13 @@ export function SidebarProjectWorkflowList({
               const approvalCount = approvalCountByWorkflow[workflow.path] || 0
               const workflowRowState = deriveSidebarWorkflowRowState({
                 executionState: workflowExecutionStates[workflow.path],
-                latestRun: latestRun
-                  ? {
-                      runId: latestRun.runId,
-                      status: latestRun.status,
-                    }
-                  : null,
+                latestRun:
+                  latestRun?.runId != null && latestRun.status != null
+                    ? {
+                        runId: latestRun.runId,
+                        status: latestRun.status,
+                      }
+                    : null,
                 approvalCount,
                 seenRunId: seenRunIds[workflow.path] || null,
                 isSelected,

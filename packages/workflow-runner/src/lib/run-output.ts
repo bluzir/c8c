@@ -214,7 +214,9 @@ export function createNodeOutput(
 
 function normalizeDiagnosticSummaryTone(
   value: unknown,
-): NodeInput["metadata"]["diagnostic_summary"]["tone"] | undefined {
+):
+  | NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["tone"]
+  | undefined {
   return value === "neutral" || value === "warning" || value === "danger"
     ? value
     : undefined
@@ -236,8 +238,8 @@ function normalizeDiagnosticCategorySummary(
   value: unknown,
 ):
   | NonNullable<
-      NodeInput["metadata"]["diagnostic_summary"]
-    >["categories"][number]
+      NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["categories"]
+    >[number]
   | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null
   const record = value as Record<string, unknown>
@@ -257,8 +259,8 @@ function normalizeDiagnosticFindingSummary(
   value: unknown,
 ):
   | NonNullable<
-      NodeInput["metadata"]["diagnostic_summary"]
-    >["topFindings"][number]
+      NonNullable<NodeInput["metadata"]["diagnostic_summary"]>["topFindings"]
+    >[number]
   | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null
   const record = value as Record<string, unknown>

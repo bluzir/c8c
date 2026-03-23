@@ -1,3 +1,4 @@
+import { errorMessage } from "./error-utils"
 import { readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -271,7 +272,7 @@ export async function addMcpServer(
     invalidateMcpCachesForScope(server.scope, server.name, projectPath)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = errorMessage(error)
     return { success: false, error: message }
   }
 }
@@ -291,7 +292,7 @@ export async function removeMcpServer(
     invalidateMcpCachesForScope(scope, name, projectPath)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = errorMessage(error)
     return { success: false, error: message }
   }
 }
@@ -365,7 +366,7 @@ export async function toggleMcpServer(
     invalidateMcpCachesForScope(scope, name, projectPath)
     return { success: true }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = errorMessage(error)
     return { success: false, error: message }
   }
 }
@@ -403,7 +404,7 @@ export async function testMcpServer(
     return { healthy: true, tools, latencyMs }
   } catch (error) {
     const latencyMs = Date.now() - start
-    const message = error instanceof Error ? error.message : String(error)
+    const message = errorMessage(error)
     return { healthy: false, tools: [], error: message, latencyMs }
   }
 }

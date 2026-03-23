@@ -269,18 +269,20 @@ export async function scanSkills(
   projectPath: string,
 ): Promise<DiscoveredSkill[]> {
   const all: DiscoveredSkill[] = []
-  const claudeDir = join(projectPath, ".claude")
   const codexDir = join(projectPath, ".agents", "skills")
 
-  for (const dir of SCAN_DIRS) {
-    const fullDir = join(claudeDir, dir)
-    const skills = await scanDirectory(
-      fullDir,
-      DIR_TO_TYPE[dir],
-      "claude-markdown",
-      "project",
-    )
-    all.push(...skills)
+  for (const topDir of [".claude", ".c8c"]) {
+    const root = join(projectPath, topDir)
+    for (const dir of SCAN_DIRS) {
+      const fullDir = join(root, dir)
+      const skills = await scanDirectory(
+        fullDir,
+        DIR_TO_TYPE[dir],
+        "claude-markdown",
+        "project",
+      )
+      all.push(...skills)
+    }
   }
 
   all.push(...(await scanCodexSkillDirs(codexDir, "project")))

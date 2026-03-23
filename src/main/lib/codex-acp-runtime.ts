@@ -24,6 +24,7 @@ import type {
 import { buildCodexEnv, execCodex } from "./codex-cli"
 import { buildClaudeSdkMcpServers } from "./mcp-config"
 import { getCodexApiKey, getProviderSettings } from "./provider-settings"
+import { errorMessage } from "./error-utils"
 import { logInfo } from "./structured-log"
 
 const require = createRequire(import.meta.url)
@@ -183,10 +184,6 @@ function parseCodexJsonValue(value: unknown): unknown {
   } catch {
     return value
   }
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function normalizeCodexErrorText(text: string): string {

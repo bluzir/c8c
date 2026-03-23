@@ -4,9 +4,8 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>()
-const allowedProjectRootsMock = vi.fn<() => Promise<string[]>>()
-const assertRegisteredProjectPathMock =
-  vi.fn<(projectPath: string) => Promise<string>>()
+const allowedProjectRootsMock = vi.fn()
+const assertRegisteredProjectPathMock = vi.fn()
 const assertWithinRootsMock = vi.fn()
 const execFileMock = vi.fn()
 
@@ -25,10 +24,10 @@ vi.mock("node:child_process", () => ({
 }))
 
 vi.mock("../lib/security-paths", () => ({
-  allowedProjectRoots: (...args: unknown[]) => allowedProjectRootsMock(...args),
-  assertRegisteredProjectPath: (...args: unknown[]) =>
+  allowedProjectRoots: (...args: any[]) => allowedProjectRootsMock(...args),
+  assertRegisteredProjectPath: (...args: any[]) =>
     assertRegisteredProjectPathMock(...args),
-  assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
+  assertWithinRoots: (...args: any[]) => assertWithinRootsMock(...args),
 }))
 
 describe("files IPC", () => {

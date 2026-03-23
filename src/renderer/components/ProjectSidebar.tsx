@@ -469,8 +469,8 @@ export function ProjectSidebar({
               const projectRollupMeta =
                 projectRollup.blockedCount > 0
                   ? {
-                      dotClass: "bg-status-danger",
-                      title: `${projectRollup.blockedCount} blocked flow${projectRollup.blockedCount === 1 ? "" : "s"}`,
+                      dotClass: "bg-status-warning",
+                      title: `${projectRollup.blockedCount} flow${projectRollup.blockedCount === 1 ? "" : "s"} waiting for attention`,
                     }
                   : projectRollup.waitingCount > 0
                     ? {

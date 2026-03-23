@@ -153,7 +153,7 @@ export function resolveWorkflowRunDisplayState({
       label: "Failed",
       tone: "danger",
       isInFlight,
-      isTerminal: runStatus === "error" || runStatus === "done",
+      isTerminal: false,
       needsAttention: true,
       isFailure: true,
     }

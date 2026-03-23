@@ -8,10 +8,9 @@ const saveChainYamlMock = vi.fn()
 const loadChainMock = vi.fn()
 const saveChainMock = vi.fn()
 const moveChatHistoryMock = vi.fn()
-const allowedWorkflowRootsMock = vi.fn<() => Promise<string[]>>()
-const assertRegisteredProjectPathMock =
-  vi.fn<(projectPath: string) => Promise<string>>()
-const assertWithinRootsMock = vi.fn((candidatePath: string) => candidatePath)
+const allowedWorkflowRootsMock = vi.fn()
+const assertRegisteredProjectPathMock = vi.fn()
+const assertWithinRootsMock = vi.fn((...args: unknown[]) => args[0] as string)
 
 vi.mock("electron", () => ({
   ipcMain: {
@@ -70,7 +69,7 @@ describe("workflows IPC", () => {
       async (projectPath: string) => projectPath,
     )
     assertWithinRootsMock.mockImplementation(
-      (candidatePath: string) => candidatePath,
+      (...args: unknown[]) => args[0] as string,
     )
   })
 

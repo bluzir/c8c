@@ -1,12 +1,13 @@
-import { existsSync, realpathSync } from "node:fs"
 import { readdir, readFile, mkdir, access, rm } from "node:fs/promises"
-import { join, basename, dirname, relative, resolve } from "node:path"
+import { join, basename, resolve } from "node:path"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import matter from "gray-matter"
 import type { DiscoveredSkill } from "@shared/types"
 import { logWarn } from "./structured-log"
 import { resolveAppHomeDir } from "./runtime-paths"
+import { errorCode, errorMessage } from "./error-utils"
+import { isWithinRoot } from "./security-paths"
 
 const execFileAsync = promisify(execFile)
 
@@ -14,41 +15,14 @@ function librariesDir(): string {
   return join(resolveAppHomeDir(), ".c8c", "libraries")
 }
 
-function canonicalizePath(inputPath: string): string {
-  const resolvedPath = resolve(inputPath)
-  if (existsSync(resolvedPath)) {
-    return realpathSync(resolvedPath)
-  }
-  const parentPath = dirname(resolvedPath)
-  if (parentPath === resolvedPath) {
-    return resolvedPath
-  }
-  return join(canonicalizePath(parentPath), basename(resolvedPath))
-}
-
 function assertWithinLibrariesDir(
   candidatePath: string,
   rootPath: string,
 ): string {
-  const candidate = canonicalizePath(candidatePath)
-  const root = canonicalizePath(rootPath)
-  const rel = relative(root, candidate)
-  if (rel === "" || (!rel.startsWith("..") && !rel.includes("..\\"))) {
-    return resolve(candidatePath)
+  if (!isWithinRoot(candidatePath, rootPath)) {
+    throw new Error("Library path is outside allowed directories")
   }
-  throw new Error("Library path is outside allowed directories")
-}
-
-function errorCode(error: unknown): string | undefined {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = (error as { code?: unknown }).code
-    if (typeof code === "string") return code
-  }
-  return undefined
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  return resolve(candidatePath)
 }
 
 function normalizeString(value: unknown): string | undefined {

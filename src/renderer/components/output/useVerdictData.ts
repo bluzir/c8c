@@ -453,9 +453,7 @@ export function deriveVerdictData({
         formatScore(scoreValue),
         criticalCount > 0
           ? `${criticalCount} critical`
-          : scoreValue != null ||
-              warningCount > 0 ||
-              terminalVariant === "failed"
+          : scoreValue != null || warningCount > 0
             ? "0 critical"
             : null,
         warningCount > 0

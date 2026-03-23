@@ -4,6 +4,7 @@ import matter from "gray-matter"
 import type { DiscoveredSkill, InstalledPlugin } from "@shared/types"
 import { ensurePluginMarketplacesDir, listInstalledPlugins } from "./plugins"
 import { isWithinRoot } from "./security-paths"
+import { errorMessage } from "./error-utils"
 import { logWarn } from "./structured-log"
 
 const SCAN_DIRS = ["skills", "agents", "commands"] as const
@@ -21,10 +22,6 @@ function errorCode(error: unknown): string | undefined {
     if (typeof code === "string") return code
   }
   return undefined
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function normalizeString(value: unknown): string | undefined {
@@ -289,18 +286,20 @@ export async function scanSkills(
   projectPath: string,
 ): Promise<DiscoveredSkill[]> {
   const all: DiscoveredSkill[] = []
-  const claudeDir = join(projectPath, ".claude")
   const codexDir = join(projectPath, ".agents", "skills")
 
-  for (const dir of SCAN_DIRS) {
-    const fullDir = join(claudeDir, dir)
-    const skills = await scanDirectory(
-      fullDir,
-      DIR_TO_TYPE[dir],
-      "claude-markdown",
-      "project",
-    )
-    all.push(...skills)
+  for (const topDir of [".claude", ".c8c"]) {
+    const root = join(projectPath, topDir)
+    for (const dir of SCAN_DIRS) {
+      const fullDir = join(root, dir)
+      const skills = await scanDirectory(
+        fullDir,
+        DIR_TO_TYPE[dir],
+        "claude-markdown",
+        "project",
+      )
+      all.push(...skills)
+    }
   }
 
   all.push(...(await scanCodexSkillDirs(codexDir, "project")))

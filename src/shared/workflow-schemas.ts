@@ -384,9 +384,9 @@ export const templateDocumentSchema = workflowSchema
   .passthrough()
 
 function formatIssuePath(path: PropertyKey[]): string {
-  return path.reduce((result, segment) => {
+  return path.reduce<string>((result, segment) => {
     if (typeof segment === "number") {
-      return `${result}[${segment}]`
+      return `${result}[${String(segment)}]`
     }
     return result ? `${result}.${String(segment)}` : String(segment)
   }, "")

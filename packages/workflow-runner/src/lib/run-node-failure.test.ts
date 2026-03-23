@@ -18,8 +18,8 @@ function createNode(
     id,
     type,
     position: { x: 0, y: 0 },
-    config: type === "skill" ? { skillRef: `dev/${id}` } : {},
-  }
+    config: type === "skill" ? { skillRef: `dev/${id}`, prompt: "" } : {},
+  } as WorkflowNode
 }
 
 function createWorkflow(node: WorkflowNode): RuntimeWorkflow {

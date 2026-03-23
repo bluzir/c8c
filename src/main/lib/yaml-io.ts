@@ -30,7 +30,7 @@ export async function loadChainYaml(filePath: string): Promise<Workflow> {
       formatSchemaValidationError("Invalid workflow YAML", result.error),
     )
   }
-  return result.data
+  return result.data as Workflow
 }
 
 export async function saveChainYaml(

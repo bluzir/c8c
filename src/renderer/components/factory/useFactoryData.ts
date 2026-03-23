@@ -331,9 +331,10 @@ export function useFactoryData({
                 : false),
           )
           .sort((left, right) => right.completedAt - left.completedAt)
-        const nextTemplatesForCase = isFactoryCaseBlocked(
-          entry.continuationStatus,
-        )
+        const continuationBlocked =
+          entry.continuationStatus != null &&
+          isFactoryCaseBlocked(entry.continuationStatus)
+        const nextTemplatesForCase = continuationBlocked
           ? []
           : selectFactoryCaseNextTemplates({
               caseArtifacts,
@@ -345,10 +346,7 @@ export function useFactoryData({
         let status: FactoryCase["status"] = "completed"
         if (entry.activeRun) {
           status = "active"
-        } else if (
-          entry.tasks.length > 0 ||
-          isFactoryCaseBlocked(entry.continuationStatus)
-        ) {
+        } else if (entry.tasks.length > 0 || continuationBlocked) {
           status = "blocked"
         } else if (
           entry.continuationStatus === "ready" ||
@@ -940,7 +938,7 @@ export function useFactoryData({
               : "Saved work is ready to continue."),
           timestamp:
             entry.latestArtifact?.updatedAt ||
-            entry.latestRun?.completedAt ||
+            entry.latestRun?.lastUpdatedAt ||
             0,
           tone: "success",
           artifacts: entry.artifacts,

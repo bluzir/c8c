@@ -9,7 +9,7 @@ describe("canStartManualContinuation", () => {
   it("allows resuming from a paused run", () => {
     expect(canStartManualContinuation("paused")).toBe(true)
     expect(canStartManualContinuation("idle")).toBe(true)
-    expect(canStartManualContinuation("failed")).toBe(true)
+    expect(canStartManualContinuation("error")).toBe(true)
   })
 
   it("blocks continuation while a run is actively starting or running", () => {

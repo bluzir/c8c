@@ -24,7 +24,7 @@ function createWorkflow(): Workflow {
         id: "splitter",
         type: "splitter",
         position: { x: 100, y: 0 },
-        config: { maxBranches: 8 },
+        config: { strategy: "auto", maxBranches: 8 },
       },
       {
         id: "audit",
@@ -173,6 +173,7 @@ describe("run-session", () => {
         ],
         runtimeMeta: {
           "audit::security": {
+            subtaskContent: "",
             subtaskKey: "security",
             branchIndex: 0,
             totalBranches: 2,
@@ -180,6 +181,7 @@ describe("run-session", () => {
             splitterId: "splitter",
           },
           "audit::quality": {
+            subtaskContent: "",
             subtaskKey: "quality",
             branchIndex: 1,
             totalBranches: 2,

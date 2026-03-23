@@ -7,11 +7,8 @@ import type {
   AgentRunResult,
   ProviderId,
 } from "@shared/types"
+import { errorMessage } from "./error-utils"
 import { LogParser } from "./log-parser"
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export class AsyncEventQueue<T> implements AsyncIterable<T> {
   private items: T[] = []

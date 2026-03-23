@@ -3,9 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": [
-    "src/**/*",
-    "packages/workflow-runner/src/**/*",
-    "packages/workflow-cli/src/**/*"
-  ]
+  "include": ["src/renderer/**/*", "src/shared/**/*"]
 }

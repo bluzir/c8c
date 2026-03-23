@@ -1,3 +1,4 @@
+import { errorMessage } from "./error-utils"
 import { mkdir, readFile, readdir } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -124,6 +125,6 @@ export function logBatchPersistenceFailure(
 ): void {
   logWarn("batch-state", "persist_batch_state_failed", {
     batchId,
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage(error),
   })
 }

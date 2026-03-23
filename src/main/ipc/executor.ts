@@ -82,6 +82,7 @@ import {
   readPersistedEventsTail,
 } from "./run-snapshot"
 import { parseWorkflowPayload } from "@shared/workflow-payload"
+import { errorMessage } from "../lib/error-utils"
 
 let runCounter = 0
 let batchCounter = 0
@@ -257,10 +258,6 @@ function errorCode(error: unknown): string | undefined {
     if (typeof code === "string") return code
   }
   return undefined
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 function sanitizeHumanTasks(input: unknown): Record<string, HumanTaskPointer> {

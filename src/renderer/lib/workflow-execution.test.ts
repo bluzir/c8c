@@ -9,6 +9,7 @@ import {
   hasWorkflowExecutionInspectableResult,
   resetWorkflowExecutionState,
   reduceWorkflowExecutionEvent,
+  type WorkflowExecutionState,
 } from "./workflow-execution"
 
 function createWorkflow(): Workflow {
@@ -558,7 +559,7 @@ describe("workflow execution state", () => {
       artifactPersistenceStatus: "saved" as const,
       nodeStates: {
         input: {
-          status: "completed",
+          status: "completed" as const,
           attempts: 1,
           log: [],
           output: {
@@ -568,18 +569,21 @@ describe("workflow execution state", () => {
         },
       },
       surfaceNotice: {
-        level: "warning",
+        level: "warning" as const,
         title: "Run cancelled",
         description:
           "The flow stopped before it finished, but partial result is still available to review.",
         actionLabel: "View partial result",
-        actionTarget: "result",
+        actionTarget: "result" as const,
       },
     }
 
-    const nextState = resetWorkflowExecutionState(previousState, {
-      preserveCompletedWork: true,
-    })
+    const nextState = resetWorkflowExecutionState(
+      previousState as WorkflowExecutionState,
+      {
+        preserveCompletedWork: true,
+      },
+    )
 
     expect(nextState.runStatus).toBe("idle")
     expect(nextState.runId).toBeNull()

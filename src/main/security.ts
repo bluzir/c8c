@@ -1,4 +1,4 @@
-type ResponseHeaders = Record<string, string[] | undefined>
+type ResponseHeaders = Record<string, string | string[]>
 
 function parseRendererOrigin(rendererUrl: string | undefined): string | null {
   if (!rendererUrl) return null

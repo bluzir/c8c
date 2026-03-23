@@ -31,7 +31,7 @@ function createRuntimeWorkflow(): RuntimeWorkflow {
         id: "approve",
         type: "approval",
         position: { x: 100, y: 0 },
-        config: { message: "approve" },
+        config: { message: "approve", show_content: true, allow_edit: false },
       },
       { id: "report", type: "output", position: { x: 200, y: 0 }, config: {} },
     ],
@@ -220,6 +220,7 @@ describe("run-lifecycle", () => {
       ...createRuntimeWorkflow(),
       runtimeMeta: {
         "approve::branch-1": {
+          subtaskContent: "",
           subtaskKey: "branch-1",
           branchIndex: 0,
           totalBranches: 1,

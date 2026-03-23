@@ -41,7 +41,7 @@ export const PromptComposer = React.forwardRef<
     return (
       <div
         className={cn(
-          "overflow-hidden rounded-2xl surface-panel ui-transition-surface focus-within:border-ring/50 focus-within:ring-[3px] focus-within:ring-ring/10",
+          "overflow-hidden rounded-2xl surface-figure ui-transition-surface focus-within:border-ring/50 focus-within:ring-[3px] focus-within:ring-ring/10",
           shellClassName,
         )}
       >

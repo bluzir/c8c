@@ -8,13 +8,12 @@ import type {
 
 const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>()
 const resolveMcpProviderMock = vi.fn()
-const listPluginMcpServersMock = vi.fn<() => Promise<PluginMcpServerInfo[]>>()
-const setPluginMcpServerApprovedMock = vi.fn<
-  (...args: unknown[]) => Promise<boolean>
->(() => Promise.resolve(true))
-const allowedProjectRootsMock = vi.fn<() => Promise<string[]>>()
-const assertWithinRootsMock =
-  vi.fn<(candidatePath: string, roots: string[], label: string) => string>()
+const listPluginMcpServersMock = vi.fn()
+const setPluginMcpServerApprovedMock = vi.fn((..._args: unknown[]) =>
+  Promise.resolve(true),
+)
+const allowedProjectRootsMock = vi.fn()
+const assertWithinRootsMock = vi.fn()
 
 const listServersMock = vi.fn()
 const listAllServersMock = vi.fn()

@@ -392,11 +392,13 @@ async function executeSkillNode(
 
   const updateSkillMetricsAndMeta = () => {
     const metrics = context.helpers.collectMetrics(logParser, state.startedAt!)
-    metrics.cost_usd = context.helpers.estimateCost(
-      skillModel,
-      metrics.tokens_in,
-      metrics.tokens_out,
-    )
+    if (metrics) {
+      metrics.cost_usd = context.helpers.estimateCost(
+        skillModel,
+        metrics.tokens_in,
+        metrics.tokens_out,
+      )
+    }
     state.metrics = metrics
     state.meta = context.helpers.buildNodeMeta(
       prompt,
@@ -757,11 +759,13 @@ async function executeEvaluatorNode(
     logParser,
     state.startedAt!,
   )
-  evalMetrics.cost_usd = context.helpers.estimateCost(
-    evalModel,
-    evalMetrics.tokens_in,
-    evalMetrics.tokens_out,
-  )
+  if (evalMetrics) {
+    evalMetrics.cost_usd = context.helpers.estimateCost(
+      evalModel,
+      evalMetrics.tokens_in,
+      evalMetrics.tokens_out,
+    )
+  }
   state.metrics = evalMetrics
   state.meta = context.helpers.buildNodeMeta(
     evalPrompt,
@@ -1061,13 +1065,15 @@ async function executeSplitterNode(
       logParser,
       state.startedAt!,
     )
-    totalTokensIn += attemptMetrics.tokens_in
-    totalTokensOut += attemptMetrics.tokens_out
-    totalCostUsd += context.helpers.estimateCost(
-      splitterModel,
-      attemptMetrics.tokens_in,
-      attemptMetrics.tokens_out,
-    )
+    if (attemptMetrics) {
+      totalTokensIn += attemptMetrics.tokens_in
+      totalTokensOut += attemptMetrics.tokens_out
+      totalCostUsd += context.helpers.estimateCost(
+        splitterModel,
+        attemptMetrics.tokens_in,
+        attemptMetrics.tokens_out,
+      )
+    }
 
     if (context.runtime.controller.signal.aborted) {
       throw new Error("Splitter aborted")
@@ -1437,11 +1443,13 @@ async function executeMergerNode(
     logParser,
     state.startedAt!,
   )
-  mergerMetrics.cost_usd = context.helpers.estimateCost(
-    mergerModel,
-    mergerMetrics.tokens_in,
-    mergerMetrics.tokens_out,
-  )
+  if (mergerMetrics) {
+    mergerMetrics.cost_usd = context.helpers.estimateCost(
+      mergerModel,
+      mergerMetrics.tokens_in,
+      mergerMetrics.tokens_out,
+    )
+  }
   state.metrics = mergerMetrics
   state.meta = context.helpers.buildNodeMeta(
     mergePrompt,
@@ -1732,7 +1740,7 @@ export async function executeNodeByType(
       return executeOutputNode(context)
     default:
       throw new Error(
-        `Node executor not yet extracted for ${context.node.type}`,
+        `Node executor not yet extracted for ${(context.node as { type: string }).type}`,
       )
   }
 }

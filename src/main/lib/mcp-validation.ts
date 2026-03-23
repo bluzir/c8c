@@ -6,6 +6,7 @@ import type {
 } from "@shared/types"
 
 export interface NormalizedMcpServerEntry {
+  [key: string]: unknown
   type: McpTransportType
   command?: string
   args?: string[]

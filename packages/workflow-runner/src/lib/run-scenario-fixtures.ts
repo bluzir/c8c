@@ -49,7 +49,7 @@ function splitterNode(id: string): WorkflowNode {
     id,
     type: "splitter",
     position: { x: 100, y: 0 },
-    config: { maxBranches: 8 },
+    config: { strategy: "auto", maxBranches: 8 },
   }
 }
 
@@ -160,6 +160,7 @@ export function createFailedFanOutScenario(): RunScenarioFixture {
       ],
       runtimeMeta: {
         "audit::security": {
+          subtaskContent: "",
           subtaskKey: "security",
           branchIndex: 0,
           totalBranches: 2,
@@ -167,6 +168,7 @@ export function createFailedFanOutScenario(): RunScenarioFixture {
           splitterId: "splitter",
         },
         "audit::quality": {
+          subtaskContent: "",
           subtaskKey: "quality",
           branchIndex: 1,
           totalBranches: 2,

@@ -1,5 +1,6 @@
 import { app, type BrowserWindow } from "electron"
 import { resolve } from "path"
+import { errorMessage } from "./lib/error-utils"
 import {
   fetchRemoteTemplate,
   fetchRemoteTemplateByUrl,
@@ -123,7 +124,7 @@ export async function handleDeepLink(
       : await fetchRemoteTemplate(parsed.templateId)
     window.webContents.send("template:deep-link", template)
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = errorMessage(error)
     window.webContents.send("template:deep-link-error", {
       templateId: parsed.templateId,
       error: message,

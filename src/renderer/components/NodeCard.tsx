@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { NODE_ICON_TONES } from "@/lib/node-ui-config"
+import type { RuntimeBranchSummary } from "@/components/node-card/runtime-card-copy"
 import {
   InputNodeEditor,
   OutputNodeEditor,

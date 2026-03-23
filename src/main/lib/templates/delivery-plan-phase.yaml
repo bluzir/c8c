@@ -1,5 +1,6 @@
 id: delivery-plan-phase
 stage: strategy
+stage_family: design
 emoji: "\U0001F4D0"
 headline: Plan the next change before coding starts
 how: Break the next change into concrete slices, dependencies, and validation checks before execution begins.

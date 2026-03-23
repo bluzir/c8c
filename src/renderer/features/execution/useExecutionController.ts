@@ -12,8 +12,8 @@ import type {
   ExecutionRunStatus,
   ExecutionSurfaceNotice,
   WorkflowExecutionState,
-  WorkflowNode,
 } from "@/lib/workflow-execution"
+import type { WorkflowNode } from "@shared/types"
 import {
   hasCompletedFirstFlowAtom,
   inboxNotificationsAtom,
@@ -72,7 +72,7 @@ function getWorkflowNotificationAction(
     kind: "open_workflow" as const,
     workflowPath: state.runWorkflowPath,
     workspace: state.workspace || undefined,
-    label: state.runOutcome === "completed" ? "Open flow" : "Inspect flow",
+    label: "Open flow",
   }
 }
 

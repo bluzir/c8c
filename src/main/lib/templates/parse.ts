@@ -7,6 +7,7 @@ import type {
   ArtifactContract,
   ExecutionPolicyTag,
   Workflow,
+  StageFamily,
   WorkflowExecutionPolicyProfile,
   WorkflowTemplate,
   WorkflowTemplateCredit,
@@ -37,6 +38,8 @@ interface FlatExecutionPolicyProfile {
 interface FlatTemplate {
   id: string
   stage: WorkflowTemplateStage
+  stageFamily?: StageFamily
+  stage_family?: StageFamily
   emoji: string
   headline: string
   how: string
@@ -121,6 +124,8 @@ export function parseTemplate(
   const {
     id,
     stage,
+    stageFamily,
+    stage_family,
     emoji,
     headline,
     how,
@@ -144,6 +149,7 @@ export function parseTemplate(
     name: workflow.name,
     description: workflow.description ?? "",
     stage,
+    stageFamily: stageFamily ?? stage_family,
     emoji,
     headline,
     how,

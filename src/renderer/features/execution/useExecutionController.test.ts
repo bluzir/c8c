@@ -156,9 +156,14 @@ describe("subscribeWorkflowEventBridge", () => {
       },
     )
 
-    const returnedUnsubscribe = subscribeWorkflowEventBridge(subscribe, {
-      processWorkflowEvent,
-    } as { processWorkflowEvent: typeof processWorkflowEvent })
+    const returnedUnsubscribe = subscribeWorkflowEventBridge(
+      subscribe as unknown as (
+        callback: (event: import("@shared/types").WorkflowEvent) => void,
+      ) => () => void,
+      {
+        processWorkflowEvent,
+      } as { processWorkflowEvent: typeof processWorkflowEvent },
+    )
 
     expect(subscribe).toHaveBeenCalledTimes(1)
     expect(processWorkflowEvent).toHaveBeenCalledWith({

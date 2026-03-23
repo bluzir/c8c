@@ -9,7 +9,7 @@ function dedupeResolved(paths: string[]): string[] {
   return [...new Set(paths.map((value) => resolve(value)))]
 }
 
-function canonicalizePath(inputPath: string): string {
+export function canonicalizePath(inputPath: string): string {
   const resolvedPath = resolve(inputPath)
   if (existsSync(resolvedPath)) {
     return realpathSync(resolvedPath)

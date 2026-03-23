@@ -8,8 +8,7 @@ const refreshHubCatalogMock = vi.fn()
 const getHubTemplateMock = vi.fn()
 const listPopularTemplateIdsForProjectMock = vi.fn()
 const recordProjectTemplateUsageMock = vi.fn()
-const assertRegisteredProjectPathMock =
-  vi.fn<(projectPath: string) => Promise<string>>()
+const assertRegisteredProjectPathMock = vi.fn()
 
 vi.mock("electron", () => ({
   ipcMain: {

@@ -264,9 +264,8 @@ function createEvent(windowId: number) {
   }
 }
 
-function getHandler<T extends (...args: unknown[]) => unknown>(
-  channel: string,
-): T {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getHandler<T extends (...args: any[]) => any>(channel: string): T {
   const handler = ipcHandlers.get(channel)
   expect(handler).toBeDefined()
   return handler as T

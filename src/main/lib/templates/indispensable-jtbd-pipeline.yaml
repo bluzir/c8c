@@ -1,5 +1,6 @@
 id: indispensable-jtbd-pipeline
 stage: strategy
+stage_family: understand
 emoji: "\U0001F48E"
 headline: Turn raw product data into JTBD positioning
 how: Extracts jobs, segments users, scores opportunities, distills strategy, sharpens positioning, and clarifies messaging

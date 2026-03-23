@@ -1,5 +1,6 @@
 id: delivery-research-phase
 stage: research
+stage_family: understand
 emoji: "\U0001F52C"
 headline: Research the next change before implementation starts
 how: Gather the evidence, constraints, and unknowns that should shape the next change before code begins.
