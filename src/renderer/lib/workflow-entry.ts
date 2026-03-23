@@ -224,11 +224,13 @@ const JOURNEY_STAGE_LABELS: Record<string, string> = {
 const TEMPLATE_STAGE_LABELS: Record<string, string> = {
   "delivery-map-codebase": "Shape / Map",
   "delivery-shape-project": "Shape / Map",
+  "delivery-investigate-bug": "Shape / Map",
   "gstack-feature-squad": "Shape / Map",
   "delivery-plan-phase": "Plan",
   "delivery-implement-phase": "Implement",
   "delivery-review-phase": "Review",
   "delivery-verify-phase": "Verify",
+  "full-stack-code-audit": "Review",
   "gstack-preflight-gate": "Verify",
   "gstack-release-room": "Ship",
 }
@@ -236,6 +238,7 @@ const TEMPLATE_STAGE_LABELS: Record<string, string> = {
 const TEMPLATE_JOB_LABELS: Record<string, string> = {
   "delivery-map-codebase": "Change the current app",
   "delivery-shape-project": "Build from brief",
+  "delivery-investigate-bug": "Investigate the bug",
   "delivery-plan-phase": "Prepare the implementation plan",
   "delivery-implement-phase": "Apply approved changes",
   "delivery-review-phase": "Review before ship",
@@ -248,7 +251,7 @@ const TEMPLATE_JOB_LABELS: Record<string, string> = {
 }
 
 const TEMPLATE_CONTINUATION_LABELS: Record<string, string> = {
-  "delivery-map-codebase": "Explore this project",
+  "delivery-map-codebase": "Understand the current app",
   "delivery-shape-project": "Define the change",
   "delivery-plan-phase": "Plan the change",
   "delivery-implement-phase": "Apply approved changes",

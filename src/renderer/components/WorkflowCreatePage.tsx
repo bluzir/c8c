@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
   chatPanelOpenAtom,
@@ -33,6 +33,7 @@ import {
   workflowsAtom,
 } from "@/lib/store"
 import { Button } from "@/components/ui/button"
+import { ProcessSpine } from "@/components/ui/process-spine"
 import { PromptComposer } from "@/components/ui/prompt-composer"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
@@ -75,6 +76,10 @@ import {
 } from "@/lib/result-mode-config"
 import { getResultMode } from "@/lib/result-modes"
 import { sanitizeDirectCreateFallbackTemplateId } from "@shared/create-entry-routing"
+import {
+  buildCreateRoutingPreview,
+  type CreateRoutingPreview,
+} from "@/lib/create-routing-preview"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
@@ -116,18 +121,30 @@ function waitForMs(ms: number) {
 function WorkflowCreateRoutingState({
   targetProjectName,
   phase,
+  routingPreview,
 }: {
   targetProjectName: string | null
   phase: WorkflowCreateRoutingPhase
+  routingPreview: CreateRoutingPreview | null
 }) {
   const steps = [
     "Read your goal",
     targetProjectName
       ? `Inspect ${targetProjectName}`
       : "Inspect project context",
-    "Open the best starting point",
+    routingPreview?.title
+      ? `Open ${routingPreview.title}`
+      : "Open the best starting point",
   ]
   const activeStepIndex = phase === "opening" ? 2 : 1
+  const routingMeta = [
+    routingPreview?.helpModeLabel,
+    routingPreview?.stageLabel
+      ? `Starts in ${routingPreview.stageLabel}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
 
   return (
     <div className="space-y-3 ui-fade-slide-in px-4 py-4">
@@ -178,6 +195,24 @@ function WorkflowCreateRoutingState({
           </div>
         ))}
       </div>
+      {phase === "opening" && routingPreview ? (
+        <div className="space-y-3 ui-section-divider pt-4">
+          <div className="space-y-1">
+            <p className="ui-meta-text text-muted-foreground">Starting point</p>
+            <p className="text-body-sm font-medium text-foreground">
+              {routingPreview.title}
+            </p>
+            {routingMeta ? (
+              <p className="text-body-sm text-muted-foreground">
+                {routingMeta}
+              </p>
+            ) : null}
+          </div>
+          {routingPreview.stages.length > 0 ? (
+            <ProcessSpine stages={routingPreview.stages} />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -272,6 +307,8 @@ export function WorkflowCreatePage() {
     useState<WorkflowTemplate | null>(null)
   const [routeClarification, setRouteClarification] =
     useState<CreateEntryRouteClarification | null>(null)
+  const [routingPreview, setRoutingPreview] =
+    useState<CreateRoutingPreview | null>(null)
   const [templateAction, setTemplateAction] = useState<
     "create" | "customize" | null
   >(null)
@@ -438,6 +475,43 @@ export function WorkflowCreatePage() {
     submitError,
     promptHelperOpen,
   })
+  const jobRouteMetaByTemplateId = useMemo(() => {
+    if (routeClarification?.kind !== "job_route") return {}
+
+    return Object.fromEntries(
+      routeClarification.options.map((option) => {
+        const preview = buildCreateRoutingPreview({
+          templateId: option.templateId,
+          templates: availableTemplates,
+          routeOptions,
+        })
+        return [
+          option.templateId,
+          {
+            helpModeLabel: preview?.helpModeLabel ?? null,
+            stageLabel: preview?.stageLabel
+              ? `Starts in ${preview.stageLabel}`
+              : null,
+          },
+        ]
+      }),
+    )
+  }, [availableTemplates, routeClarification, routeOptions])
+  const pendingTemplateRoutingPreview = useMemo(() => {
+    if (!pendingTemplate) return null
+
+    const previewCatalog = availableTemplates.some(
+      (template) => template.id === pendingTemplate.id,
+    )
+      ? availableTemplates
+      : [...availableTemplates, pendingTemplate]
+
+    return buildCreateRoutingPreview({
+      templateId: pendingTemplate.id,
+      templates: previewCatalog,
+      routeOptions,
+    })
+  }, [availableTemplates, pendingTemplate, routeOptions])
 
   const resetCreateSurfaceState = () => {
     setDraftPrompt("")
@@ -445,6 +519,7 @@ export function WorkflowCreatePage() {
     setPromptHelperOpen(false)
     setPreferNewFlow(false)
     setRouteClarification(null)
+    setRoutingPreview(null)
     setSubmitError(null)
     setSourceArtifacts([])
     setSourceAttachments([])
@@ -827,6 +902,7 @@ export function WorkflowCreatePage() {
     setSubmitting(true)
     setSubmitError(null)
     setRouteClarification(null)
+    setRoutingPreview(null)
     const isDevelopmentRouting = selectedResultMode.id === "development"
     if (isDevelopmentRouting) {
       setRoutingPhase("inspecting")
@@ -903,6 +979,13 @@ export function WorkflowCreatePage() {
         null
 
       if (startTemplate) {
+        setRoutingPreview(
+          buildCreateRoutingPreview({
+            templateId: startTemplate.id,
+            templates: catalog,
+            routeOptions,
+          }),
+        )
         const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
         const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
           resolvedStartTemplate,
@@ -1191,6 +1274,7 @@ export function WorkflowCreatePage() {
             <WorkflowCreateRoutingState
               targetProjectName={targetProjectName}
               phase={routingPhase}
+              routingPreview={routingPreview}
             />
           ) : null}
 
@@ -1242,6 +1326,7 @@ export function WorkflowCreatePage() {
       {unsavedChangesDialog}
       <RouteClarificationDialog
         clarification={routeClarification}
+        jobRouteMetaByTemplateId={jobRouteMetaByTemplateId}
         onClose={() => setRouteClarification(null)}
         onSelect={handleClarificationSelect}
       />
@@ -1251,9 +1336,17 @@ export function WorkflowCreatePage() {
         targetProjectPath={targetProjectPath}
         targetProjectName={targetProjectName}
         pendingTemplateIntentLabel={
-          pendingQuickStart?.intentLabel || pendingTemplateCategoryLabel
+          pendingTemplateRoutingPreview?.helpModeLabel ||
+          pendingQuickStart?.intentLabel ||
+          pendingTemplateCategoryLabel
+        }
+        pendingTemplateStartStageLabel={
+          pendingTemplateRoutingPreview?.stageLabel || null
         }
         pendingTemplateExecutionSummary={pendingTemplateExecutionSummary}
+        pendingTemplateProcessStages={
+          pendingTemplateRoutingPreview?.stages || null
+        }
         openingProject={openingProject}
         templateAction={templateAction}
         pendingPrimaryActionLabel={pendingPrimaryActionLabel}

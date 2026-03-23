@@ -76,8 +76,7 @@ export function resolveGuidedTemplateEntryContract(
     entryKind,
     jobLabel,
     jobSummary: template.headline || deriveTemplateCardCopy(template),
-    primaryActionLabel:
-      entryKind === "guided" ? "Start first stage" : "Start this flow",
+    primaryActionLabel: `Start ${jobLabel}`,
     useWhen: deriveTemplateUseWhen(template),
     youProvide: template.input,
     youGetFirst: template.output,

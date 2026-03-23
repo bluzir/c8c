@@ -69,7 +69,7 @@ describe("guided entry contracts", () => {
     ).toMatchObject({
       entryKind: "guided",
       jobLabel: "Change the current app",
-      primaryActionLabel: "Start first stage",
+      primaryActionLabel: "Start Change the current app",
       useWhen: expect.any(String),
       youProvide: "A project folder or codebase path.",
       youGetFirst: "A codebase map you can build from.",
@@ -88,7 +88,7 @@ describe("guided entry contracts", () => {
       resolveGuidedTemplateEntryContract(template, [template]),
     ).toMatchObject({
       entryKind: "isolated",
-      primaryActionLabel: "Start this flow",
+      primaryActionLabel: "Start Audit and polish this UI",
       stagePath: [],
       stagePathLabel: null,
     })

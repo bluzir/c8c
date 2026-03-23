@@ -551,7 +551,7 @@ export function WorkflowsTemplatesPage() {
     <PageShell>
       <PageHeader
         title="Starting points"
-        subtitle="Guided paths first, one-off flows second."
+        subtitle="Guided starting points first, one-off flows second."
         actions={headerActions}
       />
 

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
 
 type DeepLinkStartMode = "create" | "replace"
 
@@ -58,7 +59,11 @@ export function DeepLinkTemplateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <CanvasDialogContent showCloseButton={false} size="lg">
         <CanvasDialogHeader>
-          <DialogTitle>Start this flow</DialogTitle>
+          <DialogTitle>
+            {template
+              ? `Start ${deriveTemplateJobLabel(template) || template.name}`
+              : "Start this starting point"}
+          </DialogTitle>
           <DialogDescription>
             &ldquo;{template?.name}&rdquo; is ready. Choose how to apply it,
             then continue.

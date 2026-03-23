@@ -132,7 +132,7 @@ export function TemplateDetailPanel({
           {template.how ? (
             <div className="ui-section-divider pt-4">
               <span className="ui-meta-label text-muted-foreground">
-                Why this start works
+                How this flow works
               </span>
               <p className="mt-2 text-body-sm text-muted-foreground">
                 {template.how}

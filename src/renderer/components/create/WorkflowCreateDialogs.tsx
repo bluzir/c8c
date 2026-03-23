@@ -15,18 +15,27 @@ import type {
   CreateEntryRouteClarification,
   WorkflowTemplate,
 } from "@shared/types"
+import type { ProcessSpineStage } from "@/lib/process-spine"
 import { PendingTemplateDetails } from "@/components/create/TemplateSuggestionCard"
+import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
 
 export type RouteClarificationSelection =
   | { kind: "help_mode"; helpMode: CreateEntryHelpModeHint }
   | { kind: "job_route"; templateId: string }
 
+interface JobRouteMeta {
+  helpModeLabel?: string | null
+  stageLabel?: string | null
+}
+
 export function RouteClarificationDialog({
   clarification,
+  jobRouteMetaByTemplateId,
   onClose,
   onSelect,
 }: {
   clarification: CreateEntryRouteClarification | null
+  jobRouteMetaByTemplateId?: Record<string, JobRouteMeta | undefined>
   onClose: () => void
   onSelect: (selection: RouteClarificationSelection) => void
 }) {
@@ -42,32 +51,44 @@ export function RouteClarificationDialog({
         </CanvasDialogHeader>
         <CanvasDialogBody className="space-y-2">
           {clarification?.kind === "job_route"
-            ? clarification.options.map((option) => (
-                <Button
-                  key={option.templateId}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    onSelect({
-                      kind: "job_route",
-                      templateId: option.templateId,
-                    })
-                  }
-                  className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left"
-                >
-                  <span className="min-w-0">
-                    <span className="block text-body-sm font-medium text-foreground">
-                      {option.label}
-                    </span>
-                    {option.description ? (
-                      <span className="mt-0.5 block text-sidebar-meta text-muted-foreground">
-                        {option.description}
+            ? clarification.options.map((option) => {
+                const meta = jobRouteMetaByTemplateId?.[option.templateId]
+                const metaText = [meta?.helpModeLabel, meta?.stageLabel]
+                  .filter(Boolean)
+                  .join(" · ")
+
+                return (
+                  <Button
+                    key={option.templateId}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      onSelect({
+                        kind: "job_route",
+                        templateId: option.templateId,
+                      })
+                    }
+                    className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-body-sm font-medium text-foreground">
+                        {option.label}
                       </span>
-                    ) : null}
-                  </span>
-                </Button>
-              ))
+                      {metaText ? (
+                        <span className="mt-0.5 block text-sidebar-meta text-muted-foreground">
+                          {metaText}
+                        </span>
+                      ) : null}
+                      {option.description ? (
+                        <span className="mt-0.5 block text-sidebar-meta text-muted-foreground">
+                          {option.description}
+                        </span>
+                      ) : null}
+                    </span>
+                  </Button>
+                )
+              })
             : clarification?.options.map((option) => (
                 <Button
                   key={option.value}
@@ -111,7 +132,9 @@ export function WorkflowCreatePendingTemplateDialog({
   targetProjectPath,
   targetProjectName,
   pendingTemplateIntentLabel,
+  pendingTemplateStartStageLabel,
   pendingTemplateExecutionSummary,
+  pendingTemplateProcessStages,
   openingProject,
   templateAction,
   pendingPrimaryActionLabel,
@@ -125,7 +148,9 @@ export function WorkflowCreatePendingTemplateDialog({
   targetProjectPath: string | null
   targetProjectName: string | null
   pendingTemplateIntentLabel: string | null
+  pendingTemplateStartStageLabel: string | null
   pendingTemplateExecutionSummary: string | null
+  pendingTemplateProcessStages?: ProcessSpineStage[] | null
   openingProject: boolean
   templateAction: "create" | "customize" | null
   pendingPrimaryActionLabel: string
@@ -142,9 +167,13 @@ export function WorkflowCreatePendingTemplateDialog({
       <CanvasDialogContent showCloseButton={false} size="lg">
         <CanvasDialogHeader>
           <DialogTitle>
-            {pendingQuickStartLabel
-              ? `Start ${pendingQuickStartLabel}`
-              : "Start this flow"}
+            {pendingTemplate
+              ? `Start ${
+                  pendingQuickStartLabel ||
+                  deriveTemplateJobLabel(pendingTemplate) ||
+                  pendingTemplate.name
+                }`
+              : "Start this starting point"}
           </DialogTitle>
           <DialogDescription>
             Choose how to open this starting point in your project.
@@ -167,7 +196,9 @@ export function WorkflowCreatePendingTemplateDialog({
           )}
           <PendingTemplateDetails
             intentLabel={pendingTemplateIntentLabel}
+            startStageLabel={pendingTemplateStartStageLabel}
             executionSummary={pendingTemplateExecutionSummary}
+            processStages={pendingTemplateProcessStages}
           />
         </CanvasDialogBody>
         <CanvasDialogFooter>

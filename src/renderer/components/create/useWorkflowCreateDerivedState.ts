@@ -29,13 +29,17 @@ import {
   prioritizeTemplatesForResultMode,
   splitTemplatesForResultMode,
 } from "@/lib/result-modes"
+import { buildCreateRoutingPreview } from "@/lib/create-routing-preview"
 import { STAGE_META } from "@/lib/template-stages"
 import {
   countWorkflowCreateScaffoldFields,
   hasWorkflowCreatePromptContent,
   type WorkflowCreatePromptScaffold,
 } from "@/lib/workflow-create-prompt"
-import { deriveTemplateExecutionDisciplineLabels } from "@/lib/workflow-entry"
+import {
+  deriveTemplateExecutionDisciplineLabels,
+  deriveTemplateJobLabel,
+} from "@/lib/workflow-entry"
 import { filterDirectCreateEntryOptions } from "@shared/create-entry-routing"
 
 const POPULAR_TEMPLATE_LIMIT = 12
@@ -46,6 +50,40 @@ export type WorkflowCreateFigureOwner =
   | "continue_first"
   | "new_flow"
   | "browse_for_start"
+
+export function formatStartingPointMeta({
+  helpModeLabel,
+  stageLabel,
+  fallbackGuidedLabel,
+}: {
+  helpModeLabel?: string | null
+  stageLabel?: string | null
+  fallbackGuidedLabel?: string | null
+}) {
+  const parts = [
+    helpModeLabel?.trim() || null,
+    stageLabel?.trim() ? `Starts in ${stageLabel.trim()}` : null,
+  ].filter(Boolean)
+
+  if (parts.length > 0) return parts.join(" · ")
+  return fallbackGuidedLabel?.trim() || undefined
+}
+
+export function formatPendingStartActionLabel({
+  quickStartLabel,
+  pendingTemplate,
+}: {
+  quickStartLabel?: string | null
+  pendingTemplate?: WorkflowTemplate | null
+}) {
+  const resolvedLabel =
+    quickStartLabel?.trim() ||
+    (pendingTemplate
+      ? deriveTemplateJobLabel(pendingTemplate) || pendingTemplate.name
+      : null)
+
+  return resolvedLabel ? `Start ${resolvedLabel}` : "Start this starting point"
+}
 
 export function resolveWorkflowCreateFigureOwner({
   projectRequired,
@@ -331,16 +369,27 @@ export function useWorkflowCreateDerivedState({
   )
   const suggestedTemplates = useMemo(() => {
     if (displayQuickStarts.length > 0) {
-      return displayQuickStarts.map((quickStart) => ({
-        template: quickStart.template,
-        title: resolveGuidedTemplateEntryContract(
-          quickStart.template,
-          availableTemplates,
-        ).jobLabel,
-        summary: quickStart.summary,
-        eyebrow: quickStart.intentLabel,
-        recommended: quickStart.recommended,
-      }))
+      return displayQuickStarts.map((quickStart) => {
+        const preview = buildCreateRoutingPreview({
+          templateId: quickStart.template.id,
+          templates: availableTemplates,
+          routeOptions,
+        })
+
+        return {
+          template: quickStart.template,
+          title: resolveGuidedTemplateEntryContract(
+            quickStart.template,
+            availableTemplates,
+          ).jobLabel,
+          summary: quickStart.summary,
+          eyebrow: formatStartingPointMeta({
+            helpModeLabel: preview?.helpModeLabel || quickStart.intentLabel,
+            stageLabel: preview?.stageLabel,
+          }),
+          recommended: quickStart.recommended,
+        }
+      })
     }
 
     return [
@@ -348,22 +397,35 @@ export function useWorkflowCreateDerivedState({
       ...visiblePopularTemplateEntries.isolatedEntries,
     ]
       .slice(0, 6)
-      .map((entry) => ({
-        template: entry.template,
-        title: entry.jobLabel,
-        summary:
-          entry.entryKind === "guided" ? entry.useWhen : entry.jobSummary,
-        eyebrow:
-          entry.entryKind === "guided"
-            ? entry.firstStageLabel
-              ? `Guided · ${entry.firstStageLabel}`
-              : "Guided path"
-            : undefined,
-        recommended: false,
-      }))
+      .map((entry) => {
+        const preview =
+          selectedResultMode.id === "development"
+            ? buildCreateRoutingPreview({
+                templateId: entry.template.id,
+                templates: availableTemplates,
+                routeOptions,
+              })
+            : null
+
+        return {
+          template: entry.template,
+          title: entry.jobLabel,
+          summary:
+            entry.entryKind === "guided" ? entry.useWhen : entry.jobSummary,
+          eyebrow: formatStartingPointMeta({
+            helpModeLabel: preview?.helpModeLabel,
+            stageLabel: preview?.stageLabel || entry.firstStageLabel,
+            fallbackGuidedLabel:
+              entry.entryKind === "guided" ? "Guided starting point" : null,
+          }),
+          recommended: false,
+        }
+      })
   }, [
     availableTemplates,
     displayQuickStarts,
+    routeOptions,
+    selectedResultMode.id,
     visiblePopularTemplateEntries.guidedEntries,
     visiblePopularTemplateEntries.isolatedEntries,
   ])
@@ -379,9 +441,10 @@ export function useWorkflowCreateDerivedState({
       ) || null,
     [displayQuickStarts, pendingTemplate?.id],
   )
-  const pendingPrimaryActionLabel = pendingQuickStart?.intentLabel
-    ? `Start ${pendingQuickStart.label}`
-    : "Start with this"
+  const pendingPrimaryActionLabel = formatPendingStartActionLabel({
+    quickStartLabel: pendingQuickStart?.label,
+    pendingTemplate,
+  })
   const figureOwner = resolveWorkflowCreateFigureOwner({
     projectRequired: projectRequired.projectRequired,
     submitError,

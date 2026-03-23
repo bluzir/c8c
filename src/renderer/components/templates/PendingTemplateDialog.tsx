@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
+import { deriveTemplateJobLabel } from "@/lib/workflow-entry"
 import type { WorkflowTemplate } from "@/lib/store"
 
 export function PendingTemplateDialog({
@@ -53,7 +54,14 @@ export function PendingTemplateDialog({
     >
       <CanvasDialogContent showCloseButton={false} size="lg">
         <CanvasDialogHeader>
-          <DialogTitle>Start this flow</DialogTitle>
+          <DialogTitle>
+            {pendingTemplate
+              ? `Start ${
+                  deriveTemplateJobLabel(pendingTemplate) ||
+                  getWorkflowTemplateDisplayName(pendingTemplate)
+                }`
+              : "Start this starting point"}
+          </DialogTitle>
           <DialogDescription>
             &ldquo;
             {pendingTemplate

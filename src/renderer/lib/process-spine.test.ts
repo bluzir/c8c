@@ -163,17 +163,19 @@ describe("process-spine", () => {
       expect.objectContaining({ id: "implement", state: "next" }),
       expect.objectContaining({ id: "review", state: "later" }),
       expect.objectContaining({ id: "verify", state: "later" }),
+      expect.objectContaining({ id: "ship", state: "later" }),
     ])
     expect(stages?.map((stage) => stage.label)).toEqual([
-      "Explore",
+      "Shape / Map",
       "Plan",
-      "Apply",
+      "Implement",
       "Review",
-      "Check",
+      "Verify",
+      "Ship",
     ])
   })
 
-  it("marks the current stage as done when reviewing a completed run", () => {
+  it("keeps review-oriented entries inside the full dev spine", () => {
     const stages = buildProcessSpine({
       context: createContext({
         templateId: "ux-ui-polish-audit",
@@ -195,6 +197,9 @@ describe("process-spine", () => {
     })
 
     expect(stages).toEqual([
+      expect.objectContaining({ id: "shape_map", state: "available" }),
+      expect.objectContaining({ id: "plan", state: "available" }),
+      expect.objectContaining({ id: "implement", state: "available" }),
       expect.objectContaining({ id: "review", state: "done" }),
       expect.objectContaining({ id: "verify", state: "next" }),
       expect.objectContaining({ id: "ship", state: "later" }),

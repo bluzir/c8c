@@ -385,15 +385,6 @@ export function WorkflowResumeHeader({
           `Produces: ${entry.outputText}`,
           `Next: ${startApprovalRequired ? "Approval before continue." : nextStepLabel}`,
         ]
-  const routingReason = entry.routing?.reason
-    ? takeLeadingSentence(
-        entry.routing.reason,
-        entry.routing.source === "agent"
-          ? "Picked by the agent."
-          : "Picked for this start.",
-      )
-    : null
-
   return (
     <section data-workflow-resume-header="true" className="ui-fade-slide-in">
       <div className="surface-figure px-4 py-4">
@@ -413,14 +404,6 @@ export function WorkflowResumeHeader({
                 {line}
               </p>
             ))}
-            {routingReason && (
-              <p className="ui-meta-text text-muted-foreground">
-                {entry.routing?.source === "agent"
-                  ? "Agent picked this start"
-                  : "Why this start"}
-                : {routingReason}
-              </p>
-            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

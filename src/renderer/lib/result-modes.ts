@@ -119,9 +119,9 @@ const QUICK_STARTS_BY_MODE: Partial<
   development: [
     {
       templateId: "delivery-map-codebase",
-      label: "Explore this project",
+      label: "Understand the current app",
       summary:
-        "Start from the current codebase, understand it fast, then shape the change.",
+        "Orient on the current codebase when you need context before changing it.",
       intentLabel: "Do it",
     },
     {
@@ -178,9 +178,9 @@ function getDevelopmentCreateQuickStartPresentation(
     case "existing_repo":
       if (templateId === "delivery-map-codebase") {
         return {
-          label: "Explore this project",
+          label: "Understand the current app",
           summary:
-            "Start from the current codebase, understand it fast, then shape the change.",
+            "Orient on the current codebase when you need context before changing it.",
           intentLabel: "Do it",
         }
       }
@@ -212,9 +212,9 @@ function getDevelopmentCreateQuickStartPresentation(
       }
       if (templateId === "delivery-map-codebase") {
         return {
-          label: "Explore this project",
+          label: "Understand the current app",
           summary:
-            "Start from the current codebase, understand it fast, then shape the change.",
+            "Orient on the current codebase when you need context before changing it.",
           intentLabel: "Do it",
         }
       }
@@ -246,9 +246,9 @@ function getDevelopmentCreateQuickStartPresentation(
       }
       if (templateId === "delivery-map-codebase") {
         return {
-          label: "Explore this project",
+          label: "Understand the current app",
           summary:
-            "Start from the current codebase, understand it fast, then shape the change.",
+            "Orient on the current codebase when you need context before changing it.",
           intentLabel: "Do it",
         }
       }
@@ -287,15 +287,15 @@ export function prioritizeDevelopmentCreateQuickStarts<
     projectKind === "review_ready"
       ? [
           "delivery-review-phase",
-          "delivery-map-codebase",
           "delivery-shape-project",
           "delivery-plan-phase",
+          "delivery-map-codebase",
         ]
       : projectKind === "existing_repo"
         ? [
-            "delivery-map-codebase",
             "delivery-shape-project",
             "delivery-plan-phase",
+            "delivery-map-codebase",
           ]
         : projectKind === "greenfield_empty" ||
             projectKind === "greenfield_scaffold"

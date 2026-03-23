@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
+import { ProcessSpine } from "@/components/ui/process-spine"
 import { cn } from "@/lib/cn"
 import { AlertTriangle, Layers, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
@@ -47,6 +48,7 @@ import { getResultMode, splitTemplatesForResultMode } from "@/lib/result-modes"
 import { getReplaceCurrentWorkflowBlockedReason } from "@/lib/run-guards"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { buildTemplateStartState } from "@/lib/template-start"
+import { buildTemplateRoutingPreview } from "@/lib/create-routing-preview"
 
 interface TemplateBrowserProps {
   onApply?: (template: WorkflowTemplate, previousWorkflow: unknown) => void
@@ -164,9 +166,18 @@ export function TemplateBrowser({
     : null
   const selectedExecutionDescription =
     selected?.executionPolicy?.description?.trim() || null
-  const selectedPrimaryActionLabel = selectedQuickStart
-    ? `Start ${selectedQuickStart.label}`
-    : "Start with this"
+  const selectedRoutingPreview = selected
+    ? buildTemplateRoutingPreview({
+        template: selected,
+        templates,
+        title: selectedQuickStart?.label,
+        helpModeLabel: selectedQuickStart?.intentLabel,
+      })
+    : null
+  const selectedTitle = selectedRoutingPreview?.title || null
+  const selectedPrimaryActionLabel = selectedTitle
+    ? `Start ${selectedTitle}`
+    : "Start this starting point"
 
   const closeBrowser = useCallback(() => {
     setOpen(false)
@@ -555,14 +566,14 @@ export function TemplateBrowser({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="text-body-md font-medium">
-                      {selectedQuickStart?.label || selected.name}
+                      {selectedTitle || selected.name}
                     </h4>
                     <Badge size="compact" variant="secondary">
                       {getTemplateSourceLabel(selected)}
                     </Badge>
-                    {selectedQuickStart ? (
+                    {selectedRoutingPreview?.helpModeLabel ? (
                       <Badge size="compact" variant="outline">
-                        {selectedQuickStart.intentLabel}
+                        {selectedRoutingPreview.helpModeLabel}
                       </Badge>
                     ) : null}
                   </div>
@@ -594,28 +605,67 @@ export function TemplateBrowser({
                   </div>
                 </div>
 
-                {(selectedExecutionSummary || selectedExecutionDescription) && (
-                  <div>
-                    <span className="ui-meta-label text-muted-foreground">
-                      Flow rules
-                    </span>
-                    {selectedExecutionSummary ? (
-                      <p className="text-body-sm text-foreground">
-                        {selectedExecutionSummary}
-                      </p>
-                    ) : null}
-                    {selectedExecutionDescription &&
-                    selectedExecutionDescription !==
-                      selectedExecutionSummary ? (
-                      <p className="mt-2 text-body-sm text-muted-foreground">
-                        {selectedExecutionDescription}
-                      </p>
+                {(selectedRoutingPreview?.helpModeLabel ||
+                  selectedRoutingPreview?.stageLabel ||
+                  selectedExecutionSummary ||
+                  selectedExecutionDescription ||
+                  (selectedRoutingPreview?.stages.length ?? 0) > 0) && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-3">
+                      {selectedRoutingPreview?.helpModeLabel ? (
+                        <div>
+                          <span className="ui-meta-label text-muted-foreground">
+                            Intent
+                          </span>
+                          <p className="text-body-sm text-foreground">
+                            {selectedRoutingPreview.helpModeLabel}
+                          </p>
+                        </div>
+                      ) : null}
+                      {selectedRoutingPreview?.stageLabel ? (
+                        <div>
+                          <span className="ui-meta-label text-muted-foreground">
+                            Starts in
+                          </span>
+                          <p className="text-body-sm text-foreground">
+                            {selectedRoutingPreview.stageLabel}
+                          </p>
+                        </div>
+                      ) : null}
+                      {(selectedExecutionSummary ||
+                        selectedExecutionDescription) && (
+                        <div>
+                          <span className="ui-meta-label text-muted-foreground">
+                            Flow rules
+                          </span>
+                          {selectedExecutionSummary ? (
+                            <p className="text-body-sm text-foreground">
+                              {selectedExecutionSummary}
+                            </p>
+                          ) : null}
+                          {selectedExecutionDescription &&
+                          selectedExecutionDescription !==
+                            selectedExecutionSummary ? (
+                            <p className="mt-2 text-body-sm text-muted-foreground">
+                              {selectedExecutionDescription}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                    {selectedRoutingPreview?.stages.length ? (
+                      <div className="space-y-1">
+                        <span className="ui-meta-label text-muted-foreground">
+                          Dev Process
+                        </span>
+                        <ProcessSpine stages={selectedRoutingPreview.stages} />
+                      </div>
                     ) : null}
                   </div>
                 )}
 
                 {selected.how ? (
-                  <DisclosurePanel summary="Why this start works">
+                  <DisclosurePanel summary="How this flow works">
                     <p className="mt-3 text-body-sm text-muted-foreground">
                       {selected.how}
                     </p>

@@ -213,9 +213,9 @@ describe("result-modes", () => {
         (entry) => entry.templateId,
       ),
     ).toEqual([
-      "delivery-map-codebase",
       "delivery-shape-project",
       "delivery-plan-phase",
+      "delivery-map-codebase",
     ])
 
     expect(
@@ -224,9 +224,9 @@ describe("result-modes", () => {
       ),
     ).toEqual([
       "delivery-review-phase",
-      "delivery-map-codebase",
       "delivery-shape-project",
       "delivery-plan-phase",
+      "delivery-map-codebase",
     ])
   })
 
@@ -299,7 +299,7 @@ describe("result-modes", () => {
     ).toMatchObject([
       {
         templateId: "delivery-map-codebase",
-        label: "Explore this project",
+        label: "Understand the current app",
         intentLabel: "Do it",
       },
       {
@@ -349,7 +349,7 @@ describe("result-modes", () => {
     ).toEqual([
       {
         templateId: "delivery-map-codebase",
-        label: "Explore this project",
+        label: "Understand the current app",
         intentLabel: "Do it",
       },
       {

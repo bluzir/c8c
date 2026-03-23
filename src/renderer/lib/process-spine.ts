@@ -30,11 +30,11 @@ export interface ProcessSpineStage {
 }
 
 const PROCESS_STAGE_LABELS: Record<ProcessSpineStageId, string> = {
-  shape_map: "Explore",
+  shape_map: "Shape / Map",
   plan: "Plan",
-  implement: "Apply",
+  implement: "Implement",
   review: "Review",
-  verify: "Check",
+  verify: "Verify",
   ship: "Ship",
 }
 
@@ -46,8 +46,6 @@ const DEV_PROCESS_ORDER: ProcessSpineStageId[] = [
   "verify",
   "ship",
 ]
-
-const REVIEW_ENTRY_ORDER: ProcessSpineStageId[] = ["review", "verify", "ship"]
 
 const STAGE_RANK: Record<ProcessSpineStageId, number> = {
   shape_map: 0,
@@ -65,6 +63,8 @@ const TEMPLATE_STAGE_OVERRIDES: Record<string, ProcessSpineStageId> = {
   "delivery-implement-phase": "implement",
   "delivery-review-phase": "review",
   "delivery-verify-phase": "verify",
+  "delivery-investigate-bug": "shape_map",
+  "full-stack-code-audit": "review",
   "ux-ui-polish-audit": "review",
   "impeccable-ui-pipeline": "review",
   "playwright-visual-audit": "review",
@@ -73,6 +73,9 @@ const TEMPLATE_STAGE_OVERRIDES: Record<string, ProcessSpineStageId> = {
   "gstack-preflight-gate": "verify",
   "gstack-release-room": "ship",
 }
+
+const DEV_PROCESS_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
+const DEV_PROCESS_TEMPLATE_IDS = new Set(Object.keys(TEMPLATE_STAGE_OVERRIDES))
 
 const JOURNEY_STAGE_TO_PROCESS_STAGE: Record<string, ProcessSpineStageId> = {
   map: "shape_map",
@@ -208,27 +211,31 @@ function buildPackStageOrder(
 }
 
 function isDevProcessContext(
-  context:
+  templateOrContext:
     | Pick<WorkflowTemplateRunContext, "templateId" | "pack">
+    | Pick<WorkflowTemplate, "id" | "pack">
     | null
     | undefined,
-  currentStageId: ProcessSpineStageId | null,
 ) {
-  if (currentStageId && DEV_PROCESS_ORDER.includes(currentStageId)) return true
-  const packId = context?.pack?.id
-  return packId === "delivery-foundation" || packId === "gstack-team"
+  if (!templateOrContext) return false
+  const templateId =
+    "templateId" in templateOrContext
+      ? templateOrContext.templateId
+      : templateOrContext.id
+  if (DEV_PROCESS_TEMPLATE_IDS.has(templateId)) return true
+  const packId = templateOrContext.pack?.id
+  return Boolean(packId && DEV_PROCESS_PACK_IDS.has(packId))
 }
 
-function buildDefaultOrder(currentStageId: ProcessSpineStageId | null) {
-  if (
-    currentStageId === "review" ||
-    currentStageId === "verify" ||
-    currentStageId === "ship"
-  ) {
-    return [...REVIEW_ENTRY_ORDER]
+function buildDefaultOrder(
+  currentStageId: ProcessSpineStageId | null,
+  devProcessContext: boolean,
+) {
+  if (devProcessContext) {
+    return [...DEV_PROCESS_ORDER]
   }
   if (currentStageId) {
-    return [...DEV_PROCESS_ORDER]
+    return [currentStageId]
   }
   return []
 }
@@ -328,19 +335,19 @@ export function buildProcessSpine({
   const nextStageId = deriveProcessSpineStageId(nextTemplate)
   if (!currentStageId && !nextStageId) return null
 
+  const devProcessContext =
+    isDevProcessContext(context) || isDevProcessContext(nextTemplate)
   const factoryStageOrder = normalizeStageOrder(factory?.recipe?.stageOrder)
   const packStageOrder = context?.pack?.id
     ? buildPackStageOrder(templates || [], context.pack.id)
     : []
-  let order =
-    packStageOrder.length > 0
+  let order = devProcessContext
+    ? [...DEV_PROCESS_ORDER]
+    : packStageOrder.length > 0
       ? packStageOrder
-      : factoryStageOrder.length > 0 &&
-          isDevProcessContext(context, currentStageId)
-        ? [...DEV_PROCESS_ORDER]
-        : factoryStageOrder.length > 0
-          ? factoryStageOrder
-          : buildDefaultOrder(currentStageId)
+      : factoryStageOrder.length > 0
+        ? factoryStageOrder
+        : buildDefaultOrder(currentStageId, devProcessContext)
 
   order = ensureStage(order, currentStageId)
   order = ensureStage(order, nextStageId)

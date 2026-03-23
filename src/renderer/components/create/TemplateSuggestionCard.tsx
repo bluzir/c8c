@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button"
 import type { WorkflowTemplate } from "@shared/types"
+import { ProcessSpine } from "@/components/ui/process-spine"
+import type { ProcessSpineStage } from "@/lib/process-spine"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { deriveTemplateCardCopy } from "@/lib/workflow-entry"
 
@@ -50,12 +52,23 @@ export function TemplateSuggestionCard({
 
 export function PendingTemplateDetails({
   intentLabel,
+  startStageLabel,
   executionSummary,
+  processStages,
 }: {
   intentLabel: string | null
+  startStageLabel: string | null
   executionSummary: string | null
+  processStages?: ProcessSpineStage[] | null
 }) {
-  if (!intentLabel && !executionSummary) return null
+  if (
+    !intentLabel &&
+    !startStageLabel &&
+    !executionSummary &&
+    (!processStages || processStages.length === 0)
+  ) {
+    return null
+  }
 
   return (
     <div className="space-y-3 ui-section-divider pt-4">
@@ -66,6 +79,12 @@ export function PendingTemplateDetails({
             <p className="text-body-sm text-foreground">{intentLabel}</p>
           </div>
         ) : null}
+        {startStageLabel ? (
+          <div className="space-y-1">
+            <p className="ui-meta-text text-muted-foreground">Starts in</p>
+            <p className="text-body-sm text-foreground">{startStageLabel}</p>
+          </div>
+        ) : null}
         {executionSummary ? (
           <div className="space-y-1">
             <p className="ui-meta-text text-muted-foreground">Flow rules</p>
@@ -73,6 +92,12 @@ export function PendingTemplateDetails({
           </div>
         ) : null}
       </div>
+      {processStages && processStages.length > 0 ? (
+        <div className="space-y-1">
+          <p className="ui-meta-text text-muted-foreground">Dev Process</p>
+          <ProcessSpine stages={processStages} />
+        </div>
+      ) : null}
     </div>
   )
 }
