@@ -5,12 +5,12 @@ import type {
   WorkflowTemplate,
   WorkflowTemplateStage,
 } from "@shared/types"
+import { allDomains, getDomain } from "@shared/domains"
 import type { WorkflowCreatePromptScaffold } from "@/lib/workflow-create-prompt"
-import {
-  isContentTemplate,
-  isMarketingTemplate,
-  isProductTemplate,
-} from "@/lib/template-filters"
+import { initDomains } from "@/lib/domain-init"
+
+// Ensure domains are registered before any module-level constants are built.
+initDomains()
 
 export interface WorkflowResultMode extends ResultModeDefinition {
   packIds?: string[]
@@ -34,221 +34,6 @@ export interface WorkflowResultModeQuickStart {
 
 export interface ResolvedWorkflowResultModeQuickStart extends WorkflowResultModeQuickStart {
   template: WorkflowTemplate
-}
-
-const DEVELOPMENT_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
-
-const DEVELOPMENT_TEMPLATE_IDS = new Set([
-  "delivery-map-codebase",
-  "delivery-shape-project",
-  "delivery-plan-phase",
-  "delivery-implement-phase",
-  "delivery-review-phase",
-  "delivery-research-phase",
-  "delivery-verify-phase",
-  "full-stack-code-audit",
-  "cto-product-spec",
-  "cto-optimise-audit",
-  "ux-ui-polish-audit",
-  "playwright-visual-audit",
-  "design-code-test",
-  "deep-research",
-  "impeccable-ui-pipeline",
-  "gstack-feature-squad",
-  "gstack-preflight-gate",
-  "gstack-web-quality-board",
-])
-
-const CONTENT_PACK_IDS = new Set(["content-factory-alpha"])
-
-const MARKETING_PACK_IDS = new Set(["ai-cmo"])
-
-const COURSES_PACK_IDS = new Set(["courses-factory-alpha"])
-
-const CONTENT_TEMPLATE_IDS = new Set([
-  "content-trend-watch",
-  "content-idea-backlog",
-  "content-editorial-calendar",
-  "content-post-calendar",
-  "content-draft-post",
-  "content-ready-posts",
-  "content-distribution-bundle",
-  "content-qa-review",
-  "content-repurposing-factory",
-  "copy-quality-pipeline",
-  "content-pipeline",
-  "predictable-text-factory",
-])
-
-const MARKETING_TEMPLATE_IDS = new Set([
-  "competitor-ad-intelligence",
-  "lead-research-machine",
-  "segment-research-gate",
-  "seed-account-map-pipeline",
-  "vertical-pain-to-target-list",
-  "raw-list-to-verified-contacts",
-  "segmented-outreach-launchpad",
-  "new-vertical-to-live-campaign",
-  "cold-outreach-pipeline",
-  "landing-audit-loop",
-  "landing-page-generator",
-  "indispensable-jtbd-pipeline",
-  "irresistible-resonance-pipeline",
-  "twitter-growth-machine",
-])
-
-const COURSES_TEMPLATE_IDS = new Set([
-  "courses-audience-offer",
-  "courses-curriculum-map",
-  "courses-lesson-system",
-  "courses-trigger-playbook",
-  "courses-launch-assets",
-])
-
-const DEVELOPMENT_METADATA_TOKENS = [
-  "codebase",
-  "repository",
-  "repo",
-  "feature",
-  "implementation",
-  "verification",
-  "spec",
-  "audit",
-  "bug",
-  "architecture",
-  "ui audit",
-  "design system",
-  "roadmap",
-  "qa",
-  "test",
-  "ship",
-]
-
-const CONTENT_METADATA_TOKENS = [
-  "content",
-  "post",
-  "copy",
-  "editorial",
-  "newsletter",
-  "draft",
-  "publish",
-  "trend",
-  "calendar",
-  "repurpose",
-  "tone of voice",
-  "slop",
-  "blog",
-  "social",
-]
-
-const MARKETING_METADATA_TOKENS = [
-  "marketing",
-  "growth",
-  "seo",
-  "geo",
-  "reddit",
-  "hacker news",
-  "campaign",
-  "landing page",
-  "positioning",
-  "messaging",
-  "outreach",
-  "lead",
-  "prospect",
-  "segment",
-  "audience",
-  "jtbd",
-  "competitive",
-  "ad ",
-  "ads",
-]
-
-const COURSES_METADATA_TOKENS = [
-  "course",
-  "curriculum",
-  "lesson",
-  "module",
-  "education",
-  "workshop",
-  "cohort",
-  "training",
-  "launch bundle",
-  "transformation",
-  "video",
-  "script",
-]
-
-const COURSES_STAGE_TOKENS = [
-  "audience",
-  "offer",
-  "lesson",
-  "curriculum",
-  "launch",
-]
-
-const QUICK_STARTS_BY_MODE: Partial<
-  Record<ResultModeId, WorkflowResultModeQuickStart[]>
-> = {
-  content: [
-    {
-      templateId: "content-trend-watch",
-      label: "Watch trends",
-      summary:
-        "Gather signals, themes, and launches in your space before planning content.",
-      intentLabel: "Plan it",
-    },
-    {
-      templateId: "content-draft-post",
-      label: "Draft a post",
-      summary:
-        "Turn a topic or calendar slot into a channel-ready draft with voice control.",
-      intentLabel: "Do it",
-    },
-    {
-      templateId: "content-qa-review",
-      label: "Review content quality",
-      summary:
-        "Check a draft for slop, tone consistency, and channel fit before publishing.",
-      intentLabel: "Review it",
-    },
-    {
-      templateId: "content-pipeline",
-      label: "Build content strategy",
-      summary:
-        "Turn a product brief into positioning, messaging, and content plan.",
-      intentLabel: "Do it",
-    },
-  ],
-  development: [
-    {
-      templateId: "delivery-map-codebase",
-      label: "Understand the current app",
-      summary:
-        "Orient on the current codebase when you need context before changing it.",
-      intentLabel: "Do it",
-    },
-    {
-      templateId: "delivery-shape-project",
-      label: "Build from brief",
-      summary:
-        "Turn a feature brief or messy context into a scoped build path.",
-      intentLabel: "Do it",
-    },
-    {
-      templateId: "delivery-plan-phase",
-      label: "Plan the change",
-      summary:
-        "Turn the desired outcome into a concrete plan without jumping straight to implementation.",
-      intentLabel: "Plan it",
-    },
-    {
-      templateId: "delivery-review-phase",
-      label: "Review before ship",
-      summary:
-        "Check the current work, surface concrete gaps, and prepare it for final verification.",
-      intentLabel: "Review it",
-    },
-  ],
 }
 
 function getDevelopmentCreateQuickStartPresentation(
@@ -378,7 +163,8 @@ function getDevelopmentCreateQuickStartPresentation(
 export function getResultModeQuickStartOptions(
   modeId: ResultModeId,
 ): WorkflowResultModeQuickStart[] {
-  return [...(QUICK_STARTS_BY_MODE[modeId] || [])]
+  const domain = getDomain(modeId)
+  return [...domain.quickStarts]
 }
 
 export function prioritizeDevelopmentCreateQuickStarts<
@@ -451,166 +237,28 @@ export function presentDevelopmentCreateRouteOptions<
   })
 }
 
-function compactText(values: Array<string | undefined | null>): string {
-  return values
-    .map((value) => (typeof value === "string" ? value.trim() : ""))
-    .filter(Boolean)
-    .join(" ")
-}
-
-function metadataText(template: WorkflowTemplate): string {
-  return compactText([
-    template.id,
-    template.name,
-    template.description,
-    template.headline,
-    template.how,
-    template.input,
-    template.output,
-    template.useWhen,
-    template.pack?.id,
-    template.pack?.label,
-    template.executionPolicy?.summary,
-    template.executionPolicy?.description,
-    template.executionPolicy?.tags?.join(" "),
-  ]).toLowerCase()
-}
-
-function metadataIncludesAny(text: string, tokens: string[]) {
-  return tokens.some((token) => text.includes(token))
-}
-
-export const RESULT_MODES: WorkflowResultMode[] = [
-  {
-    id: "development",
-    label: "Dev",
-    emoji: "🧩",
-    summary:
-      "Start from the result you want, then let the system route through the right dev path with visible checkpoints.",
-    useFor:
-      "Build from brief, change the current app, plan the next change, review current work, and verify completion.",
-    youProvide: "A repo, feature brief, bug, PRD, or delivery goal.",
-    youGetFirst: "Codebase map, project shape, or build plan.",
-    userRole:
-      "Approve scope, risky execution, and quality at a few high-leverage checkpoints.",
-    packIds: ["delivery-foundation", "gstack-team"],
-    templateIds: Array.from(DEVELOPMENT_TEMPLATE_IDS),
-    stagePreferences: ["research", "strategy", "code", "operations"],
-    startTemplateId: "delivery-map-codebase",
-    startActionLabel: "Start from request",
-    guidedPath: ["Understand", "Plan", "Build", "Review", "Check"],
-    runtimeLine: "Chooses the right path after you submit.",
-    composerPlaceholder:
-      "Describe what you want by the end. Add repo context and delivery constraints if they matter...",
-    scaffoldPlaceholders: {
-      goal: "What product or feature outcome should this flow drive?",
-      input: "Repository path, issue, PRD, user flow, or technical context.",
-      constraints:
-        "Stack constraints, deadlines, rollout risks, testing bar, design constraints, or delivery realities.",
-      successCriteria:
-        "What would make this feel genuinely ready to ship, verify, or review?",
-    },
-  },
-  {
-    id: "content",
-    label: "Content",
-    emoji: "✍️",
-    summary:
-      "Turn ideas into posts, calendars, and publishable content with voice and quality control.",
-    useFor:
-      "Posts, newsletters, editorial calendars, trend research, content repurposing, and quality review.",
-    youProvide:
-      "A topic, trend brief, audience, tone of voice rules, or existing material to repurpose.",
-    youGetFirst: "Trend digest, editorial calendar, or draft post.",
-    userRole: "Approve voice, angle, and quality before publishing.",
-    packIds: ["content-factory-alpha"],
-    templateIds: Array.from(CONTENT_TEMPLATE_IDS),
-    stagePreferences: ["content", "research", "strategy"],
-    startTemplateId: "content-trend-watch",
-    startActionLabel: "Start from request",
-    guidedPath: ["Understand", "Plan", "Build", "Check", "Ship"],
-    runtimeLine: "Chooses the right path after you submit.",
-    composerPlaceholder:
-      "Describe the content you want — a post, a calendar, a trend digest, a strategy. Add audience and tone constraints if they matter...",
-    scaffoldPlaceholders: {
-      goal: "What content outcome should this flow create?",
-      input:
-        "Topic, trend brief, audience context, tone rules, or existing material to repurpose.",
-      constraints:
-        "Tone of voice, no-slop rules, channel format, publishing cadence, or brand constraints.",
-      successCriteria:
-        "What would make the content feel specific, on-voice, and ready to publish?",
-    },
-  },
-  {
-    id: "marketing",
-    label: "Marketing",
-    emoji: "📣",
-    summary:
-      "Research a market, choose angles, and turn them into campaigns, pages, or growth loops.",
-    useFor:
-      "Research, positioning, SEO, messaging, outreach, landing pages, and marketing audits.",
-    youProvide:
-      "A product, market, audience, channel, competitor set, or growth question.",
-    youGetFirst: "Segment map, growth thesis, or campaign plan.",
-    userRole:
-      "Approve audience choice, angle, and sample quality before scaling.",
-    packIds: ["ai-cmo"],
-    templateIds: Array.from(MARKETING_TEMPLATE_IDS),
-    stagePreferences: ["research", "strategy", "outreach"],
-    startTemplateId: "segment-research-gate",
-    startActionLabel: "Start guided path",
-    guidedPath: ["Research the market", "Choose the angle", "Ship the assets"],
-    runtimeLine: "Approves angle and sample quality before scaling.",
-    composerPlaceholder:
-      "Describe the marketing result, audience, channel, and any brand constraints...",
-    scaffoldPlaceholders: {
-      goal: "What marketing outcome should this flow create?",
-      input:
-        "Product context, market notes, competitors, audience signals, links, or campaign context.",
-      constraints:
-        "Channels, brand rules, approved angles, timing, or budget realities.",
-      successCriteria:
-        "What would make the strategy or assets clearly useful, grounded, and worth shipping?",
-    },
-  },
-  {
-    id: "courses",
-    label: "Courses",
-    emoji: "🎓",
-    summary:
-      "Turn expertise into structured courses, lessons, and launch-ready education assets.",
-    useFor:
-      "Course material, curriculum design, lesson production, and education launches.",
-    youProvide:
-      "A topic, expertise, audience, offer, or existing material to structure.",
-    youGetFirst: "Audience offer, curriculum map, or lesson system.",
-    userRole:
-      "Approve structure, lesson quality, and launch assets before shipping.",
-    packIds: ["courses-factory-alpha"],
-    templateIds: Array.from(COURSES_TEMPLATE_IDS),
-    stagePreferences: ["strategy", "content"],
-    startTemplateId: "courses-audience-offer",
-    startActionLabel: "Start guided path",
-    guidedPath: [
-      "Clarify audience",
-      "Plan the structure",
-      "Produce the assets",
-    ],
-    runtimeLine: "Approves structure and quality before output scales.",
-    composerPlaceholder:
-      "Describe the course you want to create, your audience, and what good looks like...",
-    scaffoldPlaceholders: {
-      goal: "What education outcome should this flow create?",
-      input:
-        "Source docs, expertise, audience context, offer material, or existing content.",
-      constraints:
-        "Lesson length, format, cohort needs, launch timing, or platform constraints.",
-      successCriteria:
-        "What would make the course structure and lessons feel strong and usable?",
-    },
-  },
-]
+export const RESULT_MODES: WorkflowResultMode[] = allDomains().map(
+  (domain) => ({
+    id: domain.id,
+    label: domain.label,
+    emoji: domain.emoji,
+    summary: domain.summary,
+    useFor: domain.useFor,
+    youProvide: domain.youProvide,
+    youGetFirst: domain.youGetFirst,
+    userRole: domain.userRole,
+    composerPlaceholder: domain.composerPlaceholder,
+    scaffoldPlaceholders:
+      domain.scaffoldPlaceholders as unknown as WorkflowCreatePromptScaffold,
+    packIds: domain.packIds,
+    templateIds: Array.from(domain.templateIds),
+    stagePreferences: domain.stagePreferences,
+    startTemplateId: domain.startTemplateId,
+    startActionLabel: domain.startActionLabel,
+    guidedPath: domain.guidedPath,
+    runtimeLine: domain.runtimeLine,
+  }),
+)
 
 const MODE_BY_ID = new Map<ResultModeId, WorkflowResultMode>(
   RESULT_MODES.map((mode) => [mode.id, mode]),
@@ -640,78 +288,7 @@ function templateScoreForMode(
   template: WorkflowTemplate,
   modeId: ResultModeId,
 ): number {
-  const text = metadataText(template)
-
-  if (modeId === "development") {
-    let score = 0
-    const matchesDevelopment = metadataIncludesAny(
-      text,
-      DEVELOPMENT_METADATA_TOKENS,
-    )
-    if (template.pack?.id && DEVELOPMENT_PACK_IDS.has(template.pack.id))
-      score += 100
-    if (DEVELOPMENT_TEMPLATE_IDS.has(template.id)) score += 80
-    if (isProductTemplate(template)) score += 35
-    if (template.stage === "code") score += 30
-    if (
-      (template.stage === "research" ||
-        template.stage === "strategy" ||
-        template.stage === "operations") &&
-      matchesDevelopment
-    )
-      score += 20
-    if (matchesDevelopment) score += 10
-    return score
-  }
-
-  if (modeId === "content") {
-    let score = 0
-    const matchesContent = metadataIncludesAny(text, CONTENT_METADATA_TOKENS)
-    if (template.pack?.id && CONTENT_PACK_IDS.has(template.pack.id))
-      score += 100
-    if (CONTENT_TEMPLATE_IDS.has(template.id)) score += 80
-    if (isContentTemplate(template)) score += 35
-    if (template.stage === "content") score += 30
-    if (matchesContent) score += 10
-    return score
-  }
-
-  if (modeId === "marketing") {
-    let score = 0
-    const matchesMarketing = metadataIncludesAny(
-      text,
-      MARKETING_METADATA_TOKENS,
-    )
-    if (template.pack?.id && MARKETING_PACK_IDS.has(template.pack.id))
-      score += 100
-    if (MARKETING_TEMPLATE_IDS.has(template.id)) score += 80
-    if (isMarketingTemplate(template)) score += 35
-    if (
-      template.stage === "research" ||
-      template.stage === "strategy" ||
-      template.stage === "outreach"
-    )
-      score += 30
-    if (matchesMarketing) score += 10
-    return score
-  }
-
-  if (modeId === "courses") {
-    let score = 0
-    const matchesCourses = metadataIncludesAny(text, COURSES_METADATA_TOKENS)
-    if (template.pack?.id && COURSES_PACK_IDS.has(template.pack.id))
-      score += 100
-    if (COURSES_TEMPLATE_IDS.has(template.id)) score += 90
-    if (matchesCourses) score += 60
-    if (
-      (template.stage === "strategy" || template.stage === "content") &&
-      metadataIncludesAny(text, COURSES_STAGE_TOKENS)
-    )
-      score += 20
-    return score
-  }
-
-  return 0
+  return getDomain(modeId).scoreTemplate(template)
 }
 
 export function templateMatchesResultMode(
