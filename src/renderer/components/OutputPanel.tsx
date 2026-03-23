@@ -619,6 +619,13 @@ export function OutputPanel({
           selectedRunLabel={selectedRunLabel}
           selectedReviewStatus={selectedReviewRun?.status || null}
           tabOptions={tabOptions}
+          onExitReview={
+            reviewingRunHistory
+              ? () => {
+                  setSelectedPastRun(null)
+                }
+              : null
+          }
         />
         {!reviewingRunHistory &&
           !errorFigureOwnsSurface &&

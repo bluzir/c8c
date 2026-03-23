@@ -843,6 +843,7 @@ export function Toolbar({
                 onSelectRun={(run) => {
                   setSelectedPastRun(run)
                   setRunsDialogOpen(false)
+                  dispatchDesktopCommand("flow.history")
                 }}
               />
             </div>

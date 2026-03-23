@@ -1,4 +1,6 @@
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
 import type { OutputTabValue } from "./outputPanelTypes"
 
 export interface OutputPanelTabOption {
@@ -45,6 +47,7 @@ export function OutputPanelHeader({
   selectedRunLabel?: string | null
   selectedReviewStatus?: string | null
   tabOptions?: OutputPanelTabOption[]
+  onExitReview?: (() => void) | null
 }) {
   const showTabs = tabOptions.length > 1
   const showResultPulse =
@@ -66,6 +69,18 @@ export function OutputPanelHeader({
           )}
           {showReviewContext ? (
             <div className="min-w-0 flex flex-wrap items-center justify-end gap-x-2 gap-y-1 ui-meta-text text-muted-foreground">
+              {onExitReview && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className="gap-1 text-muted-foreground"
+                  onClick={onExitReview}
+                >
+                  <ArrowLeft size={12} />
+                  Back to current
+                </Button>
+              )}
               <span className="ui-status-badge h-control-xs shrink-0 border border-hairline px-2 text-muted-foreground">
                 Saved run
               </span>
