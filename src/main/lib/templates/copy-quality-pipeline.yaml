@@ -20,7 +20,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Copy Quality Pipeline
-description: Run existing text through infostyle + slop-check passes to produce clean, fact-based copy with evaluator retry
+description:
+  Run existing text through infostyle + slop-check passes to produce clean, fact-based copy with evaluator retry
   loop
 defaults:
   model: sonnet

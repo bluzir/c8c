@@ -28,7 +28,9 @@ describe("plugin templates", () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     root = await mkdtemp(join(tmpdir(), "plugin-templates-test-"))
-    ensurePluginMarketplacesDirMock.mockResolvedValue(join(root, ".c8c", "plugins", "marketplaces"))
+    ensurePluginMarketplacesDirMock.mockResolvedValue(
+      join(root, ".c8c", "plugins", "marketplaces"),
+    )
     listInstalledPluginsMock.mockResolvedValue([])
   })
 
@@ -46,7 +48,7 @@ describe("plugin templates", () => {
         "name: Review Loop",
         "description: Review code changes",
         "stage: code",
-        "emoji: \"🧪\"",
+        'emoji: "🧪"',
         "headline: Review loop",
         "how: Run an iterative review process",
         "input: A code diff",
@@ -105,7 +107,7 @@ describe("plugin templates", () => {
         "name: Design System Rollout",
         "description: Roll out a design system",
         "stage: strategy",
-        "emoji: \"🎨\"",
+        'emoji: "🎨"',
         "headline: Design system rollout",
         "how: Plan and execute a rollout",
         "input: Product surface inventory",
@@ -143,7 +145,12 @@ describe("plugin templates", () => {
       source: "plugin",
       pluginName: "design-pack",
       marketplaceName: "Design Marketplace",
-      templatePath: join(pluginRoot, ".claude", "templates", "design-system.yaml"),
+      templatePath: join(
+        pluginRoot,
+        ".claude",
+        "templates",
+        "design-system.yaml",
+      ),
     })
   })
 
@@ -151,7 +158,10 @@ describe("plugin templates", () => {
     const enabledPluginRoot = join(root, "plugins", "broken-pack")
     const disabledPluginRoot = join(root, "plugins", "hidden-pack")
 
-    await writeText(join(enabledPluginRoot, "templates", "broken.yaml"), "not: [valid")
+    await writeText(
+      join(enabledPluginRoot, "templates", "broken.yaml"),
+      "not: [valid",
+    )
     await writeText(
       join(disabledPluginRoot, "templates", "hidden.yaml"),
       [
@@ -160,7 +170,7 @@ describe("plugin templates", () => {
         "name: Hidden Template",
         "description: hidden",
         "stage: content",
-        "emoji: \"🫥\"",
+        'emoji: "🫥"',
         "headline: Hidden",
         "how: Hidden",
         "input: x",

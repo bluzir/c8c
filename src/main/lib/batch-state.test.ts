@@ -36,7 +36,9 @@ import {
   recoverBatchStates,
 } from "./batch-state"
 
-function createBatchState(overrides: Partial<PersistedBatchState> = {}): PersistedBatchState {
+function createBatchState(
+  overrides: Partial<PersistedBatchState> = {},
+): PersistedBatchState {
   return {
     batchId: "batch-1",
     workflowName: "Batch test",
@@ -72,7 +74,10 @@ describe("batch-state", () => {
 
   it("persists and reads batch state from the workspace", async () => {
     const workspace = await ensureBatchWorkspace("batch-1", projectDir)
-    const state = createBatchState({ projectPath: projectDir, workflowPath: "/tmp/workflow.yaml" })
+    const state = createBatchState({
+      projectPath: projectDir,
+      workflowPath: "/tmp/workflow.yaml",
+    })
 
     await persistBatchState(workspace, state)
     await expect(readBatchState(workspace)).resolves.toEqual(state)
@@ -80,19 +85,28 @@ describe("batch-state", () => {
 
   it("recovers running batch states across global and project roots", async () => {
     const globalWorkspace = await ensureBatchWorkspace("global-batch")
-    const projectWorkspace = await ensureBatchWorkspace("project-batch", projectDir)
+    const projectWorkspace = await ensureBatchWorkspace(
+      "project-batch",
+      projectDir,
+    )
 
-    await persistBatchState(globalWorkspace, createBatchState({
-      batchId: "global-batch",
-      status: "running",
-      running: 2,
-    }))
-    await persistBatchState(projectWorkspace, createBatchState({
-      batchId: "project-batch",
-      projectPath: projectDir,
-      status: "running",
-      running: 1,
-    }))
+    await persistBatchState(
+      globalWorkspace,
+      createBatchState({
+        batchId: "global-batch",
+        status: "running",
+        running: 2,
+      }),
+    )
+    await persistBatchState(
+      projectWorkspace,
+      createBatchState({
+        batchId: "project-batch",
+        projectPath: projectDir,
+        status: "running",
+        running: 1,
+      }),
+    )
 
     const summary = await recoverBatchStates()
 
@@ -110,11 +124,15 @@ describe("batch-state", () => {
       status: "interrupted",
       running: 0,
     })
-    expect(logInfoMock).toHaveBeenCalledWith("batch-recovery", "batch_recovery_summary", {
-      roots: 2,
-      workspaces: 2,
-      interrupted: 2,
-    })
+    expect(logInfoMock).toHaveBeenCalledWith(
+      "batch-recovery",
+      "batch_recovery_summary",
+      {
+        roots: 2,
+        workspaces: 2,
+        interrupted: 2,
+      },
+    )
   })
 
   it("ignores corrupt state files and missing roots during recovery", async () => {
@@ -122,9 +140,17 @@ describe("batch-state", () => {
     const corruptWorkspace = join(globalRoot, "corrupt-batch")
     await mkdir(corruptWorkspace, { recursive: true })
     await import("node:fs/promises").then(({ writeFile }) =>
-      writeFile(join(corruptWorkspace, "batch-state.json"), "{not-json", "utf8"))
+      writeFile(
+        join(corruptWorkspace, "batch-state.json"),
+        "{not-json",
+        "utf8",
+      ),
+    )
 
-    testState.projectRoots = [projectDir, join(projectDir, "missing-project-root")]
+    testState.projectRoots = [
+      projectDir,
+      join(projectDir, "missing-project-root"),
+    ]
 
     const summary = await recoverBatchStates()
 
@@ -138,9 +164,13 @@ describe("batch-state", () => {
   it("logs persistence failures with a normalized message", () => {
     logBatchPersistenceFailure("batch-1", new Error("disk full"))
 
-    expect(logWarnMock).toHaveBeenCalledWith("batch-state", "persist_batch_state_failed", {
-      batchId: "batch-1",
-      error: "disk full",
-    })
+    expect(logWarnMock).toHaveBeenCalledWith(
+      "batch-state",
+      "persist_batch_state_failed",
+      {
+        batchId: "batch-1",
+        error: "disk full",
+      },
+    )
   })
 })

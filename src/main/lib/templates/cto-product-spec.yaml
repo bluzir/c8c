@@ -53,7 +53,8 @@ nodes:
       x: 600
       y: 200
     config:
-      strategy: Split the foundation document into one task per item in the Product Parts Catalog. Each task must include the
+      strategy:
+        Split the foundation document into one task per item in the Product Parts Catalog. Each task must include the
         chosen stack context and big-picture architecture context, then request a detailed spec for that single part.
       maxBranches: 8
   - id: part-spec-1
@@ -63,7 +64,8 @@ nodes:
       y: 200
     config:
       skillRef: cto/part-spec-writer
-      prompt: "Write a detailed technical spec for this product part. Include: objective, user stories, scope/non-scope,
+      prompt:
+        "Write a detailed technical spec for this product part. Include: objective, user stories, scope/non-scope,
         architecture role, APIs/events/contracts, data model, state/flow logic, security/privacy controls,
         performance/SLO expectations, telemetry/monitoring, test strategy, rollout/migration plan, risks, and open
         questions. Keep language implementation-ready."

@@ -37,7 +37,8 @@ nodes:
       y: 200
     config:
       skillRef: ajbtd/landing-architect
-      prompt: "Build the information architecture for this landing page. Define 6-8 blocks in logical order: hero, situation,
+      prompt:
+        "Build the information architecture for this landing page. Define 6-8 blocks in logical order: hero, situation,
         value_prop, mechanism, evidence, objections, pricing, faq. For each block specify: goal, key_message,
         data_sources from the input. Focus on information arc — facts first, no emotional manipulation. Validate logic
         coherence between blocks."
@@ -47,7 +48,8 @@ nodes:
       x: 600
       y: 200
     config:
-      strategy: Split the landing page skeleton into individual blocks. Each block becomes a self-contained writing task with
+      strategy:
+        Split the landing page skeleton into individual blocks. Each block becomes a self-contained writing task with
         its goal, key_message, data_sources, and position in the overall arc. Include the full skeleton context so each
         writer knows what comes before and after their block.
       maxBranches: 8

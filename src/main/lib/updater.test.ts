@@ -21,8 +21,10 @@ vi.mock("electron-updater", () => ({
     on: vi.fn((event: string, handler: UpdateHandler) => {
       updaterState.handlers.set(event, handler)
     }),
-    checkForUpdates: (...args: unknown[]) => updaterState.checkForUpdates(...args),
-    quitAndInstall: (...args: unknown[]) => updaterState.quitAndInstall(...args),
+    checkForUpdates: (...args: unknown[]) =>
+      updaterState.checkForUpdates(...args),
+    quitAndInstall: (...args: unknown[]) =>
+      updaterState.quitAndInstall(...args),
   },
 }))
 
@@ -38,7 +40,8 @@ vi.mock("electron", () => ({
 }))
 
 vi.mock("./telemetry/service", () => ({
-  trackTelemetryEvent: (...args: unknown[]) => updaterState.trackTelemetryEvent(...args),
+  trackTelemetryEvent: (...args: unknown[]) =>
+    updaterState.trackTelemetryEvent(...args),
 }))
 
 function createWindow(destroyed = false) {
@@ -101,9 +104,13 @@ describe("updater", () => {
       status: "checking",
       error: undefined,
     })
-    expect(liveWindow.webContents.send).toHaveBeenCalledWith("update:event", { type: "checking" })
+    expect(liveWindow.webContents.send).toHaveBeenCalledWith("update:event", {
+      type: "checking",
+    })
     expect(destroyedWindow.webContents.send).not.toHaveBeenCalled()
-    expect(updaterState.trackTelemetryEvent).toHaveBeenCalledWith("update_check_started")
+    expect(updaterState.trackTelemetryEvent).toHaveBeenCalledWith(
+      "update_check_started",
+    )
 
     updaterState.handlers.get("update-available")?.({ version: "1.2.3" })
     expect(updater.getUpdateStatus()).toEqual({
@@ -139,7 +146,10 @@ describe("updater", () => {
       version: "1.2.4",
       progress: 100,
     })
-    expect(updaterState.trackTelemetryEvent).toHaveBeenCalledWith("update_check_result", { available: false })
+    expect(updaterState.trackTelemetryEvent).toHaveBeenCalledWith(
+      "update_check_result",
+      { available: false },
+    )
 
     updaterState.handlers.get("error")?.(new Error("network down"))
     expect(updater.getUpdateStatus()).toEqual({

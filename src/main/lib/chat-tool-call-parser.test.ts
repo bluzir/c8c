@@ -21,7 +21,7 @@ describe("parseToolCallsFromText", () => {
   })
 
   it("parses raw json tool calls without fences", () => {
-    const text = "{\"tool\":\"validate_workflow\",\"call_id\":\"v1\",\"input\":{}}"
+    const text = '{"tool":"validate_workflow","call_id":"v1","input":{}}'
     const calls = parseToolCallsFromText(text)
     expect(calls).toHaveLength(1)
     expect(calls[0].tool).toBe("validate_workflow")

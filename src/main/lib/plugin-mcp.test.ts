@@ -17,7 +17,9 @@ async function writeJson(path: string, data: unknown): Promise<void> {
   await writeFile(path, JSON.stringify(data, null, 2), "utf-8")
 }
 
-function createInstalledPlugin(overrides: Partial<InstalledPlugin>): InstalledPlugin {
+function createInstalledPlugin(
+  overrides: Partial<InstalledPlugin>,
+): InstalledPlugin {
   return {
     id: "official/github",
     name: "github",
@@ -66,7 +68,8 @@ describe("plugin-mcp", () => {
       }),
     ])
 
-    const { buildPluginMcpServerId, listPluginMcpServers } = await import("./plugin-mcp")
+    const { buildPluginMcpServerId, listPluginMcpServers } =
+      await import("./plugin-mcp")
     getApprovedPluginMcpServerIdsMock.mockResolvedValue([
       buildPluginMcpServerId("official/github", "github"),
     ])
@@ -111,7 +114,8 @@ describe("plugin-mcp", () => {
       }),
     ])
 
-    const { buildPluginMcpServerId, listApprovedPluginMcpServers } = await import("./plugin-mcp")
+    const { buildPluginMcpServerId, listApprovedPluginMcpServers } =
+      await import("./plugin-mcp")
     getApprovedPluginMcpServerIdsMock.mockResolvedValue([
       buildPluginMcpServerId("official/search", "exa"),
       buildPluginMcpServerId("official/search", "disabledServer"),

@@ -4,7 +4,11 @@ import { join } from "node:path"
 import { promisify } from "node:util"
 import { allowedReportRoots } from "./security-paths"
 import { writeFileAtomic } from "./atomic-write"
-import { loadRunPidManifest, runPidManifestPath, type RunPidManifest } from "./run-pid-manifest"
+import {
+  loadRunPidManifest,
+  runPidManifestPath,
+  type RunPidManifest,
+} from "./run-pid-manifest"
 import { logInfo, logWarn } from "./structured-log"
 
 const execFile = promisify(execFileCb)
@@ -35,16 +39,18 @@ export interface RuntimeRecoverySummary {
 }
 
 function isProcessMissingError(error: unknown): boolean {
-  const code = typeof error === "object" && error && "code" in error
-    ? String((error as { code?: string }).code)
-    : ""
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code)
+      : ""
   return code === "ESRCH"
 }
 
 function isPermissionError(error: unknown): boolean {
-  const code = typeof error === "object" && error && "code" in error
-    ? String((error as { code?: string }).code)
-    : ""
+  const code =
+    typeof error === "object" && error && "code" in error
+      ? String((error as { code?: string }).code)
+      : ""
   return code === "EPERM"
 }
 
@@ -77,7 +83,9 @@ function isProcessAlive(pid: number): boolean {
 async function listRunWorkspaces(root: string): Promise<string[]> {
   try {
     const entries = await readdir(root, { withFileTypes: true })
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => join(root, entry.name))
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(root, entry.name))
   } catch {
     return []
   }
@@ -92,8 +100,14 @@ async function readRunResult(workspace: string): Promise<RunResultLike | null> {
   }
 }
 
-async function writeRunResult(workspace: string, payload: RunResultLike): Promise<void> {
-  await writeFileAtomic(join(workspace, RUN_RESULT_FILE), JSON.stringify(payload, null, 2))
+async function writeRunResult(
+  workspace: string,
+  payload: RunResultLike,
+): Promise<void> {
+  await writeFileAtomic(
+    join(workspace, RUN_RESULT_FILE),
+    JSON.stringify(payload, null, 2),
+  )
 }
 
 async function looksLikeClaudeProcess(pid: number): Promise<boolean> {
@@ -104,7 +118,9 @@ async function looksLikeClaudeProcess(pid: number): Promise<boolean> {
       ["-p", String(pid), "-o", "command="],
       { encoding: "utf-8" },
     )
-    const command = String(stdout || "").trim().toLowerCase()
+    const command = String(stdout || "")
+      .trim()
+      .toLowerCase()
     if (!command) return false
     return command.includes("claude")
   } catch (error) {
@@ -138,7 +154,10 @@ async function terminateOrphanPid(pid: number): Promise<boolean> {
   return !isProcessAlive(pid)
 }
 
-async function recoverManifest(workspace: string, manifest: RunPidManifest): Promise<{
+async function recoverManifest(
+  workspace: string,
+  manifest: RunPidManifest,
+): Promise<{
   changed: boolean
   killed: number
   missing: number
@@ -154,7 +173,8 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
     const pid = processEntry.pid
     if (!Number.isFinite(pid) || pid <= 0) {
       processEntry.active = false
-      processEntry.exitedAt = processEntry.exitedAt || getRunRecoveryBindings().now()
+      processEntry.exitedAt =
+        processEntry.exitedAt || getRunRecoveryBindings().now()
       processEntry.signal = processEntry.signal || "invalid_pid"
       changed = true
       continue
@@ -162,7 +182,8 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
 
     if (!isProcessAlive(pid)) {
       processEntry.active = false
-      processEntry.exitedAt = processEntry.exitedAt || getRunRecoveryBindings().now()
+      processEntry.exitedAt =
+        processEntry.exitedAt || getRunRecoveryBindings().now()
       processEntry.signal = processEntry.signal || "not_found"
       changed = true
       missing += 1
@@ -197,14 +218,19 @@ async function recoverManifest(workspace: string, manifest: RunPidManifest): Pro
 
   if (changed) {
     manifest.updatedAt = getRunRecoveryBindings().now()
-    await writeFileAtomic(runPidManifestPath(workspace), JSON.stringify(manifest, null, 2))
+    await writeFileAtomic(
+      runPidManifestPath(workspace),
+      JSON.stringify(manifest, null, 2),
+    )
   }
 
   return { changed, killed, missing, failed }
 }
 
-export async function recoverRuntimeState(roots?: string[]): Promise<RuntimeRecoverySummary> {
-  const reportRoots = roots || await allowedReportRoots()
+export async function recoverRuntimeState(
+  roots?: string[],
+): Promise<RuntimeRecoverySummary> {
+  const reportRoots = roots || (await allowedReportRoots())
   const summary: RuntimeRecoverySummary = {
     roots: reportRoots.length,
     workspaces: 0,
@@ -240,7 +266,10 @@ export async function recoverRuntimeState(roots?: string[]): Promise<RuntimeReco
         summary.orphanPidsFailed += result.failed
       } catch (error) {
         summary.orphanPidsFailed += 1
-        logWarn("run-recovery", "manifest_recovery_failed", { workspace, error: String(error) })
+        logWarn("run-recovery", "manifest_recovery_failed", {
+          workspace,
+          error: String(error),
+        })
       }
     }
   }
@@ -249,6 +278,8 @@ export async function recoverRuntimeState(roots?: string[]): Promise<RuntimeReco
   return summary
 }
 
-export function __setRunRecoveryTestBindings(bindings: Partial<RunRecoveryBindings> | null): void {
+export function __setRunRecoveryTestBindings(
+  bindings: Partial<RunRecoveryBindings> | null,
+): void {
   runRecoveryBindingsOverride = bindings
 }

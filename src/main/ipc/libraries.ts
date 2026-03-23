@@ -13,10 +13,16 @@ import type { DiscoveredSkill } from "@shared/types"
 const mutationQueueByLibraryId = new Map<string, Promise<void>>()
 let scanInFlight: Promise<DiscoveredSkill[]> | null = null
 
-function runSerializedLibraryMutation<T>(libraryId: string, operation: () => Promise<T>): Promise<T> {
+function runSerializedLibraryMutation<T>(
+  libraryId: string,
+  operation: () => Promise<T>,
+): Promise<T> {
   const previous = mutationQueueByLibraryId.get(libraryId) ?? Promise.resolve()
   const next = previous.then(operation)
-  const tracked = next.then(() => undefined, () => undefined)
+  const tracked = next.then(
+    () => undefined,
+    () => undefined,
+  )
   mutationQueueByLibraryId.set(libraryId, tracked)
   void tracked.finally(() => {
     if (mutationQueueByLibraryId.get(libraryId) === tracked) {
@@ -47,7 +53,9 @@ export function registerLibrariesHandlers() {
   ipcMain.handle("libraries:list", async () => {
     const startedAt = Date.now()
     const libraries = await getLibraries()
-    const installedTotal = libraries.filter((library) => library.installed).length
+    const installedTotal = libraries.filter(
+      (library) => library.installed,
+    ).length
     void trackTelemetryEvent("library_action", {
       action: "list",
       status: "success",
@@ -72,7 +80,11 @@ export function registerLibrariesHandlers() {
 
     const scanWaitMs = await waitForActiveScanToComplete()
     if (scanWaitMs > 0) {
-      logInfo("libraries-ipc", "mutation_waited_for_scan", { action: "install", libraryId: id, scanWaitMs })
+      logInfo("libraries-ipc", "mutation_waited_for_scan", {
+        action: "install",
+        libraryId: id,
+        scanWaitMs,
+      })
     }
 
     const queued = mutationQueueByLibraryId.has(id)
@@ -80,7 +92,10 @@ export function registerLibrariesHandlers() {
     const startedAt = queueStartAt
 
     if (queued) {
-      logInfo("libraries-ipc", "mutation_queued", { action: "install", libraryId: id })
+      logInfo("libraries-ipc", "mutation_queued", {
+        action: "install",
+        libraryId: id,
+      })
     }
 
     await runSerializedLibraryMutation(id, async () => {
@@ -132,7 +147,11 @@ export function registerLibrariesHandlers() {
 
     const scanWaitMs = await waitForActiveScanToComplete()
     if (scanWaitMs > 0) {
-      logInfo("libraries-ipc", "mutation_waited_for_scan", { action: "remove", libraryId: id, scanWaitMs })
+      logInfo("libraries-ipc", "mutation_waited_for_scan", {
+        action: "remove",
+        libraryId: id,
+        scanWaitMs,
+      })
     }
 
     const queued = mutationQueueByLibraryId.has(id)
@@ -140,7 +159,10 @@ export function registerLibrariesHandlers() {
     const startedAt = queueStartAt
 
     if (queued) {
-      logInfo("libraries-ipc", "mutation_queued", { action: "remove", libraryId: id })
+      logInfo("libraries-ipc", "mutation_queued", {
+        action: "remove",
+        libraryId: id,
+      })
     }
 
     await runSerializedLibraryMutation(id, async () => {
@@ -193,7 +215,9 @@ export function registerLibrariesHandlers() {
     const scanPromise = (async (): Promise<DiscoveredSkill[]> => {
       const pendingMutations = mutationQueueByLibraryId.size
       if (pendingMutations > 0) {
-        logInfo("libraries-ipc", "scan_waiting_for_mutations", { pendingMutations })
+        logInfo("libraries-ipc", "scan_waiting_for_mutations", {
+          pendingMutations,
+        })
       }
       const waitStartedAt = Date.now()
       await waitForMutationQueuesToDrain()

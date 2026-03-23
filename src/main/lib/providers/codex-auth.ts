@@ -6,10 +6,14 @@ import { execErrorOutput, normalizeCliText } from "./provider-utils"
 
 export function isCodexHeadlessAuthCheckError(text: string): boolean {
   const normalized = normalizeCliText(text).toLowerCase()
-  return normalized.includes("raw mode is not supported")
-    || normalized.includes("could not report auth status in non-interactive mode")
-    || normalized.includes("sign in with chatgpt")
-    || normalized.includes("paste an api key")
+  return (
+    normalized.includes("raw mode is not supported") ||
+    normalized.includes(
+      "could not report auth status in non-interactive mode",
+    ) ||
+    normalized.includes("sign in with chatgpt") ||
+    normalized.includes("paste an api key")
+  )
 }
 
 export function sanitizeCodexAuthError(text: string): string {
@@ -22,7 +26,11 @@ export function sanitizeCodexAuthError(text: string): string {
     return "Codex CLI could not report auth status in non-interactive mode. This Codex version may require a real terminal for `codex login status`."
   }
 
-  if (/not authenticated|not logged in|login required|please log in|unauthorized|forbidden|401/i.test(normalized)) {
+  if (
+    /not authenticated|not logged in|login required|please log in|unauthorized|forbidden|401/i.test(
+      normalized,
+    )
+  ) {
     return "Codex CLI is not authenticated."
   }
 
@@ -33,10 +41,12 @@ export function isCodexInteractiveEditorNoise(text: string): boolean {
   const normalized = normalizeCliText(text)
   if (!normalized) return false
 
-  return normalized.includes("Vim: Warning:")
-    || normalized.includes("E325: ATTENTION")
-    || normalized.includes("Swap file")
-    || normalized.includes(".codex/instructions.md")
+  return (
+    normalized.includes("Vim: Warning:") ||
+    normalized.includes("E325: ATTENTION") ||
+    normalized.includes("Swap file") ||
+    normalized.includes(".codex/instructions.md")
+  )
 }
 
 export function summarizeCodexInteractiveEditorNoise(text: string): string {
@@ -48,7 +58,10 @@ export function summarizeCodexInteractiveEditorNoise(text: string): string {
   return `Codex CLI attempted to open ~/.codex/instructions.md in an interactive editor during headless legacy execution.${swapSuffix}`
 }
 
-export function parseCodexAuth(output: string, apiKeyConfigured: boolean): ProviderAuthStatus {
+export function parseCodexAuth(
+  output: string,
+  apiKeyConfigured: boolean,
+): ProviderAuthStatus {
   const normalized = normalizeCliText(output)
   if (/logged in using chatgpt/i.test(normalized)) {
     return {
@@ -88,7 +101,9 @@ export function parseCodexAuth(output: string, apiKeyConfigured: boolean): Provi
 
   return {
     provider: "codex",
-    state: isCodexHeadlessAuthCheckError(normalized) ? "unknown" : "unauthenticated",
+    state: isCodexHeadlessAuthCheckError(normalized)
+      ? "unknown"
+      : "unauthenticated",
     authenticated: false,
     authMethod: null,
     accountLabel: null,
@@ -97,7 +112,9 @@ export function parseCodexAuth(output: string, apiKeyConfigured: boolean): Provi
   }
 }
 
-async function fallbackCodexAuthStatus(apiKeyConfigured: boolean): Promise<ProviderAuthStatus | null> {
+async function fallbackCodexAuthStatus(
+  apiKeyConfigured: boolean,
+): Promise<ProviderAuthStatus | null> {
   try {
     await execCodex(["mcp", "list", "--json"], { timeout: 10_000 })
     return {
@@ -113,7 +130,11 @@ async function fallbackCodexAuthStatus(apiKeyConfigured: boolean): Promise<Provi
     }
   } catch (error) {
     const message = sanitizeCodexAuthError(execErrorOutput(error))
-    if (/not authenticated|login required|unauthorized|forbidden|401/i.test(message)) {
+    if (
+      /not authenticated|login required|unauthorized|forbidden|401/i.test(
+        message,
+      )
+    ) {
       return {
         provider: "codex",
         state: "unauthenticated",
@@ -136,10 +157,15 @@ export async function getCodexAuthStatus(): Promise<ProviderAuthStatus> {
   }
 
   try {
-    const { stdout, stderr } = await execCodex(["login", "status"], { timeout: 10_000 })
-    const parsed = parseCodexAuth([stdout, stderr].filter(Boolean).join("\n"), apiKeyConfigured)
+    const { stdout, stderr } = await execCodex(["login", "status"], {
+      timeout: 10_000,
+    })
+    const parsed = parseCodexAuth(
+      [stdout, stderr].filter(Boolean).join("\n"),
+      apiKeyConfigured,
+    )
     if (parsed.state === "unknown") {
-      return await fallbackCodexAuthStatus(apiKeyConfigured) ?? parsed
+      return (await fallbackCodexAuthStatus(apiKeyConfigured)) ?? parsed
     }
     return parsed
   } catch (error) {
@@ -161,7 +187,10 @@ export async function getCodexAuthStatus(): Promise<ProviderAuthStatus> {
       }
     }
 
-    const isUnauthenticated = /not authenticated|login required|unauthorized|forbidden|401/i.test(message)
+    const isUnauthenticated =
+      /not authenticated|login required|unauthorized|forbidden|401/i.test(
+        message,
+      )
     return {
       provider: "codex",
       state: isUnauthenticated ? "unauthenticated" : "unknown",
@@ -169,7 +198,7 @@ export async function getCodexAuthStatus(): Promise<ProviderAuthStatus> {
       authMethod: null,
       accountLabel: null,
       apiKeyConfigured,
-      error: isUnauthenticated ? message : (acpProbe.error || message),
+      error: isUnauthenticated ? message : acpProbe.error || message,
     }
   }
 }

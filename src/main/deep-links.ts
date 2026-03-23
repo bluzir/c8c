@@ -1,6 +1,9 @@
 import { app, type BrowserWindow } from "electron"
 import { resolve } from "path"
-import { fetchRemoteTemplate, fetchRemoteTemplateByUrl } from "./lib/templates/remote"
+import {
+  fetchRemoteTemplate,
+  fetchRemoteTemplateByUrl,
+} from "./lib/templates/remote"
 
 const TEMPLATE_ID_RE = /^\/([a-zA-Z0-9_-]+)$/
 const TEMPLATE_FILE_RE = /\.ya?ml$/i
@@ -12,7 +15,9 @@ interface ParsedTemplateDeepLink {
 
 export function configureDeepLinkProtocol(): void {
   if (!app.isPackaged && process.argv[1]) {
-    app.setAsDefaultProtocolClient("c8c", process.execPath, [resolve(process.argv[1])])
+    app.setAsDefaultProtocolClient("c8c", process.execPath, [
+      resolve(process.argv[1]),
+    ])
     return
   }
 
@@ -62,7 +67,10 @@ function parseInstallDeepLink(parsed: URL): ParsedTemplateDeepLink | null {
     return null
   }
 
-  if (templateUrl.protocol !== "https:" || !TEMPLATE_FILE_RE.test(templateUrl.pathname)) {
+  if (
+    templateUrl.protocol !== "https:" ||
+    !TEMPLATE_FILE_RE.test(templateUrl.pathname)
+  ) {
     return null
   }
 
@@ -77,7 +85,9 @@ function parseInstallDeepLink(parsed: URL): ParsedTemplateDeepLink | null {
   }
 }
 
-export function parseTemplateDeepLink(rawUrl: string): ParsedTemplateDeepLink | null {
+export function parseTemplateDeepLink(
+  rawUrl: string,
+): ParsedTemplateDeepLink | null {
   let parsed: URL
   try {
     parsed = new URL(rawUrl)
@@ -92,7 +102,10 @@ export function parseTemplateDeepLink(rawUrl: string): ParsedTemplateDeepLink | 
   return parseHubDeepLink(parsed) ?? parseInstallDeepLink(parsed)
 }
 
-export async function handleDeepLink(rawUrl: string, window: BrowserWindow | null): Promise<void> {
+export async function handleDeepLink(
+  rawUrl: string,
+  window: BrowserWindow | null,
+): Promise<void> {
   const parsed = parseTemplateDeepLink(rawUrl)
   if (!parsed) {
     console.warn("[main] unsupported deep link:", rawUrl)

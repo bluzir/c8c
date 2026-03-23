@@ -30,9 +30,11 @@ export async function loadChatHistory(
     const raw = await readFile(chatPath, "utf-8")
     const data = JSON.parse(raw) as ChatConversation
     if (
-      data.version !== 1
-      || !Array.isArray(data.messages)
-      || ("latestWorkflow" in data && data.latestWorkflow != null && typeof data.latestWorkflow !== "object")
+      data.version !== 1 ||
+      !Array.isArray(data.messages) ||
+      ("latestWorkflow" in data &&
+        data.latestWorkflow != null &&
+        typeof data.latestWorkflow !== "object")
     ) {
       return null
     }
@@ -57,9 +59,7 @@ export async function saveChatHistory(
 /**
  * Clear chat history for a workflow (delete the .chat.json file).
  */
-export async function clearChatHistory(
-  workflowPath: string,
-): Promise<void> {
+export async function clearChatHistory(workflowPath: string): Promise<void> {
   const chatPath = chatPathFor(workflowPath)
   try {
     await unlink(chatPath)

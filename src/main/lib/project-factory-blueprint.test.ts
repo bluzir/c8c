@@ -33,7 +33,8 @@ describe("project-factory-blueprint", () => {
             label: "  AI Trends Campaign  ",
             outcome: {
               title: "  AI Trends Campaign  ",
-              statement: " Generate 100 strong Facebook posts about AI and agents over 30 days. ",
+              statement:
+                " Generate 100 strong Facebook posts about AI and agents over 30 days. ",
               successSignal: "Ready-to-publish calendar with approved copy",
               timeHorizon: "Next 30 days",
               targetCount: 100,
@@ -41,10 +42,14 @@ describe("project-factory-blueprint", () => {
               constraints: ["Use company ToV", "  No AI slop  ", ""],
             },
             recipe: {
-              summary: "Trend watch -> ideas -> calendar -> drafts -> QA -> distribution",
+              summary:
+                "Trend watch -> ideas -> calendar -> drafts -> QA -> distribution",
               packIds: ["content-factory-alpha", "content-factory-alpha"],
               stageOrder: ["Trend watch", "Ideas", "Calendar"],
-              strategistCheckpoints: ["Approve themes", "Approve sample quality"],
+              strategistCheckpoints: [
+                "Approve themes",
+                "Approve sample quality",
+              ],
               caseGenerationRules: ["Editorial calendar -> post cases"],
             },
           },
@@ -57,32 +62,48 @@ describe("project-factory-blueprint", () => {
     expect(saved.factories).toHaveLength(1)
     expect(saved.factories[0]?.label).toBe("AI Trends Campaign")
     expect(saved.factories[0]?.modeId).toBe("content")
-    expect(saved.factories[0]?.outcome?.constraints).toEqual(["Use company ToV", "No AI slop"])
-    expect(saved.factories[0]?.recipe?.packIds).toEqual(["content-factory-alpha"])
+    expect(saved.factories[0]?.outcome?.constraints).toEqual([
+      "Use company ToV",
+      "No AI slop",
+    ])
+    expect(saved.factories[0]?.recipe?.packIds).toEqual([
+      "content-factory-alpha",
+    ])
     expect(saved.selectedFactoryId).toBe("factory:ai-trends-campaign")
 
     const reloaded = await loadProjectFactoryBlueprint(projectDir)
     expect(reloaded).not.toBeNull()
     expect(reloaded?.factories[0]?.recipe?.summary).toContain("Trend watch")
-    expect(reloaded?.factories[0]?.recipe?.caseGenerationRules).toEqual(["Editorial calendar -> post cases"])
-    expect(projectFactoryBlueprintPath(projectDir)).toContain(".c8c/factory.json")
+    expect(reloaded?.factories[0]?.recipe?.caseGenerationRules).toEqual([
+      "Editorial calendar -> post cases",
+    ])
+    expect(projectFactoryBlueprintPath(projectDir)).toContain(
+      ".c8c/factory.json",
+    )
   })
 
   it("migrates a legacy single-factory blueprint into the plural model", async () => {
     const path = projectFactoryBlueprintPath(projectDir)
     await mkdir(join(projectDir, ".c8c"), { recursive: true })
-    await writeFile(path, JSON.stringify({
-      version: 1,
-      projectPath: projectDir,
-      outcome: {
-        title: "Legacy delivery factory",
-      },
-      recipe: {
-        summary: "Map -> shape -> plan",
-      },
-      createdAt: 1,
-      updatedAt: 2,
-    }, null, 2))
+    await writeFile(
+      path,
+      JSON.stringify(
+        {
+          version: 1,
+          projectPath: projectDir,
+          outcome: {
+            title: "Legacy delivery factory",
+          },
+          recipe: {
+            summary: "Map -> shape -> plan",
+          },
+          createdAt: 1,
+          updatedAt: 2,
+        },
+        null,
+        2,
+      ),
+    )
 
     const migrated = await loadProjectFactoryBlueprint(projectDir)
     expect(migrated?.version).toBe(2)
@@ -92,6 +113,6 @@ describe("project-factory-blueprint", () => {
     expect(migrated?.selectedFactoryId).toBe("factory:default")
 
     const stored = await readFile(path, "utf-8")
-    expect(stored).toContain("\"version\": 1")
+    expect(stored).toContain('"version": 1')
   })
 })

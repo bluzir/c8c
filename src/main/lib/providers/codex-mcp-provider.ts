@@ -28,9 +28,12 @@ interface CodexMcpServer {
   disabled_tools?: string[] | null
 }
 
-function codexTransportType(transport?: CodexMcpTransport): McpServerInfo["type"] {
+function codexTransportType(
+  transport?: CodexMcpTransport,
+): McpServerInfo["type"] {
   if (!transport) return "stdio"
-  if (transport.type === "streamable_http" || transport.type === "http") return "http"
+  if (transport.type === "streamable_http" || transport.type === "http")
+    return "http"
   if (transport.type === "sse") return "sse"
   return "stdio"
 }
@@ -51,15 +54,21 @@ export function codexServerToInfo(server: CodexMcpServer): McpServerInfo {
 }
 
 async function listCodexServers(): Promise<CodexMcpServer[]> {
-  const { stdout } = await execCodex(["mcp", "list", "--json"], { timeout: 10_000 })
+  const { stdout } = await execCodex(["mcp", "list", "--json"], {
+    timeout: 10_000,
+  })
   const parsed = JSON.parse(stdout) as unknown
   return Array.isArray(parsed)
-    ? parsed.filter((item): item is CodexMcpServer => Boolean(item && typeof item === "object"))
+    ? parsed.filter((item): item is CodexMcpServer =>
+        Boolean(item && typeof item === "object"),
+      )
     : []
 }
 
 async function getCodexServer(name: string): Promise<CodexMcpServer> {
-  const { stdout } = await execCodex(["mcp", "get", name, "--json"], { timeout: 10_000 })
+  const { stdout } = await execCodex(["mcp", "get", name, "--json"], {
+    timeout: 10_000,
+  })
   return JSON.parse(stdout) as CodexMcpServer
 }
 
@@ -76,12 +85,18 @@ export class CodexMcpProvider implements McpProvider {
     return this.listServers()
   }
 
-  async addServer(server: McpServerInfo, _projectPath?: string): Promise<McpMutationResult> {
+  async addServer(
+    server: McpServerInfo,
+    _projectPath?: string,
+  ): Promise<McpMutationResult> {
     try {
       const args = ["mcp", "add", server.name]
       if (server.type === "stdio") {
         if (!server.command) {
-          return { success: false, error: "command is required for stdio transport" }
+          return {
+            success: false,
+            error: "command is required for stdio transport",
+          }
         }
         for (const [key, value] of Object.entries(server.env || {})) {
           args.push("--env", `${key}=${value}`)
@@ -100,13 +115,21 @@ export class CodexMcpProvider implements McpProvider {
     }
   }
 
-  async updateServer(name: string, server: McpServerInfo, _projectPath?: string): Promise<McpMutationResult> {
+  async updateServer(
+    name: string,
+    server: McpServerInfo,
+    _projectPath?: string,
+  ): Promise<McpMutationResult> {
     const removed = await this.removeServer(name, server.scope, undefined)
     if (!removed.success) return removed
     return this.addServer(server, undefined)
   }
 
-  async removeServer(name: string, _scope: McpServerScope, _projectPath?: string): Promise<McpMutationResult> {
+  async removeServer(
+    name: string,
+    _scope: McpServerScope,
+    _projectPath?: string,
+  ): Promise<McpMutationResult> {
     try {
       await execCodex(["mcp", "remove", name], { timeout: 10_000 })
       return { success: true }
@@ -123,11 +146,16 @@ export class CodexMcpProvider implements McpProvider {
   ): Promise<McpMutationResult> {
     return {
       success: false,
-      error: "Codex CLI does not currently support enabling or disabling MCP servers in place. Remove or re-add the server instead.",
+      error:
+        "Codex CLI does not currently support enabling or disabling MCP servers in place. Remove or re-add the server instead.",
     }
   }
 
-  async testServer(name: string, _scope: McpServerScope, _projectPath?: string): Promise<McpTestResult> {
+  async testServer(
+    name: string,
+    _scope: McpServerScope,
+    _projectPath?: string,
+  ): Promise<McpTestResult> {
     const startedAt = Date.now()
     try {
       const server = await getCodexServer(name)

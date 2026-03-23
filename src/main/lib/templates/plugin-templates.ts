@@ -39,7 +39,11 @@ function normalizeString(value: unknown): string | undefined {
 function isWithinRoot(candidatePath: string, rootPath: string): boolean {
   const candidate = resolve(candidatePath)
   const root = resolve(rootPath)
-  return candidate === root || candidate.startsWith(`${root}/`) || candidate.startsWith(`${root}\\`)
+  return (
+    candidate === root ||
+    candidate.startsWith(`${root}/`) ||
+    candidate.startsWith(`${root}\\`)
+  )
 }
 
 function resolveSafePath(rootPath: string, pathValue?: string): string | null {
@@ -57,7 +61,10 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function readJsonFile<T>(path: string, kind: string): Promise<T | undefined> {
+async function readJsonFile<T>(
+  path: string,
+  kind: string,
+): Promise<T | undefined> {
   try {
     const raw = await readFile(path, "utf-8")
     return JSON.parse(raw) as T
@@ -72,7 +79,9 @@ async function readJsonFile<T>(path: string, kind: string): Promise<T | undefine
   }
 }
 
-async function resolvePluginTemplateRoots(plugin: InstalledPlugin): Promise<string[]> {
+async function resolvePluginTemplateRoots(
+  plugin: InstalledPlugin,
+): Promise<string[]> {
   const pluginManifest = await readJsonFile<PluginManifest>(
     join(plugin.pluginPath, ".claude-plugin", "plugin.json"),
     "plugin",
@@ -86,7 +95,10 @@ async function resolvePluginTemplateRoots(plugin: InstalledPlugin): Promise<stri
 
   let matchingEntry: MarketplacePluginEntry | undefined
   for (const entry of marketplaceManifest?.plugins || []) {
-    const sourcePath = resolveSafePath(marketplaceRoot, normalizeString(entry.source) || ".")
+    const sourcePath = resolveSafePath(
+      marketplaceRoot,
+      normalizeString(entry.source) || ".",
+    )
     if (sourcePath === plugin.pluginPath) {
       matchingEntry = entry
       break
@@ -94,8 +106,14 @@ async function resolvePluginTemplateRoots(plugin: InstalledPlugin): Promise<stri
   }
 
   const candidates = [
-    resolveSafePath(plugin.pluginPath, normalizeString(pluginManifest?.templates)),
-    resolveSafePath(plugin.pluginPath, normalizeString(matchingEntry?.templates)),
+    resolveSafePath(
+      plugin.pluginPath,
+      normalizeString(pluginManifest?.templates),
+    ),
+    resolveSafePath(
+      plugin.pluginPath,
+      normalizeString(matchingEntry?.templates),
+    ),
     resolveSafePath(plugin.pluginPath, "templates"),
   ].filter((value): value is string => Boolean(value))
 
@@ -142,7 +160,10 @@ async function collectTemplateFiles(rootPath: string): Promise<string[]> {
   return files.sort((left, right) => left.localeCompare(right))
 }
 
-function buildPluginTemplateId(plugin: InstalledPlugin, baseId: string): string {
+function buildPluginTemplateId(
+  plugin: InstalledPlugin,
+  baseId: string,
+): string {
   return `plugin:${plugin.id}:${baseId}`
 }
 
@@ -168,7 +189,9 @@ export async function listPluginTemplates(): Promise<WorkflowTemplate[]> {
             pluginVersion: plugin.version,
             templatePath,
           })
-          const baseId = normalizeString(parsed.id) || basename(templatePath, extname(templatePath))
+          const baseId =
+            normalizeString(parsed.id) ||
+            basename(templatePath, extname(templatePath))
           templates.push({
             ...parsed,
             id: buildPluginTemplateId(plugin, baseId),

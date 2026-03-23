@@ -24,7 +24,10 @@ import {
 } from "./deep-links"
 import { initHubCatalogRefresh } from "./lib/templates/hub-catalog"
 import { registerMainHandlers } from "./register-handlers"
-import { applyRuntimePathOverrides, shouldSuppressStartupSideEffects } from "./lib/runtime-paths"
+import {
+  applyRuntimePathOverrides,
+  shouldSuppressStartupSideEffects,
+} from "./lib/runtime-paths"
 import {
   prepareElectronSmokeLaunchState,
   resolveElectronSmokeScenario,
@@ -73,13 +76,19 @@ function installRendererContentSecurityPolicy(): void {
   const policy = buildRendererContentSecurityPolicy(rendererUrl)
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    if (details.resourceType !== "mainFrame" || !shouldApplyRendererCsp(details.url, rendererUrl)) {
+    if (
+      details.resourceType !== "mainFrame" ||
+      !shouldApplyRendererCsp(details.url, rendererUrl)
+    ) {
       callback({ responseHeaders: details.responseHeaders })
       return
     }
 
     callback({
-      responseHeaders: applyContentSecurityPolicyHeader(details.responseHeaders, policy),
+      responseHeaders: applyContentSecurityPolicyHeader(
+        details.responseHeaders,
+        policy,
+      ),
     })
   })
 }
@@ -111,153 +120,167 @@ function createWindow() {
   const useHiddenSmokeWindow = Boolean(smokeScenario && !keepSmokeWindowVisible)
   if (mainWindow || isCreatingWindow) return
   isCreatingWindow = true
-  void loadWindowState().then((savedState) => {
-    if (mainWindow) return
-    const saved = normalizeWindowState(savedState)
+  void loadWindowState()
+    .then((savedState) => {
+      if (mainWindow) return
+      const saved = normalizeWindowState(savedState)
 
-    const windowOptions: BrowserWindowConstructorOptions = {
-      title: "c8c",
-      icon: join(__dirname, "../../build/icon.png"),
-      width: saved.width,
-      height: saved.height,
-      ...(typeof saved.x === "number" && typeof saved.y === "number" ? { x: saved.x, y: saved.y } : {}),
-      minWidth: MIN_WINDOW_WIDTH,
-      minHeight: MIN_WINDOW_HEIGHT,
-      show: false,
-      ...(useHiddenSmokeWindow ? { paintWhenInitiallyHidden: true } : {}),
-      autoHideMenuBar: !isMac,
-      ...(isMac ? {
-        titleBarStyle: "hidden",
-        trafficLightPosition: { x: 12, y: 12 },
-      } : {}),
-      webPreferences: {
-        preload: join(__dirname, "../preload/index.js"),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-        ...(useHiddenSmokeWindow ? { backgroundThrottling: false } : {}),
-      },
-    }
-
-    mainWindow = new BrowserWindow(windowOptions)
-    const window = mainWindow
-    let smokeRunStarted = false
-
-    const emitRuntime = () => emitDesktopRuntimeUpdate(window)
-    let persistTimer: ReturnType<typeof setTimeout> | null = null
-
-    const schedulePersist = () => {
-      if (persistTimer) {
-        clearTimeout(persistTimer)
+      const windowOptions: BrowserWindowConstructorOptions = {
+        title: "c8c",
+        icon: join(__dirname, "../../build/icon.png"),
+        width: saved.width,
+        height: saved.height,
+        ...(typeof saved.x === "number" && typeof saved.y === "number"
+          ? { x: saved.x, y: saved.y }
+          : {}),
+        minWidth: MIN_WINDOW_WIDTH,
+        minHeight: MIN_WINDOW_HEIGHT,
+        show: false,
+        ...(useHiddenSmokeWindow ? { paintWhenInitiallyHidden: true } : {}),
+        autoHideMenuBar: !isMac,
+        ...(isMac
+          ? {
+              titleBarStyle: "hidden",
+              trafficLightPosition: { x: 12, y: 12 },
+            }
+          : {}),
+        webPreferences: {
+          preload: join(__dirname, "../preload/index.js"),
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+          ...(useHiddenSmokeWindow ? { backgroundThrottling: false } : {}),
+        },
       }
-      persistTimer = setTimeout(() => {
-        if (!window.isDestroyed()) {
-          void persistWindowState(window)
+
+      mainWindow = new BrowserWindow(windowOptions)
+      const window = mainWindow
+      let smokeRunStarted = false
+
+      const emitRuntime = () => emitDesktopRuntimeUpdate(window)
+      let persistTimer: ReturnType<typeof setTimeout> | null = null
+
+      const schedulePersist = () => {
+        if (persistTimer) {
+          clearTimeout(persistTimer)
         }
-      }, 180)
-    }
-
-    const ensureWindowVisible = () => {
-      if (window.isDestroyed() || window.isMaximized() || window.isFullScreen()) return
-      const current = window.getBounds()
-      const normalized = normalizeBounds(current)
-      if (!areBoundsEqual(current, normalized)) {
-        window.setBounds(normalized, false)
+        persistTimer = setTimeout(() => {
+          if (!window.isDestroyed()) {
+            void persistWindowState(window)
+          }
+        }, 180)
       }
-    }
 
-    const onDisplayChanged = () => {
-      ensureWindowVisible()
-    }
-
-    screen.on("display-added", onDisplayChanged)
-    screen.on("display-removed", onDisplayChanged)
-    screen.on("display-metrics-changed", onDisplayChanged)
-
-    if (saved.isMaximized) {
-      window.maximize()
-    }
-
-    window.webContents.setWindowOpenHandler(({ url }) => {
-      if (isSafeExternalUrl(url)) {
-        void shell.openExternal(url)
+      const ensureWindowVisible = () => {
+        if (
+          window.isDestroyed() ||
+          window.isMaximized() ||
+          window.isFullScreen()
+        )
+          return
+        const current = window.getBounds()
+        const normalized = normalizeBounds(current)
+        if (!areBoundsEqual(current, normalized)) {
+          window.setBounds(normalized, false)
+        }
       }
-      return { action: "deny" }
-    })
 
-    window.webContents.on("will-navigate", (event, url) => {
-      if (url === window.webContents.getURL()) return
-      event.preventDefault()
-      if (isSafeExternalUrl(url)) {
-        void shell.openExternal(url)
+      const onDisplayChanged = () => {
+        ensureWindowVisible()
       }
-    })
 
-    if (process.env.ELECTRON_RENDERER_URL) {
-      void window.loadURL(process.env.ELECTRON_RENDERER_URL)
-    } else {
-      void window.loadFile(join(__dirname, "../renderer/index.html"))
-    }
+      screen.on("display-added", onDisplayChanged)
+      screen.on("display-removed", onDisplayChanged)
+      screen.on("display-metrics-changed", onDisplayChanged)
 
-    window.once("ready-to-show", () => {
-      if (!useHiddenSmokeWindow) {
-        window.show()
+      if (saved.isMaximized) {
+        window.maximize()
       }
-      emitRuntime()
-    })
 
-    window.webContents.on("did-finish-load", () => {
-      emitRuntime()
-      if (pendingDeepLinkUrl) {
-        void handleDeepLink(pendingDeepLinkUrl, window)
-        pendingDeepLinkUrl = null
+      window.webContents.setWindowOpenHandler(({ url }) => {
+        if (isSafeExternalUrl(url)) {
+          void shell.openExternal(url)
+        }
+        return { action: "deny" }
+      })
+
+      window.webContents.on("will-navigate", (event, url) => {
+        if (url === window.webContents.getURL()) return
+        event.preventDefault()
+        if (isSafeExternalUrl(url)) {
+          void shell.openExternal(url)
+        }
+      })
+
+      if (process.env.ELECTRON_RENDERER_URL) {
+        void window.loadURL(process.env.ELECTRON_RENDERER_URL)
+      } else {
+        void window.loadFile(join(__dirname, "../renderer/index.html"))
       }
-      if (!smokeRunStarted) {
-        smokeRunStarted = true
-        runElectronSmokeScenarioIfRequested(window)
-      }
-    })
 
-    window.on("resize", schedulePersist)
-    window.on("move", schedulePersist)
-    window.on("maximize", () => {
-      schedulePersist()
-      emitRuntime()
-    })
-    window.on("unmaximize", () => {
-      schedulePersist()
-      emitRuntime()
-      ensureWindowVisible()
-    })
-    window.on("enter-full-screen", emitRuntime)
-    window.on("leave-full-screen", emitRuntime)
+      window.once("ready-to-show", () => {
+        if (!useHiddenSmokeWindow) {
+          window.show()
+        }
+        emitRuntime()
+      })
 
-    window.on("close", () => {
-      if (persistTimer) {
-        clearTimeout(persistTimer)
-        persistTimer = null
-      }
-      void persistWindowState(window)
-    })
+      window.webContents.on("did-finish-load", () => {
+        emitRuntime()
+        if (pendingDeepLinkUrl) {
+          void handleDeepLink(pendingDeepLinkUrl, window)
+          pendingDeepLinkUrl = null
+        }
+        if (!smokeRunStarted) {
+          smokeRunStarted = true
+          runElectronSmokeScenarioIfRequested(window)
+        }
+      })
 
-    window.on("closed", () => {
-      screen.off("display-added", onDisplayChanged)
-      screen.off("display-removed", onDisplayChanged)
-      screen.off("display-metrics-changed", onDisplayChanged)
-      mainWindow = null
+      window.on("resize", schedulePersist)
+      window.on("move", schedulePersist)
+      window.on("maximize", () => {
+        schedulePersist()
+        emitRuntime()
+      })
+      window.on("unmaximize", () => {
+        schedulePersist()
+        emitRuntime()
+        ensureWindowVisible()
+      })
+      window.on("enter-full-screen", emitRuntime)
+      window.on("leave-full-screen", emitRuntime)
+
+      window.on("close", () => {
+        if (persistTimer) {
+          clearTimeout(persistTimer)
+          persistTimer = null
+        }
+        void persistWindowState(window)
+      })
+
+      window.on("closed", () => {
+        screen.off("display-added", onDisplayChanged)
+        screen.off("display-removed", onDisplayChanged)
+        screen.off("display-metrics-changed", onDisplayChanged)
+        mainWindow = null
+      })
     })
-  }).catch((error) => {
-    logWarn("main", "create_window_failed", {
-      error: error instanceof Error ? error.message : String(error),
+    .catch((error) => {
+      logWarn("main", "create_window_failed", {
+        error: error instanceof Error ? error.message : String(error),
+      })
     })
-  }).finally(() => {
-    isCreatingWindow = false
-  })
+    .finally(() => {
+      isCreatingWindow = false
+    })
 }
 
 app.whenReady().then(async () => {
   installRendererContentSecurityPolicy()
-  const useHiddenSmokeWindow = Boolean(resolveElectronSmokeScenario() && !shouldShowElectronSmokeWindow())
+  const useHiddenSmokeWindow = Boolean(
+    resolveElectronSmokeScenario() && !shouldShowElectronSmokeWindow(),
+  )
   if (process.platform === "darwin" && app.dock) {
     try {
       app.dock.setIcon(join(__dirname, "../../build/icon.png"))
@@ -326,7 +349,9 @@ app.whenReady().then(async () => {
   }
   if (!suppressStartupSideEffects) {
     try {
-      await trackTelemetryEvent("app_ready", { startup_ms: Date.now() - processStartedAt })
+      await trackTelemetryEvent("app_ready", {
+        startup_ms: Date.now() - processStartedAt,
+      })
     } catch (error) {
       logWarn("main", "telemetry_app_ready_failed", {
         error: error instanceof Error ? error.message : String(error),
@@ -349,7 +374,9 @@ app.on("before-quit", (event) => {
   event.preventDefault()
   void (async () => {
     try {
-      await trackTelemetryEvent("app_quit", { uptime_ms: Date.now() - processStartedAt })
+      await trackTelemetryEvent("app_quit", {
+        uptime_ms: Date.now() - processStartedAt,
+      })
       await flushTelemetryService()
     } catch (error) {
       logWarn("main", "telemetry_quit_flush_failed", {

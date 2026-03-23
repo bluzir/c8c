@@ -28,12 +28,14 @@ function errorCode(error: unknown): string | undefined {
 }
 
 function sanitizeFileSegment(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "artifact"
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "artifact"
+  )
 }
 
 function titleCaseFromIdentifier(value: string): string {
@@ -88,7 +90,8 @@ function buildArtifactMarkdown(
     headerLines.push(contract.description.trim())
   }
 
-  const body = reportContent.trim() || "_No report content was available for this result._"
+  const body =
+    reportContent.trim() || "_No report content was available for this result._"
   return `${headerLines.join("\n")}\n\n---\n\n${body}\n`
 }
 
@@ -104,7 +107,8 @@ async function readRunReportContent(
 ): Promise<string> {
   const fallbackPath = join(workspace, "report.md")
   const candidatePaths = [
-    runResult.reportPath && isWithinRoot(resolve(runResult.reportPath), projectPath)
+    runResult.reportPath &&
+    isWithinRoot(resolve(runResult.reportPath), projectPath)
       ? runResult.reportPath
       : null,
     fallbackPath,
@@ -127,7 +131,9 @@ async function readRunReportContent(
   return ""
 }
 
-async function readExistingArtifactMetadata(metadataPath: string): Promise<StoredArtifactMetadata | null> {
+async function readExistingArtifactMetadata(
+  metadataPath: string,
+): Promise<StoredArtifactMetadata | null> {
   try {
     const raw = await readFile(metadataPath, "utf-8")
     return JSON.parse(raw) as StoredArtifactMetadata
@@ -159,11 +165,16 @@ export async function persistArtifactsFromRun(
   await mkdir(artifactsDir, { recursive: true })
 
   const runResult = await readRunResultMetadata(workspace)
-  const reportContent = await readRunReportContent(projectPath, workspace, runResult)
+  const reportContent = await readRunReportContent(
+    projectPath,
+    workspace,
+    runResult,
+  )
   const artifacts: ArtifactRecord[] = []
 
   for (const contract of input.contracts) {
-    const title = contract.title?.trim() || titleCaseFromIdentifier(contract.kind)
+    const title =
+      contract.title?.trim() || titleCaseFromIdentifier(contract.kind)
     const baseName = buildArtifactBaseName(runResult.runId, contract.kind)
     const contentPath = join(artifactsDir, `${baseName}.md`)
     const metadataPath = join(artifactsDir, `${baseName}.json`)
@@ -200,7 +211,10 @@ export async function persistArtifactsFromRun(
       contract,
     }
 
-    await writeFileAtomic(contentPath, buildArtifactMarkdown(contract, record, reportContent))
+    await writeFileAtomic(
+      contentPath,
+      buildArtifactMarkdown(contract, record, reportContent),
+    )
     await writeFileAtomic(metadataPath, JSON.stringify(storedMetadata, null, 2))
     artifacts.push(record)
   }
@@ -209,7 +223,8 @@ export async function persistArtifactsFromRun(
     await upsertCaseState({
       projectPath,
       caseId: input.caseId,
-      workLabel: input.caseLabel || artifacts[0]?.workflowName || artifacts[0]?.title,
+      workLabel:
+        input.caseLabel || artifacts[0]?.workflowName || artifacts[0]?.title,
       caseLabel: input.caseLabel,
       factoryId: input.factoryId,
       factoryLabel: input.factoryLabel,
@@ -223,62 +238,99 @@ export async function persistArtifactsFromRun(
   return { artifacts }
 }
 
-export async function listProjectArtifacts(projectPath: string): Promise<ArtifactRecord[]> {
+export async function listProjectArtifacts(
+  projectPath: string,
+): Promise<ArtifactRecord[]> {
   const artifactsDir = resolveArtifactsDir(projectPath)
   try {
     const entries = await readdir(artifactsDir, { withFileTypes: true })
-    const artifactRecords = await Promise.all(entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-      .map(async (entry) => {
-        const metadataPath = join(artifactsDir, entry.name)
-        try {
-          const raw = await readFile(metadataPath, "utf-8")
-          const parsed = JSON.parse(raw) as Partial<StoredArtifactMetadata>
-          if (
-            typeof parsed.id !== "string"
-            || typeof parsed.kind !== "string"
-            || typeof parsed.title !== "string"
-            || typeof parsed.contentPath !== "string"
-            || typeof parsed.relativePath !== "string"
-            || typeof parsed.runId !== "string"
-          ) {
+    const artifactRecords = await Promise.all(
+      entries
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map(async (entry) => {
+          const metadataPath = join(artifactsDir, entry.name)
+          try {
+            const raw = await readFile(metadataPath, "utf-8")
+            const parsed = JSON.parse(raw) as Partial<StoredArtifactMetadata>
+            if (
+              typeof parsed.id !== "string" ||
+              typeof parsed.kind !== "string" ||
+              typeof parsed.title !== "string" ||
+              typeof parsed.contentPath !== "string" ||
+              typeof parsed.relativePath !== "string" ||
+              typeof parsed.runId !== "string"
+            ) {
+              return null
+            }
+
+            const record: ArtifactRecord = {
+              id: parsed.id,
+              kind: parsed.kind,
+              title: parsed.title,
+              description: parsed.description,
+              factoryId:
+                typeof parsed.factoryId === "string"
+                  ? parsed.factoryId
+                  : undefined,
+              factoryLabel:
+                typeof parsed.factoryLabel === "string"
+                  ? parsed.factoryLabel
+                  : undefined,
+              caseId:
+                typeof parsed.caseId === "string" ? parsed.caseId : undefined,
+              caseLabel:
+                typeof parsed.caseLabel === "string"
+                  ? parsed.caseLabel
+                  : undefined,
+              sourceArtifactIds: Array.isArray(parsed.sourceArtifactIds)
+                ? parsed.sourceArtifactIds.filter(
+                    (value): value is string => typeof value === "string",
+                  )
+                : undefined,
+              projectPath:
+                typeof parsed.projectPath === "string"
+                  ? parsed.projectPath
+                  : resolve(projectPath),
+              workspace:
+                typeof parsed.workspace === "string" ? parsed.workspace : "",
+              runId: parsed.runId,
+              templateId:
+                typeof parsed.templateId === "string"
+                  ? parsed.templateId
+                  : undefined,
+              templateName:
+                typeof parsed.templateName === "string"
+                  ? parsed.templateName
+                  : undefined,
+              workflowPath:
+                typeof parsed.workflowPath === "string"
+                  ? parsed.workflowPath
+                  : undefined,
+              workflowName:
+                typeof parsed.workflowName === "string"
+                  ? parsed.workflowName
+                  : undefined,
+              relativePath: parsed.relativePath,
+              contentPath: parsed.contentPath,
+              metadataPath:
+                typeof parsed.metadataPath === "string"
+                  ? parsed.metadataPath
+                  : metadataPath,
+              createdAt:
+                typeof parsed.createdAt === "number" ? parsed.createdAt : 0,
+              updatedAt:
+                typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0,
+            }
+            return record
+          } catch (error) {
+            logWarn("artifact-store", "read_artifact_metadata_failed", {
+              metadataPath,
+              error: String(error),
+            })
             return null
           }
-
-          const record: ArtifactRecord = {
-            id: parsed.id,
-            kind: parsed.kind,
-            title: parsed.title,
-            description: parsed.description,
-            factoryId: typeof parsed.factoryId === "string" ? parsed.factoryId : undefined,
-            factoryLabel: typeof parsed.factoryLabel === "string" ? parsed.factoryLabel : undefined,
-            caseId: typeof parsed.caseId === "string" ? parsed.caseId : undefined,
-            caseLabel: typeof parsed.caseLabel === "string" ? parsed.caseLabel : undefined,
-            sourceArtifactIds: Array.isArray(parsed.sourceArtifactIds)
-              ? parsed.sourceArtifactIds.filter((value): value is string => typeof value === "string")
-              : undefined,
-            projectPath: typeof parsed.projectPath === "string" ? parsed.projectPath : resolve(projectPath),
-            workspace: typeof parsed.workspace === "string" ? parsed.workspace : "",
-            runId: parsed.runId,
-            templateId: typeof parsed.templateId === "string" ? parsed.templateId : undefined,
-            templateName: typeof parsed.templateName === "string" ? parsed.templateName : undefined,
-            workflowPath: typeof parsed.workflowPath === "string" ? parsed.workflowPath : undefined,
-            workflowName: typeof parsed.workflowName === "string" ? parsed.workflowName : undefined,
-            relativePath: parsed.relativePath,
-            contentPath: parsed.contentPath,
-            metadataPath: typeof parsed.metadataPath === "string" ? parsed.metadataPath : metadataPath,
-            createdAt: typeof parsed.createdAt === "number" ? parsed.createdAt : 0,
-            updatedAt: typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0,
-          }
-          return record
-        } catch (error) {
-          logWarn("artifact-store", "read_artifact_metadata_failed", {
-            metadataPath,
-            error: String(error),
-          })
-          return null
-        }
-      }))
+        }),
+    )
 
     return artifactRecords
       .filter((record): record is ArtifactRecord => record !== null)

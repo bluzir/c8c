@@ -5,9 +5,19 @@ import { execClaude } from "./claude-cli"
 import { writeFileAtomic } from "./atomic-write"
 import { logWarn } from "./structured-log"
 import { runSerialTask } from "./serial-task"
-import { getCachedTools, invalidateCache, setCachedTools } from "./mcp-tools-cache"
+import {
+  getCachedTools,
+  invalidateCache,
+  setCachedTools,
+} from "./mcp-tools-cache"
 import { invalidateMcpConfigCache } from "./mcp-config"
-import type { McpServerInfo, McpServerScope, McpTestResult, McpToolInfo, McpTransportType } from "@shared/types"
+import type {
+  McpServerInfo,
+  McpServerScope,
+  McpTestResult,
+  McpToolInfo,
+  McpTransportType,
+} from "@shared/types"
 
 // ── Config file paths ───────────────────────────────────
 
@@ -19,14 +29,21 @@ function userMcpPath(): string {
   return join(homedir(), ".claude.json")
 }
 
-function configPathForScope(scope: McpServerScope, projectPath?: string): string | null {
+function configPathForScope(
+  scope: McpServerScope,
+  projectPath?: string,
+): string | null {
   if (scope === "local") {
     return projectPath ? projectMcpPath(projectPath) : null
   }
   return userMcpPath()
 }
 
-function invalidateMcpCachesForScope(scope: McpServerScope, name?: string, projectPath?: string): void {
+function invalidateMcpCachesForScope(
+  scope: McpServerScope,
+  name?: string,
+  projectPath?: string,
+): void {
   invalidateCache(name, projectPath)
   const configPath = configPathForScope(scope, projectPath)
   if (configPath) {
@@ -53,16 +70,21 @@ interface McpJsonFile {
 
 interface ClaudeConfigFile {
   mcpServers?: Record<string, McpJsonEntry>
-  projects?: Record<string, {
-    mcpServers?: Record<string, McpJsonEntry>
-  }>
+  projects?: Record<
+    string,
+    {
+      mcpServers?: Record<string, McpJsonEntry>
+    }
+  >
 }
 
 function isMissingFile(error: unknown): boolean {
-  return typeof error === "object"
-    && error !== null
-    && "code" in error
-    && String((error as { code?: unknown }).code) === "ENOENT"
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    String((error as { code?: unknown }).code) === "ENOENT"
+  )
 }
 
 async function readClaudeConfig(): Promise<ClaudeConfigFile | null> {
@@ -71,7 +93,9 @@ async function readClaudeConfig(): Promise<ClaudeConfigFile | null> {
     return JSON.parse(raw) as ClaudeConfigFile
   } catch (error) {
     if (!isMissingFile(error)) {
-      logWarn("mcp-manager", "read_claude_config_failed", { error: String(error) })
+      logWarn("mcp-manager", "read_claude_config_failed", {
+        error: String(error),
+      })
     }
     return null
   }
@@ -86,7 +110,11 @@ function inferTransport(entry: McpJsonEntry): McpTransportType {
   return "stdio"
 }
 
-function entryToServerInfo(name: string, entry: McpJsonEntry, scope: McpServerScope): McpServerInfo {
+function entryToServerInfo(
+  name: string,
+  entry: McpJsonEntry,
+  scope: McpServerScope,
+): McpServerInfo {
   const type = inferTransport(entry)
   return {
     name,
@@ -108,17 +136,26 @@ async function readMcpJson(filePath: string): Promise<McpJsonFile | null> {
     return JSON.parse(raw) as McpJsonFile
   } catch (error) {
     if (!isMissingFile(error)) {
-      logWarn("mcp-manager", "read_mcp_json_failed", { filePath, error: String(error) })
+      logWarn("mcp-manager", "read_mcp_json_failed", {
+        filePath,
+        error: String(error),
+      })
     }
     return null
   }
 }
 
-async function writeMcpJson(filePath: string, data: McpJsonFile): Promise<void> {
+async function writeMcpJson(
+  filePath: string,
+  data: McpJsonFile,
+): Promise<void> {
   await writeFileAtomic(filePath, JSON.stringify(data, null, 2) + "\n")
 }
 
-async function mutateJsonFile<T>(filePath: string, mutation: (raw: string) => Promise<T> | T): Promise<T> {
+async function mutateJsonFile<T>(
+  filePath: string,
+  mutation: (raw: string) => Promise<T> | T,
+): Promise<T> {
   return runSerialTask(`mcp-json:${filePath}`, async () => {
     const raw = await readFile(filePath, "utf-8").catch(() => "{}")
     const result = await mutation(raw)
@@ -128,7 +165,9 @@ async function mutateJsonFile<T>(filePath: string, mutation: (raw: string) => Pr
 
 // ── Public API ──────────────────────────────────────────
 
-export async function listMcpServers(projectPath?: string): Promise<McpServerInfo[]> {
+export async function listMcpServers(
+  projectPath?: string,
+): Promise<McpServerInfo[]> {
   const servers: McpServerInfo[] = []
 
   // Local-scoped servers: {projectPath}/.mcp.json
@@ -146,7 +185,9 @@ export async function listMcpServers(projectPath?: string): Promise<McpServerInf
   if (claudeConfig) {
     // Project-scoped servers: ~/.claude.json → projects[projectPath].mcpServers
     if (projectPath && claudeConfig.projects?.[projectPath]?.mcpServers) {
-      for (const [name, entry] of Object.entries(claudeConfig.projects[projectPath].mcpServers!)) {
+      for (const [name, entry] of Object.entries(
+        claudeConfig.projects[projectPath].mcpServers!,
+      )) {
         servers.push(entryToServerInfo(name, entry, "project"))
       }
     }
@@ -176,10 +217,15 @@ export async function listAllMcpServers(): Promise<McpServerInfo[]> {
 
   // Project-scope: iterate ALL projects
   if (claudeConfig.projects) {
-    for (const [projectPath, projectConfig] of Object.entries(claudeConfig.projects)) {
+    for (const [projectPath, projectConfig] of Object.entries(
+      claudeConfig.projects,
+    )) {
       if (projectConfig.mcpServers) {
         for (const [name, entry] of Object.entries(projectConfig.mcpServers)) {
-          servers.push({ ...entryToServerInfo(name, entry, "project"), projectPath })
+          servers.push({
+            ...entryToServerInfo(name, entry, "project"),
+            projectPath,
+          })
         }
       }
     }
@@ -203,12 +249,24 @@ export async function addMcpServer(
       if (server.args?.length) config.args = server.args
     } else {
       if (server.url) config.url = server.url
-      if (server.headers && Object.keys(server.headers).length > 0) config.headers = server.headers
+      if (server.headers && Object.keys(server.headers).length > 0)
+        config.headers = server.headers
     }
-    if (server.env && Object.keys(server.env).length > 0) config.env = server.env
+    if (server.env && Object.keys(server.env).length > 0)
+      config.env = server.env
 
-    const args = ["mcp", "add-json", server.name, JSON.stringify(config), "--scope", cliScope]
-    const cwd = (cliScope === "local" || cliScope === "project") && projectPath ? projectPath : undefined
+    const args = [
+      "mcp",
+      "add-json",
+      server.name,
+      JSON.stringify(config),
+      "--scope",
+      cliScope,
+    ]
+    const cwd =
+      (cliScope === "local" || cliScope === "project") && projectPath
+        ? projectPath
+        : undefined
     await execClaude(args, { cwd, timeout: 10_000 })
     invalidateMcpCachesForScope(server.scope, server.name, projectPath)
     return { success: true }
@@ -225,7 +283,10 @@ export async function removeMcpServer(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const args = ["mcp", "remove", name, "--scope", scope]
-    const cwd = (scope === "local" || scope === "project") && projectPath ? projectPath : undefined
+    const cwd =
+      (scope === "local" || scope === "project") && projectPath
+        ? projectPath
+        : undefined
     await execClaude(args, { cwd, timeout: 10_000 })
     invalidateMcpCachesForScope(scope, name, projectPath)
     return { success: true }
@@ -245,7 +306,10 @@ export async function toggleMcpServer(
     if (scope === "local") {
       // Local scope: {projectPath}/.mcp.json
       if (!projectPath) {
-        return { success: false, error: "Project path required for local scope." }
+        return {
+          success: false,
+          error: "Project path required for local scope.",
+        }
       }
       const filePath = projectMcpPath(projectPath)
       await runSerialTask(`mcp-json:${filePath}`, async () => {
@@ -291,7 +355,10 @@ export async function toggleMcpServer(
           }
         }
 
-        await writeFileAtomic(filePath, JSON.stringify(claudeConfig, null, 2) + "\n")
+        await writeFileAtomic(
+          filePath,
+          JSON.stringify(claudeConfig, null, 2) + "\n",
+        )
       })
     }
 
@@ -324,7 +391,10 @@ export async function testMcpServer(
   const start = Date.now()
   try {
     const args = ["mcp", "get", name]
-    const cwd = (scope === "local" || scope === "project") && projectPath ? projectPath : undefined
+    const cwd =
+      (scope === "local" || scope === "project") && projectPath
+        ? projectPath
+        : undefined
     const { stdout } = await execClaude(args, { cwd, timeout: 30_000 })
     const latencyMs = Date.now() - start
 
@@ -338,7 +408,10 @@ export async function testMcpServer(
   }
 }
 
-function parseToolsFromGetOutput(stdout: string, serverName: string): McpToolInfo[] {
+function parseToolsFromGetOutput(
+  stdout: string,
+  serverName: string,
+): McpToolInfo[] {
   const tools: McpToolInfo[] = []
 
   // `claude mcp get` outputs a list of tools, typically one per line
@@ -348,7 +421,15 @@ function parseToolsFromGetOutput(stdout: string, serverName: string): McpToolInf
   for (const line of lines) {
     const trimmed = line.trim()
     // Skip header/metadata lines
-    if (trimmed.startsWith("Server:") || trimmed.startsWith("Type:") || trimmed.startsWith("Command:") || trimmed.startsWith("URL:") || trimmed.startsWith("Status:") || trimmed.startsWith("Tools")) continue
+    if (
+      trimmed.startsWith("Server:") ||
+      trimmed.startsWith("Type:") ||
+      trimmed.startsWith("Command:") ||
+      trimmed.startsWith("URL:") ||
+      trimmed.startsWith("Status:") ||
+      trimmed.startsWith("Tools")
+    )
+      continue
     if (trimmed === "" || trimmed === "---") continue
 
     // Try "- tool_name: description" format
@@ -394,7 +475,11 @@ export async function discoverMcpTools(
     targets.map(async (server) => {
       const cached = getCachedTools(server.name, projectPath)
       if (cached) {
-        return { healthy: true, tools: cached, latencyMs: 0 } satisfies McpTestResult
+        return {
+          healthy: true,
+          tools: cached,
+          latencyMs: 0,
+        } satisfies McpTestResult
       }
       const result = await testMcpServer(server.name, server.scope, projectPath)
       if (result.healthy) {

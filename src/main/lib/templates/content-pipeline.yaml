@@ -37,7 +37,8 @@ nodes:
       y: 200
     config:
       skillRef: strategist
-      prompt: "Develop a product strategy based on the input. Cover: positioning, key differentiators, target audience
+      prompt:
+        "Develop a product strategy based on the input. Cover: positioning, key differentiators, target audience
         messaging, feature prioritization, and go-to-market approach."
   - id: approval-1
     type: approval
@@ -56,7 +57,8 @@ nodes:
       y: 200
     config:
       skillRef: report-generator
-      prompt: "Generate a comprehensive report synthesizing the strategy. Include: executive summary, market analysis,
+      prompt:
+        "Generate a comprehensive report synthesizing the strategy. Include: executive summary, market analysis,
         strategic recommendations, implementation roadmap, and risk assessment."
   - id: marketing-1
     type: skill
@@ -65,7 +67,8 @@ nodes:
       y: 200
     config:
       skillRef: marketing-generator
-      prompt: "Create marketing outputs from the strategy and report: positioning statements, value propositions, messaging
+      prompt:
+        "Create marketing outputs from the strategy and report: positioning statements, value propositions, messaging
         framework for each target segment, and content ideas matrix."
   - id: evaluator-1
     type: evaluator
@@ -73,7 +76,8 @@ nodes:
       x: 1580
       y: 200
     config:
-      criteria: "Score 1-10 on: strategic coherence (does everything align?), market grounding (based on real data?),
+      criteria:
+        "Score 1-10 on: strategic coherence (does everything align?), market grounding (based on real data?),
         actionability (clear next steps?), completeness (no major gaps?)"
       threshold: 7
       maxRetries: 2

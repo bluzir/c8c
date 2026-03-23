@@ -37,28 +37,32 @@ export const PREDEFINED_MARKETPLACES: Omit<MarketplaceSource, "installed">[] = [
   {
     id: "claude-plugins-official",
     name: "Claude Plugins Official",
-    description: "Official Claude Code plugin marketplace with development, productivity, and MCP packs.",
+    description:
+      "Official Claude Code plugin marketplace with development, productivity, and MCP packs.",
     repo: "https://github.com/anthropics/claude-plugins-official.git",
     owner: "Anthropic",
   },
   {
     id: "claude-code-plugins",
     name: "Claude Code Plugins",
-    description: "Anthropic-maintained plugin examples and community extension patterns for Claude Code.",
+    description:
+      "Anthropic-maintained plugin examples and community extension patterns for Claude Code.",
     repo: "https://github.com/anthropics/claude-code.git",
     owner: "Anthropic",
   },
   {
     id: "impeccable",
     name: "Impeccable",
-    description: "Design-focused plugin pack with frontend skills and command workflows.",
+    description:
+      "Design-focused plugin pack with frontend skills and command workflows.",
     repo: "https://github.com/pbakaus/impeccable.git",
     owner: "Paul Bakaus",
   },
   {
     id: "ralph-marketplace",
     name: "Ralph Marketplace",
-    description: "PRD and autonomous execution pipeline skills for Ralph-style product workflows.",
+    description:
+      "PRD and autonomous execution pipeline skills for Ralph-style product workflows.",
     repo: "https://github.com/snarktank/ralph.git",
     owner: "snarktank",
   },
@@ -92,14 +96,18 @@ async function loadPluginSettings(): Promise<typeof DEFAULT_PLUGIN_SETTINGS> {
     const parsed = JSON.parse(raw) as PersistedPluginSettings
     return {
       disabledPluginIds: normalizeStringArray(parsed.disabledPluginIds),
-      approvedPluginMcpServers: normalizeStringArray(parsed.approvedPluginMcpServers),
+      approvedPluginMcpServers: normalizeStringArray(
+        parsed.approvedPluginMcpServers,
+      ),
     }
   } catch {
     return { ...DEFAULT_PLUGIN_SETTINGS }
   }
 }
 
-async function savePluginSettings(state: typeof DEFAULT_PLUGIN_SETTINGS): Promise<void> {
+async function savePluginSettings(
+  state: typeof DEFAULT_PLUGIN_SETTINGS,
+): Promise<void> {
   const path = pluginSettingsPath()
   await mkdir(dirname(path), { recursive: true })
   await writeFileAtomic(path, JSON.stringify(state, null, 2))
@@ -137,13 +145,20 @@ export async function installMarketplace(
   const destination = getMarketplacePath(marketplace.id)
 
   if (await exists(destination)) {
-    await execFileAsync("git", ["pull", "--ff-only"], { cwd: destination, timeout: 30_000 })
+    await execFileAsync("git", ["pull", "--ff-only"], {
+      cwd: destination,
+      timeout: 30_000,
+    })
     return
   }
 
-  await execFileAsync("git", ["clone", "--depth", "1", marketplace.repo, destination], {
-    timeout: 60_000,
-  })
+  await execFileAsync(
+    "git",
+    ["clone", "--depth", "1", marketplace.repo, destination],
+    {
+      timeout: 60_000,
+    },
+  )
 }
 
 export async function updateMarketplace(id: string): Promise<void> {
@@ -152,7 +167,10 @@ export async function updateMarketplace(id: string): Promise<void> {
     throw new Error(`Marketplace is not installed: ${id}`)
   }
 
-  await execFileAsync("git", ["pull", "--ff-only"], { cwd: destination, timeout: 30_000 })
+  await execFileAsync("git", ["pull", "--ff-only"], {
+    cwd: destination,
+    timeout: 30_000,
+  })
 }
 
 export async function removeMarketplace(id: string): Promise<void> {
@@ -168,7 +186,9 @@ export async function listInstalledPlugins(): Promise<InstalledPlugin[]> {
     marketplacesDir: await ensurePluginMarketplacesDir(),
     disabledPluginIds: settings.disabledPluginIds,
   })
-  const marketplaceById = new Map(PREDEFINED_MARKETPLACES.map((marketplace) => [marketplace.id, marketplace]))
+  const marketplaceById = new Map(
+    PREDEFINED_MARKETPLACES.map((marketplace) => [marketplace.id, marketplace]),
+  )
 
   return plugins.map((plugin) => {
     const marketplace = marketplaceById.get(plugin.marketplaceId)
@@ -181,7 +201,10 @@ export async function listInstalledPlugins(): Promise<InstalledPlugin[]> {
   })
 }
 
-export async function setPluginEnabled(pluginId: string, enabled: boolean): Promise<boolean> {
+export async function setPluginEnabled(
+  pluginId: string,
+  enabled: boolean,
+): Promise<boolean> {
   const normalizedPluginId = pluginId.trim()
   if (!normalizedPluginId) {
     throw new Error("Plugin id is required")
@@ -208,7 +231,10 @@ export async function getApprovedPluginMcpServerIds(): Promise<string[]> {
   return [...state.approvedPluginMcpServers]
 }
 
-export async function setPluginMcpServerApproved(serverId: string, approved: boolean): Promise<boolean> {
+export async function setPluginMcpServerApproved(
+  serverId: string,
+  approved: boolean,
+): Promise<boolean> {
   const normalizedServerId = serverId.trim()
   if (!normalizedServerId) {
     throw new Error("Plugin MCP server id is required")

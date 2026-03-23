@@ -13,7 +13,10 @@ function cacheKey(serverName: string, projectPath?: string): string {
   return `${projectPath ?? ""}:${serverName}`
 }
 
-export function getCachedTools(serverName: string, projectPath?: string): McpToolInfo[] | null {
+export function getCachedTools(
+  serverName: string,
+  projectPath?: string,
+): McpToolInfo[] | null {
   const entry = cache.get(cacheKey(serverName, projectPath))
   if (!entry) return null
   if (Date.now() - entry.storedAt > TTL_MS) {
@@ -23,11 +26,18 @@ export function getCachedTools(serverName: string, projectPath?: string): McpToo
   return entry.tools
 }
 
-export function setCachedTools(serverName: string, tools: McpToolInfo[], projectPath?: string): void {
+export function setCachedTools(
+  serverName: string,
+  tools: McpToolInfo[],
+  projectPath?: string,
+): void {
   cache.set(cacheKey(serverName, projectPath), { tools, storedAt: Date.now() })
 }
 
-export function invalidateCache(serverName?: string, projectPath?: string): void {
+export function invalidateCache(
+  serverName?: string,
+  projectPath?: string,
+): void {
   if (serverName) {
     if (projectPath) {
       cache.delete(cacheKey(serverName, projectPath))

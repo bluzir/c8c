@@ -3,8 +3,16 @@ import { LogParser } from "./log-parser"
 import { executeTool, getToolDefinitions } from "./chat-tools"
 import type { ToolContext } from "./chat-tools"
 import { buildCategoryTree, formatCategoryTreeSummary } from "./skill-category"
-import { loadChatHistory, saveChatHistory, createConversation } from "./chat-storage"
-import { sanitizeAssistantText, selectAssistantTurnText, type AssistantTurn } from "./chat-output-sanitizer"
+import {
+  loadChatHistory,
+  saveChatHistory,
+  createConversation,
+} from "./chat-storage"
+import {
+  sanitizeAssistantText,
+  selectAssistantTurnText,
+  type AssistantTurn,
+} from "./chat-output-sanitizer"
 import { drainExecutionHandle } from "./agent-execution"
 import {
   parseToolCallsFromText,
@@ -22,7 +30,10 @@ import type {
 import { getDefaultModelForProvider } from "@shared/provider-metadata"
 import { prepareTemporaryMcpConfig } from "./mcp-config"
 import { getCachedProjectSkills } from "./skill-scan-cache"
-import { resolveWorkflowProviderId, startProviderInteractive } from "./provider-runtime"
+import {
+  resolveWorkflowProviderId,
+  startProviderInteractive,
+} from "./provider-runtime"
 import {
   applyChatEventToActiveSession,
   beginActiveChatSession,
@@ -49,7 +60,9 @@ function sendChatEvent(window: BrowserWindow | null, event: ChatEvent) {
     if (window && !window.isDestroyed()) {
       window.webContents.send("chat:event", event)
     }
-  } catch { /* window destroyed between check and send */ }
+  } catch {
+    /* window destroyed between check and send */
+  }
 }
 
 async function persistWorkflowMutation(
@@ -72,14 +85,15 @@ function buildSystemPrompt(
   const categorySummary = formatCategoryTreeSummary(categoryTree)
   const toolDefs = getToolDefinitions()
   const detailBudget = workflow.defaults?.detailBudget
-  const detailBudgetSection = typeof detailBudget === "number" && Number.isFinite(detailBudget)
-    ? `# Detail Preference
+  const detailBudgetSection =
+    typeof detailBudget === "number" && Number.isFinite(detailBudget)
+      ? `# Detail Preference
 - Preferred fan-out/detail budget: ${detailBudget}
 - When the user asks for audits, reviews, coverage-heavy analysis, or broad repo inspection, prefer granular component, route, file, subsystem, or state-level branching up to this limit instead of collapsing to 4-6 broad buckets.
 - Reflect this preference in defaults.maxParallel, splitter maxBranches, and splitter strategy text when it materially improves coverage.
 
 `
-    : ""
+      : ""
 
   return `# Role
 You are a flow editor for c8c — a desktop app for building provider-backed flows.
@@ -149,9 +163,8 @@ function buildConversationPrompt(
 
     // If history is long, summarize older messages
     const maxVerbatim = 30
-    const messages = history.length > maxVerbatim
-      ? history.slice(-maxVerbatim)
-      : history
+    const messages =
+      history.length > maxVerbatim ? history.slice(-maxVerbatim) : history
 
     if (history.length > maxVerbatim) {
       parts.push(`(${history.length - maxVerbatim} earlier messages omitted)`)
@@ -166,10 +179,14 @@ function buildConversationPrompt(
           parts.push(`\nAssistant: ${msg.content}`)
           break
         case "tool_call":
-          parts.push(`\nTool Call (${msg.toolName}): ${JSON.stringify(msg.toolInput)}`)
+          parts.push(
+            `\nTool Call (${msg.toolName}): ${JSON.stringify(msg.toolInput)}`,
+          )
           break
         case "tool_result":
-          parts.push(`\nTool Result (${msg.toolName}): ${msg.toolOutput || msg.toolError || ""}`)
+          parts.push(
+            `\nTool Result (${msg.toolName}): ${msg.toolOutput || msg.toolError || ""}`,
+          )
           break
       }
     }
@@ -313,9 +330,17 @@ async function executeParsedToolCall(
     result = await executeTool(call.tool, toolCtx, call.input)
   } catch (err) {
     console.error(`[chat-agent] tool "${call.tool}" threw:`, err)
-    result = { output: `Error executing tool: ${String(err)}`, workflowMutated: false }
+    result = {
+      output: `Error executing tool: ${String(err)}`,
+      workflowMutated: false,
+    }
   }
-  console.log("[chat-agent] tool result: mutated=", result.workflowMutated, "output:", result.output.slice(0, 200))
+  console.log(
+    "[chat-agent] tool result: mutated=",
+    result.workflowMutated,
+    "output:",
+    result.output.slice(0, 200),
+  )
 
   sendChatEvent(window, {
     type: "tool-result",
@@ -378,7 +403,10 @@ async function finalizeConversationTurn(
 
   conversation.latestWorkflow = cloneWorkflow(toolCtx.workflow)
   await saveChatHistory(workflowPath, conversation)
-  console.log("[chat-agent] conversation saved, total messages:", conversation.messages.length)
+  console.log(
+    "[chat-agent] conversation saved, total messages:",
+    conversation.messages.length,
+  )
 
   sendChatEvent(window, {
     type: "turn-complete",
@@ -414,7 +442,11 @@ export async function handleChatMessage(
   const abortController = new AbortController()
   activeSessions.set(sessionId, abortController)
   activeWorkflowSessions.set(workflowPath, sessionId)
-  console.log("[chat-agent] window found:", !!window, window ? `id=${window.id}` : "")
+  console.log(
+    "[chat-agent] window found:",
+    !!window,
+    window ? `id=${window.id}` : "",
+  )
 
   let conversation: ChatConversation | null = null
 
@@ -426,7 +458,11 @@ export async function handleChatMessage(
       console.log("[chat-agent] no history found, creating new conversation")
       conversation = createConversation(workflowPath)
     } else {
-      console.log("[chat-agent] loaded history with", conversation.messages.length, "messages")
+      console.log(
+        "[chat-agent] loaded history with",
+        conversation.messages.length,
+        "messages",
+      )
     }
 
     // Add user message
@@ -437,7 +473,12 @@ export async function handleChatMessage(
       timestamp: Date.now(),
     }
     conversation.messages.push(userMessage)
-    beginActiveChatSession(workflowPath, sessionId, conversation.messages, currentWorkflow)
+    beginActiveChatSession(
+      workflowPath,
+      sessionId,
+      conversation.messages,
+      currentWorkflow,
+    )
 
     sendChatEvent(window, {
       type: "thinking",
@@ -463,14 +504,25 @@ export async function handleChatMessage(
 
     const directToolCalls = parseToolCallsFromText(message)
     if (shouldExecuteToolCallsDirectly(message, directToolCalls)) {
-      console.log("[chat-agent] executing direct user-provided tool calls:", directToolCalls.length)
+      console.log(
+        "[chat-agent] executing direct user-provided tool calls:",
+        directToolCalls.length,
+      )
       const outputs = directToolCalls.map((call) =>
-        executeParsedToolCall(call, toolCtx, conversation!, window, sessionId, workflowPath),
+        executeParsedToolCall(
+          call,
+          toolCtx,
+          conversation!,
+          window,
+          sessionId,
+          workflowPath,
+        ),
       )
       const resolvedOutputs = await Promise.all(outputs)
-      const directResponse = resolvedOutputs.length === 1
-        ? resolvedOutputs[0]
-        : `Executed ${resolvedOutputs.length} tool calls:\n${resolvedOutputs.map((out, idx) => `${idx + 1}. ${out}`).join("\n")}`
+      const directResponse =
+        resolvedOutputs.length === 1
+          ? resolvedOutputs[0]
+          : `Executed ${resolvedOutputs.length} tool calls:\n${resolvedOutputs.map((out, idx) => `${idx + 1}. ${out}`).join("\n")}`
 
       const assistantMessage: ChatMessage = {
         id: nextMessageId("assistant"),
@@ -494,7 +546,10 @@ export async function handleChatMessage(
         sessionId,
       )
 
-      console.log("[chat-agent] === TURN COMPLETE (direct tool calls) ===", sessionId)
+      console.log(
+        "[chat-agent] === TURN COMPLETE (direct tool calls) ===",
+        sessionId,
+      )
       return sessionId
     }
 
@@ -516,9 +571,16 @@ export async function handleChatMessage(
 
         console.log("[chat-agent] --- turn iteration", i, "---")
 
-        const prompt = i === 0
-          ? buildConversationPrompt(conversation.messages.slice(0, -1), message)
-          : buildConversationPrompt(conversation.messages, "Continue processing tool results. If no more tools needed, provide your final response.")
+        const prompt =
+          i === 0
+            ? buildConversationPrompt(
+                conversation.messages.slice(0, -1),
+                message,
+              )
+            : buildConversationPrompt(
+                conversation.messages,
+                "Continue processing tool results. If no more tools needed, provide your final response.",
+              )
 
         console.log("[chat-agent] prompt length:", prompt.length)
         console.log("[chat-agent] calling runTurn...")
@@ -535,7 +597,12 @@ export async function handleChatMessage(
           abortController.signal,
         )
 
-        console.log("[chat-agent] runTurn returned: textLen=", text.length, "aborted=", aborted)
+        console.log(
+          "[chat-agent] runTurn returned: textLen=",
+          text.length,
+          "aborted=",
+          aborted,
+        )
 
         if (aborted) {
           console.log("[chat-agent] turn was aborted")
@@ -557,18 +624,31 @@ export async function handleChatMessage(
           if (abortController.signal.aborted) {
             break
           }
-          await executeParsedToolCall(call, toolCtx, conversation, window, sessionId, workflowPath)
+          await executeParsedToolCall(
+            call,
+            toolCtx,
+            conversation,
+            window,
+            sessionId,
+            workflowPath,
+          )
         }
       }
 
       const selectedAssistantText = selectAssistantTurnText(assistantTurns)
-      const fallbackAssistantText = assistantTurns.length > 0
-        ? assistantTurns[assistantTurns.length - 1].text
-        : ""
-      const displayText = sanitizeAssistantText(selectedAssistantText || fallbackAssistantText)
+      const fallbackAssistantText =
+        assistantTurns.length > 0
+          ? assistantTurns[assistantTurns.length - 1].text
+          : ""
+      const displayText = sanitizeAssistantText(
+        selectedAssistantText || fallbackAssistantText,
+      )
 
       console.log("[chat-agent] final displayText length:", displayText.length)
-      console.log("[chat-agent] displayText preview:", displayText.slice(0, 300))
+      console.log(
+        "[chat-agent] displayText preview:",
+        displayText.slice(0, 300),
+      )
 
       // Add assistant message to conversation
       const assistantMessage: ChatMessage = {

@@ -13,9 +13,13 @@ describe("AI CMO pack templates", () => {
   ] as const
 
   it("ships the AI CMO pack with linked built-in templates", () => {
-    const templates = getBuiltinTemplates().filter((template) => targetIds.includes(template.id as (typeof targetIds)[number]))
+    const templates = getBuiltinTemplates().filter((template) =>
+      targetIds.includes(template.id as (typeof targetIds)[number]),
+    )
 
-    expect(templates.map((template) => template.id).sort()).toEqual([...targetIds].sort())
+    expect(templates.map((template) => template.id).sort()).toEqual(
+      [...targetIds].sort(),
+    )
 
     for (const template of templates) {
       expect(template.pack?.id).toBe("ai-cmo")
@@ -24,7 +28,9 @@ describe("AI CMO pack templates", () => {
       expect(template.contractOut?.length || 0).toBeGreaterThan(0)
     }
 
-    const entrypoint = templates.find((template) => template.id === "ai-cmo-growth-thesis")
+    const entrypoint = templates.find(
+      (template) => template.id === "ai-cmo-growth-thesis",
+    )
     expect(entrypoint?.pack?.entrypoint).toBe(true)
     expect(entrypoint?.pack?.recommendedNext).toEqual([
       "ai-cmo-seo-engine",
@@ -36,11 +42,16 @@ describe("AI CMO pack templates", () => {
   })
 
   it("keeps the AI CMO pack workflows valid", () => {
-    const templates = getBuiltinTemplates().filter((template) => targetIds.includes(template.id as (typeof targetIds)[number]))
+    const templates = getBuiltinTemplates().filter((template) =>
+      targetIds.includes(template.id as (typeof targetIds)[number]),
+    )
 
     for (const template of templates) {
       const errors = validateWorkflow(template.workflow)
-      expect(errors, `Template "${template.name}" has validation errors: ${errors.join(", ")}`).toEqual([])
+      expect(
+        errors,
+        `Template "${template.name}" has validation errors: ${errors.join(", ")}`,
+      ).toEqual([])
     }
   })
 })

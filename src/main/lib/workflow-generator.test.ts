@@ -9,9 +9,21 @@ import {
 import type { Workflow } from "@shared/types"
 
 const MOCK_SKILLS = [
-  { name: "content-creator", category: "marketing", description: "Creates marketing content" },
-  { name: "code-reviewer", category: "engineering", description: "Reviews code quality" },
-  { name: "researcher", category: "research", description: "Deep research on topics" },
+  {
+    name: "content-creator",
+    category: "marketing",
+    description: "Creates marketing content",
+  },
+  {
+    name: "code-reviewer",
+    category: "engineering",
+    description: "Reviews code quality",
+  },
+  {
+    name: "researcher",
+    category: "research",
+    description: "Deep research on topics",
+  },
 ]
 
 describe("buildGeneratorPrompt", () => {
@@ -23,7 +35,10 @@ describe("buildGeneratorPrompt", () => {
   })
 
   it("includes user description", () => {
-    const prompt = buildGeneratorPrompt("Analyze my codebase and fix bugs", MOCK_SKILLS)
+    const prompt = buildGeneratorPrompt(
+      "Analyze my codebase and fix bugs",
+      MOCK_SKILLS,
+    )
     expect(prompt).toContain("Analyze my codebase and fix bugs")
   })
 
@@ -45,7 +60,12 @@ describe("buildWorkflowEditPrompt", () => {
       name: "Existing Flow",
       nodes: [
         { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-        { id: "output-1", type: "output", position: { x: 300, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 300, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "output-1", type: "default" },
@@ -59,7 +79,7 @@ describe("buildWorkflowEditPrompt", () => {
     )
 
     expect(prompt).toContain("Existing Flow")
-    expect(prompt).toContain("\"name\": \"Existing Flow\"")
+    expect(prompt).toContain('"name": "Existing Flow"')
     expect(prompt).toContain("Add a JTBD audit step before the final output")
     expect(prompt).toContain("Return ONLY the full updated JSON flow object.")
   })
@@ -71,9 +91,24 @@ describe("parseGeneratedWorkflow", () => {
       version: 1,
       name: "Test",
       nodes: [
-        { id: "input-1", type: "input", position: { x: 0, y: 200 }, config: {} },
-        { id: "skill-1", type: "skill", position: { x: 300, y: 200 }, config: { skillRef: "test", prompt: "Do something" } },
-        { id: "output-1", type: "output", position: { x: 600, y: 200 }, config: {} },
+        {
+          id: "input-1",
+          type: "input",
+          position: { x: 0, y: 200 },
+          config: {},
+        },
+        {
+          id: "skill-1",
+          type: "skill",
+          position: { x: 300, y: 200 },
+          config: { skillRef: "test", prompt: "Do something" },
+        },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 600, y: 200 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "skill-1", type: "default" },
@@ -91,7 +126,12 @@ describe("parseGeneratedWorkflow", () => {
       name: "Extracted",
       nodes: [
         { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-        { id: "output-1", type: "output", position: { x: 300, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 300, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "output-1", type: "default" },
@@ -107,7 +147,9 @@ describe("parseGeneratedWorkflow", () => {
   })
 
   it("throws on missing nodes/edges", () => {
-    expect(() => parseGeneratedWorkflow(JSON.stringify({ foo: "bar" }))).toThrow()
+    expect(() =>
+      parseGeneratedWorkflow(JSON.stringify({ foo: "bar" })),
+    ).toThrow()
   })
 
   it("throws on unsupported evaluator config fields", () => {
@@ -120,9 +162,19 @@ describe("parseGeneratedWorkflow", () => {
           id: "eval-1",
           type: "evaluator",
           position: { x: 300, y: 0 },
-          config: { criteria: "Score", threshold: 8, maxRetries: 1, skillRef: "quality/code-review" },
+          config: {
+            criteria: "Score",
+            threshold: 8,
+            maxRetries: 1,
+            skillRef: "quality/code-review",
+          },
         },
-        { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 600, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "eval-1", type: "default" },
@@ -130,7 +182,9 @@ describe("parseGeneratedWorkflow", () => {
       ],
     }
 
-    expect(() => parseGeneratedWorkflow(JSON.stringify(workflow))).toThrow(/Unsupported config field "skillRef" for evaluator nodes/)
+    expect(() => parseGeneratedWorkflow(JSON.stringify(workflow))).toThrow(
+      /Unsupported config field "skillRef" for evaluator nodes/,
+    )
   })
 
   it("adds defaults if missing", () => {
@@ -139,7 +193,12 @@ describe("parseGeneratedWorkflow", () => {
       name: "No Defaults",
       nodes: [
         { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-        { id: "output-1", type: "output", position: { x: 300, y: 0 }, config: {} },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 300, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "output-1", type: "default" },
@@ -210,7 +269,12 @@ describe("normalizeNodes", () => {
 
   it("does not infer skillRef from node name", () => {
     const nodes = normalizeNodes([
-      { id: "s1", type: "skill", name: "not-a-skill", description: "Do the work" },
+      {
+        id: "s1",
+        type: "skill",
+        name: "not-a-skill",
+        description: "Do the work",
+      },
     ])
     expect(nodes[0].config).toHaveProperty("skillRef", "")
   })
@@ -226,7 +290,11 @@ describe("normalizeNodes", () => {
     const nodes = normalizeNodes([
       { id: "e1", type: "evaluator", config: { criteria: "quality" } },
     ])
-    expect(nodes[0].config).toEqual({ criteria: "quality", threshold: 7, maxRetries: 3 })
+    expect(nodes[0].config).toEqual({
+      criteria: "quality",
+      threshold: 7,
+      maxRetries: 3,
+    })
   })
 
   it("fills merger default strategy", () => {
@@ -246,7 +314,12 @@ describe("normalizeWorkflow (integration)", () => {
       name: "Content Pipeline",
       nodes: [
         { id: "input-1", type: "input" },
-        { id: "skill-1", type: "skill", agent: "marketing/writer", description: "Write content" },
+        {
+          id: "skill-1",
+          type: "skill",
+          agent: "marketing/writer",
+          description: "Write content",
+        },
         { id: "output-1", type: "output" },
       ],
       edges: [
@@ -258,7 +331,10 @@ describe("normalizeWorkflow (integration)", () => {
     expect(result.nodes).toHaveLength(3)
     expect(result.edges[0].source).toBe("input-1")
     expect(result.edges[0].target).toBe("skill-1")
-    expect(result.nodes[1].config).toHaveProperty("skillRef", "marketing/writer")
+    expect(result.nodes[1].config).toHaveProperty(
+      "skillRef",
+      "marketing/writer",
+    )
     expect(result.nodes[0].position).toBeDefined()
   })
 })

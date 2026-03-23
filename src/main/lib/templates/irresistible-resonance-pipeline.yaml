@@ -23,7 +23,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Irresistible Resonance Pipeline
-description: Extract signal from product data, strip noise, map audience awareness, sharpen messaging,
+description:
+  Extract signal from product data, strip noise, map audience awareness, sharpen messaging,
   generate awareness-matched headlines, and amplify — with a quality-check retry loop
 defaults:
   model: sonnet
@@ -43,7 +44,8 @@ nodes:
       y: 200
     config:
       skillRef: irresistible/extract-signal
-      prompt: "Extract the core transformation signal from the provided material. Take JTBD data,
+      prompt:
+        "Extract the core transformation signal from the provided material. Take JTBD data,
         product descriptions, user feedback, or existing marketing copy and produce a structured
         signal statement: who → from (current state) → to (desired state) → mechanism (how).
         Run each signal through 5 filters: swap test (could a competitor say this?), so-what
@@ -57,7 +59,8 @@ nodes:
       y: 200
     config:
       skillRef: irresistible/find-noise
-      prompt: "Scan the input material and extracted signals for noise. Classify noise into categories:
+      prompt:
+        "Scan the input material and extracted signals for noise. Classify noise into categories:
         slop words, swap-passers (claims any competitor could make), vague benefits, empty openers,
         feature-first language, unearned claims, filler sentences, and awareness-level mismatches.
         Score each instance by severity. Calculate an overall noise ratio. For every noise instance,
@@ -69,7 +72,8 @@ nodes:
       y: 200
     config:
       skillRef: irresistible/map-awareness
-      prompt: "Map audience awareness levels for this product. Classify the target audience by channel
+      prompt:
+        "Map audience awareness levels for this product. Classify the target audience by channel
         and their typical awareness level (unaware → problem-aware → solution-aware → product-aware
         → most-aware). Classify the current messaging by what awareness level it addresses.
         Identify mismatches where messaging doesn't match audience readiness. Map the full
@@ -81,7 +85,8 @@ nodes:
       y: 200
     config:
       skillRef: irresistible/sharpen
-      prompt: "Rewrite the messaging to be specific and resonant. Remove all generic language identified
+      prompt:
+        "Rewrite the messaging to be specific and resonant. Remove all generic language identified
         as noise. Connect every claim to the extracted signal. Add numbers and measurable outcomes
         where possible. Match each piece of copy to its target awareness level from the awareness
         map. Assess and improve: signal connection, specificity, audience fit, competitive angle,
@@ -93,7 +98,8 @@ nodes:
       y: 200
     config:
       skillRef: irresistible/headline
-      prompt: "Generate awareness-level-matched headlines using the sharpened messaging and signal.
+      prompt:
+        "Generate awareness-level-matched headlines using the sharpened messaging and signal.
         Create 3 headline variants for each awareness level: Level 1 (unaware) — name the problem;
         Level 2 (problem-aware) — validate and quantify; Level 3 (solution-aware) — differentiate
         the approach; Level 4 (product-aware) — prove it works; Level 5 (most-aware) — make the
@@ -105,7 +111,8 @@ nodes:
       y: 200
     config:
       skillRef: irresistible/amplify
-      prompt: "Increase signal strength across all messaging. Remove hedging and weak qualifiers.
+      prompt:
+        "Increase signal strength across all messaging. Remove hedging and weak qualifiers.
         Use stronger verbs, sharper contrast, and specificity boosts. Only amplify grounded claims —
         never inflate unearned ones. Apply techniques: remove hedging, strengthen verbs, add
         personal stake, use provocative reframing where appropriate, and amplify social proof.
@@ -116,7 +123,8 @@ nodes:
       x: 1750
       y: 200
     config:
-      criteria: "Evaluate the resonance pipeline output across 6 dimensions (score 1-10 each):
+      criteria:
+        "Evaluate the resonance pipeline output across 6 dimensions (score 1-10 each):
         1) Signal clarity — is the transformation specific, provable, and swap-test-proof?
         2) Noise ratio — is the copy free of slop, vague claims, and filler?
         3) Awareness matching — does each piece of copy match its target awareness level?

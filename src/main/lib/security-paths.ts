@@ -28,8 +28,14 @@ export function isWithinRoot(candidatePath: string, rootPath: string): boolean {
   return rel === "" || (!rel.startsWith("..") && !rel.includes("..\\"))
 }
 
-export function isRegisteredRoot(candidatePath: string, rootPath: string): boolean {
-  return isWithinRoot(candidatePath, rootPath) && isWithinRoot(rootPath, candidatePath)
+export function isRegisteredRoot(
+  candidatePath: string,
+  rootPath: string,
+): boolean {
+  return (
+    isWithinRoot(candidatePath, rootPath) &&
+    isWithinRoot(rootPath, candidatePath)
+  )
 }
 
 export function assertWithinRoots(
@@ -56,8 +62,14 @@ export function assertRegisteredRoots(
   return resolvedPath
 }
 
-export async function assertRegisteredProjectPath(projectPath: string): Promise<string> {
-  return assertRegisteredRoots(projectPath, await allowedProjectRoots(), "Project path")
+export async function assertRegisteredProjectPath(
+  projectPath: string,
+): Promise<string> {
+  return assertRegisteredRoots(
+    projectPath,
+    await allowedProjectRoots(),
+    "Project path",
+  )
 }
 
 export async function allowedProjectRoots(): Promise<string[]> {
@@ -77,7 +89,9 @@ export async function allowedWorkflowRoots(): Promise<string[]> {
 
 export async function allowedReportRoots(): Promise<string[]> {
   const projectRoots = await allowedProjectRoots()
-  return dedupeResolved(projectRoots.map((projectRoot) => join(projectRoot, ".c8c", "runs")))
+  return dedupeResolved(
+    projectRoots.map((projectRoot) => join(projectRoot, ".c8c", "runs")),
+  )
 }
 
 function userSkillRoots(): string[] {
@@ -97,7 +111,8 @@ function builtinSkillRoots(): string[] {
     return [resolve(envOverride)]
   }
 
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string })
+    .resourcesPath
   return [
     resolve(process.cwd(), "resources", "skills", "gstack"),
     resolve(resourcesPath || "", "skills", "gstack"),
@@ -128,5 +143,10 @@ export async function allowedOpenPathRoots(): Promise<string[]> {
   const globalChainsDir = await ensureChainsDir()
   const librariesDir = await ensureLibrariesDir()
   const pluginMarketplacesDir = await ensurePluginMarketplacesDir()
-  return dedupeResolved([globalChainsDir, librariesDir, pluginMarketplacesDir, ...projectRoots])
+  return dedupeResolved([
+    globalChainsDir,
+    librariesDir,
+    pluginMarketplacesDir,
+    ...projectRoots,
+  ])
 }

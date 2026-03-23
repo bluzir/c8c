@@ -1,6 +1,11 @@
 import { BrowserWindow } from "electron"
 import { cancelWorkflowRun, runWorkflow } from "./workflow-runner"
-import { ensureBatchWorkspace, logBatchPersistenceFailure, persistBatchState, type PersistedBatchState } from "./batch-state"
+import {
+  ensureBatchWorkspace,
+  logBatchPersistenceFailure,
+  persistBatchState,
+  type PersistedBatchState,
+} from "./batch-state"
 import { logInfo, logWarn } from "./structured-log"
 import type {
   Workflow,
@@ -47,10 +52,13 @@ export async function runBatch(
   projectPath?: string,
   workflowPath?: string,
 ): Promise<void> {
-  const requestedConcurrency = Number.isFinite(concurrency) ? Math.floor(concurrency) : concurrency
-  const effectiveConcurrency = Number.isFinite(requestedConcurrency) && requestedConcurrency >= 1
-    ? Math.max(1, Math.min(MAX_BATCH_CONCURRENCY, requestedConcurrency))
-    : requestedConcurrency
+  const requestedConcurrency = Number.isFinite(concurrency)
+    ? Math.floor(concurrency)
+    : concurrency
+  const effectiveConcurrency =
+    Number.isFinite(requestedConcurrency) && requestedConcurrency >= 1
+      ? Math.max(1, Math.min(MAX_BATCH_CONCURRENCY, requestedConcurrency))
+      : requestedConcurrency
   const controller = new AbortController()
   activeBatches.set(batchId, controller)
   activeBatchRuns.set(batchId, new Set<string>())
@@ -66,13 +74,18 @@ export async function runBatch(
     total: inputs.length,
     completed: 0,
     running: 0,
-    concurrency: Number.isFinite(effectiveConcurrency) ? effectiveConcurrency : concurrency,
+    concurrency: Number.isFinite(effectiveConcurrency)
+      ? effectiveConcurrency
+      : concurrency,
     stopOnFailure,
     startedAt,
     items,
   })
 
-  const persistSnapshot = async (status: PersistedBatchState["status"], error?: string) => {
+  const persistSnapshot = async (
+    status: PersistedBatchState["status"],
+    error?: string,
+  ) => {
     const snapshot = activeBatchSnapshots.get(batchId)
     if (!snapshot) return
     try {
@@ -124,11 +137,16 @@ export async function runBatch(
       })
       return
     }
-    if (workflow.nodes.some((node) => node.type === "approval" || node.type === "human")) {
+    if (
+      workflow.nodes.some(
+        (node) => node.type === "approval" || node.type === "human",
+      )
+    ) {
       send(window, {
         type: "batch-error",
         batchId,
-        error: "Batch run does not support human review nodes. Remove approval/human steps or run a single execution.",
+        error:
+          "Batch run does not support human review nodes. Remove approval/human steps or run a single execution.",
       })
       return
     }
@@ -158,7 +176,10 @@ export async function runBatch(
 
     emitProgress()
 
-    const runItem = async (input: WorkflowInput, index: number): Promise<BatchItemResult> => {
+    const runItem = async (
+      input: WorkflowInput,
+      index: number,
+    ): Promise<BatchItemResult> => {
       const runId = `batch-${batchId}-item-${index}-${Date.now()}`
       const startedAt = Date.now()
       const batchRuns = activeBatchRuns.get(batchId)
@@ -168,7 +189,14 @@ export async function runBatch(
       }
       controller.signal.addEventListener("abort", abortRun, { once: true })
 
-      const runPromise = runWorkflow(runId, workflow, input, window, projectPath, workflowPath)
+      const runPromise = runWorkflow(
+        runId,
+        workflow,
+        input,
+        window,
+        projectPath,
+        workflowPath,
+      )
       let timeoutHandle: ReturnType<typeof setTimeout> | undefined
       let timedOut = false
 
@@ -177,7 +205,11 @@ export async function runBatch(
           timeoutHandle = setTimeout(() => {
             timedOut = true
             cancelWorkflowRun(runId)
-            reject(new Error(`Batch item timed out after ${DEFAULT_BATCH_ITEM_TIMEOUT_MS}ms`))
+            reject(
+              new Error(
+                `Batch item timed out after ${DEFAULT_BATCH_ITEM_TIMEOUT_MS}ms`,
+              ),
+            )
           }, DEFAULT_BATCH_ITEM_TIMEOUT_MS)
         })
 
@@ -185,13 +217,14 @@ export async function runBatch(
         if (!summary || typeof summary !== "object") {
           throw new Error("Workflow run returned no result")
         }
-        const status: BatchItemResult["status"] = summary.status === "completed"
-          ? "completed"
-          : summary.status === "cancelled"
-            ? "cancelled"
-            : summary.status === "interrupted"
-              ? "interrupted"
-              : "failed"
+        const status: BatchItemResult["status"] =
+          summary.status === "completed"
+            ? "completed"
+            : summary.status === "cancelled"
+              ? "cancelled"
+              : summary.status === "interrupted"
+                ? "interrupted"
+                : "failed"
 
         return {
           input_index: index,
@@ -200,7 +233,10 @@ export async function runBatch(
           eval_scores: summary.evalScores || {},
           cost_usd: summary.totalCost || 0,
           duration_ms: summary.durationMs || Date.now() - startedAt,
-          error: status === "failed" ? `Run finished with status: ${summary.status}` : undefined,
+          error:
+            status === "failed"
+              ? `Run finished with status: ${summary.status}`
+              : undefined,
         }
       } catch (err) {
         if (timedOut) {
@@ -245,7 +281,11 @@ export async function runBatch(
     for (let i = 0; i < Math.min(effectiveConcurrency, inputs.length); i++) {
       workers.push(
         (async () => {
-          while (queueIdx < queue.length && !stopped && !controller.signal.aborted) {
+          while (
+            queueIdx < queue.length &&
+            !stopped &&
+            !controller.signal.aborted
+          ) {
             const item = queue[queueIdx++]
             if (!item) break
 
@@ -275,7 +315,9 @@ export async function runBatch(
     // Build summary
     const passedItems = items.filter((i) => i.status === "completed")
     const failedItems = items.filter((i) => i.status === "failed")
-    const cancelledItems = items.filter((i) => i.status === "cancelled" || i.status === "interrupted")
+    const cancelledItems = items.filter(
+      (i) => i.status === "cancelled" || i.status === "interrupted",
+    )
     const skippedCount = Math.max(0, inputs.length - items.length)
     const cancelledCount = cancelledItems.length + skippedCount
     const totalCostSum = items.reduce((sum, i) => sum + i.cost_usd, 0)
@@ -304,7 +346,10 @@ export async function runBatch(
       batchId,
       error: String(err),
     })
-    await persistSnapshot("failed", err instanceof Error ? err.message : String(err))
+    await persistSnapshot(
+      "failed",
+      err instanceof Error ? err.message : String(err),
+    )
   } finally {
     activeBatches.delete(batchId)
     activeBatchRuns.delete(batchId)
@@ -351,7 +396,9 @@ export function cancelBatch(batchId: string): boolean {
   return false
 }
 
-export function getActiveBatchSnapshot(batchId: string): ActiveBatchSnapshot | null {
+export function getActiveBatchSnapshot(
+  batchId: string,
+): ActiveBatchSnapshot | null {
   const snapshot = activeBatchSnapshots.get(batchId)
   if (!snapshot) return null
   return {

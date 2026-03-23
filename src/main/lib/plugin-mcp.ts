@@ -44,9 +44,13 @@ function normalizeStringArray(value: unknown): string[] | undefined {
   return normalized.length > 0 ? normalized : undefined
 }
 
-function normalizeStringRecord(value: unknown): Record<string, string> | undefined {
+function normalizeStringRecord(
+  value: unknown,
+): Record<string, string> | undefined {
   if (!isObject(value)) return undefined
-  const entries = Object.entries(value).filter((pair): pair is [string, string] => typeof pair[1] === "string")
+  const entries = Object.entries(value).filter(
+    (pair): pair is [string, string] => typeof pair[1] === "string",
+  )
   return entries.length > 0 ? Object.fromEntries(entries) : undefined
 }
 
@@ -104,7 +108,10 @@ function extractMcpServerMap(raw: unknown): Record<string, unknown> {
   }
 
   return Object.fromEntries(
-    Object.entries(raw).filter(([key, value]) => key !== "mcpServers" && key !== "servers" && isObject(value)),
+    Object.entries(raw).filter(
+      ([key, value]) =>
+        key !== "mcpServers" && key !== "servers" && isObject(value),
+    ),
   )
 }
 
@@ -115,11 +122,7 @@ function normalizeMcpEntry(raw: unknown): PluginMcpEntry | null {
   const url = normalizeString(raw.url)
   if (!command && !url) return null
 
-  const type = command
-    ? "stdio"
-    : raw.type === "sse"
-      ? "sse"
-      : "http"
+  const type = command ? "stdio" : raw.type === "sse" ? "sse" : "http"
 
   return {
     type,
@@ -144,12 +147,19 @@ function normalizeMcpEntries(raw: unknown): Record<string, PluginMcpEntry> {
   return normalized
 }
 
-export function buildPluginMcpServerId(pluginId: string, serverName: string): string {
+export function buildPluginMcpServerId(
+  pluginId: string,
+  serverName: string,
+): string {
   return `${pluginId}/${serverName}`
 }
 
-async function loadPluginMcpEntries(pluginPath: string, manifestPath?: string): Promise<Record<string, PluginMcpEntry>> {
-  const resolvedManifestPath = manifestPath || join(pluginPath, ".claude-plugin", "plugin.json")
+async function loadPluginMcpEntries(
+  pluginPath: string,
+  manifestPath?: string,
+): Promise<Record<string, PluginMcpEntry>> {
+  const resolvedManifestPath =
+    manifestPath || join(pluginPath, ".claude-plugin", "plugin.json")
   const manifest = await readJsonFile<PluginManifest>(resolvedManifestPath)
 
   const manifestEntries = normalizeMcpEntries(manifest?.mcpServers)
@@ -183,7 +193,10 @@ export async function listPluginMcpServers(): Promise<PluginMcpServerInfo[]> {
   const servers: PluginMcpServerInfo[] = []
 
   for (const plugin of plugins) {
-    const entries = await loadPluginMcpEntries(plugin.pluginPath, plugin.manifestPath)
+    const entries = await loadPluginMcpEntries(
+      plugin.pluginPath,
+      plugin.manifestPath,
+    )
     for (const [serverName, entry] of Object.entries(entries)) {
       servers.push({
         id: buildPluginMcpServerId(plugin.id, serverName),
@@ -196,7 +209,9 @@ export async function listPluginMcpServers(): Promise<PluginMcpServerInfo[]> {
         headers: entry.headers,
         disabled: entry.disabled,
         autoApprove: entry.autoApprove,
-        approved: approvedServerIds.has(buildPluginMcpServerId(plugin.id, serverName)),
+        approved: approvedServerIds.has(
+          buildPluginMcpServerId(plugin.id, serverName),
+        ),
         pluginId: plugin.id,
         pluginName: plugin.name,
         pluginVersion: plugin.version,
@@ -218,7 +233,9 @@ export async function listPluginMcpServers(): Promise<PluginMcpServerInfo[]> {
   })
 }
 
-export async function listApprovedPluginMcpServers(): Promise<ResolvedPluginMcpServer[]> {
+export async function listApprovedPluginMcpServers(): Promise<
+  ResolvedPluginMcpServer[]
+> {
   const plugins = await listPluginMcpServers()
   return plugins
     .filter((server) => server.approved && !server.disabled)

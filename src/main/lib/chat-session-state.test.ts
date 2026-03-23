@@ -12,7 +12,12 @@ function createWorkflow(name: string): Workflow {
     version: 1,
     name,
     description: "",
-    defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+    defaults: {
+      model: "sonnet",
+      maxTurns: 120,
+      timeout_minutes: 30,
+      maxParallel: 8,
+    },
     nodes: [],
     edges: [],
   }
@@ -23,12 +28,14 @@ describe("chat-session-state", () => {
     const workflowPath = "/tmp/demo.chain"
     const sessionId = "chat-1"
     const initialWorkflow = createWorkflow("Draft")
-    const history: ChatMessage[] = [{
-      id: "user-1",
-      role: "user",
-      content: "Build me a workflow",
-      timestamp: 1,
-    }]
+    const history: ChatMessage[] = [
+      {
+        id: "user-1",
+        role: "user",
+        content: "Build me a workflow",
+        timestamp: 1,
+      },
+    ]
 
     beginActiveChatSession(workflowPath, sessionId, history, initialWorkflow)
 
@@ -66,9 +73,17 @@ describe("chat-session-state", () => {
     expect(snapshot?.activeToolName).toBeNull()
     expect(snapshot?.workflow).toEqual(initialWorkflow)
     expect(snapshot?.messages[0]?.role).toBe("user")
-    expect(snapshot?.messages.some((message) => message.streaming && message.content === "Working")).toBe(true)
-    expect(snapshot?.messages.some((message) => message.role === "tool_call")).toBe(true)
-    expect(snapshot?.messages.some((message) => message.role === "tool_result")).toBe(true)
+    expect(
+      snapshot?.messages.some(
+        (message) => message.streaming && message.content === "Working",
+      ),
+    ).toBe(true)
+    expect(
+      snapshot?.messages.some((message) => message.role === "tool_call"),
+    ).toBe(true)
+    expect(
+      snapshot?.messages.some((message) => message.role === "tool_result"),
+    ).toBe(true)
 
     clearActiveChatSession(sessionId)
   })
@@ -78,12 +93,19 @@ describe("chat-session-state", () => {
     const sessionId = "chat-2"
     const initialWorkflow = createWorkflow("Complete")
 
-    beginActiveChatSession(workflowPath, sessionId, [{
-      id: "user-1",
-      role: "user",
-      content: "Continue",
-      timestamp: 1,
-    }], initialWorkflow)
+    beginActiveChatSession(
+      workflowPath,
+      sessionId,
+      [
+        {
+          id: "user-1",
+          role: "user",
+          content: "Continue",
+          timestamp: 1,
+        },
+      ],
+      initialWorkflow,
+    )
 
     applyChatEventToActiveSession({
       type: "text-delta",
@@ -126,7 +148,9 @@ describe("chat-session-state", () => {
       workflow: mutatedWorkflow,
     })
 
-    expect(getActiveChatSessionSnapshot(workflowPath)?.workflow).toEqual(mutatedWorkflow)
+    expect(getActiveChatSessionSnapshot(workflowPath)?.workflow).toEqual(
+      mutatedWorkflow,
+    )
 
     applyChatEventToActiveSession({
       type: "turn-complete",
@@ -146,7 +170,12 @@ describe("chat-session-state", () => {
     const workflowPath = "/tmp/cleanup.chain"
     const sessionId = "chat-4"
 
-    beginActiveChatSession(workflowPath, sessionId, [], createWorkflow("Cleanup"))
+    beginActiveChatSession(
+      workflowPath,
+      sessionId,
+      [],
+      createWorkflow("Cleanup"),
+    )
     clearActiveChatSession(sessionId)
 
     expect(getActiveChatSessionSnapshot(workflowPath)).toBeNull()

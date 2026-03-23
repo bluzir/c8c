@@ -1,4 +1,11 @@
-import { app, BrowserWindow, ipcMain, Menu, shell, type MenuItemConstructorOptions } from "electron"
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  shell,
+  type MenuItemConstructorOptions,
+} from "electron"
 import { promisify } from "node:util"
 import { execFile as execFileCb } from "node:child_process"
 import type {
@@ -12,7 +19,11 @@ import type {
   ProviderSettings,
   TelemetryUiEvent,
 } from "@shared/types"
-import { createDefaultDesktopMenuState, type DesktopCommandId, type DesktopMenuState } from "@shared/desktop-commands"
+import {
+  createDefaultDesktopMenuState,
+  type DesktopCommandId,
+  type DesktopMenuState,
+} from "@shared/desktop-commands"
 import { getClaudeCodeSubscriptionStatus } from "../lib/claude-subscription"
 import {
   allowedOpenPathRoots,
@@ -59,7 +70,10 @@ function resolveRuntimeWindow(): BrowserWindow | null {
   }
   const focused = BrowserWindow.getFocusedWindow()
   if (focused && !focused.isDestroyed()) return focused
-  return BrowserWindow.getAllWindows().find((window) => !window.isDestroyed()) ?? null
+  return (
+    BrowserWindow.getAllWindows().find((window) => !window.isDestroyed()) ??
+    null
+  )
 }
 
 function emitDesktopCommand(commandId: DesktopCommandId): void {
@@ -100,7 +114,9 @@ function checkboxMenuItem(
   }
 }
 
-function buildDesktopMenuTemplate(state: DesktopMenuState): MenuItemConstructorOptions[] {
+function buildDesktopMenuTemplate(
+  state: DesktopMenuState,
+): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
   if (process.platform === "darwin") {
@@ -124,36 +140,101 @@ function buildDesktopMenuTemplate(state: DesktopMenuState): MenuItemConstructorO
     {
       label: "File",
       submenu: [
-        fileMenuItem("Save", "CommandOrControl+S", state.file.save, "file.save"),
-        fileMenuItem("Save As...", "CommandOrControl+Shift+S", state.file.saveAs, "file.save_as"),
+        fileMenuItem(
+          "Save",
+          "CommandOrControl+S",
+          state.file.save,
+          "file.save",
+        ),
+        fileMenuItem(
+          "Save As...",
+          "CommandOrControl+Shift+S",
+          state.file.saveAs,
+          "file.save_as",
+        ),
         { type: "separator" },
-        fileMenuItem("Export Flow...", undefined, state.file.export, "file.export"),
-        fileMenuItem("Import Flow...", undefined, state.file.import, "file.import"),
+        fileMenuItem(
+          "Export Flow...",
+          undefined,
+          state.file.export,
+          "file.export",
+        ),
+        fileMenuItem(
+          "Import Flow...",
+          undefined,
+          state.file.import,
+          "file.import",
+        ),
       ],
     },
     {
       label: "Edit",
       submenu: [
-        fileMenuItem("Undo", "CommandOrControl+Z", state.edit.undo, "edit.undo"),
-        fileMenuItem("Redo", "CommandOrControl+Shift+Z", state.edit.redo, "edit.redo"),
+        fileMenuItem(
+          "Undo",
+          "CommandOrControl+Z",
+          state.edit.undo,
+          "edit.undo",
+        ),
+        fileMenuItem(
+          "Redo",
+          "CommandOrControl+Shift+Z",
+          state.edit.redo,
+          "edit.redo",
+        ),
       ],
     },
     {
       label: "View",
       submenu: [
-        checkboxMenuItem("Flow Defaults", undefined, state.view.defaults, "view.defaults"),
-        checkboxMenuItem("Edit Flow", "CommandOrControl+E", state.view.editFlow, "view.edit_flow"),
-        checkboxMenuItem("Toggle Agent Panel", "CommandOrControl+L", state.view.toggleAgentPanel, "view.toggle_agent_panel"),
+        checkboxMenuItem(
+          "Flow Defaults",
+          undefined,
+          state.view.defaults,
+          "view.defaults",
+        ),
+        checkboxMenuItem(
+          "Edit Flow",
+          "CommandOrControl+E",
+          state.view.editFlow,
+          "view.edit_flow",
+        ),
+        checkboxMenuItem(
+          "Toggle Agent Panel",
+          "CommandOrControl+L",
+          state.view.toggleAgentPanel,
+          "view.toggle_agent_panel",
+        ),
       ],
     },
     {
       label: "Flow",
       submenu: [
-        fileMenuItem("Run", "CommandOrControl+Enter", state.flow.run, "flow.run"),
-        fileMenuItem("Run Again", undefined, state.flow.runAgain, "flow.run_again"),
-        fileMenuItem("Rerun from Step...", undefined, state.flow.rerunFromStep, "flow.rerun_from_step"),
+        fileMenuItem(
+          "Run",
+          "CommandOrControl+Enter",
+          state.flow.run,
+          "flow.run",
+        ),
+        fileMenuItem(
+          "Run Again",
+          undefined,
+          state.flow.runAgain,
+          "flow.run_again",
+        ),
+        fileMenuItem(
+          "Rerun from Step...",
+          undefined,
+          state.flow.rerunFromStep,
+          "flow.rerun_from_step",
+        ),
         fileMenuItem("Cancel", undefined, state.flow.cancel, "flow.cancel"),
-        fileMenuItem("Batch Run", undefined, state.flow.batchRun, "flow.batch_run"),
+        fileMenuItem(
+          "Batch Run",
+          undefined,
+          state.flow.batchRun,
+          "flow.batch_run",
+        ),
         { type: "separator" },
         fileMenuItem("History", undefined, state.flow.history, "flow.history"),
       ],
@@ -165,11 +246,15 @@ function buildDesktopMenuTemplate(state: DesktopMenuState): MenuItemConstructorO
 
 function refreshDesktopMenu(): void {
   if (typeof app.isReady === "function" && !app.isReady()) return
-  const menu = Menu.buildFromTemplate(buildDesktopMenuTemplate(desktopMenuState))
+  const menu = Menu.buildFromTemplate(
+    buildDesktopMenuTemplate(desktopMenuState),
+  )
   Menu.setApplicationMenu(menu)
 }
 
-function desktopRuntimeInfo(window: BrowserWindow | null = resolveRuntimeWindow()): DesktopRuntimeInfo {
+function desktopRuntimeInfo(
+  window: BrowserWindow | null = resolveRuntimeWindow(),
+): DesktopRuntimeInfo {
   const platform = desktopPlatform()
   const isMac = platform === "macos"
   const isFullscreen = Boolean(window?.isFullScreen())
@@ -184,21 +269,30 @@ function desktopRuntimeInfo(window: BrowserWindow | null = resolveRuntimeWindow(
   }
 }
 
-export function setDesktopRuntimeWindowProvider(provider: (() => BrowserWindow | null) | null): void {
+export function setDesktopRuntimeWindowProvider(
+  provider: (() => BrowserWindow | null) | null,
+): void {
   runtimeWindowProvider = provider
   refreshDesktopMenu()
 }
 
 export function emitDesktopRuntimeUpdate(window: BrowserWindow | null): void {
   if (!window || window.isDestroyed()) return
-  window.webContents.send("system:desktop-runtime-changed", desktopRuntimeInfo(window))
+  window.webContents.send(
+    "system:desktop-runtime-changed",
+    desktopRuntimeInfo(window),
+  )
 }
 
 async function resolveGitBranch(projectPath: string): Promise<string | null> {
   try {
-    const { stdout } = await execFile("git", ["-C", projectPath, "rev-parse", "--abbrev-ref", "HEAD"], {
-      timeout: 1500,
-    })
+    const { stdout } = await execFile(
+      "git",
+      ["-C", projectPath, "rev-parse", "--abbrev-ref", "HEAD"],
+      {
+        timeout: 1500,
+      },
+    )
     const branch = stdout.trim()
     return branch || null
   } catch {
@@ -206,19 +300,25 @@ async function resolveGitBranch(projectPath: string): Promise<string | null> {
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: () => T): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  fallback: () => T,
+): Promise<T> {
   return new Promise<T>((resolve) => {
     const timeout = setTimeout(() => {
       resolve(fallback())
     }, timeoutMs)
 
-    promise.then((value) => {
-      clearTimeout(timeout)
-      resolve(value)
-    }).catch(() => {
-      clearTimeout(timeout)
-      resolve(fallback())
-    })
+    promise
+      .then((value) => {
+        clearTimeout(timeout)
+        resolve(value)
+      })
+      .catch(() => {
+        clearTimeout(timeout)
+        resolve(fallback())
+      })
   })
 }
 
@@ -254,7 +354,10 @@ function parseProviderSettingsPatch(patch: unknown): Partial<ProviderSettings> {
   }
 
   if ("defaultProvider" in candidate) {
-    if (candidate.defaultProvider !== "claude" && candidate.defaultProvider !== "codex") {
+    if (
+      candidate.defaultProvider !== "claude" &&
+      candidate.defaultProvider !== "codex"
+    ) {
       throw new Error("Invalid provider settings payload")
     }
     normalized.defaultProvider = candidate.defaultProvider
@@ -263,11 +366,11 @@ function parseProviderSettingsPatch(patch: unknown): Partial<ProviderSettings> {
   if ("safetyProfile" in candidate) {
     const safetyProfile = candidate.safetyProfile
     if (
-      safetyProfile !== "safe_readonly"
-      && safetyProfile !== "workspace_auto"
-      && safetyProfile !== "workspace_untrusted"
-      && safetyProfile !== "ci_readonly"
-      && safetyProfile !== "dangerous"
+      safetyProfile !== "safe_readonly" &&
+      safetyProfile !== "workspace_auto" &&
+      safetyProfile !== "workspace_untrusted" &&
+      safetyProfile !== "ci_readonly" &&
+      safetyProfile !== "dangerous"
     ) {
       throw new Error("Invalid provider settings payload")
     }
@@ -283,7 +386,10 @@ function parseProviderSettingsPatch(patch: unknown): Partial<ProviderSettings> {
     if (Object.keys(featuresRecord).some((key) => key !== "codexProvider")) {
       throw new Error("Invalid provider settings payload")
     }
-    if ("codexProvider" in featuresRecord && typeof featuresRecord.codexProvider !== "boolean") {
+    if (
+      "codexProvider" in featuresRecord &&
+      typeof featuresRecord.codexProvider !== "boolean"
+    ) {
       throw new Error("Invalid provider settings payload")
     }
     normalized.features = {
@@ -299,7 +405,9 @@ function parseCodexApiKey(apiKey: unknown): string {
     throw new Error("Codex API key must be a string")
   }
   if (apiKey.length > MAX_CODEX_API_KEY_LENGTH) {
-    throw new Error(`Codex API key must be ${MAX_CODEX_API_KEY_LENGTH} characters or fewer`)
+    throw new Error(
+      `Codex API key must be ${MAX_CODEX_API_KEY_LENGTH} characters or fewer`,
+    )
   }
   return apiKey
 }
@@ -348,29 +456,30 @@ async function getProviderDiagnostics(): Promise<ProviderDiagnostics> {
     }
   }
 
-  const [settings, claudeHealth, codexHealth, claudeAuth, codexAuth] = await Promise.all([
-    Promise.resolve(providerSettings),
-    withTimeout(
-      resolveAgentProvider("claude").checkAvailability(),
-      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
-      () => timedOutProviderHealth("claude"),
-    ),
-    withTimeout(
-      resolveAgentProvider("codex").checkAvailability(),
-      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
-      () => timedOutProviderHealth("codex"),
-    ),
-    withTimeout(
-      resolveAgentProvider("claude").getAuthStatus(),
-      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
-      () => timedOutProviderAuth("claude"),
-    ),
-    withTimeout(
-      resolveAgentProvider("codex").getAuthStatus(),
-      PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
-      () => timedOutProviderAuth("codex"),
-    ),
-  ])
+  const [settings, claudeHealth, codexHealth, claudeAuth, codexAuth] =
+    await Promise.all([
+      Promise.resolve(providerSettings),
+      withTimeout(
+        resolveAgentProvider("claude").checkAvailability(),
+        PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+        () => timedOutProviderHealth("claude"),
+      ),
+      withTimeout(
+        resolveAgentProvider("codex").checkAvailability(),
+        PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+        () => timedOutProviderHealth("codex"),
+      ),
+      withTimeout(
+        resolveAgentProvider("claude").getAuthStatus(),
+        PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+        () => timedOutProviderAuth("claude"),
+      ),
+      withTimeout(
+        resolveAgentProvider("codex").getAuthStatus(),
+        PROVIDER_DIAGNOSTICS_TIMEOUT_MS,
+        () => timedOutProviderAuth("codex"),
+      ),
+    ])
 
   return {
     settings,
@@ -406,24 +515,32 @@ export function registerSystemHandlers() {
     return desktopRuntimeInfo()
   })
 
-  ipcMain.handle("system:update-desktop-menu-state", async (_event, state: DesktopMenuState) => {
-    desktopMenuState = state
-    refreshDesktopMenu()
-    return true
-  })
+  ipcMain.handle(
+    "system:update-desktop-menu-state",
+    async (_event, state: DesktopMenuState) => {
+      desktopMenuState = state
+      refreshDesktopMenu()
+      return true
+    },
+  )
 
-  ipcMain.handle("system:get-project-status", async (_event, projectPath: string | null) => {
-    if (!projectPath) {
-      return { branch: null }
-    }
-    const safeProjectPath = resolve(projectPath)
-    const allowedProjects = await allowedProjectRoots()
-    if (!allowedProjects.some((root) => isRegisteredRoot(safeProjectPath, root))) {
-      return { branch: null }
-    }
-    const branch = await resolveGitBranch(safeProjectPath)
-    return { branch }
-  })
+  ipcMain.handle(
+    "system:get-project-status",
+    async (_event, projectPath: string | null) => {
+      if (!projectPath) {
+        return { branch: null }
+      }
+      const safeProjectPath = resolve(projectPath)
+      const allowedProjects = await allowedProjectRoots()
+      if (
+        !allowedProjects.some((root) => isRegisteredRoot(safeProjectPath, root))
+      ) {
+        return { branch: null }
+      }
+      const branch = await resolveGitBranch(safeProjectPath)
+      return { branch }
+    },
+  )
 
   ipcMain.handle("system:get-claude-subscription-status", async () => {
     if (isTestMode()) {
@@ -436,9 +553,12 @@ export function registerSystemHandlers() {
     return getProviderDiagnostics()
   })
 
-  ipcMain.handle("system:update-provider-settings", async (_event, patch: Partial<ProviderSettings>) => {
-    return updateProviderSettings(parseProviderSettingsPatch(patch))
-  })
+  ipcMain.handle(
+    "system:update-provider-settings",
+    async (_event, patch: Partial<ProviderSettings>) => {
+      return updateProviderSettings(parseProviderSettingsPatch(patch))
+    },
+  )
 
   ipcMain.handle("system:set-codex-api-key", async (_event, apiKey: string) => {
     await setCodexApiKey(parseCodexApiKey(apiKey))
@@ -450,42 +570,51 @@ export function registerSystemHandlers() {
     return getProviderDiagnostics()
   })
 
-  ipcMain.handle("system:logout-provider", async (_event, provider: ProviderId) => {
-    if (provider === "codex") {
-      try {
-        await execCodex(["logout"], { timeout: 15_000 })
-      } catch {
-        // Best effort only: app-managed API key may still be the active auth path.
+  ipcMain.handle(
+    "system:logout-provider",
+    async (_event, provider: ProviderId) => {
+      if (provider === "codex") {
+        try {
+          await execCodex(["logout"], { timeout: 15_000 })
+        } catch {
+          // Best effort only: app-managed API key may still be the active auth path.
+        }
+        await clearCodexApiKey()
+        return getProviderDiagnostics()
       }
-      await clearCodexApiKey()
-      return getProviderDiagnostics()
-    }
 
-    if (provider === "claude") {
-      try {
-        await execClaude(["logout"], { timeout: 15_000 })
-      } catch {
-        // Claude logout is best effort.
+      if (provider === "claude") {
+        try {
+          await execClaude(["logout"], { timeout: 15_000 })
+        } catch {
+          // Claude logout is best effort.
+        }
+        return getProviderDiagnostics()
       }
-      return getProviderDiagnostics()
-    }
 
-    return getProviderDiagnostics()
-  })
+      return getProviderDiagnostics()
+    },
+  )
 
   ipcMain.handle("system:get-telemetry-settings", async () => {
     return getTelemetrySettings()
   })
 
-  ipcMain.handle("system:set-telemetry-consent", async (_event, enabled: boolean) => {
-    return setTelemetryConsent(Boolean(enabled))
-  })
+  ipcMain.handle(
+    "system:set-telemetry-consent",
+    async (_event, enabled: boolean) => {
+      return setTelemetryConsent(Boolean(enabled))
+    },
+  )
 
-  ipcMain.handle("system:track-ui-event", async (_event, eventName: TelemetryUiEvent) => {
-    if (eventName !== "settings_opened") return false
-    await trackTelemetryUiEvent(eventName)
-    return true
-  })
+  ipcMain.handle(
+    "system:track-ui-event",
+    async (_event, eventName: TelemetryUiEvent) => {
+      if (eventName !== "settings_opened") return false
+      await trackTelemetryUiEvent(eventName)
+      return true
+    },
+  )
 
   ipcMain.handle("system:open-path", async (_event, path: string) => {
     const allowedRoots = await allowedOpenPathRoots()
@@ -495,7 +624,11 @@ export function registerSystemHandlers() {
 
   ipcMain.handle("system:show-in-finder", async (_event, path: string) => {
     const allowedRoots = await allowedOpenPathRoots()
-    const safePath = assertWithinRoots(resolve(path), allowedRoots, "Show in Finder")
+    const safePath = assertWithinRoots(
+      resolve(path),
+      allowedRoots,
+      "Show in Finder",
+    )
     shell.showItemInFolder(safePath)
     return true
   })
@@ -503,7 +636,10 @@ export function registerSystemHandlers() {
   // Auto-updater
   ipcMain.handle("system:check-for-update", async () => {
     if (!app.isPackaged) {
-      return { status: "error" as const, error: "Auto-updates are not available in development mode." }
+      return {
+        status: "error" as const,
+        error: "Auto-updates are not available in development mode.",
+      }
     }
     await checkForUpdate()
     return getUpdateStatus()
@@ -517,7 +653,10 @@ export function registerSystemHandlers() {
 
   ipcMain.handle("system:get-update-status", () => {
     if (!app.isPackaged) {
-      return { status: "error" as const, error: "Auto-updates are not available in development mode." }
+      return {
+        status: "error" as const,
+        error: "Auto-updates are not available in development mode.",
+      }
     }
     return getUpdateStatus()
   })

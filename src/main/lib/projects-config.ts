@@ -29,15 +29,18 @@ export async function loadProjectsConfig(): Promise<ProjectsConfigResult> {
     const data = await readFile(projectsConfigPath(), "utf-8")
     const parsed = JSON.parse(data) as Partial<ProjectsConfig>
     const allProjects = Array.isArray(parsed.projects)
-      ? parsed.projects.filter((value): value is string => typeof value === "string").map((value) => resolve(value))
+      ? parsed.projects
+          .filter((value): value is string => typeof value === "string")
+          .map((value) => resolve(value))
       : []
 
     const projects = allProjects.filter((p) => existsSync(p))
     const removedCount = allProjects.length - projects.length
 
-    let lastSelectedProject = typeof parsed.lastSelectedProject === "string"
-      ? resolve(parsed.lastSelectedProject)
-      : undefined
+    let lastSelectedProject =
+      typeof parsed.lastSelectedProject === "string"
+        ? resolve(parsed.lastSelectedProject)
+        : undefined
 
     // Clear lastSelectedProject if its directory was removed
     if (lastSelectedProject && !existsSync(lastSelectedProject)) {
@@ -54,26 +57,39 @@ export async function loadProjectsConfig(): Promise<ProjectsConfigResult> {
 
     return { projects, lastSelectedProject, removedCount }
   } catch (error) {
-    const errorCode = typeof error === "object" && error && "code" in error
-      ? String((error as { code?: string }).code)
-      : undefined
+    const errorCode =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code?: string }).code)
+        : undefined
     if (errorCode !== "ENOENT") {
-      logWarn("projects-config", "load_failed", { error: String(error), path: projectsConfigPath() })
+      logWarn("projects-config", "load_failed", {
+        error: String(error),
+        path: projectsConfigPath(),
+      })
     }
     return { projects: [], removedCount: 0 }
   }
 }
 
-export async function saveProjectsConfig(config: ProjectsConfig): Promise<void> {
-  const normalizedProjects = [...new Set(
-    config.projects
-      .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-      .map((value) => resolve(value)),
-  )]
+export async function saveProjectsConfig(
+  config: ProjectsConfig,
+): Promise<void> {
+  const normalizedProjects = [
+    ...new Set(
+      config.projects
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+        .map((value) => resolve(value)),
+    ),
+  ]
 
   const payload: ProjectsConfig = {
     projects: normalizedProjects,
-    lastSelectedProject: config.lastSelectedProject ? resolve(config.lastSelectedProject) : undefined,
+    lastSelectedProject: config.lastSelectedProject
+      ? resolve(config.lastSelectedProject)
+      : undefined,
   }
 
   const configDir = join(resolveHomeDir(), ".c8c")

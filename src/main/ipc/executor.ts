@@ -1,4 +1,9 @@
-import { ipcMain, BrowserWindow, shell, type IpcMainInvokeEvent } from "electron"
+import {
+  ipcMain,
+  BrowserWindow,
+  shell,
+  type IpcMainInvokeEvent,
+} from "electron"
 import {
   runWorkflow,
   rerunFromNode,
@@ -16,12 +21,19 @@ import {
   listWorkflowHilTasks,
   writeWorkflowHilTaskResponse,
 } from "@c8c/workflow-runner"
-import { runBatch, cancelBatch, getActiveBatchSnapshot } from "../lib/batch-runner"
+import {
+  runBatch,
+  cancelBatch,
+  getActiveBatchSnapshot,
+} from "../lib/batch-runner"
 import { scaffoldMissingSkills } from "../lib/skill-scaffold"
 import { scanAllSkills } from "../lib/skill-scanner"
 import { trackTelemetryEvent } from "../lib/telemetry/service"
 import { summarizeMissingWorkflowSkillRefs } from "../lib/telemetry/workflow-usage"
-import { listProjectArtifacts, persistArtifactsFromRun } from "../lib/artifact-store"
+import {
+  listProjectArtifacts,
+  persistArtifactsFromRun,
+} from "../lib/artifact-store"
 import { listProjectCaseStates, upsertCaseState } from "../lib/case-store"
 import { readdir, readFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
@@ -49,26 +61,44 @@ import type {
 } from "@shared/types"
 import type { ExecutionStartError } from "@shared/c8c-api"
 import { workflowRequiresProvider } from "@shared/provider-metadata"
-import { allowedProjectRoots, allowedReportRoots, assertWithinRoots } from "../lib/security-paths"
+import {
+  allowedProjectRoots,
+  allowedReportRoots,
+  assertWithinRoots,
+} from "../lib/security-paths"
 import { logError, logInfo, logWarn } from "../lib/structured-log"
 import {
   getProviderReadiness,
   providerReadinessError,
   resolveWorkflowProviderId,
 } from "../lib/provider-runtime"
-import { formatWorkflowExecutionIssue, validateWorkflowForExecution } from "@shared/workflow-execution-validation"
+import {
+  formatWorkflowExecutionIssue,
+  validateWorkflowForExecution,
+} from "@shared/workflow-execution-validation"
 import { sendWorkflowEvent } from "../workflow-notifications"
-import { hydratePersistedRunSnapshotLogs, readPersistedEventsTail } from "./run-snapshot"
+import {
+  hydratePersistedRunSnapshotLogs,
+  readPersistedEventsTail,
+} from "./run-snapshot"
 import { parseWorkflowPayload } from "@shared/workflow-payload"
 
 let runCounter = 0
 let batchCounter = 0
 const activeWindowExecutions = new Map<number, Set<string>>()
 const windowLifecycleBindings = new Set<number>()
-const HUMAN_TASK_STATUSES = new Set(["open", "answered", "rejected", "timed_out", "consumed"])
+const HUMAN_TASK_STATUSES = new Set([
+  "open",
+  "answered",
+  "rejected",
+  "timed_out",
+  "consumed",
+])
 const MAX_CONCURRENT_EXECUTIONS_PER_WINDOW = 8
 
-function isHumanTaskLifecycleStatus(value: unknown): value is HumanTaskPointer["status"] {
+function isHumanTaskLifecycleStatus(
+  value: unknown,
+): value is HumanTaskPointer["status"] {
   return typeof value === "string" && HUMAN_TASK_STATUSES.has(value)
 }
 
@@ -100,12 +130,20 @@ function cancelActiveWindowExecution(windowId: number): void {
     if (executionId.startsWith("batch:")) {
       const batchId = executionId.slice("batch:".length)
       const cancelled = cancelBatch(batchId)
-      logInfo("executor-ipc", "window_closed_cancel_batch", { windowId, batchId, cancelled })
+      logInfo("executor-ipc", "window_closed_cancel_batch", {
+        windowId,
+        batchId,
+        cancelled,
+      })
       continue
     }
 
     const cancelled = cancelWorkflowRun(executionId)
-    logInfo("executor-ipc", "window_closed_cancel_run", { windowId, runId: executionId, cancelled })
+    logInfo("executor-ipc", "window_closed_cancel_run", {
+      windowId,
+      runId: executionId,
+      cancelled,
+    })
   }
 }
 
@@ -118,66 +156,77 @@ function bindWindowLifecycle(window: BrowserWindow): void {
   })
 }
 
-async function getActiveExecutionsForWindow(windowId: number): Promise<ActiveExecutionSnapshot[]> {
+async function getActiveExecutionsForWindow(
+  windowId: number,
+): Promise<ActiveExecutionSnapshot[]> {
   const executions = activeWindowExecutions.get(windowId)
   if (!executions || executions.size === 0) return []
 
-  const snapshots: Array<ActiveExecutionSnapshot | null> = await Promise.all(Array.from(executions).map(async (executionId) => {
-    if (executionId.startsWith("batch:")) {
-      const batchId = executionId.slice("batch:".length)
-      const snapshot = getActiveBatchSnapshot(batchId)
-      if (!snapshot) return null
-      const batchSnapshot: ActiveBatchRun = {
-        kind: "batch" as const,
-        batchId: snapshot.batchId,
-        workflowName: snapshot.workflowName,
-        workflowPath: snapshot.workflowPath || null,
-        projectPath: snapshot.projectPath || null,
-        total: snapshot.total,
-        completed: snapshot.completed,
-        running: snapshot.running,
-        concurrency: snapshot.concurrency,
-        stopOnFailure: snapshot.stopOnFailure,
-        startedAt: snapshot.startedAt,
-        items: snapshot.items,
+  const snapshots: Array<ActiveExecutionSnapshot | null> = await Promise.all(
+    Array.from(executions).map(async (executionId) => {
+      if (executionId.startsWith("batch:")) {
+        const batchId = executionId.slice("batch:".length)
+        const snapshot = getActiveBatchSnapshot(batchId)
+        if (!snapshot) return null
+        const batchSnapshot: ActiveBatchRun = {
+          kind: "batch" as const,
+          batchId: snapshot.batchId,
+          workflowName: snapshot.workflowName,
+          workflowPath: snapshot.workflowPath || null,
+          projectPath: snapshot.projectPath || null,
+          total: snapshot.total,
+          completed: snapshot.completed,
+          running: snapshot.running,
+          concurrency: snapshot.concurrency,
+          stopOnFailure: snapshot.stopOnFailure,
+          startedAt: snapshot.startedAt,
+          items: snapshot.items,
+        }
+        return batchSnapshot
       }
-      return batchSnapshot
-    }
 
-    const snapshot = await getWorkflowRunSnapshot(executionId)
-    if (!snapshot?.manifest || !snapshot.state) return null
-    const hydratedSnapshot = await hydratePersistedRunSnapshotLogs(snapshot.workspace, {
-      nodeStates: snapshot.state.nodeStates,
-      runtimeNodes: snapshot.state.runtimeNodes || [],
-      runtimeEdges: snapshot.state.runtimeEdges || [],
-      runtimeMeta: snapshot.state.runtimeMeta || {},
-      input: snapshot.state.input,
-      evalResults: {},
-      humanTasks: sanitizeHumanTasks(snapshot.state.humanTasks),
-    })
+      const snapshot = await getWorkflowRunSnapshot(executionId)
+      if (!snapshot?.manifest || !snapshot.state) return null
+      const hydratedSnapshot = await hydratePersistedRunSnapshotLogs(
+        snapshot.workspace,
+        {
+          nodeStates: snapshot.state.nodeStates,
+          runtimeNodes: snapshot.state.runtimeNodes || [],
+          runtimeEdges: snapshot.state.runtimeEdges || [],
+          runtimeMeta: snapshot.state.runtimeMeta || {},
+          input: snapshot.state.input,
+          evalResults: {},
+          humanTasks: sanitizeHumanTasks(snapshot.state.humanTasks),
+        },
+      )
 
-    const runSnapshot: ActiveWorkflowRun = {
-      kind: "run" as const,
-      runId: executionId,
-      workflowName: snapshot.manifest.workflowName,
-      workflowPath: snapshot.manifest.workflowPath || null,
-      projectPath: null,
-      workspace: snapshot.workspace,
-      status: snapshot.paused ? "paused" : "running",
-      startedAt: snapshot.manifest.startedAt,
-      updatedAt: snapshot.manifest.updatedAt,
-      nodeStates: hydratedSnapshot.nodeStates,
-      runtimeNodes: hydratedSnapshot.runtimeNodes || [],
-      runtimeEdges: hydratedSnapshot.runtimeEdges || [],
-      runtimeMeta: hydratedSnapshot.runtimeMeta || {},
-    }
-    return runSnapshot
-  }))
+      const runSnapshot: ActiveWorkflowRun = {
+        kind: "run" as const,
+        runId: executionId,
+        workflowName: snapshot.manifest.workflowName,
+        workflowPath: snapshot.manifest.workflowPath || null,
+        projectPath: null,
+        workspace: snapshot.workspace,
+        status: snapshot.paused ? "paused" : "running",
+        startedAt: snapshot.manifest.startedAt,
+        updatedAt: snapshot.manifest.updatedAt,
+        nodeStates: hydratedSnapshot.nodeStates,
+        runtimeNodes: hydratedSnapshot.runtimeNodes || [],
+        runtimeEdges: hydratedSnapshot.runtimeEdges || [],
+        runtimeMeta: hydratedSnapshot.runtimeMeta || {},
+      }
+      return runSnapshot
+    }),
+  )
 
-  return snapshots.filter((snapshot): snapshot is ActiveExecutionSnapshot => snapshot !== null)
+  return snapshots.filter(
+    (snapshot): snapshot is ActiveExecutionSnapshot => snapshot !== null,
+  )
 }
 
-function resolveWindowFromEvent(event: IpcMainInvokeEvent): BrowserWindow | null {
+function resolveWindowFromEvent(
+  event: IpcMainInvokeEvent,
+): BrowserWindow | null {
   const window = BrowserWindow.fromWebContents(event.sender)
   if (!window || window.isDestroyed()) return null
   bindWindowLifecycle(window)
@@ -220,9 +269,12 @@ function sanitizeHumanTasks(input: unknown): Record<string, HumanTaskPointer> {
   const next: Record<string, HumanTaskPointer> = {}
   for (const [nodeId, value] of Object.entries(input)) {
     if (!value || typeof value !== "object") continue
-    const taskId = "taskId" in value ? (value as { taskId?: unknown }).taskId : undefined
-    const status = "status" in value ? (value as { status?: unknown }).status : undefined
-    if (typeof taskId !== "string" || !isHumanTaskLifecycleStatus(status)) continue
+    const taskId =
+      "taskId" in value ? (value as { taskId?: unknown }).taskId : undefined
+    const status =
+      "status" in value ? (value as { status?: unknown }).status : undefined
+    if (typeof taskId !== "string" || !isHumanTaskLifecycleStatus(status))
+      continue
     next[nodeId] = {
       taskId,
       status,
@@ -276,7 +328,10 @@ function resolveSafeWorkflowPayload(
 }
 
 function hasReachedWindowExecutionCap(windowId: number): boolean {
-  return (activeWindowExecutions.get(windowId)?.size ?? 0) >= MAX_CONCURRENT_EXECUTIONS_PER_WINDOW
+  return (
+    (activeWindowExecutions.get(windowId)?.size ?? 0) >=
+    MAX_CONCURRENT_EXECUTIONS_PER_WINDOW
+  )
 }
 
 async function assertRunWorkspacePath(workspace: string): Promise<string> {
@@ -306,7 +361,9 @@ function createEmptyRunSnapshot(): PersistedRunSnapshot {
   }
 }
 
-async function loadPersistedRunSnapshot(workspace: string): Promise<PersistedRunSnapshot | null> {
+async function loadPersistedRunSnapshot(
+  workspace: string,
+): Promise<PersistedRunSnapshot | null> {
   try {
     const raw = await readFile(join(workspace, "run-state.json"), "utf-8")
     const parsed = JSON.parse(raw) as PersistedRunSnapshot
@@ -330,7 +387,9 @@ async function loadPersistedRunSnapshot(workspace: string): Promise<PersistedRun
   }
 }
 
-async function loadPersistedEvalResults(workspace: string): Promise<Record<string, EvaluationResult[]>> {
+async function loadPersistedEvalResults(
+  workspace: string,
+): Promise<Record<string, EvaluationResult[]>> {
   try {
     const persistedEvents = await readPersistedEventsTail(workspace)
     if (!persistedEvents) return {}
@@ -372,7 +431,9 @@ async function loadPersistedEvalResults(workspace: string): Promise<Record<strin
   }
 }
 
-function mapHilTaskSummary(summary: Awaited<ReturnType<typeof listWorkflowHilTasks>>[number]): HumanTaskSummary {
+function mapHilTaskSummary(
+  summary: Awaited<ReturnType<typeof listWorkflowHilTasks>>[number],
+): HumanTaskSummary {
   const taskRecord = summary as typeof summary & {
     instructions?: string
     summary?: string
@@ -403,7 +464,9 @@ function mapHilTaskSummary(summary: Awaited<ReturnType<typeof listWorkflowHilTas
   }
 }
 
-function mapHilTaskSnapshot(record: NonNullable<Awaited<ReturnType<typeof getWorkflowHilTask>>>): HumanTaskSnapshot {
+function mapHilTaskSnapshot(
+  record: NonNullable<Awaited<ReturnType<typeof getWorkflowHilTask>>>,
+): HumanTaskSnapshot {
   const state = record.state as typeof record.state & {
     instructions?: string
     summary?: string
@@ -415,7 +478,10 @@ function mapHilTaskSnapshot(record: NonNullable<Awaited<ReturnType<typeof getWor
     ? {
         version: 1 as const,
         taskId: record.latestResponse.taskId,
-        resolution: record.latestResponse.resolution === "approved" ? "submitted" : record.latestResponse.resolution,
+        resolution:
+          record.latestResponse.resolution === "approved"
+            ? "submitted"
+            : record.latestResponse.resolution,
         answers: record.latestResponse.answers,
         comment: record.latestResponse.comment,
         metadata: {
@@ -452,7 +518,10 @@ function mapHilTaskSnapshot(record: NonNullable<Awaited<ReturnType<typeof getWor
   }
 }
 
-function normalizeTaskStepLabel(title: string | undefined, workflowName: string | undefined) {
+function normalizeTaskStepLabel(
+  title: string | undefined,
+  workflowName: string | undefined,
+) {
   const source = (title || workflowName || "").trim()
   if (!source) return null
   const normalized = source
@@ -466,7 +535,10 @@ function normalizeTaskStepLabel(title: string | undefined, workflowName: string 
 }
 
 function buildTaskGateRecord(
-  task: Pick<HumanTaskSnapshot, "kind" | "title" | "workflowName" | "summary" | "instructions">,
+  task: Pick<
+    HumanTaskSnapshot,
+    "kind" | "title" | "workflowName" | "summary" | "instructions"
+  >,
   resolution: "passed" | "rejected" | "blocked",
 ): {
   continuationStatus: ContinuationStatus
@@ -474,9 +546,12 @@ function buildTaskGateRecord(
 } {
   const stepLabel = normalizeTaskStepLabel(task.title, task.workflowName)
   const reasonText = task.summary || task.instructions
-  const family = task.kind === "approval"
-    ? (stepLabel?.toLowerCase().includes("ship") ? "ship_decision" : "approval")
-    : "input"
+  const family =
+    task.kind === "approval"
+      ? stepLabel?.toLowerCase().includes("ship")
+        ? "ship_decision"
+        : "approval"
+      : "input"
 
   if (task.kind === "approval" && resolution === "passed") {
     return {
@@ -542,7 +617,10 @@ function buildTaskGateRecord(
 }
 
 async function resolveCaseStateSeedForTask(
-  task: Pick<HumanTaskSnapshot, "projectPath" | "workflowPath" | "sourceRunId" | "workflowName" | "title">,
+  task: Pick<
+    HumanTaskSnapshot,
+    "projectPath" | "workflowPath" | "sourceRunId" | "workflowName" | "title"
+  >,
 ): Promise<{
   projectPath: string
   caseId: string
@@ -558,9 +636,10 @@ async function resolveCaseStateSeedForTask(
   const safeProjectPath = await assertProjectPath(task.projectPath)
   const projectArtifacts = await listProjectArtifacts(safeProjectPath)
   const relatedArtifacts = projectArtifacts
-    .filter((artifact) =>
-      (task.workflowPath && artifact.workflowPath === task.workflowPath)
-      || artifact.runId === task.sourceRunId,
+    .filter(
+      (artifact) =>
+        (task.workflowPath && artifact.workflowPath === task.workflowPath) ||
+        artifact.runId === task.sourceRunId,
     )
     .sort((left, right) => right.updatedAt - left.updatedAt)
 
@@ -570,7 +649,11 @@ async function resolveCaseStateSeedForTask(
   return {
     projectPath: safeProjectPath,
     caseId: primaryArtifact.caseId,
-    workLabel: primaryArtifact.caseLabel || task.workflowName || task.title || "Saved work",
+    workLabel:
+      primaryArtifact.caseLabel ||
+      task.workflowName ||
+      task.title ||
+      "Saved work",
     caseLabel: primaryArtifact.caseLabel,
     factoryId: primaryArtifact.factoryId,
     factoryLabel: primaryArtifact.factoryLabel,
@@ -633,8 +716,15 @@ async function scaffoldWorkflowWithTelemetry(
   const before = summarizeMissingWorkflowSkillRefs(workflow, availableRefs)
 
   try {
-    const scaffoldedWorkflow = await scaffoldMissingSkills(workflow, availableRefs, projectPath)
-    const after = summarizeMissingWorkflowSkillRefs(scaffoldedWorkflow, availableRefs)
+    const scaffoldedWorkflow = await scaffoldMissingSkills(
+      workflow,
+      availableRefs,
+      projectPath,
+    )
+    const after = summarizeMissingWorkflowSkillRefs(
+      scaffoldedWorkflow,
+      availableRefs,
+    )
     void trackTelemetryEvent("skill_scaffold_completed", {
       source,
       status: "success",
@@ -671,7 +761,9 @@ function createExecutionStartError(
   return {
     error,
     code,
-    ...(validationIssues && validationIssues.length > 0 ? { validationIssues } : {}),
+    ...(validationIssues && validationIssues.length > 0
+      ? { validationIssues }
+      : {}),
   }
 }
 
@@ -683,8 +775,12 @@ function normalizeProviderPreflightError(message: string): string {
   return message.slice(separatorIndex + 1)
 }
 
-function createValidationStartError(workflow: Workflow): ExecutionStartError | null {
-  const validationIssues = validateWorkflowForExecution(workflow).filter((issue) => issue.severity === "error")
+function createValidationStartError(
+  workflow: Workflow,
+): ExecutionStartError | null {
+  const validationIssues = validateWorkflowForExecution(workflow).filter(
+    (issue) => issue.severity === "error",
+  )
   if (validationIssues.length === 0) return null
   if (validationIssues.length === 1) {
     return createExecutionStartError(
@@ -720,7 +816,10 @@ async function createExecutionStartBlocker(
     const readiness = await getProviderReadiness(providerId)
     const providerError = providerReadinessError(readiness)
     if (providerError) {
-      return createExecutionStartError(normalizeProviderPreflightError(providerError), "preflight")
+      return createExecutionStartError(
+        normalizeProviderPreflightError(providerError),
+        "preflight",
+      )
     }
   } catch (err) {
     logWarn("executor-ipc", precheckEvent, { error: errorMessage(err) })
@@ -742,28 +841,48 @@ export function registerExecutorHandlers() {
     ) => {
       const window = resolveWindowFromEvent(event)
       if (!window) return null
-      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:run")
+      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(
+        projectPath,
+        "executor:run",
+      )
       if (startError) return startError
-      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:run")
+      const { workflow: safeWorkflow, startError: workflowError } =
+        resolveSafeWorkflowPayload(workflow, "executor:run")
       if (workflowError) return workflowError
       workflow = safeWorkflow!
-      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
+      if (hasReachedWindowExecutionCap(window.id))
+        return createExecutionLimitStartError()
 
-      const startBlocker = await createExecutionStartBlocker(workflow, "run_precheck_failed")
+      const startBlocker = await createExecutionStartBlocker(
+        workflow,
+        "run_precheck_failed",
+      )
       if (startBlocker) return startBlocker
 
       // Auto-scaffold missing skills before run
       if (safeProjectPath) {
         try {
-          workflow = await scaffoldWorkflowWithTelemetry(workflow, safeProjectPath, "executor_run")
+          workflow = await scaffoldWorkflowWithTelemetry(
+            workflow,
+            safeProjectPath,
+            "executor_run",
+          )
         } catch (err) {
-          return createExecutionStartError(`Skill scaffolding failed: ${String(err)}`, "scaffold")
+          return createExecutionStartError(
+            `Skill scaffolding failed: ${String(err)}`,
+            "scaffold",
+          )
         }
       }
 
       if (window.isDestroyed()) {
-        logWarn("executor-ipc", "run_start_aborted_window_closed", { windowId: window.id })
-        return createExecutionStartError("Window was closed before run start", "window")
+        logWarn("executor-ipc", "run_start_aborted_window_closed", {
+          windowId: window.id,
+        })
+        return createExecutionStartError(
+          "Window was closed before run start",
+          "window",
+        )
       }
 
       const runId = `run-${++runCounter}-${Date.now()}`
@@ -771,35 +890,46 @@ export function registerExecutorHandlers() {
       logInfo("executor-ipc", "run_started", { runId, windowId: window.id })
 
       // Fire and forget — events stream back via IPC
-      runWorkflow(runId, workflow, input, window, safeProjectPath, workflowPath, webSearchBackend).catch((err) => {
-        try {
-          if (!window.isDestroyed()) {
-            sendWorkflowEvent(window, {
+      runWorkflow(
+        runId,
+        workflow,
+        input,
+        window,
+        safeProjectPath,
+        workflowPath,
+        webSearchBackend,
+      )
+        .catch((err) => {
+          try {
+            if (!window.isDestroyed()) {
+              sendWorkflowEvent(window, {
+                runId,
+                type: "node-error",
+                nodeId: "__global",
+                error: String(err),
+              })
+              sendWorkflowEvent(window, {
+                runId,
+                type: "run-done",
+                status: "failed",
+              })
+            }
+          } catch (sendError) {
+            logWarn("executor-ipc", "run_failure_event_send_failed", {
               runId,
-              type: "node-error",
-              nodeId: "__global",
-              error: String(err),
-            })
-            sendWorkflowEvent(window, {
-              runId,
-              type: "run-done",
-              status: "failed",
+              error: errorMessage(sendError),
             })
           }
-        } catch (sendError) {
-          logWarn("executor-ipc", "run_failure_event_send_failed", {
-            runId,
-            error: errorMessage(sendError),
-          })
-        }
-      }).finally(() => releaseWindowExecution(window.id, runId))
+        })
+        .finally(() => releaseWindowExecution(window.id, runId))
 
       return runId
     },
   )
 
   ipcMain.handle("executor:cancel", async (event, runId: string) => {
-    if (!assertWindowCanMutateExecution(event, runId, "executor:cancel")) return false
+    if (!assertWindowCanMutateExecution(event, runId, "executor:cancel"))
+      return false
     return cancelWorkflowRun(runId)
   })
 
@@ -815,7 +945,8 @@ export function registerExecutorHandlers() {
   })
 
   ipcMain.handle("run:resume", async (event, runId: string) => {
-    if (!assertWindowCanMutateExecution(event, runId, "run:resume")) return false
+    if (!assertWindowCanMutateExecution(event, runId, "run:resume"))
+      return false
     return resumeWorkflowRun(runId)
   })
 
@@ -832,14 +963,22 @@ export function registerExecutorHandlers() {
     ) => {
       const window = resolveWindowFromEvent(event)
       if (!window) return null
-      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:rerun-from")
+      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(
+        projectPath,
+        "executor:rerun-from",
+      )
       if (startError) return startError
-      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:rerun-from")
+      const { workflow: safeWorkflow, startError: workflowError } =
+        resolveSafeWorkflowPayload(workflow, "executor:rerun-from")
       if (workflowError) return workflowError
       workflow = safeWorkflow!
-      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
+      if (hasReachedWindowExecutionCap(window.id))
+        return createExecutionLimitStartError()
 
-      const startBlocker = await createExecutionStartBlocker(workflow, "rerun_precheck_failed")
+      const startBlocker = await createExecutionStartBlocker(
+        workflow,
+        "rerun_precheck_failed",
+      )
       if (startBlocker) return startBlocker
 
       const runId = `rerun-${++runCounter}-${Date.now()}`
@@ -848,19 +987,36 @@ export function registerExecutorHandlers() {
       // Auto-scaffold missing skills before rerun
       if (safeProjectPath) {
         try {
-          workflow = await scaffoldWorkflowWithTelemetry(workflow, safeProjectPath, "executor_rerun")
+          workflow = await scaffoldWorkflowWithTelemetry(
+            workflow,
+            safeProjectPath,
+            "executor_rerun",
+          )
         } catch (err) {
-          return createExecutionStartError(`Skill scaffolding failed: ${String(err)}`, "scaffold")
+          return createExecutionStartError(
+            `Skill scaffolding failed: ${String(err)}`,
+            "scaffold",
+          )
         }
       }
 
       if (window.isDestroyed()) {
-        logWarn("executor-ipc", "rerun_start_aborted_window_closed", { windowId: window.id, workspace: safeWorkspace })
-        return createExecutionStartError("Window was closed before rerun start", "window")
+        logWarn("executor-ipc", "rerun_start_aborted_window_closed", {
+          windowId: window.id,
+          workspace: safeWorkspace,
+        })
+        return createExecutionStartError(
+          "Window was closed before rerun start",
+          "window",
+        )
       }
 
       trackWindowExecution(window.id, runId)
-      logInfo("executor-ipc", "rerun_started", { runId, fromNodeId, windowId: window.id })
+      logInfo("executor-ipc", "rerun_started", {
+        runId,
+        fromNodeId,
+        windowId: window.id,
+      })
 
       rerunFromNode(
         runId,
@@ -871,28 +1027,30 @@ export function registerExecutorHandlers() {
         safeProjectPath,
         workflowPath,
         webSearchBackend,
-      ).catch((err) => {
-        try {
-          if (!window.isDestroyed()) {
-            sendWorkflowEvent(window, {
+      )
+        .catch((err) => {
+          try {
+            if (!window.isDestroyed()) {
+              sendWorkflowEvent(window, {
+                runId,
+                type: "node-error",
+                nodeId: "__global",
+                error: String(err),
+              })
+              sendWorkflowEvent(window, {
+                runId,
+                type: "run-done",
+                status: "failed",
+              })
+            }
+          } catch (sendError) {
+            logWarn("executor-ipc", "rerun_failure_event_send_failed", {
               runId,
-              type: "node-error",
-              nodeId: "__global",
-              error: String(err),
-            })
-            sendWorkflowEvent(window, {
-              runId,
-              type: "run-done",
-              status: "failed",
+              error: errorMessage(sendError),
             })
           }
-        } catch (sendError) {
-          logWarn("executor-ipc", "rerun_failure_event_send_failed", {
-            runId,
-            error: errorMessage(sendError),
-          })
-        }
-      }).finally(() => releaseWindowExecution(window.id, runId))
+        })
+        .finally(() => releaseWindowExecution(window.id, runId))
 
       return runId
     },
@@ -910,14 +1068,22 @@ export function registerExecutorHandlers() {
     ) => {
       const window = resolveWindowFromEvent(event)
       if (!window) return null
-      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:continue")
+      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(
+        projectPath,
+        "executor:continue",
+      )
       if (startError) return startError
-      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:continue")
+      const { workflow: safeWorkflow, startError: workflowError } =
+        resolveSafeWorkflowPayload(workflow, "executor:continue")
       if (workflowError) return workflowError
       workflow = safeWorkflow!
-      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
+      if (hasReachedWindowExecutionCap(window.id))
+        return createExecutionLimitStartError()
 
-      const startBlocker = await createExecutionStartBlocker(workflow, "continue_precheck_failed")
+      const startBlocker = await createExecutionStartBlocker(
+        workflow,
+        "continue_precheck_failed",
+      )
       if (startBlocker) return startBlocker
 
       const runId = `resume-${++runCounter}-${Date.now()}`
@@ -926,19 +1092,36 @@ export function registerExecutorHandlers() {
       // Auto-scaffold missing skills before continue.
       if (safeProjectPath) {
         try {
-          workflow = await scaffoldWorkflowWithTelemetry(workflow, safeProjectPath, "executor_rerun")
+          workflow = await scaffoldWorkflowWithTelemetry(
+            workflow,
+            safeProjectPath,
+            "executor_rerun",
+          )
         } catch (err) {
-          return createExecutionStartError(`Skill scaffolding failed: ${String(err)}`, "scaffold")
+          return createExecutionStartError(
+            `Skill scaffolding failed: ${String(err)}`,
+            "scaffold",
+          )
         }
       }
 
       if (window.isDestroyed()) {
-        logWarn("executor-ipc", "continue_start_aborted_window_closed", { windowId: window.id, workspace: safeWorkspace })
-        return createExecutionStartError("Window was closed before continue start", "window")
+        logWarn("executor-ipc", "continue_start_aborted_window_closed", {
+          windowId: window.id,
+          workspace: safeWorkspace,
+        })
+        return createExecutionStartError(
+          "Window was closed before continue start",
+          "window",
+        )
       }
 
       trackWindowExecution(window.id, runId)
-      logInfo("executor-ipc", "continue_started", { runId, windowId: window.id, workspace: safeWorkspace })
+      logInfo("executor-ipc", "continue_started", {
+        runId,
+        windowId: window.id,
+        workspace: safeWorkspace,
+      })
 
       continueRunFromWorkspace(
         runId,
@@ -948,77 +1131,88 @@ export function registerExecutorHandlers() {
         safeProjectPath,
         workflowPath,
         webSearchBackend,
-      ).catch((err) => {
-        try {
-          if (!window.isDestroyed()) {
-            sendWorkflowEvent(window, {
+      )
+        .catch((err) => {
+          try {
+            if (!window.isDestroyed()) {
+              sendWorkflowEvent(window, {
+                runId,
+                type: "node-error",
+                nodeId: "__global",
+                error: String(err),
+              })
+              sendWorkflowEvent(window, {
+                runId,
+                type: "run-done",
+                status: "failed",
+              })
+            }
+          } catch (sendError) {
+            logWarn("executor-ipc", "continue_failure_event_send_failed", {
               runId,
-              type: "node-error",
-              nodeId: "__global",
-              error: String(err),
-            })
-            sendWorkflowEvent(window, {
-              runId,
-              type: "run-done",
-              status: "failed",
+              error: errorMessage(sendError),
             })
           }
-        } catch (sendError) {
-          logWarn("executor-ipc", "continue_failure_event_send_failed", {
-            runId,
-            error: errorMessage(sendError),
-          })
-        }
-      }).finally(() => releaseWindowExecution(window.id, runId))
+        })
+        .finally(() => releaseWindowExecution(window.id, runId))
 
       return runId
     },
   )
 
-  ipcMain.handle("executor:list-runs", async (_e, projectPath: string): Promise<RunResult[]> => {
-    const safeProjectPath = await assertProjectPath(projectPath)
-    const runsDir = join(safeProjectPath, ".c8c", "runs")
-    try {
-      const entries = await readdir(runsDir, { withFileTypes: true })
-      const results: RunResult[] = []
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        try {
-          const resultPath = join(runsDir, entry.name, "run-result.json")
-          const raw = await readFile(resultPath, "utf-8")
-          const result: RunResult = JSON.parse(raw)
-          // If status is still "running" on disk, the run was interrupted
-          if (result.status === "running") {
-            result.status = "interrupted"
-          }
-          results.push(result)
-        } catch (error) {
-          if (errorCode(error) !== "ENOENT") {
-            logWarn("executor-ipc", "list_runs_entry_failed", {
-              projectPath: safeProjectPath,
-              runDirectory: entry.name,
-              error: errorMessage(error),
-            })
+  ipcMain.handle(
+    "executor:list-runs",
+    async (_e, projectPath: string): Promise<RunResult[]> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      const runsDir = join(safeProjectPath, ".c8c", "runs")
+      try {
+        const entries = await readdir(runsDir, { withFileTypes: true })
+        const results: RunResult[] = []
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue
+          try {
+            const resultPath = join(runsDir, entry.name, "run-result.json")
+            const raw = await readFile(resultPath, "utf-8")
+            const result: RunResult = JSON.parse(raw)
+            // If status is still "running" on disk, the run was interrupted
+            if (result.status === "running") {
+              result.status = "interrupted"
+            }
+            results.push(result)
+          } catch (error) {
+            if (errorCode(error) !== "ENOENT") {
+              logWarn("executor-ipc", "list_runs_entry_failed", {
+                projectPath: safeProjectPath,
+                runDirectory: entry.name,
+                error: errorMessage(error),
+              })
+            }
           }
         }
+        return results.sort(
+          (a, b) =>
+            (b.completedAt || b.startedAt) - (a.completedAt || a.startedAt),
+        )
+      } catch (error) {
+        if (errorCode(error) !== "ENOENT") {
+          logWarn("executor-ipc", "list_runs_failed", {
+            projectPath: safeProjectPath,
+            runsDir,
+            error: errorMessage(error),
+          })
+        }
+        return []
       }
-      return results.sort((a, b) => (b.completedAt || b.startedAt) - (a.completedAt || a.startedAt))
-    } catch (error) {
-      if (errorCode(error) !== "ENOENT") {
-        logWarn("executor-ipc", "list_runs_failed", {
-          projectPath: safeProjectPath,
-          runsDir,
-          error: errorMessage(error),
-        })
-      }
-      return []
-    }
-  })
+    },
+  )
 
   ipcMain.handle("executor:load-run-result", async (_e, workspace: string) => {
     try {
       const safeWorkspace = await assertRunWorkspacePath(workspace)
-      const metaRaw = await readFile(join(safeWorkspace, "run-result.json"), "utf-8")
+      const metaRaw = await readFile(
+        join(safeWorkspace, "run-result.json"),
+        "utf-8",
+      )
       const meta: RunResult = JSON.parse(metaRaw)
       let reportContent = ""
       if (meta.reportPath) {
@@ -1035,8 +1229,13 @@ export function registerExecutorHandlers() {
           }
         }
       }
-      const snapshot = (await loadPersistedRunSnapshot(safeWorkspace)) || createEmptyRunSnapshot()
-      if (!snapshot.evalResults || Object.keys(snapshot.evalResults).length === 0) {
+      const snapshot =
+        (await loadPersistedRunSnapshot(safeWorkspace)) ||
+        createEmptyRunSnapshot()
+      if (
+        !snapshot.evalResults ||
+        Object.keys(snapshot.evalResults).length === 0
+      ) {
         snapshot.evalResults = await loadPersistedEvalResults(safeWorkspace)
       }
       const loadedResult: LoadedRunResult = { ...meta, reportContent, snapshot }
@@ -1057,7 +1256,10 @@ export function registerExecutorHandlers() {
 
   ipcMain.handle(
     "executor:persist-artifacts-from-run",
-    async (_e, input: PersistArtifactsFromRunRequest): Promise<PersistArtifactsFromRunResult> => {
+    async (
+      _e,
+      input: PersistArtifactsFromRunRequest,
+    ): Promise<PersistArtifactsFromRunResult> => {
       const safeProjectPath = await assertProjectPath(input.projectPath)
       const safeWorkspace = await assertRunWorkspacePath(input.workspace)
       return persistArtifactsFromRun({
@@ -1068,15 +1270,21 @@ export function registerExecutorHandlers() {
     },
   )
 
-  ipcMain.handle("executor:list-project-artifacts", async (_e, projectPath: string): Promise<ArtifactRecord[]> => {
-    const safeProjectPath = await assertProjectPath(projectPath)
-    return listProjectArtifacts(safeProjectPath)
-  })
+  ipcMain.handle(
+    "executor:list-project-artifacts",
+    async (_e, projectPath: string): Promise<ArtifactRecord[]> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      return listProjectArtifacts(safeProjectPath)
+    },
+  )
 
-  ipcMain.handle("executor:list-project-case-states", async (_e, projectPath: string): Promise<CaseStateRecord[]> => {
-    const safeProjectPath = await assertProjectPath(projectPath)
-    return listProjectCaseStates(safeProjectPath)
-  })
+  ipcMain.handle(
+    "executor:list-project-case-states",
+    async (_e, projectPath: string): Promise<CaseStateRecord[]> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      return listProjectCaseStates(safeProjectPath)
+    },
+  )
 
   ipcMain.handle(
     "executor:run-batch",
@@ -1091,39 +1299,77 @@ export function registerExecutorHandlers() {
     ) => {
       const window = resolveWindowFromEvent(event)
       if (!window) return null
-      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(projectPath, "executor:run-batch")
+      const { safeProjectPath, startError } = await resolveSafeStartProjectPath(
+        projectPath,
+        "executor:run-batch",
+      )
       if (startError) return startError
-      const { workflow: safeWorkflow, startError: workflowError } = resolveSafeWorkflowPayload(workflow, "executor:run-batch")
+      const { workflow: safeWorkflow, startError: workflowError } =
+        resolveSafeWorkflowPayload(workflow, "executor:run-batch")
       if (workflowError) return workflowError
       workflow = safeWorkflow!
-      if (hasReachedWindowExecutionCap(window.id)) return createExecutionLimitStartError()
+      if (hasReachedWindowExecutionCap(window.id))
+        return createExecutionLimitStartError()
 
-      const startBlocker = await createExecutionStartBlocker(workflow, "batch_precheck_failed")
+      const startBlocker = await createExecutionStartBlocker(
+        workflow,
+        "batch_precheck_failed",
+      )
       if (startBlocker) return startBlocker
 
       // Auto-scaffold missing skills before batch run
       if (safeProjectPath) {
         try {
-          workflow = await scaffoldWorkflowWithTelemetry(workflow, safeProjectPath, "executor_batch")
+          workflow = await scaffoldWorkflowWithTelemetry(
+            workflow,
+            safeProjectPath,
+            "executor_batch",
+          )
         } catch (err) {
-          return createExecutionStartError(`Skill scaffolding failed: ${String(err)}`, "scaffold")
+          return createExecutionStartError(
+            `Skill scaffolding failed: ${String(err)}`,
+            "scaffold",
+          )
         }
       }
 
       if (window.isDestroyed()) {
-        logWarn("executor-ipc", "batch_start_aborted_window_closed", { windowId: window.id })
-        return createExecutionStartError("Window was closed before batch start", "window")
+        logWarn("executor-ipc", "batch_start_aborted_window_closed", {
+          windowId: window.id,
+        })
+        return createExecutionStartError(
+          "Window was closed before batch start",
+          "window",
+        )
       }
 
       const batchId = `batch-${++batchCounter}-${Date.now()}`
       const executionId = `batch:${batchId}`
       trackWindowExecution(window.id, executionId)
-      logInfo("executor-ipc", "batch_started", { batchId, windowId: window.id, inputs: inputs.length, concurrency, stopOnFailure })
+      logInfo("executor-ipc", "batch_started", {
+        batchId,
+        windowId: window.id,
+        inputs: inputs.length,
+        concurrency,
+        stopOnFailure,
+      })
 
-      runBatch(batchId, workflow, inputs, concurrency, stopOnFailure, window, safeProjectPath, workflowPath)
+      runBatch(
+        batchId,
+        workflow,
+        inputs,
+        concurrency,
+        stopOnFailure,
+        window,
+        safeProjectPath,
+        workflowPath,
+      )
         .catch((err) => {
           const batchErrorMessage = String(err)
-          logError("executor-ipc", "batch_unhandled_failure", { batchId, error: batchErrorMessage })
+          logError("executor-ipc", "batch_unhandled_failure", {
+            batchId,
+            error: batchErrorMessage,
+          })
           try {
             if (!window.isDestroyed()) {
               window.webContents.send("batch:event", {
@@ -1146,23 +1392,38 @@ export function registerExecutorHandlers() {
   )
 
   ipcMain.handle("executor:cancel-batch", async (event, batchId: string) => {
-    if (!assertWindowCanMutateExecution(event, `batch:${batchId}`, "executor:cancel-batch", { batchId })) return false
+    if (
+      !assertWindowCanMutateExecution(
+        event,
+        `batch:${batchId}`,
+        "executor:cancel-batch",
+        { batchId },
+      )
+    )
+      return false
     return cancelBatch(batchId)
   })
 
   ipcMain.handle(
     "executor:approve",
     async (event, runId: string, nodeId: string, editedContent?: string) => {
-      if (!assertWindowCanMutateExecution(event, runId, "executor:approve", { nodeId })) return false
+      if (
+        !assertWindowCanMutateExecution(event, runId, "executor:approve", {
+          nodeId,
+        })
+      )
+        return false
       const ok = await resolveApproval(runId, nodeId, true, editedContent)
       if (ok) {
-        await persistCaseStateForApprovalDecision(runId, nodeId, true).catch((error) => {
-          logWarn("executor-ipc", "persist_case_state_after_approve_failed", {
-            runId,
-            nodeId,
-            error: errorMessage(error),
-          })
-        })
+        await persistCaseStateForApprovalDecision(runId, nodeId, true).catch(
+          (error) => {
+            logWarn("executor-ipc", "persist_case_state_after_approve_failed", {
+              runId,
+              nodeId,
+              error: errorMessage(error),
+            })
+          },
+        )
       }
       return ok
     },
@@ -1171,16 +1432,23 @@ export function registerExecutorHandlers() {
   ipcMain.handle(
     "executor:reject",
     async (event, runId: string, nodeId: string) => {
-      if (!assertWindowCanMutateExecution(event, runId, "executor:reject", { nodeId })) return false
+      if (
+        !assertWindowCanMutateExecution(event, runId, "executor:reject", {
+          nodeId,
+        })
+      )
+        return false
       const ok = await resolveApproval(runId, nodeId, false)
       if (ok) {
-        await persistCaseStateForApprovalDecision(runId, nodeId, false).catch((error) => {
-          logWarn("executor-ipc", "persist_case_state_after_reject_failed", {
-            runId,
-            nodeId,
-            error: errorMessage(error),
-          })
-        })
+        await persistCaseStateForApprovalDecision(runId, nodeId, false).catch(
+          (error) => {
+            logWarn("executor-ipc", "persist_case_state_after_reject_failed", {
+              runId,
+              nodeId,
+              error: errorMessage(error),
+            })
+          },
+        )
       }
       return ok
     },
@@ -1189,29 +1457,52 @@ export function registerExecutorHandlers() {
   ipcMain.handle(
     "executor:override-evaluator",
     async (event, runId: string, nodeId: string) => {
-      if (!assertWindowCanMutateExecution(event, runId, "executor:override-evaluator", { nodeId })) return false
+      if (
+        !assertWindowCanMutateExecution(
+          event,
+          runId,
+          "executor:override-evaluator",
+          { nodeId },
+        )
+      )
+        return false
       return resolveEvalOverride(runId, nodeId)
     },
   )
 
-  ipcMain.handle("executor:list-human-tasks", async (_e, projectPath?: string): Promise<HumanTaskSummary[]> => {
-    const roots = projectPath
-      ? [join(await assertProjectPath(projectPath), ".c8c", "runs")]
-      : await allowedReportRoots()
-    const tasks = await listWorkflowHilTasks(roots)
-    return tasks.map(mapHilTaskSummary)
-  })
+  ipcMain.handle(
+    "executor:list-human-tasks",
+    async (_e, projectPath?: string): Promise<HumanTaskSummary[]> => {
+      const roots = projectPath
+        ? [join(await assertProjectPath(projectPath), ".c8c", "runs")]
+        : await allowedReportRoots()
+      const tasks = await listWorkflowHilTasks(roots)
+      return tasks.map(mapHilTaskSummary)
+    },
+  )
 
-  ipcMain.handle("executor:load-human-task", async (_e, taskId: string, workspace: string): Promise<HumanTaskSnapshot | null> => {
-    const safeTaskId = assertHilTaskId(taskId)
-    const safeWorkspace = await assertRunWorkspacePath(workspace)
-    const task = await getWorkflowHilTask(safeWorkspace, safeTaskId)
-    return task ? mapHilTaskSnapshot(task) : null
-  })
+  ipcMain.handle(
+    "executor:load-human-task",
+    async (
+      _e,
+      taskId: string,
+      workspace: string,
+    ): Promise<HumanTaskSnapshot | null> => {
+      const safeTaskId = assertHilTaskId(taskId)
+      const safeWorkspace = await assertRunWorkspacePath(workspace)
+      const task = await getWorkflowHilTask(safeWorkspace, safeTaskId)
+      return task ? mapHilTaskSnapshot(task) : null
+    },
+  )
 
   ipcMain.handle(
     "executor:submit-human-task",
-    async (_e, taskId: string, workspace: string, input: HumanTaskSubmitInput): Promise<boolean> => {
+    async (
+      _e,
+      taskId: string,
+      workspace: string,
+      input: HumanTaskSubmitInput,
+    ): Promise<boolean> => {
       const safeTaskId = assertHilTaskId(taskId)
       const safeWorkspace = await assertRunWorkspacePath(workspace)
       try {
@@ -1223,18 +1514,24 @@ export function registerExecutorHandlers() {
             task.state.sourceRunId,
             task.state.nodeId,
             Boolean(input.answers.approved),
-            typeof input.answers.editedContent === "string" ? input.answers.editedContent : undefined,
+            typeof input.answers.editedContent === "string"
+              ? input.answers.editedContent
+              : undefined,
             safeWorkspace,
           )
           await persistCaseStateForTaskResolution(
             taskSnapshot,
             Boolean(input.answers.approved) ? "passed" : "rejected",
           ).catch((persistError) => {
-            logWarn("executor-ipc", "persist_case_state_after_task_submit_failed", {
-              workspace: safeWorkspace,
-              taskId,
-              error: errorMessage(persistError),
-            })
+            logWarn(
+              "executor-ipc",
+              "persist_case_state_after_task_submit_failed",
+              {
+                workspace: safeWorkspace,
+                taskId,
+                error: errorMessage(persistError),
+              },
+            )
           })
         } else {
           await writeWorkflowHilTaskResponse({
@@ -1246,13 +1543,19 @@ export function registerExecutorHandlers() {
             idempotencyKey: input.idempotencyKey,
             source: "runtime",
           })
-          await persistCaseStateForTaskResolution(taskSnapshot, "passed").catch((persistError) => {
-            logWarn("executor-ipc", "persist_case_state_after_task_submit_failed", {
-              workspace: safeWorkspace,
-              taskId,
-              error: errorMessage(persistError),
-            })
-          })
+          await persistCaseStateForTaskResolution(taskSnapshot, "passed").catch(
+            (persistError) => {
+              logWarn(
+                "executor-ipc",
+                "persist_case_state_after_task_submit_failed",
+                {
+                  workspace: safeWorkspace,
+                  taskId,
+                  error: errorMessage(persistError),
+                },
+              )
+            },
+          )
         }
         return true
       } catch (error) {
@@ -1268,7 +1571,13 @@ export function registerExecutorHandlers() {
 
   ipcMain.handle(
     "executor:reject-human-task",
-    async (_e, taskId: string, workspace: string, comment?: string, idempotencyKey?: string): Promise<boolean> => {
+    async (
+      _e,
+      taskId: string,
+      workspace: string,
+      comment?: string,
+      idempotencyKey?: string,
+    ): Promise<boolean> => {
       const safeTaskId = assertHilTaskId(taskId)
       const safeWorkspace = await assertRunWorkspacePath(workspace)
       try {
@@ -1276,13 +1585,26 @@ export function registerExecutorHandlers() {
         if (!task) return false
         const taskSnapshot = mapHilTaskSnapshot(task)
         if (task.request.kind === "approval") {
-          await resolveApproval(task.state.sourceRunId, task.state.nodeId, false, undefined, safeWorkspace)
-          await persistCaseStateForTaskResolution(taskSnapshot, "rejected").catch((persistError) => {
-            logWarn("executor-ipc", "persist_case_state_after_task_reject_failed", {
-              workspace: safeWorkspace,
-              taskId,
-              error: errorMessage(persistError),
-            })
+          await resolveApproval(
+            task.state.sourceRunId,
+            task.state.nodeId,
+            false,
+            undefined,
+            safeWorkspace,
+          )
+          await persistCaseStateForTaskResolution(
+            taskSnapshot,
+            "rejected",
+          ).catch((persistError) => {
+            logWarn(
+              "executor-ipc",
+              "persist_case_state_after_task_reject_failed",
+              {
+                workspace: safeWorkspace,
+                taskId,
+                error: errorMessage(persistError),
+              },
+            )
           })
         } else {
           await writeWorkflowHilTaskResponse({
@@ -1294,12 +1616,19 @@ export function registerExecutorHandlers() {
             idempotencyKey,
             source: "runtime",
           })
-          await persistCaseStateForTaskResolution(taskSnapshot, "blocked").catch((persistError) => {
-            logWarn("executor-ipc", "persist_case_state_after_task_reject_failed", {
-              workspace: safeWorkspace,
-              taskId,
-              error: errorMessage(persistError),
-            })
+          await persistCaseStateForTaskResolution(
+            taskSnapshot,
+            "blocked",
+          ).catch((persistError) => {
+            logWarn(
+              "executor-ipc",
+              "persist_case_state_after_task_reject_failed",
+              {
+                workspace: safeWorkspace,
+                taskId,
+                error: errorMessage(persistError),
+              },
+            )
           })
         }
         return true

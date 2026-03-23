@@ -18,7 +18,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Cold Outreach Pipeline
-description: Build company context, generate pain hypotheses, craft email prompts, generate personalized emails,
+description:
+  Build company context, generate pain hypotheses, craft email prompts, generate personalized emails,
   simulate buyer response, evaluate quality
 defaults:
   model: sonnet
@@ -54,7 +55,8 @@ nodes:
       y: 200
     config:
       skillRef: gtm/email-prompt-building
-      prompt: Create a self-contained email prompt template for cold outreach. Include voice rules, personalization tokens,
+      prompt:
+        Create a self-contained email prompt template for cold outreach. Include voice rules, personalization tokens,
         and campaign angle.
   - id: email-gen-1
     type: skill
@@ -92,7 +94,8 @@ nodes:
       x: 2160
       y: 200
     config:
-      criteria: "Score 1-10: personalization depth (not just name-swaps), pain relevance (does it hit real problems?), CTA
+      criteria:
+        "Score 1-10: personalization depth (not just name-swaps), pain relevance (does it hit real problems?), CTA
         clarity, and spam-filter safety."
       threshold: 7
       maxRetries: 2

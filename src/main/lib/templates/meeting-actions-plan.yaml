@@ -33,7 +33,8 @@ nodes:
       y: 200
     config:
       skillRef: composio/meeting-insights-analyzer
-      prompt: Analyze this meeting transcript. Identify key decisions, action items, unresolved questions, and behavioral
+      prompt:
+        Analyze this meeting transcript. Identify key decisions, action items, unresolved questions, and behavioral
         patterns.
   - id: summarizer-1
     type: skill
@@ -73,7 +74,8 @@ nodes:
       y: 200
     config:
       skillRef: project-management/Senior Project Manager
-      prompt: "For this action item: estimate effort, assign priority (P0-P3), determine if task is for founder personally or can be delegated to AI agent/automation, define
+      prompt:
+        "For this action item: estimate effort, assign priority (P0-P3), determine if task is for founder personally or can be delegated to AI agent/automation, define
         acceptance criteria, and set a deadline."
   - id: merger-1
     type: merger
@@ -100,7 +102,8 @@ nodes:
       y: 200
     config:
       skillRef: anthropic/docx
-      prompt: "Create a professional meeting summary document with: executive summary, decisions log, prioritized action plan
+      prompt:
+        "Create a professional meeting summary document with: executive summary, decisions log, prioritized action plan
         table, and next steps."
   - id: output-1
     type: output

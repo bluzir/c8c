@@ -47,7 +47,12 @@ const LOOP: Workflow = {
       id: "eval-1",
       type: "evaluator",
       position: { x: 600, y: 0 },
-      config: { criteria: "Score clarity 1-10", threshold: 8, maxRetries: 3, retryFrom: "skill-1" },
+      config: {
+        criteria: "Score clarity 1-10",
+        threshold: 8,
+        maxRetries: 3,
+        retryFrom: "skill-1",
+      },
     },
     { id: "output-1", type: "output", position: { x: 900, y: 0 }, config: {} },
   ],
@@ -263,7 +268,15 @@ describe("validateWorkflow", () => {
   it("detects edge referencing nonexistent node", () => {
     const broken: Workflow = {
       ...LINEAR,
-      edges: [...LINEAR.edges, { id: "bad", source: "skill-1", target: "ghost", type: "default" as const }],
+      edges: [
+        ...LINEAR.edges,
+        {
+          id: "bad",
+          source: "skill-1",
+          target: "ghost",
+          type: "default" as const,
+        },
+      ],
     }
     const errors = validateWorkflow(broken)
     expect(errors.some((e) => e.includes("ghost"))).toBe(true)
@@ -275,9 +288,24 @@ describe("validateWorkflow", () => {
       name: "Cyclic",
       nodes: [
         { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-        { id: "skill-1", type: "skill", position: { x: 300, y: 0 }, config: { skillRef: "a", prompt: "a" } },
-        { id: "skill-2", type: "skill", position: { x: 600, y: 0 }, config: { skillRef: "b", prompt: "b" } },
-        { id: "output-1", type: "output", position: { x: 900, y: 0 }, config: {} },
+        {
+          id: "skill-1",
+          type: "skill",
+          position: { x: 300, y: 0 },
+          config: { skillRef: "a", prompt: "a" },
+        },
+        {
+          id: "skill-2",
+          type: "skill",
+          position: { x: 600, y: 0 },
+          config: { skillRef: "b", prompt: "b" },
+        },
+        {
+          id: "output-1",
+          type: "output",
+          position: { x: 900, y: 0 },
+          config: {},
+        },
       ],
       edges: [
         { id: "e1", source: "input-1", target: "skill-1", type: "default" },
@@ -300,7 +328,12 @@ describe("validateWorkflow", () => {
       ...LINEAR,
       nodes: [
         LINEAR.nodes[0],
-        { id: "skill-1", type: "skill", position: { x: 300, y: 0 }, config: { skillRef: "", prompt: "Do it" } },
+        {
+          id: "skill-1",
+          type: "skill",
+          position: { x: 300, y: 0 },
+          config: { skillRef: "", prompt: "Do it" },
+        },
         LINEAR.nodes[2],
       ],
     }
@@ -313,7 +346,12 @@ describe("validateWorkflow", () => {
       ...LINEAR,
       nodes: [
         LINEAR.nodes[0],
-        { id: "skill-1", type: "skill", position: { x: 300, y: 0 }, config: { skillRef: "  ", prompt: "Do it" } },
+        {
+          id: "skill-1",
+          type: "skill",
+          position: { x: 300, y: 0 },
+          config: { skillRef: "  ", prompt: "Do it" },
+        },
         LINEAR.nodes[2],
       ],
     }
@@ -326,12 +364,21 @@ describe("validateWorkflow", () => {
       ...LINEAR,
       nodes: [
         LINEAR.nodes[0],
-        { id: "skill-1", type: "skill", position: { x: 300, y: 0 }, config: { skillRef: "  ", prompt: " " } },
+        {
+          id: "skill-1",
+          type: "skill",
+          position: { x: 300, y: 0 },
+          config: { skillRef: "  ", prompt: " " },
+        },
         LINEAR.nodes[2],
       ],
     }
     const errors = validateWorkflow(broken)
-    expect(errors.some((e) => e.includes("Add a prompt or select a skill reference."))).toBe(true)
+    expect(
+      errors.some((e) =>
+        e.includes("Add a prompt or select a skill reference."),
+      ),
+    ).toBe(true)
   })
 
   it("detects unsupported evaluator config fields", () => {
@@ -350,7 +397,11 @@ describe("validateWorkflow", () => {
       ),
     }
     const errors = validateWorkflow(broken)
-    expect(errors.some((e) => e.includes("Unsupported config field") && e.includes("skillRef"))).toBe(true)
+    expect(
+      errors.some(
+        (e) => e.includes("Unsupported config field") && e.includes("skillRef"),
+      ),
+    ).toBe(true)
   })
 })
 
@@ -360,11 +411,36 @@ const FAN_OUT: Workflow = {
   name: "Fan-out",
   nodes: [
     { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-    { id: "splitter-1", type: "splitter", position: { x: 300, y: 0 }, config: { strategy: "split", maxBranches: 4 } },
-    { id: "skill-a", type: "skill", position: { x: 600, y: 0 }, config: { skillRef: "a", prompt: "a" } },
-    { id: "skill-b", type: "skill", position: { x: 600, y: 100 }, config: { skillRef: "b", prompt: "b" } },
-    { id: "skill-c", type: "skill", position: { x: 600, y: 200 }, config: { skillRef: "c", prompt: "c" } },
-    { id: "merger-1", type: "merger", position: { x: 900, y: 0 }, config: { strategy: "concatenate" } },
+    {
+      id: "splitter-1",
+      type: "splitter",
+      position: { x: 300, y: 0 },
+      config: { strategy: "split", maxBranches: 4 },
+    },
+    {
+      id: "skill-a",
+      type: "skill",
+      position: { x: 600, y: 0 },
+      config: { skillRef: "a", prompt: "a" },
+    },
+    {
+      id: "skill-b",
+      type: "skill",
+      position: { x: 600, y: 100 },
+      config: { skillRef: "b", prompt: "b" },
+    },
+    {
+      id: "skill-c",
+      type: "skill",
+      position: { x: 600, y: 200 },
+      config: { skillRef: "c", prompt: "c" },
+    },
+    {
+      id: "merger-1",
+      type: "merger",
+      position: { x: 900, y: 0 },
+      config: { strategy: "concatenate" },
+    },
     { id: "output-1", type: "output", position: { x: 1200, y: 0 }, config: {} },
   ],
   edges: [
@@ -479,7 +555,14 @@ describe("getDownstreamNodeIds", () => {
 
   it("follows fan-out paths", () => {
     const ids = getDownstreamNodeIds(FAN_OUT, "splitter-1")
-    expect(ids.sort()).toEqual(["merger-1", "output-1", "skill-a", "skill-b", "skill-c", "splitter-1"])
+    expect(ids.sort()).toEqual([
+      "merger-1",
+      "output-1",
+      "skill-a",
+      "skill-b",
+      "skill-c",
+      "splitter-1",
+    ])
   })
 
   it("only includes downstream from a specific branch", () => {

@@ -26,7 +26,10 @@ function canonicalizePath(inputPath: string): string {
   return join(canonicalizePath(parentPath), basename(resolvedPath))
 }
 
-function assertWithinLibrariesDir(candidatePath: string, rootPath: string): string {
+function assertWithinLibrariesDir(
+  candidatePath: string,
+  rootPath: string,
+): string {
   const candidate = canonicalizePath(candidatePath)
   const root = canonicalizePath(rootPath)
   const rel = relative(root, candidate)
@@ -76,7 +79,9 @@ function skillFrontmatterMetadata(data: Record<string, unknown>) {
     tools: normalizeStringList(data.tools),
     maxTurns: normalizePositiveInteger(data.maxTurns ?? data.max_turns),
     allowedTools: normalizeStringList(data.allowedTools ?? data.allowed_tools),
-    disallowedTools: normalizeStringList(data.disallowedTools ?? data.disallowed_tools),
+    disallowedTools: normalizeStringList(
+      data.disallowedTools ?? data.disallowed_tools,
+    ),
   }
 }
 
@@ -114,12 +119,7 @@ export const PREDEFINED_LIBRARIES: Omit<SkillLibrary, "installed">[] = [
     enabled: true,
     scanPattern: {
       type: "flat-categories",
-      exclude: [
-        ".github",
-        "strategy",
-        "examples",
-        "node_modules",
-      ],
+      exclude: [".github", "strategy", "examples", "node_modules"],
       skillType: "agent",
     },
   },
@@ -201,13 +201,18 @@ export async function getLibraryPath(id: string): Promise<string> {
   return assertWithinLibrariesDir(join(dir, id), dir)
 }
 
-export async function installLibrary(lib: Omit<SkillLibrary, "installed">): Promise<void> {
+export async function installLibrary(
+  lib: Omit<SkillLibrary, "installed">,
+): Promise<void> {
   await ensureLibrariesDir()
   const dest = join(librariesDir(), lib.id)
 
   if (await exists(dest)) {
     // Pull latest
-    await execFileAsync("git", ["pull", "--ff-only"], { cwd: dest, timeout: 30_000 })
+    await execFileAsync("git", ["pull", "--ff-only"], {
+      cwd: dest,
+      timeout: 30_000,
+    })
   } else {
     // Clone
     await execFileAsync("git", ["clone", "--depth", "1", lib.repo, dest], {
@@ -238,7 +243,9 @@ export async function getLibraries(): Promise<SkillLibrary[]> {
 }
 
 /** Scan a library for skills based on its scan pattern */
-export async function scanLibrary(lib: SkillLibrary): Promise<DiscoveredSkill[]> {
+export async function scanLibrary(
+  lib: SkillLibrary,
+): Promise<DiscoveredSkill[]> {
   if (!lib.installed || !lib.enabled) return []
 
   const libPath = join(librariesDir(), lib.id)

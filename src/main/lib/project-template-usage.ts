@@ -21,21 +21,27 @@ async function loadStore(): Promise<ProjectTemplateUsageStore> {
   try {
     const raw = await readFile(usageFilePath(), "utf-8")
     const parsed = JSON.parse(raw) as Partial<ProjectTemplateUsageStore>
-    const byProjectEntries = Object.entries(parsed.byProject || {}).map(([projectPath, counts]) => {
-      const normalizedCounts = Object.fromEntries(
-        Object.entries(counts || {}).filter((entry): entry is [string, number] => (
-          typeof entry[0] === "string" && typeof entry[1] === "number" && entry[1] > 0
-        )),
-      )
-      return [resolve(projectPath), normalizedCounts] as const
-    })
+    const byProjectEntries = Object.entries(parsed.byProject || {}).map(
+      ([projectPath, counts]) => {
+        const normalizedCounts = Object.fromEntries(
+          Object.entries(counts || {}).filter(
+            (entry): entry is [string, number] =>
+              typeof entry[0] === "string" &&
+              typeof entry[1] === "number" &&
+              entry[1] > 0,
+          ),
+        )
+        return [resolve(projectPath), normalizedCounts] as const
+      },
+    )
     return {
       byProject: Object.fromEntries(byProjectEntries),
     }
   } catch (error) {
-    const errorCode = typeof error === "object" && error && "code" in error
-      ? String((error as { code?: string }).code)
-      : undefined
+    const errorCode =
+      typeof error === "object" && error && "code" in error
+        ? String((error as { code?: string }).code)
+        : undefined
     if (errorCode !== "ENOENT") {
       logWarn("project-template-usage", "load_failed", {
         error: String(error),

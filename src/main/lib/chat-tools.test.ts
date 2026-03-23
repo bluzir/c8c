@@ -7,7 +7,12 @@ function createBaseWorkflow(): Workflow {
     version: 1,
     name: "test",
     description: "",
-    defaults: { model: "sonnet", maxTurns: 10, timeout_minutes: 10, maxParallel: 2 },
+    defaults: {
+      model: "sonnet",
+      maxTurns: 10,
+      timeout_minutes: 10,
+      maxParallel: 2,
+    },
     nodes: [
       {
         id: "input-1",
@@ -23,7 +28,12 @@ function createBaseWorkflow(): Workflow {
       },
     ],
     edges: [
-      { id: "e-input-output", source: "input-1", target: "output-1", type: "default" },
+      {
+        id: "e-input-output",
+        source: "input-1",
+        target: "output-1",
+        type: "default",
+      },
     ],
   }
 }
@@ -44,7 +54,8 @@ function createContext(): ToolContext {
         type: "skill",
         name: "playwright-visual-auditor",
         category: "qa",
-        description: "Run browser-based visual audits and capture UI regressions.",
+        description:
+          "Run browser-based visual audits and capture UI regressions.",
         path: "/tmp/qa/playwright-visual-auditor.md",
       },
     ],
@@ -86,10 +97,22 @@ describe("chat-tools add_node", () => {
     expect(result.workflowMutated).toBe(true)
     expect(ctx.workflow.nodes.map((n) => n.id)).toContain("skill-2")
     expect(ctx.workflow.edges).toHaveLength(2)
-    expect(ctx.workflow.edges).toEqual(expect.arrayContaining([
-      { id: "e-input-1-skill-2", source: "input-1", target: "skill-2", type: "default" },
-      { id: "e-skill-2-output-1", source: "skill-2", target: "output-1", type: "default" },
-    ]))
+    expect(ctx.workflow.edges).toEqual(
+      expect.arrayContaining([
+        {
+          id: "e-input-1-skill-2",
+          source: "input-1",
+          target: "skill-2",
+          type: "default",
+        },
+        {
+          id: "e-skill-2-output-1",
+          source: "skill-2",
+          target: "output-1",
+          type: "default",
+        },
+      ]),
+    )
 
     const nodeIds = new Set(ctx.workflow.nodes.map((n) => n.id))
     const hasDanglingEdge = ctx.workflow.edges.some(
@@ -132,7 +155,9 @@ describe("chat-tools add_node", () => {
 describe("chat-tools definitions", () => {
   it("documents the high-level synthesis tool", () => {
     expect(getToolDefinitions()).toContain("synthesize_workflow")
-    expect(getToolDefinitions()).toContain("Create or semantically rewrite the flow")
+    expect(getToolDefinitions()).toContain(
+      "Create or semantically rewrite the flow",
+    )
   })
 })
 
@@ -140,7 +165,9 @@ describe("chat-tools skill provenance", () => {
   it("marks searched skills as surfaced for later validation", async () => {
     const ctx = createContext()
 
-    const searchResult = await executeTool("search_skills", ctx, { query: "browser visual audit" })
+    const searchResult = await executeTool("search_skills", ctx, {
+      query: "browser visual audit",
+    })
     expect(searchResult.output).toContain("qa/playwright-visual-auditor")
     expect(ctx.surfacedSkillRefs.has("qa/playwright-visual-auditor")).toBe(true)
   })

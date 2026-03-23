@@ -3,10 +3,14 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const listApprovedPluginMcpServersMock = vi.fn<() => Promise<Array<{
-  info: { name: string }
-  entry: Record<string, unknown>
-}>>>()
+const listApprovedPluginMcpServersMock = vi.fn<
+  () => Promise<
+    Array<{
+      info: { name: string }
+      entry: Record<string, unknown>
+    }>
+  >
+>()
 
 vi.mock("./plugin-mcp", () => ({
   listApprovedPluginMcpServers: () => listApprovedPluginMcpServersMock(),
@@ -146,7 +150,10 @@ describe("prepareWorkspaceMcpConfig", () => {
     const path = await prepareWorkspaceMcpConfig(workspace, undefined, "exa")
     expect(path).toBe(join(workspace, ".mcp.json"))
     const parsed = JSON.parse(await readFile(path!, "utf-8")) as {
-      mcpServers: Record<string, { command: string; args?: string[]; env?: Record<string, string> }>
+      mcpServers: Record<
+        string,
+        { command: string; args?: string[]; env?: Record<string, string> }
+      >
     }
     expect(parsed.mcpServers.exa).toBeDefined()
     expect(parsed.mcpServers.exa.command).toBe(process.execPath)
@@ -179,7 +186,15 @@ describe("prepareWorkspaceMcpConfig", () => {
 
     const path = await prepareWorkspaceMcpConfig(workspace, project, "exa")
     const parsed = JSON.parse(await readFile(path!, "utf-8")) as {
-      mcpServers: Record<string, { type?: string; command?: string; url?: string; headers?: Record<string, string> }>
+      mcpServers: Record<
+        string,
+        {
+          type?: string
+          command?: string
+          url?: string
+          headers?: Record<string, string>
+        }
+      >
     }
 
     expect(parsed.mcpServers.exa.type).toBe("stdio")
@@ -258,7 +273,10 @@ describe("prepareTemporaryMcpConfig", () => {
       mcpServers: Record<string, { command: string; args?: string[] }>
     }
     expect(parsed.mcpServers.github?.command).toBe("npx")
-    expect(parsed.mcpServers.github?.args).toEqual(["-y", "@modelcontextprotocol/server-github"])
+    expect(parsed.mcpServers.github?.args).toEqual([
+      "-y",
+      "@modelcontextprotocol/server-github",
+    ])
 
     await handle.cleanup()
   })

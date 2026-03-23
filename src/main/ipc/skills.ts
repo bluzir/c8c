@@ -1,7 +1,10 @@
 import { ipcMain } from "electron"
 import { mergeDiscoveredSkills } from "../lib/skill-scanner"
 import { scanAllLibraries } from "../lib/libraries"
-import { getCachedProjectSkills, invalidateProjectSkillScan } from "../lib/skill-scan-cache"
+import {
+  getCachedProjectSkills,
+  invalidateProjectSkillScan,
+} from "../lib/skill-scan-cache"
 import { scaffoldMissingSkills } from "../lib/skill-scaffold"
 import { trackTelemetryEvent } from "../lib/telemetry/service"
 import { summarizeMissingWorkflowSkillRefs } from "../lib/telemetry/workflow-usage"
@@ -30,7 +33,10 @@ const scanInFlightByProject = new Map<string, Promise<DiscoveredSkill[]>>()
 async function assertSkillContentPath(filePath: string): Promise<string> {
   const resolvedPath = resolve(filePath)
   const fileName = basename(resolvedPath)
-  if (!fileName.toLowerCase().endsWith(".md") || fileName.toLowerCase() === "readme.md") {
+  if (
+    !fileName.toLowerCase().endsWith(".md") ||
+    fileName.toLowerCase() === "readme.md"
+  ) {
     throw new Error("Skill file path must reference a skill markdown file")
   }
   const roots = await allowedSkillContentRoots()
@@ -44,7 +50,9 @@ export function registerSkillsHandlers() {
       const safeProjectPath = await assertRegisteredProjectPath(projectPath)
       const existingScan = scanInFlightByProject.get(safeProjectPath)
       if (existingScan) {
-        logInfo("skills-ipc", "scan_reused_inflight", { projectPath: safeProjectPath })
+        logInfo("skills-ipc", "scan_reused_inflight", {
+          projectPath: safeProjectPath,
+        })
         void trackTelemetryEvent("skill_scan_completed", {
           source: "manual",
           status: "shared_inflight",
@@ -62,9 +70,15 @@ export function registerSkillsHandlers() {
           ])
 
           const merged = mergeDiscoveredSkills([coreSkills, librarySkills])
-          const projectSkillsTotal = coreSkills.filter((skill) => skill.sourceScope === "project").length
-          const userSkillsTotal = coreSkills.filter((skill) => skill.sourceScope === "user").length
-          const pluginSkillsTotal = coreSkills.filter((skill) => skill.sourceScope === "plugin").length
+          const projectSkillsTotal = coreSkills.filter(
+            (skill) => skill.sourceScope === "project",
+          ).length
+          const userSkillsTotal = coreSkills.filter(
+            (skill) => skill.sourceScope === "user",
+          ).length
+          const pluginSkillsTotal = coreSkills.filter(
+            (skill) => skill.sourceScope === "plugin",
+          ).length
 
           void trackTelemetryEvent("skill_scan_completed", {
             source: "manual",
@@ -123,11 +137,21 @@ export function registerSkillsHandlers() {
     ): Promise<Workflow> => {
       const safeProjectPath = await assertRegisteredProjectPath(projectPath)
       const startedAt = Date.now()
-      const before = summarizeMissingWorkflowSkillRefs(workflow, availableSkills)
+      const before = summarizeMissingWorkflowSkillRefs(
+        workflow,
+        availableSkills,
+      )
 
       try {
-        const scaffoldedWorkflow = await scaffoldMissingSkills(workflow, availableSkills, safeProjectPath)
-        const after = summarizeMissingWorkflowSkillRefs(scaffoldedWorkflow, availableSkills)
+        const scaffoldedWorkflow = await scaffoldMissingSkills(
+          workflow,
+          availableSkills,
+          safeProjectPath,
+        )
+        const after = summarizeMissingWorkflowSkillRefs(
+          scaffoldedWorkflow,
+          availableSkills,
+        )
         void trackTelemetryEvent("skill_scaffold_completed", {
           source: "manual",
           status: "success",

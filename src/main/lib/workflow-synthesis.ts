@@ -4,7 +4,10 @@ import { drainExecutionHandle } from "./agent-execution"
 import { withExecutionSlot } from "./execution-pool"
 import { LogParser } from "./log-parser"
 import { prepareTemporaryMcpConfig } from "./mcp-config"
-import { resolveWorkflowProviderId, startProviderTask } from "./provider-runtime"
+import {
+  resolveWorkflowProviderId,
+  startProviderTask,
+} from "./provider-runtime"
 import { scaffoldMissingSkills } from "./skill-scaffold"
 import { logInfo } from "./structured-log"
 import {
@@ -36,9 +39,14 @@ export async function synthesizeWorkflowFromRequest(
   request: string,
   options: WorkflowSynthesisOptions,
 ): Promise<Workflow> {
-  const prompt = mode === "edit"
-    ? buildWorkflowEditPrompt(request, options.seedWorkflow, options.availableSkills)
-    : buildGeneratorPrompt(request, options.availableSkills)
+  const prompt =
+    mode === "edit"
+      ? buildWorkflowEditPrompt(
+          request,
+          options.seedWorkflow,
+          options.availableSkills,
+        )
+      : buildGeneratorPrompt(request, options.availableSkills)
 
   return runWorkflowSynthesis(mode, prompt, options)
 }
@@ -93,13 +101,18 @@ async function runWorkflowSynthesis(
       if (result.aborted) {
         throw new Error("Flow generation was cancelled")
       }
-      const preview = logParser.textContent.trim() || logParser.rawOutput.slice(0, 200)
-      throw new Error(`Flow generation failed (exit ${result.exitCode}): ${preview || "no output"}`)
+      const preview =
+        logParser.textContent.trim() || logParser.rawOutput.slice(0, 200)
+      throw new Error(
+        `Flow generation failed (exit ${result.exitCode}): ${preview || "no output"}`,
+      )
     }
 
     if (logParser.textContent.trim().length === 0) {
       const raw = logParser.rawOutput.trim()
-      throw new Error(`Flow generation produced no text output: ${raw.slice(0, 200) || "empty response"}`)
+      throw new Error(
+        `Flow generation produced no text output: ${raw.slice(0, 200) || "empty response"}`,
+      )
     }
 
     let workflow: Workflow
@@ -107,10 +120,16 @@ async function runWorkflowSynthesis(
       workflow = parseGeneratedWorkflow(logParser.textContent)
     } catch (error) {
       const preview = logParser.textContent.slice(0, 300)
-      throw new Error(`Could not parse flow JSON: ${(error as Error).message}\n\nResponse preview: ${preview}`)
+      throw new Error(
+        `Could not parse flow JSON: ${(error as Error).message}\n\nResponse preview: ${preview}`,
+      )
     }
 
-    workflow = await scaffoldMissingSkills(workflow, options.availableSkills, options.projectPath)
+    workflow = await scaffoldMissingSkills(
+      workflow,
+      options.availableSkills,
+      options.projectPath,
+    )
 
     logInfo("workflow-synthesis", "finished", {
       mode,

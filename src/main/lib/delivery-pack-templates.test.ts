@@ -14,9 +14,13 @@ describe("delivery pack templates", () => {
   ] as const
 
   it("ships the first delivery pack templates with pack metadata", () => {
-    const templates = getBuiltinTemplates().filter((template) => targetIds.includes(template.id as (typeof targetIds)[number]))
+    const templates = getBuiltinTemplates().filter((template) =>
+      targetIds.includes(template.id as (typeof targetIds)[number]),
+    )
 
-    expect(templates.map((template) => template.id).sort()).toEqual([...targetIds].sort())
+    expect(templates.map((template) => template.id).sort()).toEqual(
+      [...targetIds].sort(),
+    )
 
     for (const template of templates) {
       expect(template.pack?.id).toBe("delivery-foundation")
@@ -27,7 +31,9 @@ describe("delivery pack templates", () => {
   })
 
   it("keeps plan as the default continuation after project shaping", () => {
-    const shapeProject = getBuiltinTemplates().find((template) => template.id === "delivery-shape-project")
+    const shapeProject = getBuiltinTemplates().find(
+      (template) => template.id === "delivery-shape-project",
+    )
 
     expect(shapeProject?.pack?.recommendedNext?.sort()).toEqual([
       "delivery-plan-phase",
@@ -36,7 +42,9 @@ describe("delivery pack templates", () => {
   })
 
   it("keeps implementation as the default continuation after planning", () => {
-    const planPhase = getBuiltinTemplates().find((template) => template.id === "delivery-plan-phase")
+    const planPhase = getBuiltinTemplates().find(
+      (template) => template.id === "delivery-plan-phase",
+    )
 
     expect(planPhase?.pack?.recommendedNext).toEqual([
       "delivery-implement-phase",
@@ -44,7 +52,9 @@ describe("delivery pack templates", () => {
   })
 
   it("keeps review as the default continuation after implementation", () => {
-    const implementPhase = getBuiltinTemplates().find((template) => template.id === "delivery-implement-phase")
+    const implementPhase = getBuiltinTemplates().find(
+      (template) => template.id === "delivery-implement-phase",
+    )
 
     expect(implementPhase?.pack?.recommendedNext).toEqual([
       "delivery-review-phase",
@@ -52,7 +62,9 @@ describe("delivery pack templates", () => {
   })
 
   it("keeps verify as the default continuation after delivery review", () => {
-    const reviewPhase = getBuiltinTemplates().find((template) => template.id === "delivery-review-phase")
+    const reviewPhase = getBuiltinTemplates().find(
+      (template) => template.id === "delivery-review-phase",
+    )
 
     expect(reviewPhase?.pack?.recommendedNext).toEqual([
       "delivery-verify-phase",
@@ -60,17 +72,24 @@ describe("delivery pack templates", () => {
   })
 
   it("keeps no forced continuation after delivery verification", () => {
-    const verifyPhase = getBuiltinTemplates().find((template) => template.id === "delivery-verify-phase")
+    const verifyPhase = getBuiltinTemplates().find(
+      (template) => template.id === "delivery-verify-phase",
+    )
 
     expect(verifyPhase?.pack?.recommendedNext).toBeUndefined()
   })
 
   it("keeps the first delivery pack workflows valid", () => {
-    const templates = getBuiltinTemplates().filter((template) => targetIds.includes(template.id as (typeof targetIds)[number]))
+    const templates = getBuiltinTemplates().filter((template) =>
+      targetIds.includes(template.id as (typeof targetIds)[number]),
+    )
 
     for (const template of templates) {
       const errors = validateWorkflow(template.workflow)
-      expect(errors, `Template "${template.name}" has validation errors: ${errors.join(", ")}`).toEqual([])
+      expect(
+        errors,
+        `Template "${template.name}" has validation errors: ${errors.join(", ")}`,
+      ).toEqual([])
     }
   })
 })

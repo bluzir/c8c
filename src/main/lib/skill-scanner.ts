@@ -55,7 +55,9 @@ function skillFrontmatterMetadata(data: Record<string, unknown>) {
     tools: normalizeStringList(data.tools),
     maxTurns: normalizePositiveInteger(data.maxTurns ?? data.max_turns),
     allowedTools: normalizeStringList(data.allowedTools ?? data.allowed_tools),
-    disallowedTools: normalizeStringList(data.disallowedTools ?? data.disallowed_tools),
+    disallowedTools: normalizeStringList(
+      data.disallowedTools ?? data.disallowed_tools,
+    ),
   }
 }
 
@@ -74,7 +76,10 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function readJsonFile<T>(path: string, kind: string): Promise<T | undefined> {
+async function readJsonFile<T>(
+  path: string,
+  kind: string,
+): Promise<T | undefined> {
   try {
     const raw = await readFile(path, "utf-8")
     return JSON.parse(raw) as T
@@ -154,7 +159,10 @@ async function scanDirectory(
     for (const entry of entries) {
       const fullPath = join(dir, entry.name)
       if (entry.isDirectory()) {
-        await walk(fullPath, category ? `${category}/${entry.name}` : entry.name)
+        await walk(
+          fullPath,
+          category ? `${category}/${entry.name}` : entry.name,
+        )
       } else if (entry.name.endsWith(".md") && entry.name !== "README.md") {
         try {
           const content = await readFile(fullPath, "utf-8")
@@ -277,23 +285,32 @@ async function scanBuiltinSkills(): Promise<DiscoveredSkill[]> {
   return all
 }
 
-export async function scanSkills(projectPath: string): Promise<DiscoveredSkill[]> {
+export async function scanSkills(
+  projectPath: string,
+): Promise<DiscoveredSkill[]> {
   const all: DiscoveredSkill[] = []
   const claudeDir = join(projectPath, ".claude")
   const codexDir = join(projectPath, ".agents", "skills")
 
   for (const dir of SCAN_DIRS) {
     const fullDir = join(claudeDir, dir)
-    const skills = await scanDirectory(fullDir, DIR_TO_TYPE[dir], "claude-markdown", "project")
+    const skills = await scanDirectory(
+      fullDir,
+      DIR_TO_TYPE[dir],
+      "claude-markdown",
+      "project",
+    )
     all.push(...skills)
   }
 
-  all.push(...await scanCodexSkillDirs(codexDir, "project"))
+  all.push(...(await scanCodexSkillDirs(codexDir, "project")))
   return all
 }
 
 export async function scanUserSkills(): Promise<DiscoveredSkill[]> {
-  const home = normalizeString(process.env.HOME) || normalizeString(process.env.USERPROFILE)
+  const home =
+    normalizeString(process.env.HOME) ||
+    normalizeString(process.env.USERPROFILE)
   if (!home) {
     logWarn("skill-scanner", "user_home_missing", {
       cwd: process.cwd(),
@@ -306,28 +323,43 @@ export async function scanUserSkills(): Promise<DiscoveredSkill[]> {
 
   for (const dir of SCAN_DIRS) {
     const fullDir = join(claudeDir, dir)
-    const skills = await scanDirectory(fullDir, DIR_TO_TYPE[dir], "claude-markdown", "user")
+    const skills = await scanDirectory(
+      fullDir,
+      DIR_TO_TYPE[dir],
+      "claude-markdown",
+      "user",
+    )
     all.push(...skills)
   }
 
-  all.push(...await scanCodexSkillDirs(codexDir, "user"))
+  all.push(...(await scanCodexSkillDirs(codexDir, "user")))
   return all
 }
 
-async function resolvePluginSkillRoots(plugin: InstalledPlugin): Promise<string[]> {
+async function resolvePluginSkillRoots(
+  plugin: InstalledPlugin,
+): Promise<string[]> {
   const pluginManifest = await readJsonFile<PluginManifest>(
     join(plugin.pluginPath, ".claude-plugin", "plugin.json"),
     "plugin",
   )
   const marketplacesDir = await ensurePluginMarketplacesDir()
   const marketplaceManifest = await readJsonFile<MarketplaceManifest>(
-    join(marketplacesDir, plugin.marketplaceId, ".claude-plugin", "marketplace.json"),
+    join(
+      marketplacesDir,
+      plugin.marketplaceId,
+      ".claude-plugin",
+      "marketplace.json",
+    ),
     "marketplace",
   )
 
   let matchingEntry: MarketplacePluginEntry | undefined
   for (const entry of marketplaceManifest?.plugins || []) {
-    const sourcePath = resolveSafePath(join(marketplacesDir, plugin.marketplaceId), normalizeString(entry.source) || ".")
+    const sourcePath = resolveSafePath(
+      join(marketplacesDir, plugin.marketplaceId),
+      normalizeString(entry.source) || ".",
+    )
     if (sourcePath === plugin.pluginPath) {
       matchingEntry = entry
       break
@@ -376,7 +408,9 @@ export async function scanPluginSkills(): Promise<DiscoveredSkill[]> {
   return all
 }
 
-export function mergeDiscoveredSkills(skillGroups: DiscoveredSkill[][]): DiscoveredSkill[] {
+export function mergeDiscoveredSkills(
+  skillGroups: DiscoveredSkill[][],
+): DiscoveredSkill[] {
   const seen = new Set<string>()
   const merged: DiscoveredSkill[] = []
 
@@ -392,13 +426,21 @@ export function mergeDiscoveredSkills(skillGroups: DiscoveredSkill[][]): Discove
   return merged
 }
 
-export async function scanAllSkills(projectPath: string): Promise<DiscoveredSkill[]> {
-  const [projectSkills, userSkills, builtinSkills, pluginSkills] = await Promise.all([
-    scanSkills(projectPath),
-    scanUserSkills(),
-    scanBuiltinSkills(),
-    scanPluginSkills(),
-  ])
+export async function scanAllSkills(
+  projectPath: string,
+): Promise<DiscoveredSkill[]> {
+  const [projectSkills, userSkills, builtinSkills, pluginSkills] =
+    await Promise.all([
+      scanSkills(projectPath),
+      scanUserSkills(),
+      scanBuiltinSkills(),
+      scanPluginSkills(),
+    ])
 
-  return mergeDiscoveredSkills([projectSkills, userSkills, builtinSkills, pluginSkills])
+  return mergeDiscoveredSkills([
+    projectSkills,
+    userSkills,
+    builtinSkills,
+    pluginSkills,
+  ])
 }

@@ -10,12 +10,15 @@ interface AvailableSkill {
   category: string
 }
 
-const WEB_ACCESS_HINT_RE = /https?:\/\/|www\.|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b|\b(website|site|url|domain|internet|online|browse|crawl|scrape|fetch|web\s*search|search the web)\b/i
+const WEB_ACCESS_HINT_RE =
+  /https?:\/\/|www\.|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b|\b(website|site|url|domain|internet|online|browse|crawl|scrape|fetch|web\s*search|search the web)\b/i
 const INFERRED_WEB_TOOLS = ["WebFetch", "WebSearch"] as const
 
 function uniqueStrings(values: string[] | undefined): string[] | undefined {
   if (!values || values.length === 0) return undefined
-  const deduped = [...new Set(values.map((value) => value.trim()).filter(Boolean))]
+  const deduped = [
+    ...new Set(values.map((value) => value.trim()).filter(Boolean)),
+  ]
   return deduped.length > 0 ? deduped : undefined
 }
 
@@ -52,7 +55,14 @@ export async function scaffoldMissingSkills(
 
   const assertSafePathPart = (part: string): string => {
     const value = part.trim()
-    if (!value || value === "." || value === ".." || value.includes("/") || value.includes("\\") || value.includes("\0")) {
+    if (
+      !value ||
+      value === "." ||
+      value === ".." ||
+      value.includes("/") ||
+      value.includes("\\") ||
+      value.includes("\0")
+    ) {
       throw new Error(`Invalid skillRef segment: "${part}"`)
     }
     return value

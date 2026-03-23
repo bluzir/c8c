@@ -1,15 +1,32 @@
-import type { Workflow, WorkflowNode, WorkflowEdge, NodeState } from "@shared/types"
-import { formatWorkflowExecutionIssue, validateWorkflowForExecution } from "@shared/workflow-execution-validation"
+import type {
+  Workflow,
+  WorkflowNode,
+  WorkflowEdge,
+  NodeState,
+} from "@shared/types"
+import {
+  formatWorkflowExecutionIssue,
+  validateWorkflowForExecution,
+} from "@shared/workflow-execution-validation"
 
-export function findNodeById(workflow: Workflow, nodeId: string): WorkflowNode | undefined {
+export function findNodeById(
+  workflow: Workflow,
+  nodeId: string,
+): WorkflowNode | undefined {
   return workflow.nodes.find((n) => n.id === nodeId)
 }
 
-export function getIncomingEdges(workflow: Workflow, nodeId: string): WorkflowEdge[] {
+export function getIncomingEdges(
+  workflow: Workflow,
+  nodeId: string,
+): WorkflowEdge[] {
   return workflow.edges.filter((e) => e.target === nodeId)
 }
 
-export function getOutgoingEdges(workflow: Workflow, nodeId: string): WorkflowEdge[] {
+export function getOutgoingEdges(
+  workflow: Workflow,
+  nodeId: string,
+): WorkflowEdge[] {
   return workflow.edges.filter((e) => e.source === nodeId)
 }
 
@@ -42,10 +59,13 @@ export function findReadyNodes(
         // Merger nodes wait for ALL incoming edges to be activated and source nodes resolved.
         const allResolved = incoming.every((edge) => {
           const sourceState = nodeStates[edge.source]
-          return activatedEdges.has(edge.id) && sourceState &&
-            (sourceState.status === "completed"
-              || sourceState.status === "failed"
-              || sourceState.status === "skipped")
+          return (
+            activatedEdges.has(edge.id) &&
+            sourceState &&
+            (sourceState.status === "completed" ||
+              sourceState.status === "failed" ||
+              sourceState.status === "skipped")
+          )
         })
         if (allResolved) {
           ready.push(node)
@@ -54,7 +74,11 @@ export function findReadyNodes(
         // Other nodes: ready when at least one incoming edge is activated
         const hasReadyEdge = incoming.some((edge) => {
           const sourceState = nodeStates[edge.source]
-          return activatedEdges.has(edge.id) && sourceState && sourceState.status === "completed"
+          return (
+            activatedEdges.has(edge.id) &&
+            sourceState &&
+            sourceState.status === "completed"
+          )
         })
         if (hasReadyEdge) {
           ready.push(node)
@@ -99,7 +123,9 @@ export function validateWorkflow(workflow: Workflow): string[] {
     .map((issue) => formatWorkflowExecutionIssue(issue))
 }
 
-export function createInitialNodeStates(workflow: Workflow): Record<string, NodeState> {
+export function createInitialNodeStates(
+  workflow: Workflow,
+): Record<string, NodeState> {
   const states: Record<string, NodeState> = {}
   for (const node of workflow.nodes) {
     states[node.id] = {
@@ -113,6 +139,9 @@ export function createInitialNodeStates(workflow: Workflow): Record<string, Node
 
 export function isRunComplete(nodeStates: Record<string, NodeState>): boolean {
   return Object.values(nodeStates).every(
-    (s) => s.status === "completed" || s.status === "failed" || s.status === "skipped",
+    (s) =>
+      s.status === "completed" ||
+      s.status === "failed" ||
+      s.status === "skipped",
   )
 }

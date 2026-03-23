@@ -14,7 +14,8 @@ steps:
   - Evaluate evidence quality, disconfirming coverage, and source specificity
 version: 1
 name: Deep Research
-description: Plan a topic via multi-angle decomposition and KAC, investigate each aspect separately, synthesize into a
+description:
+  Plan a topic via multi-angle decomposition and KAC, investigate each aspect separately, synthesize into a
   structured report
 defaults:
   model: sonnet
@@ -34,7 +35,8 @@ nodes:
       y: 200
     config:
       skillRef: researcher
-      prompt: "Create a decomposition plan for this topic from different lenses before research starts. Return ONLY a JSON
+      prompt:
+        "Create a decomposition plan for this topic from different lenses before research starts. Return ONLY a JSON
         array where each aspect has: name, lens, key_question, why_it_matters, priority (high|medium), and query_seeds
         (3-4 concrete search queries). Cover 4-6 distinct lenses and avoid overlap. In the same output, include Key
         Assumptions Check (KAC): add 1-2 high-priority assumption-check aspects that explicitly try to disprove critical
@@ -45,7 +47,8 @@ nodes:
       x: 650
       y: 200
     config:
-      strategy: Input is a prepared JSON array of research aspects (including KAC checks). Create one branch per aspect and
+      strategy:
+        Input is a prepared JSON array of research aspects (including KAC checks). Create one branch per aspect and
         preserve the full object details in each branch so the downstream researcher has complete context.
       maxBranches: 8
   - id: researcher-1
@@ -55,7 +58,8 @@ nodes:
       y: 200
     config:
       skillRef: researcher
-      prompt: Research this aspect thoroughly. Find credible sources, key data points, expert opinions, and emerging trends.
+      prompt:
+        Research this aspect thoroughly. Find credible sources, key data points, expert opinions, and emerging trends.
         Prioritize primary sources and recent publications. For KAC/assumption-check aspects, prioritize disconfirming
         evidence, failure cases, and counter-examples.
   - id: merger-1
@@ -65,7 +69,8 @@ nodes:
       y: 200
     config:
       strategy: summarize
-      prompt: Synthesize all research findings into a comprehensive, well-structured report. Include an executive summary, key
+      prompt:
+        Synthesize all research findings into a comprehensive, well-structured report. Include an executive summary, key
         findings per aspect, KAC outcomes (which assumptions held or failed), cross-cutting themes, and actionable
         conclusions.
   - id: eval-1

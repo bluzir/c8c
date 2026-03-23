@@ -2,12 +2,17 @@ import { existsSync } from "node:fs"
 import { createRequire } from "node:module"
 import { homedir } from "node:os"
 import { dirname, isAbsolute, resolve, sep } from "node:path"
-import { createACPProvider, ACP_PROVIDER_AGENT_DYNAMIC_TOOL_NAME } from "@mcpc-tech/acp-ai-provider"
-import type { EnvVariable, HttpHeader, McpServer } from "@agentclientprotocol/sdk"
-import { streamText } from "ai"
 import {
-  resolveSafetyProfile,
-} from "@shared/provider-metadata"
+  createACPProvider,
+  ACP_PROVIDER_AGENT_DYNAMIC_TOOL_NAME,
+} from "@mcpc-tech/acp-ai-provider"
+import type {
+  EnvVariable,
+  HttpHeader,
+  McpServer,
+} from "@agentclientprotocol/sdk"
+import { streamText } from "ai"
+import { resolveSafetyProfile } from "@shared/provider-metadata"
 import type {
   AgentExecutionEvent,
   AgentExecutionHandle,
@@ -77,7 +82,12 @@ interface CodexSessionInfoLike {
 const CODEX_MODEL_EFFORT_PRIORITY = ["xhigh", "high", "medium", "low"] as const
 
 const CODEX_MODEL_ALIAS_FALLBACKS: Record<string, string[]> = {
-  "gpt-5-codex": ["gpt-5.3-codex", "gpt-5.2-codex", "gpt-5.1-codex-max", "gpt-5.1-codex-mini"],
+  "gpt-5-codex": [
+    "gpt-5.3-codex",
+    "gpt-5.2-codex",
+    "gpt-5.1-codex-max",
+    "gpt-5.1-codex-mini",
+  ],
   "gpt-5.1-codex": ["gpt-5.1-codex-max", "gpt-5.1-codex-mini"],
   "gpt-5": ["gpt-5.4", "gpt-5.2"],
 }
@@ -142,7 +152,10 @@ class AsyncEventQueue<T> implements AsyncIterable<T> {
     return {
       next: () => {
         if (this.items.length > 0) {
-          return Promise.resolve({ value: this.items.shift() as T, done: false })
+          return Promise.resolve({
+            value: this.items.shift() as T,
+            done: false,
+          })
         }
         if (this.closed) {
           return Promise.resolve({ value: undefined as T, done: true })
@@ -183,24 +196,33 @@ function normalizeCodexErrorText(text: string): string {
     .trim()
 }
 
-function extractCodexAcpError(error: unknown): { message: string; code?: string } {
+function extractCodexAcpError(error: unknown): {
+  message: string
+  code?: string
+} {
   const anyError = error as any
   const message =
-    anyError?.data?.message
-    || anyError?.errorText
-    || anyError?.message
-    || anyError?.error
-    || String(error)
+    anyError?.data?.message ||
+    anyError?.errorText ||
+    anyError?.message ||
+    anyError?.error ||
+    String(error)
   const code = anyError?.data?.code || anyError?.code
 
   return {
-    message: normalizeCodexErrorText(typeof message === "string" ? message : String(message)),
+    message: normalizeCodexErrorText(
+      typeof message === "string" ? message : String(message),
+    ),
     code: typeof code === "string" ? code : undefined,
   }
 }
 
-function isCodexAcpAuthError(params: { message?: string | null; code?: string | null }): boolean {
-  const searchableText = `${params.code || ""} ${params.message || ""}`.toLowerCase()
+function isCodexAcpAuthError(params: {
+  message?: string | null
+  code?: string | null
+}): boolean {
+  const searchableText =
+    `${params.code || ""} ${params.message || ""}`.toLowerCase()
   return CODEX_AUTH_HINTS.some((hint) => searchableText.includes(hint))
 }
 
@@ -260,7 +282,9 @@ function pickPreferredCodexVariant(
     return baseModelId
   }
 
-  const firstVariant = availableModelIds.find((modelId) => stripCodexModelEffort(modelId) === baseModelId)
+  const firstVariant = availableModelIds.find(
+    (modelId) => stripCodexModelEffort(modelId) === baseModelId,
+  )
   return firstVariant || null
 }
 
@@ -272,7 +296,9 @@ function resolveCodexAcpModelId(
   if (!normalizedRequested) return undefined
 
   const availableModelIds = (sessionInfo?.models?.availableModels || [])
-    .map((model) => (typeof model?.modelId === "string" ? model.modelId.trim() : ""))
+    .map((model) =>
+      typeof model?.modelId === "string" ? model.modelId.trim() : "",
+    )
     .filter(Boolean)
   if (availableModelIds.length === 0) {
     return normalizedRequested
@@ -284,13 +310,23 @@ function resolveCodexAcpModelId(
 
   const currentModelId = sessionInfo?.models?.currentModelId || null
   const requestedBaseModelId = stripCodexModelEffort(normalizedRequested)
-  const preferredVariant = pickPreferredCodexVariant(requestedBaseModelId, availableModelIds, currentModelId)
+  const preferredVariant = pickPreferredCodexVariant(
+    requestedBaseModelId,
+    availableModelIds,
+    currentModelId,
+  )
   if (preferredVariant) {
     return preferredVariant
   }
 
-  for (const aliasCandidate of CODEX_MODEL_ALIAS_FALLBACKS[normalizedRequested] || []) {
-    const aliasVariant = pickPreferredCodexVariant(aliasCandidate, availableModelIds, currentModelId)
+  for (const aliasCandidate of CODEX_MODEL_ALIAS_FALLBACKS[
+    normalizedRequested
+  ] || []) {
+    const aliasVariant = pickPreferredCodexVariant(
+      aliasCandidate,
+      availableModelIds,
+      currentModelId,
+    )
     if (aliasVariant) {
       return aliasVariant
     }
@@ -318,13 +354,18 @@ function getCodexAcpPackageName(): string {
     if (arch === "x64") return "@zed-industries/codex-acp-win32-x64"
   }
 
-  throw new Error(`Unsupported platform/arch for codex-acp: ${platform}/${arch}`)
+  throw new Error(
+    `Unsupported platform/arch for codex-acp: ${platform}/${arch}`,
+  )
 }
 
 function resolveCodexAcpBinaryPath(): string {
   const packageName = getCodexAcpPackageName()
-  const binaryName = process.platform === "win32" ? "codex-acp.exe" : "codex-acp"
-  const packageRoot = dirname(require.resolve("@zed-industries/codex-acp/package.json"))
+  const binaryName =
+    process.platform === "win32" ? "codex-acp.exe" : "codex-acp"
+  const packageRoot = dirname(
+    require.resolve("@zed-industries/codex-acp/package.json"),
+  )
   const resolvedPath = require.resolve(`${packageName}/bin/${binaryName}`, {
     paths: [packageRoot],
   })
@@ -364,7 +405,9 @@ function buildCodexAcpMcpServers(mcpConfigPath?: string): McpServer[] {
 }
 
 function explicitCodexAcpMcpServerNames(mcpConfigPath?: string): Set<string> {
-  return new Set(buildCodexAcpMcpServers(mcpConfigPath).map((server) => server.name))
+  return new Set(
+    buildCodexAcpMcpServers(mcpConfigPath).map((server) => server.name),
+  )
 }
 
 function getCodexMcpAuthState(authStatus: string | null | undefined): {
@@ -389,7 +432,9 @@ function getCodexMcpAuthState(authStatus: string | null | undefined): {
   }
 }
 
-function resolveCodexStdioEnv(transport?: CodexMcpTransport): Record<string, string> | undefined {
+function resolveCodexStdioEnv(
+  transport?: CodexMcpTransport,
+): Record<string, string> | undefined {
   if (!transport) return undefined
 
   const merged: Record<string, string> = {}
@@ -409,7 +454,9 @@ function resolveCodexStdioEnv(transport?: CodexMcpTransport): Record<string, str
   return Object.keys(merged).length > 0 ? merged : undefined
 }
 
-function resolveCodexHttpHeaders(transport?: CodexMcpTransport): Record<string, string> | undefined {
+function resolveCodexHttpHeaders(
+  transport?: CodexMcpTransport,
+): Record<string, string> | undefined {
   if (!transport) return undefined
 
   const merged: Record<string, string> = {}
@@ -419,7 +466,9 @@ function resolveCodexHttpHeaders(transport?: CodexMcpTransport): Record<string, 
     }
   }
 
-  for (const [headerName, envName] of Object.entries(transport.env_http_headers || {})) {
+  for (const [headerName, envName] of Object.entries(
+    transport.env_http_headers || {},
+  )) {
     if (typeof headerName !== "string" || typeof envName !== "string") continue
     const value = process.env[envName]
     if (typeof value === "string" && value.length > 0) {
@@ -438,9 +487,12 @@ function resolveCodexHttpHeaders(transport?: CodexMcpTransport): Record<string, 
   return Object.keys(merged).length > 0 ? merged : undefined
 }
 
-function codexTransportType(transport?: CodexMcpTransport): "stdio" | "http" | "sse" {
+function codexTransportType(
+  transport?: CodexMcpTransport,
+): "stdio" | "http" | "sse" {
   if (!transport) return "stdio"
-  if (transport.type === "streamable_http" || transport.type === "http") return "http"
+  if (transport.type === "streamable_http" || transport.type === "http")
+    return "http"
   if (transport.type === "sse") return "sse"
   return "stdio"
 }
@@ -449,7 +501,10 @@ function codexServerToMcpServer(server: CodexMcpServer): McpServer | null {
   if (server.enabled === false) return null
 
   const transportType = codexTransportType(server.transport)
-  if ((transportType === "http" || transportType === "sse") && server.transport?.url) {
+  if (
+    (transportType === "http" || transportType === "sse") &&
+    server.transport?.url
+  ) {
     const headers = resolveCodexHttpHeaders(server.transport)
     return {
       name: server.name,
@@ -487,19 +542,23 @@ async function resolveCodexAcpMcpServers(
     const parsed = JSON.parse(stdout) as unknown
     if (Array.isArray(parsed)) {
       const runtimeServers = parsed
-        .filter((item): item is CodexMcpServer => Boolean(item && typeof item === "object"))
+        .filter((item): item is CodexMcpServer =>
+          Boolean(item && typeof item === "object"),
+        )
         .filter((server) => {
           if (server.enabled === false) return false
           const authState = getCodexMcpAuthState(server.auth_status)
           const transportType = codexTransportType(server.transport)
-          const isRemoteTransport = transportType === "http" || transportType === "sse"
+          const isRemoteTransport =
+            transportType === "http" || transportType === "sse"
 
           if (authState.needsAuth) {
             logInfo("codex-provider", "mcp-server-skipped", {
               name: server.name,
               transportType,
               authStatus: server.auth_status || null,
-              reason: "MCP server requires authentication before it can join the ACP session",
+              reason:
+                "MCP server requires authentication before it can join the ACP session",
             })
             return false
           }
@@ -509,7 +568,8 @@ async function resolveCodexAcpMcpServers(
               name: server.name,
               transportType,
               authStatus: server.auth_status || null,
-              reason: "remote MCP server was not explicitly configured for this run",
+              reason:
+                "remote MCP server was not explicitly configured for this run",
             })
             return false
           }
@@ -563,7 +623,9 @@ function buildCodexAcpProcessEnv(
   authSelection: CodexAcpAuthSelection,
 ): Record<string, string> {
   const filtered = Object.fromEntries(
-    Object.entries(env).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    Object.entries(env).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
   )
 
   if (authSelection.authMethod === "api_key") {
@@ -586,13 +648,17 @@ function buildCodexToolPolicyPrefix(options: AgentRunOptions): string {
     sections.push(`Allowed tools: ${options.allowedTools.join(", ")}.`)
   }
   if (options.disallowedTools?.length) {
-    sections.push(`Disallowed tools: ${options.disallowedTools.join(", ")}. Never use them.`)
+    sections.push(
+      `Disallowed tools: ${options.disallowedTools.join(", ")}. Never use them.`,
+    )
   }
   if (sections.length === 0) return options.prompt
   return `${sections.join("\n\n")}\n\n${options.prompt}`
 }
 
-function parseCodexToolDescriptor(rawToolName: string): CodexToolDescriptor | null {
+function parseCodexToolDescriptor(
+  rawToolName: string,
+): CodexToolDescriptor | null {
   const normalizedName = rawToolName.trim()
   if (!normalizedName) return null
 
@@ -602,7 +668,10 @@ function parseCodexToolDescriptor(rawToolName: string): CodexToolDescriptor | nu
     if (separatorIndex === -1) return null
 
     const serverName = payload.slice(0, separatorIndex).trim()
-    const toolName = payload.slice(separatorIndex + 1).trim().replaceAll("/", "__")
+    const toolName = payload
+      .slice(separatorIndex + 1)
+      .trim()
+      .replaceAll("/", "__")
     if (!serverName || !toolName) return null
 
     return {
@@ -613,8 +682,10 @@ function parseCodexToolDescriptor(rawToolName: string): CodexToolDescriptor | nu
   }
 
   const spaceIndex = normalizedName.indexOf(" ")
-  const verb = spaceIndex === -1 ? normalizedName : normalizedName.slice(0, spaceIndex)
-  const detail = spaceIndex === -1 ? "" : normalizedName.slice(spaceIndex + 1).trim()
+  const verb =
+    spaceIndex === -1 ? normalizedName : normalizedName.slice(0, spaceIndex)
+  const detail =
+    spaceIndex === -1 ? "" : normalizedName.slice(spaceIndex + 1).trim()
   const canonicalToolName = CODEX_VERB_TO_TOOL_TYPE[verb]
   if (!canonicalToolName) return null
 
@@ -625,7 +696,10 @@ function parseCodexToolDescriptor(rawToolName: string): CodexToolDescriptor | nu
   }
 }
 
-function normalizeCodexToolInput(rawInput: unknown, descriptor: CodexToolDescriptor): Record<string, unknown> {
+function normalizeCodexToolInput(
+  rawInput: unknown,
+  descriptor: CodexToolDescriptor,
+): Record<string, unknown> {
   if (!isRecord(rawInput)) {
     if (descriptor.canonicalToolName === "Read" && descriptor.detail) {
       return { file_path: descriptor.detail }
@@ -633,15 +707,16 @@ function normalizeCodexToolInput(rawInput: unknown, descriptor: CodexToolDescrip
     if (descriptor.canonicalToolName === "Bash" && descriptor.detail) {
       return { command: descriptor.detail }
     }
-    if (descriptor.canonicalToolName === "WebFetch" && descriptor.detail.startsWith("http")) {
+    if (
+      descriptor.canonicalToolName === "WebFetch" &&
+      descriptor.detail.startsWith("http")
+    ) {
       return { url: descriptor.detail }
     }
     return {}
   }
 
-  const args = isRecord(rawInput.args)
-    ? { ...rawInput.args }
-    : { ...rawInput }
+  const args = isRecord(rawInput.args) ? { ...rawInput.args } : { ...rawInput }
 
   if (descriptor.isMcp) {
     if (isRecord(args.arguments)) {
@@ -650,15 +725,27 @@ function normalizeCodexToolInput(rawInput: unknown, descriptor: CodexToolDescrip
     return args
   }
 
-  if (descriptor.canonicalToolName === "Read" && typeof args.file_path !== "string" && descriptor.detail) {
+  if (
+    descriptor.canonicalToolName === "Read" &&
+    typeof args.file_path !== "string" &&
+    descriptor.detail
+  ) {
     args.file_path = descriptor.detail
   }
 
-  if (descriptor.canonicalToolName === "Bash" && typeof args.command !== "string" && descriptor.detail) {
+  if (
+    descriptor.canonicalToolName === "Bash" &&
+    typeof args.command !== "string" &&
+    descriptor.detail
+  ) {
     args.command = descriptor.detail
   }
 
-  if (descriptor.canonicalToolName === "WebFetch" && typeof args.url !== "string" && descriptor.detail.startsWith("http")) {
+  if (
+    descriptor.canonicalToolName === "WebFetch" &&
+    typeof args.url !== "string" &&
+    descriptor.detail.startsWith("http")
+  ) {
     args.url = descriptor.detail
   }
 
@@ -708,17 +795,19 @@ function mapStreamPartToLogEntry(
   }
 
   if (part.type === "tool-call") {
-    const rawToolName = typeof part.toolName === "string" ? part.toolName : "unknown"
+    const rawToolName =
+      typeof part.toolName === "string" ? part.toolName : "unknown"
     const rawInput = parseCodexJsonValue(part.input)
-    const actualToolName = rawToolName === ACP_PROVIDER_AGENT_DYNAMIC_TOOL_NAME
-      && isRecord(rawInput)
-      && typeof rawInput.toolName === "string"
-      ? rawInput.toolName
-      : rawToolName
-    const actualInput = rawToolName === ACP_PROVIDER_AGENT_DYNAMIC_TOOL_NAME
-      && isRecord(rawInput)
-      ? rawInput.args
-      : rawInput
+    const actualToolName =
+      rawToolName === ACP_PROVIDER_AGENT_DYNAMIC_TOOL_NAME &&
+      isRecord(rawInput) &&
+      typeof rawInput.toolName === "string"
+        ? rawInput.toolName
+        : rawToolName
+    const actualInput =
+      rawToolName === ACP_PROVIDER_AGENT_DYNAMIC_TOOL_NAME && isRecord(rawInput)
+        ? rawInput.args
+        : rawInput
     const normalized = resolveCodexToolPart(actualToolName, actualInput)
     if (typeof part.toolCallId === "string") {
       toolNamesById.set(part.toolCallId, normalized.toolName)
@@ -732,32 +821,40 @@ function mapStreamPartToLogEntry(
   }
 
   if (part.type === "tool-result" || part.type === "tool-error") {
-    const toolName = typeof part.toolCallId === "string" && toolNamesById.has(part.toolCallId)
-      ? toolNamesById.get(part.toolCallId) || "unknown"
-      : typeof part.toolName === "string"
-        ? part.toolName
-        : "unknown"
+    const toolName =
+      typeof part.toolCallId === "string" && toolNamesById.has(part.toolCallId)
+        ? toolNamesById.get(part.toolCallId) || "unknown"
+        : typeof part.toolName === "string"
+          ? part.toolName
+          : "unknown"
     return {
       type: "tool_result",
       tool: toolName,
-      output: stringifyOutput(part.output ?? part.result ?? part.errorText ?? part.error),
+      output: stringifyOutput(
+        part.output ?? part.result ?? part.errorText ?? part.error,
+      ),
       status: part.type === "tool-error" ? "error" : "success",
       timestamp,
     }
   }
 
   if (part.type === "raw") {
-    const rawValue = typeof part.rawValue === "string"
-      ? (() => {
-          try {
-            return JSON.parse(part.rawValue)
-          } catch {
-            return null
-          }
-        })()
-      : part.rawValue
+    const rawValue =
+      typeof part.rawValue === "string"
+        ? (() => {
+            try {
+              return JSON.parse(part.rawValue)
+            } catch {
+              return null
+            }
+          })()
+        : part.rawValue
 
-    if (isRecord(rawValue) && rawValue.type === "diff" && typeof rawValue.path === "string") {
+    if (
+      isRecord(rawValue) &&
+      rawValue.type === "diff" &&
+      typeof rawValue.path === "string"
+    ) {
       return {
         type: "diff",
         content: stringifyOutput(rawValue),
@@ -778,17 +875,23 @@ function mapStreamPartToLogEntry(
   return null
 }
 
-function usageFromPart(part: any): { inputTokens: number; outputTokens: number } | null {
+function usageFromPart(
+  part: any,
+): { inputTokens: number; outputTokens: number } | null {
   const usage = part?.usage || part?.totalUsage
   if (!usage || typeof usage !== "object") return null
   return {
     inputTokens: typeof usage.inputTokens === "number" ? usage.inputTokens : 0,
-    outputTokens: typeof usage.outputTokens === "number" ? usage.outputTokens : 0,
+    outputTokens:
+      typeof usage.outputTokens === "number" ? usage.outputTokens : 0,
   }
 }
 
 export function canUseCodexAcpExecution(
-  options: Pick<AgentRunOptions, "addDirs" | "executionMode" | "safetyProfile"> & { workdir?: string },
+  options: Pick<
+    AgentRunOptions,
+    "addDirs" | "executionMode" | "safetyProfile"
+  > & { workdir?: string },
   configuredProfile: NonNullable<AgentRunOptions["safetyProfile"]>,
 ): CodexAcpSupportResult {
   const resolvedSafetyProfile = resolveSafetyProfile(
@@ -796,7 +899,10 @@ export function canUseCodexAcpExecution(
     options.safetyProfile || configuredProfile,
   )
 
-  if (resolvedSafetyProfile !== "workspace_auto" && resolvedSafetyProfile !== "safe_readonly") {
+  if (
+    resolvedSafetyProfile !== "workspace_auto" &&
+    resolvedSafetyProfile !== "safe_readonly"
+  ) {
     return {
       supported: false,
       reason: `unsupported safety profile ${resolvedSafetyProfile}`,
@@ -808,7 +914,8 @@ export function canUseCodexAcpExecution(
     if (!options.workdir) {
       return {
         supported: false,
-        reason: "additional directories require a working directory for ACP sessions",
+        reason:
+          "additional directories require a working directory for ACP sessions",
       }
     }
 
@@ -820,7 +927,8 @@ export function canUseCodexAcpExecution(
     if (hasExternalDirectory) {
       return {
         supported: false,
-        reason: "additional directories outside the working directory are not supported by ACP sessions",
+        reason:
+          "additional directories outside the working directory are not supported by ACP sessions",
       }
     }
   }
@@ -864,7 +972,8 @@ export async function probeCodexAcpAuthStatus(): Promise<ProviderAuthStatus> {
         authMethod: null,
         accountLabel: null,
         apiKeyConfigured: authSelection.apiKeyConfigured,
-        error: "Codex CLI is not authenticated. Run `codex login` or configure an optional CODEX_API_KEY in Settings.",
+        error:
+          "Codex CLI is not authenticated. Run `codex login` or configure an optional CODEX_API_KEY in Settings.",
       }
     }
 
@@ -873,7 +982,9 @@ export async function probeCodexAcpAuthStatus(): Promise<ProviderAuthStatus> {
       state: "unknown",
       authenticated: false,
       authMethod: null,
-      accountLabel: authSelection.apiKeyConfigured ? authSelection.accountLabel : null,
+      accountLabel: authSelection.apiKeyConfigured
+        ? authSelection.accountLabel
+        : null,
       apiKeyConfigured: authSelection.apiKeyConfigured,
       error: sanitizeCodexAcpProbeError(normalized.message),
     }
@@ -898,7 +1009,10 @@ export async function createCodexAcpExecutionHandle(
   const apiKey = await getCodexApiKey()
   const env = await buildCodexEnv(options.extraEnv)
   const authSelection = resolveCodexAcpAuthSelection(apiKey)
-  const mcpServers = await resolveCodexAcpMcpServers(options.workdir, options.mcpConfigPath)
+  const mcpServers = await resolveCodexAcpMcpServers(
+    options.workdir,
+    options.mcpConfigPath,
+  )
   const provider = createACPProvider({
     command: resolveCodexAcpBinaryPath(),
     env: buildCodexAcpProcessEnv(env, authSelection),
@@ -944,7 +1058,8 @@ export async function createCodexAcpExecutionHandle(
     let lastError: string | null = null
 
     try {
-      const modeId = resolvedSafetyProfile === "safe_readonly" ? "plan" : undefined
+      const modeId =
+        resolvedSafetyProfile === "safe_readonly" ? "plan" : undefined
       const sessionInfo = await provider.initSession()
       const resolvedModelId = resolveCodexAcpModelId(options.model, sessionInfo)
       logInfo("codex-provider", "acp-model-resolved", {
@@ -996,8 +1111,9 @@ export async function createCodexAcpExecutionHandle(
         },
       })
 
-      const resolvedFinishReason = finishReason || await result.finishReason
-      const aborted = abortController.signal.aborted || resolvedFinishReason === "abort"
+      const resolvedFinishReason = finishReason || (await result.finishReason)
+      const aborted =
+        abortController.signal.aborted || resolvedFinishReason === "abort"
       const success = !aborted && resolvedFinishReason !== "error"
       const summary: AgentExecutionSummary = {
         success,
@@ -1006,7 +1122,10 @@ export async function createCodexAcpExecutionHandle(
         killed: false,
         aborted,
         durationMs: Date.now() - startedAt,
-        error: success ? null : lastError || `Codex ACP finished with reason: ${resolvedFinishReason}`,
+        error: success
+          ? null
+          : lastError ||
+            `Codex ACP finished with reason: ${resolvedFinishReason}`,
         providerSessionId: sessionId,
         backend: "codex_acp",
       }
@@ -1025,7 +1144,10 @@ export async function createCodexAcpExecutionHandle(
         providerSessionId: sessionId,
         backend: "codex_acp",
       }
-      queue.push({ type: "error", text: summary.error || "Codex ACP query failed." })
+      queue.push({
+        type: "error",
+        text: summary.error || "Codex ACP query failed.",
+      })
       queue.push({ type: "finish", summary })
       return summary
     } finally {

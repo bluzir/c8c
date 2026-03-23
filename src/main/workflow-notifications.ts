@@ -8,7 +8,11 @@ function focusWindow(window: BrowserWindow): void {
 
 function showNotification(
   window: BrowserWindow,
-  params: { body: string; bounce?: "informational" | "critical"; flash?: boolean },
+  params: {
+    body: string
+    bounce?: "informational" | "critical"
+    flash?: boolean
+  },
 ): void {
   const notification = new Notification({
     title: "c8c",
@@ -27,7 +31,10 @@ function showNotification(
   }
 }
 
-function handleWorkflowNotification(window: BrowserWindow, event: WorkflowEvent): void {
+function handleWorkflowNotification(
+  window: BrowserWindow,
+  event: WorkflowEvent,
+): void {
   if (window.isFocused()) return
 
   if (event.type === "run-done") {
@@ -61,7 +68,10 @@ function handleWorkflowNotification(window: BrowserWindow, event: WorkflowEvent)
   }
 }
 
-export function sendWorkflowEvent(window: BrowserWindow, event: WorkflowEvent): void {
+export function sendWorkflowEvent(
+  window: BrowserWindow,
+  event: WorkflowEvent,
+): void {
   window.webContents.send("workflow:event", event)
   handleWorkflowNotification(window, event)
 }

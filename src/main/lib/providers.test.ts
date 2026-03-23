@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest"
-import {
-  codexServerToInfo,
-} from "./providers/codex-mcp-provider"
-import {
-  buildCodexLegacyExecArgs,
-} from "./providers/codex-agent-provider"
+import { codexServerToInfo } from "./providers/codex-mcp-provider"
+import { buildCodexLegacyExecArgs } from "./providers/codex-agent-provider"
 import {
   isCodexInteractiveEditorNoise,
   isCodexHeadlessAuthCheckError,
@@ -24,9 +20,12 @@ describe("providers codex auth parsing", () => {
   })
 
   it("recognizes non-interactive raw-mode login status failures", () => {
-    const output = "Sign in with ChatGPT ERROR Raw mode is not supported on the current process.stdin"
+    const output =
+      "Sign in with ChatGPT ERROR Raw mode is not supported on the current process.stdin"
     expect(isCodexHeadlessAuthCheckError(output)).toBe(true)
-    expect(sanitizeCodexAuthError(output)).toContain("could not report auth status in non-interactive mode")
+    expect(sanitizeCodexAuthError(output)).toContain(
+      "could not report auth status in non-interactive mode",
+    )
     expect(parseCodexAuth(output, false)).toMatchObject({
       state: "unknown",
       authenticated: false,
@@ -42,22 +41,28 @@ describe("providers codex auth parsing", () => {
     ].join("\n")
 
     expect(isCodexInteractiveEditorNoise(output)).toBe(true)
-    expect(summarizeCodexInteractiveEditorNoise(output)).toContain("interactive editor")
-    expect(summarizeCodexInteractiveEditorNoise(output)).toContain(".instructions.md.swp")
+    expect(summarizeCodexInteractiveEditorNoise(output)).toContain(
+      "interactive editor",
+    )
+    expect(summarizeCodexInteractiveEditorNoise(output)).toContain(
+      ".instructions.md.swp",
+    )
   })
 })
 
 describe("providers codex MCP mapping", () => {
   it("maps streamable_http servers to http MCP metadata", () => {
-    expect(codexServerToInfo({
-      name: "linear",
-      enabled: true,
-      transport: {
-        type: "streamable_http",
-        url: "https://mcp.example.com",
-        http_headers: { Authorization: "Bearer token" },
-      },
-    })).toEqual({
+    expect(
+      codexServerToInfo({
+        name: "linear",
+        enabled: true,
+        transport: {
+          type: "streamable_http",
+          url: "https://mcp.example.com",
+          http_headers: { Authorization: "Bearer token" },
+        },
+      }),
+    ).toEqual({
       name: "linear",
       provider: "codex",
       scope: "user",
@@ -74,16 +79,19 @@ describe("providers codex MCP mapping", () => {
 
 describe("providers codex legacy exec args", () => {
   it("builds prompt, safety flags, model and add-dir arguments", () => {
-    const result = buildCodexLegacyExecArgs({
-      prompt: "Implement the feature",
-      workdir: "/tmp/project",
-      model: "gpt-5.4",
-      addDirs: ["/tmp/project/docs", ""],
-      systemPrompts: ["Follow repo conventions."],
-      allowedTools: ["Read", "Edit"],
-      disallowedTools: ["Bash"],
-      extraArgs: ["--config", "profile=test"],
-    }, "workspace_auto")
+    const result = buildCodexLegacyExecArgs(
+      {
+        prompt: "Implement the feature",
+        workdir: "/tmp/project",
+        model: "gpt-5.4",
+        addDirs: ["/tmp/project/docs", ""],
+        systemPrompts: ["Follow repo conventions."],
+        allowedTools: ["Read", "Edit"],
+        disallowedTools: ["Bash"],
+        extraArgs: ["--config", "profile=test"],
+      },
+      "workspace_auto",
+    )
 
     expect(result.safetyProfile).toBe("workspace_auto")
     expect(result.args).toEqual([
@@ -110,11 +118,14 @@ describe("providers codex legacy exec args", () => {
   })
 
   it("forces safe_readonly for plan mode", () => {
-    const result = buildCodexLegacyExecArgs({
-      prompt: "Plan the migration",
-      workdir: "/tmp/project",
-      executionMode: "plan",
-    }, "dangerous")
+    const result = buildCodexLegacyExecArgs(
+      {
+        prompt: "Plan the migration",
+        workdir: "/tmp/project",
+        executionMode: "plan",
+      },
+      "dangerous",
+    )
 
     expect(result.safetyProfile).toBe("safe_readonly")
     expect(result.args).toContain("read-only")

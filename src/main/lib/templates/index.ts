@@ -3,10 +3,14 @@ import { listPluginTemplates } from "./plugin-templates"
 import { parseTemplate } from "./parse"
 import { getHubCatalog, type CatalogEntry } from "./hub-catalog"
 
-const yamlModules = import.meta.glob('./*.yaml', { query: '?raw', import: 'default', eager: true })
+const yamlModules = import.meta.glob("./*.yaml", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+})
 
 const builtinTemplates: WorkflowTemplate[] = Object.values(yamlModules).map(
-  (raw) => parseTemplate(raw as string, { source: "builtin" })
+  (raw) => parseTemplate(raw as string, { source: "builtin" }),
 )
 
 export function getBuiltinTemplates(): WorkflowTemplate[] {

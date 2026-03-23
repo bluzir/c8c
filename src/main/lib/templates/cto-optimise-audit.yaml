@@ -19,7 +19,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: CTO Optimise Audit
-description: Map the system, audit the entire project through CTO optimization lenses, and produce one
+description:
+  Map the system, audit the entire project through CTO optimization lenses, and produce one
   prioritized report
 defaults:
   model: sonnet

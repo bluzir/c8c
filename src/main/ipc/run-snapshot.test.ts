@@ -3,29 +3,36 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import type { PersistedRunSnapshot } from "@shared/types"
-import { loadPersistedNodeLogs, mergeNodeLogsIntoSnapshot, parsePersistedNodeLogs, readPersistedEventsTail } from "./run-snapshot"
+import {
+  loadPersistedNodeLogs,
+  mergeNodeLogsIntoSnapshot,
+  parsePersistedNodeLogs,
+  readPersistedEventsTail,
+} from "./run-snapshot"
 
 describe("run snapshot log hydration", () => {
   it("parses node logs from persisted workflow events", () => {
-    const logs = parsePersistedNodeLogs([
-      JSON.stringify({
-        type: "node-start",
-        runId: "run-1",
-        nodeId: "audit",
-      }),
-      JSON.stringify({
-        type: "node-log",
-        runId: "run-1",
-        nodeId: "audit",
-        entry: { type: "text", content: "hello", timestamp: 10 },
-      }),
-      JSON.stringify({
-        type: "node-log",
-        runId: "run-1",
-        nodeId: "audit",
-        entry: { type: "thinking", content: "world", timestamp: 11 },
-      }),
-    ].join("\n"))
+    const logs = parsePersistedNodeLogs(
+      [
+        JSON.stringify({
+          type: "node-start",
+          runId: "run-1",
+          nodeId: "audit",
+        }),
+        JSON.stringify({
+          type: "node-log",
+          runId: "run-1",
+          nodeId: "audit",
+          entry: { type: "text", content: "hello", timestamp: 10 },
+        }),
+        JSON.stringify({
+          type: "node-log",
+          runId: "run-1",
+          nodeId: "audit",
+          entry: { type: "thinking", content: "world", timestamp: 11 },
+        }),
+      ].join("\n"),
+    )
 
     expect(logs).toEqual({
       audit: [
@@ -92,7 +99,11 @@ describe("run snapshot log hydration", () => {
           entry: { type: "thinking", content: "still here", timestamp: 21 },
         }),
       ].join("\n")
-      await writeFile(eventsPath, `${oversizedPrefix}\n${tailEvents}\n`, "utf-8")
+      await writeFile(
+        eventsPath,
+        `${oversizedPrefix}\n${tailEvents}\n`,
+        "utf-8",
+      )
 
       const logs = await loadPersistedNodeLogs(workspace)
 

@@ -5,7 +5,11 @@ import type { LogEntry } from "@shared/types"
 describe("parseEvaluatorOutput", () => {
   it("parses clean JSON response", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 8, "reason": "Clear and engaging"}', timestamp: 1 },
+      {
+        type: "text",
+        content: '{"score": 8, "reason": "Clear and engaging"}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result).toEqual({ score: 8, reason: "Clear and engaging" })
@@ -13,7 +17,12 @@ describe("parseEvaluatorOutput", () => {
 
   it("extracts JSON embedded in text", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: 'Here is my evaluation:\n{"score": 6, "reason": "Needs work on CTA"}', timestamp: 1 },
+      {
+        type: "text",
+        content:
+          'Here is my evaluation:\n{"score": 6, "reason": "Needs work on CTA"}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result).toEqual({ score: 6, reason: "Needs work on CTA" })
@@ -32,7 +41,11 @@ describe("parseEvaluatorOutput", () => {
     const logs: LogEntry[] = [
       { type: "thinking", content: "Let me analyze...", timestamp: 1 },
       { type: "tool_use", tool: "Read", input: {}, timestamp: 2 },
-      { type: "text", content: '{"score": 7, "reason": "Good but CTA weak"}', timestamp: 3 },
+      {
+        type: "text",
+        content: '{"score": 7, "reason": "Good but CTA weak"}',
+        timestamp: 3,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result).toEqual({ score: 7, reason: "Good but CTA weak" })
@@ -51,7 +64,11 @@ describe("parseEvaluatorOutput", () => {
 
   it("handles score as float", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 7.5, "reason": "Almost there"}', timestamp: 1 },
+      {
+        type: "text",
+        content: '{"score": 7.5, "reason": "Almost there"}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result?.score).toBe(7.5)
@@ -59,7 +76,11 @@ describe("parseEvaluatorOutput", () => {
 
   it("handles braces in reason string", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 7, "reason": "Missing {intro} section"}', timestamp: 1 },
+      {
+        type: "text",
+        content: '{"score": 7, "reason": "Missing {intro} section"}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result).toEqual({ score: 7, reason: "Missing {intro} section" })
@@ -67,15 +88,28 @@ describe("parseEvaluatorOutput", () => {
 
   it("handles nested braces and complex reason", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 5, "reason": "Lacks {CTA} and {hero} blocks, needs {more detail}"}', timestamp: 1 },
+      {
+        type: "text",
+        content:
+          '{"score": 5, "reason": "Lacks {CTA} and {hero} blocks, needs {more detail}"}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
-    expect(result).toEqual({ score: 5, reason: "Lacks {CTA} and {hero} blocks, needs {more detail}" })
+    expect(result).toEqual({
+      score: 5,
+      reason: "Lacks {CTA} and {hero} blocks, needs {more detail}",
+    })
   })
 
   it("parses fix_instructions", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 5, "reason": "Weak hook", "fix_instructions": "Rewrite opening with a statistic"}', timestamp: 1 },
+      {
+        type: "text",
+        content:
+          '{"score": 5, "reason": "Weak hook", "fix_instructions": "Rewrite opening with a statistic"}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result).toEqual({
@@ -129,7 +163,7 @@ describe("parseEvaluatorOutput", () => {
       reason: "OK",
       criteria: [
         { id: "valid", score: 8 },
-        { score: 5 },  // missing id
+        { score: 5 }, // missing id
         { id: "also-valid", score: 6 },
         "not-an-object",
       ],
@@ -144,7 +178,11 @@ describe("parseEvaluatorOutput", () => {
 
   it("omits empty fix_instructions", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 9, "reason": "Great", "fix_instructions": ""}', timestamp: 1 },
+      {
+        type: "text",
+        content: '{"score": 9, "reason": "Great", "fix_instructions": ""}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result?.fix_instructions).toBeUndefined()
@@ -152,7 +190,11 @@ describe("parseEvaluatorOutput", () => {
 
   it("omits criteria when array is empty", () => {
     const logs: LogEntry[] = [
-      { type: "text", content: '{"score": 8, "reason": "Good", "criteria": []}', timestamp: 1 },
+      {
+        type: "text",
+        content: '{"score": 8, "reason": "Good", "criteria": []}',
+        timestamp: 1,
+      },
     ]
     const result = parseEvaluatorOutput(logs)
     expect(result?.criteria).toBeUndefined()
@@ -162,7 +204,8 @@ describe("parseEvaluatorOutput", () => {
     const logs: LogEntry[] = [
       {
         type: "text",
-        content: 'draft {"score": 3, "reason": "first"}\nfinal {"score": 8, "reason": "second"}',
+        content:
+          'draft {"score": 3, "reason": "first"}\nfinal {"score": 8, "reason": "second"}',
         timestamp: 1,
       },
     ]
@@ -174,12 +217,16 @@ describe("parseEvaluatorOutput", () => {
     const logs: LogEntry[] = [
       {
         type: "text",
-        content: '{"score": 7, "reason": "Use \\"{benefit}\\" headline for better CTR"}',
+        content:
+          '{"score": 7, "reason": "Use \\"{benefit}\\" headline for better CTR"}',
         timestamp: 1,
       },
     ]
     const result = parseEvaluatorOutput(logs)
-    expect(result).toEqual({ score: 7, reason: 'Use "{benefit}" headline for better CTR' })
+    expect(result).toEqual({
+      score: 7,
+      reason: 'Use "{benefit}" headline for better CTR',
+    })
   })
 })
 

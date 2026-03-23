@@ -18,9 +18,13 @@ function runSerializedMarketplaceMutation<T>(
   marketplaceId: string,
   operation: () => Promise<T>,
 ): Promise<T> {
-  const previous = mutationQueueByMarketplaceId.get(marketplaceId) ?? Promise.resolve()
+  const previous =
+    mutationQueueByMarketplaceId.get(marketplaceId) ?? Promise.resolve()
   const next = previous.then(operation)
-  const tracked = next.then(() => undefined, () => undefined)
+  const tracked = next.then(
+    () => undefined,
+    () => undefined,
+  )
   mutationQueueByMarketplaceId.set(marketplaceId, tracked)
   void tracked.finally(() => {
     if (mutationQueueByMarketplaceId.get(marketplaceId) === tracked) {
@@ -67,7 +71,10 @@ export function registerPluginsHandlers() {
     const queued = mutationQueueByMarketplaceId.has(id)
     const queueStartAt = Date.now()
     if (queued) {
-      logInfo("plugins-ipc", "mutation_queued", { action: "install", marketplaceId: id })
+      logInfo("plugins-ipc", "mutation_queued", {
+        action: "install",
+        marketplaceId: id,
+      })
     }
 
     await runSerializedMarketplaceMutation(id, async () => {
@@ -105,7 +112,10 @@ export function registerPluginsHandlers() {
     const queued = mutationQueueByMarketplaceId.has(id)
     const queueStartAt = Date.now()
     if (queued) {
-      logInfo("plugins-ipc", "mutation_queued", { action: "update", marketplaceId: id })
+      logInfo("plugins-ipc", "mutation_queued", {
+        action: "update",
+        marketplaceId: id,
+      })
     }
 
     await runSerializedMarketplaceMutation(id, async () => {
@@ -143,7 +153,10 @@ export function registerPluginsHandlers() {
     const queued = mutationQueueByMarketplaceId.has(id)
     const queueStartAt = Date.now()
     if (queued) {
-      logInfo("plugins-ipc", "mutation_queued", { action: "remove", marketplaceId: id })
+      logInfo("plugins-ipc", "mutation_queued", {
+        action: "remove",
+        marketplaceId: id,
+      })
     }
 
     await runSerializedMarketplaceMutation(id, async () => {
@@ -172,7 +185,9 @@ export function registerPluginsHandlers() {
     const scanPromise = (async (): Promise<InstalledPlugin[]> => {
       const pendingMutations = mutationQueueByMarketplaceId.size
       if (pendingMutations > 0) {
-        logInfo("plugins-ipc", "scan_waiting_for_mutations", { pendingMutations })
+        logInfo("plugins-ipc", "scan_waiting_for_mutations", {
+          pendingMutations,
+        })
       }
       await waitForMutationQueuesToDrain()
 
@@ -197,15 +212,18 @@ export function registerPluginsHandlers() {
     }
   })
 
-  ipcMain.handle("plugins:set-enabled", async (_event, pluginId: string, enabled: boolean) => {
-    const scanWaitMs = await waitForActiveScanToComplete()
-    if (scanWaitMs > 0) {
-      logInfo("plugins-ipc", "set_enabled_waited_for_scan", {
-        pluginId,
-        enabled,
-        scanWaitMs,
-      })
-    }
-    return setPluginEnabled(pluginId, enabled)
-  })
+  ipcMain.handle(
+    "plugins:set-enabled",
+    async (_event, pluginId: string, enabled: boolean) => {
+      const scanWaitMs = await waitForActiveScanToComplete()
+      if (scanWaitMs > 0) {
+        logInfo("plugins-ipc", "set_enabled_waited_for_scan", {
+          pluginId,
+          enabled,
+          scanWaitMs,
+        })
+      }
+      return setPluginEnabled(pluginId, enabled)
+    },
+  )
 }

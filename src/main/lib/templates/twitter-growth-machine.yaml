@@ -17,7 +17,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Twitter Growth Machine
-description: Research trending topics, generate multiple tweet angles, optimize each for algorithm, select the best,
+description:
+  Research trending topics, generate multiple tweet angles, optimize each for algorithm, select the best,
   evaluate quality
 defaults:
   model: sonnet
@@ -37,7 +38,8 @@ nodes:
       y: 200
     config:
       skillRef: product/Trend Researcher
-      prompt: Research trending topics and conversations in this industry/niche. Find emerging themes, viral angles, and
+      prompt:
+        Research trending topics and conversations in this industry/niche. Find emerging themes, viral angles, and
         engagement patterns. Focus on what's resonating right now.
   - id: splitter-1
     type: splitter
@@ -45,7 +47,8 @@ nodes:
       x: 600
       y: 200
     config:
-      strategy: "Generate 5 distinct tweet/thread ideas based on the trending topics. Each should take a different angle:
+      strategy:
+        "Generate 5 distinct tweet/thread ideas based on the trending topics. Each should take a different angle:
         contrarian take, how-to, story, data insight, hot take."
   - id: optimizer-1
     type: skill
@@ -54,7 +57,8 @@ nodes:
       y: 200
     config:
       skillRef: composio/twitter-algorithm-optimizer
-      prompt: Optimize this tweet/thread for maximum reach using Twitter's algorithm. Improve hook, structure, engagement
+      prompt:
+        Optimize this tweet/thread for maximum reach using Twitter's algorithm. Improve hook, structure, engagement
         triggers, and formatting.
   - id: merger-1
     type: merger
@@ -63,7 +67,8 @@ nodes:
       y: 200
     config:
       strategy: select_best
-      prompt: "Pick the single best tweet/thread based on: viral potential, authenticity, engagement likelihood, and alignment
+      prompt:
+        "Pick the single best tweet/thread based on: viral potential, authenticity, engagement likelihood, and alignment
         with the author's niche."
   - id: evaluator-1
     type: evaluator
@@ -71,7 +76,8 @@ nodes:
       x: 1500
       y: 200
     config:
-      criteria: "Score 1-10: hook strength (stops scrolling?), algorithm optimization (structure, length, formatting),
+      criteria:
+        "Score 1-10: hook strength (stops scrolling?), algorithm optimization (structure, length, formatting),
         authenticity (not generic AI slop), and engagement potential."
       threshold: 8
       maxRetries: 2

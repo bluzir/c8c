@@ -31,7 +31,10 @@ export interface TelemetryClient {
   readonly provider: TelemetryProvider
   setConsent(enabled: boolean): void
   track(event: TelemetryTrackEvent): Promise<void>
-  identify(distinctId: string, traits?: Record<string, TelemetryPropertyValue>): Promise<void>
+  identify(
+    distinctId: string,
+    traits?: Record<string, TelemetryPropertyValue>,
+  ): Promise<void>
   flush(): Promise<void>
   shutdown(): Promise<void>
 }

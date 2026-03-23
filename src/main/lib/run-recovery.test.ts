@@ -16,10 +16,7 @@ import {
   __setRunRecoveryTestBindings,
   recoverRuntimeState,
 } from "./run-recovery"
-import {
-  loadRunPidManifest,
-  runPidManifestPath,
-} from "./run-pid-manifest"
+import { loadRunPidManifest, runPidManifestPath } from "./run-pid-manifest"
 
 type PidSignal = NodeJS.Signals | 0 | undefined
 
@@ -115,7 +112,11 @@ function createManifest(workspace: string, pid: number): RunPidManifest {
 }
 
 async function writeManifest(workspace: string, pid: number): Promise<void> {
-  await writeFile(runPidManifestPath(workspace), JSON.stringify(createManifest(workspace, pid), null, 2), "utf8")
+  await writeFile(
+    runPidManifestPath(workspace),
+    JSON.stringify(createManifest(workspace, pid), null, 2),
+    "utf8",
+  )
 }
 
 describe("run-recovery", () => {
@@ -143,14 +144,18 @@ describe("run-recovery", () => {
   it("marks stale running run-result as interrupted and clears missing active PIDs", async () => {
     await writeFile(
       join(workspaceA, "run-result.json"),
-      JSON.stringify({
-        runId: "run-a",
-        status: "running",
-        workflowName: "Test",
-        startedAt: 123,
-        completedAt: 0,
-        workspace: workspaceA,
-      }, null, 2),
+      JSON.stringify(
+        {
+          runId: "run-a",
+          status: "running",
+          workflowName: "Test",
+          startedAt: 123,
+          completedAt: 0,
+          workspace: workspaceA,
+        },
+        null,
+        2,
+      ),
       "utf8",
     )
     await writeManifest(workspaceA, 99_999_999)
@@ -169,8 +174,14 @@ describe("run-recovery", () => {
     expect(summary.manifestsProcessed).toBe(1)
     expect(summary.orphanPidsMissing).toBe(1)
 
-    const runResultRaw = await readFile(join(workspaceA, "run-result.json"), "utf8")
-    const runResult = JSON.parse(runResultRaw) as { status: string; completedAt: number }
+    const runResultRaw = await readFile(
+      join(workspaceA, "run-result.json"),
+      "utf8",
+    )
+    const runResult = JSON.parse(runResultRaw) as {
+      status: string
+      completedAt: number
+    }
     expect(runResult.status).toBe("interrupted")
     expect(runResult.completedAt).toBe(1_700_000_000_000)
 
@@ -263,20 +274,28 @@ describe("run-recovery", () => {
     expect(summary.orphanPidsKilled).toBe(0)
     expect(summary.orphanPidsFailed).toBe(1)
     expect(harness.calls).not.toContainEqual({ pid: 404, signal: "SIGTERM" })
-    expect(logWarnMock).toHaveBeenCalledWith("run-recovery", "skip_non_claude_pid", {
-      workspace: workspaceA,
-      pid: 404,
-    })
+    expect(logWarnMock).toHaveBeenCalledWith(
+      "run-recovery",
+      "skip_non_claude_pid",
+      {
+        workspace: workspaceA,
+        pid: 404,
+      },
+    )
   })
 
   it("aggregates recovery stats across multiple roots and workspaces", async () => {
     await writeFile(
       join(workspaceA, "run-result.json"),
-      JSON.stringify({
-        runId: "run-a",
-        status: "running",
-        completedAt: 0,
-      }, null, 2),
+      JSON.stringify(
+        {
+          runId: "run-a",
+          status: "running",
+          completedAt: 0,
+        },
+        null,
+        2,
+      ),
       "utf8",
     )
     await writeManifest(workspaceB, 505)
@@ -298,14 +317,18 @@ describe("run-recovery", () => {
       orphanPidsKilled: 0,
       orphanPidsFailed: 0,
     })
-    expect(logInfoMock).toHaveBeenCalledWith("run-recovery", "startup_recovery_summary", {
-      roots: 2,
-      workspaces: 2,
-      staleRunsUpdated: 1,
-      manifestsProcessed: 1,
-      orphanPidsKilled: 0,
-      orphanPidsMissing: 1,
-      orphanPidsFailed: 0,
-    })
+    expect(logInfoMock).toHaveBeenCalledWith(
+      "run-recovery",
+      "startup_recovery_summary",
+      {
+        roots: 2,
+        workspaces: 2,
+        staleRunsUpdated: 1,
+        manifestsProcessed: 1,
+        orphanPidsKilled: 0,
+        orphanPidsMissing: 1,
+        orphanPidsFailed: 0,
+      },
+    )
   })
 })

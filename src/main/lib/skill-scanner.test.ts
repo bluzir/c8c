@@ -37,7 +37,9 @@ describe("skill-scanner", () => {
     process.env.HOME = root
     delete process.env.USERPROFILE
     process.env.C8C_BUILTIN_GSTACK_ROOT = join(root, "builtin-gstack")
-    ensurePluginMarketplacesDirMock.mockResolvedValue(join(root, ".c8c", "plugins", "marketplaces"))
+    ensurePluginMarketplacesDirMock.mockResolvedValue(
+      join(root, ".c8c", "plugins", "marketplaces"),
+    )
     listInstalledPluginsMock.mockResolvedValue([])
   })
 
@@ -62,7 +64,15 @@ describe("skill-scanner", () => {
 
   it("merges project, user, and plugin skills with precedence project > user > plugin", async () => {
     const projectRoot = join(root, "project")
-    const pluginRoot = join(root, ".c8c", "plugins", "marketplaces", "content-marketplace", "plugins", "content-pack")
+    const pluginRoot = join(
+      root,
+      ".c8c",
+      "plugins",
+      "marketplaces",
+      "content-marketplace",
+      "plugins",
+      "content-pack",
+    )
 
     await writeText(
       join(projectRoot, ".claude", "skills", "content", "writer.md"),
@@ -163,7 +173,14 @@ describe("skill-scanner", () => {
   })
 
   it("reads plugin skill roots from plugin.json when skills live under .claude/skills", async () => {
-    const pluginRoot = join(root, ".c8c", "plugins", "marketplaces", "design-marketplace", "design-pack")
+    const pluginRoot = join(
+      root,
+      ".c8c",
+      "plugins",
+      "marketplaces",
+      "design-marketplace",
+      "design-pack",
+    )
 
     await writeText(
       join(pluginRoot, ".claude-plugin", "plugin.json"),
@@ -214,15 +231,15 @@ describe("skill-scanner", () => {
         "description: normalized",
         "tools:",
         "  - Read",
-        "  - \"  Read  \"",
-        "  - \"\"",
+        '  - "  Read  "',
+        '  - ""',
         "allowed_tools:",
         "  - Edit",
-        "  - \" Edit \"",
-        "  - \"\"",
+        '  - " Edit "',
+        '  - ""',
         "disallowed_tools:",
         "  - Bash",
-        "  - \"  \"",
+        '  - "  "',
         "max_turns: 3",
         "---",
         "",

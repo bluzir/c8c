@@ -2,12 +2,18 @@ import { ipcMain } from "electron"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { execFile } from "node:child_process"
 import { join, resolve, relative } from "node:path"
-import { assertRegisteredProjectPath, assertWithinRoots } from "../lib/security-paths"
+import {
+  assertRegisteredProjectPath,
+  assertWithinRoots,
+} from "../lib/security-paths"
 
 const MAX_RESULTS = 500
 const MAX_FILE_SIZE = 100 * 1024 // ~100KB
 
-export async function gitLsFiles(projectPath: string, query?: string): Promise<string[]> {
+export async function gitLsFiles(
+  projectPath: string,
+  query?: string,
+): Promise<string[]> {
   const safePath = await assertRegisteredProjectPath(projectPath)
 
   return new Promise((resolve, reject) => {
@@ -31,7 +37,15 @@ export async function gitLsFiles(projectPath: string, query?: string): Promise<s
   })
 }
 
-const IGNORED_DIRS = new Set(["node_modules", ".git", ".c8c", ".next", "dist", "build", "__pycache__"])
+const IGNORED_DIRS = new Set([
+  "node_modules",
+  ".git",
+  ".c8c",
+  ".next",
+  "dist",
+  "build",
+  "__pycache__",
+])
 
 async function walkDir(
   base: string,

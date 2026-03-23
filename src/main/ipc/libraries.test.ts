@@ -7,7 +7,9 @@ const getLibrariesMock = vi.fn()
 const installLibraryMock = vi.fn()
 const removeLibraryMock = vi.fn()
 const scanAllLibrariesMock = vi.fn()
-const trackTelemetryEventMock = vi.fn<(...args: unknown[]) => Promise<void>>(() => Promise.resolve())
+const trackTelemetryEventMock = vi.fn<(...args: unknown[]) => Promise<void>>(
+  () => Promise.resolve(),
+)
 
 const PREDEFINED_LIBRARIES = [
   {
@@ -27,9 +29,11 @@ const PREDEFINED_LIBRARIES = [
 
 vi.mock("electron", () => ({
   ipcMain: {
-    handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
-      ipcHandlers.set(channel, handler)
-    }),
+    handle: vi.fn(
+      (channel: string, handler: (...args: unknown[]) => unknown) => {
+        ipcHandlers.set(channel, handler)
+      },
+    ),
   },
 }))
 
@@ -148,7 +152,10 @@ describe("libraries IPC locks", () => {
     expect(scanAllLibrariesMock).not.toHaveBeenCalled()
 
     releaseInstall.resolve()
-    const [firstResult, secondResult] = await Promise.all([firstScan, secondScan])
+    const [firstResult, secondResult] = await Promise.all([
+      firstScan,
+      secondScan,
+    ])
     await pendingInstall
 
     expect(scanAllLibrariesMock).toHaveBeenCalledTimes(1)

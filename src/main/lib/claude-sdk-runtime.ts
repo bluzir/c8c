@@ -62,7 +62,10 @@ class AsyncEventQueue<T> implements AsyncIterable<T> {
     return {
       next: () => {
         if (this.items.length > 0) {
-          return Promise.resolve({ value: this.items.shift() as T, done: false })
+          return Promise.resolve({
+            value: this.items.shift() as T,
+            done: false,
+          })
         }
         if (this.closed) {
           return Promise.resolve({ value: undefined as T, done: true })
@@ -83,7 +86,10 @@ export interface ParsedClaudeSdkLegacyArgs {
   tools?: ClaudeSdkOptions["tools"]
 }
 
-function readFlagValue(args: string[], index: number): { value: string | null; consumed: number } {
+function readFlagValue(
+  args: string[],
+  index: number,
+): { value: string | null; consumed: number } {
   const current = args[index]
   const equalsIndex = current.indexOf("=")
   if (equalsIndex >= 0) {
@@ -104,7 +110,9 @@ function readFlagValue(args: string[], index: number): { value: string | null; c
   }
 }
 
-export function parseClaudeSdkLegacyArgs(extraArgs?: string[]): ParsedClaudeSdkLegacyArgs {
+export function parseClaudeSdkLegacyArgs(
+  extraArgs?: string[],
+): ParsedClaudeSdkLegacyArgs {
   const parsed: ParsedClaudeSdkLegacyArgs = {
     extraArgs: {},
   }
@@ -157,8 +165,8 @@ function emitUsageIfChanged(
 ): void {
   const usage = parser.usage
   if (
-    usage.input_tokens === lastUsage.input_tokens
-    && usage.output_tokens === lastUsage.output_tokens
+    usage.input_tokens === lastUsage.input_tokens &&
+    usage.output_tokens === lastUsage.output_tokens
   ) {
     return
   }
@@ -176,15 +184,19 @@ function emitUsageIfChanged(
 
 function toClaudeSettingSources(settingSources?: string[]): SettingSource[] {
   const allowed = new Set<SettingSource>(["user", "project", "local"])
-  const requested = (settingSources || ["project", "user"])
-    .filter((source): source is SettingSource => allowed.has(source as SettingSource))
+  const requested = (settingSources || ["project", "user"]).filter(
+    (source): source is SettingSource => allowed.has(source as SettingSource),
+  )
 
   return requested.length > 0 ? requested : ["project", "user"]
 }
 
 function resolveClaudePermissionMode(
   options: AgentRunOptions,
-): Pick<ClaudeSdkOptions, "permissionMode" | "allowDangerouslySkipPermissions"> {
+): Pick<
+  ClaudeSdkOptions,
+  "permissionMode" | "allowDangerouslySkipPermissions"
+> {
   if (options.executionMode === "plan") {
     return {
       permissionMode: "plan",
@@ -200,9 +212,9 @@ function resolveClaudePermissionMode(
   }
 
   if (
-    options.permissionMode === "acceptEdits"
-    || options.permissionMode === "dontAsk"
-    || options.permissionMode === "default"
+    options.permissionMode === "acceptEdits" ||
+    options.permissionMode === "dontAsk" ||
+    options.permissionMode === "default"
   ) {
     return {
       permissionMode: options.permissionMode,
@@ -247,7 +259,9 @@ function buildSystemPrompt(
   ].filter(Boolean)
 
   if (parsedArgs.systemPrompt) {
-    return [parsedArgs.systemPrompt, ...appendedSegments].filter(Boolean).join("\n\n")
+    return [parsedArgs.systemPrompt, ...appendedSegments]
+      .filter(Boolean)
+      .join("\n\n")
   }
 
   if (appendedSegments.length > 0) {
@@ -266,9 +280,10 @@ function buildSummaryFromResult(
   sessionId: string | null,
   aborted: boolean,
 ): AgentExecutionSummary {
-  const errorText = result.subtype === "success"
-    ? null
-    : result.errors.join("\n") || result.subtype
+  const errorText =
+    result.subtype === "success"
+      ? null
+      : result.errors.join("\n") || result.subtype
   const explicitExitCode = (() => {
     if (!errorText) return 0
     const match = errorText.match(/\bexit code\s+(-?\d+)\b/i)
@@ -336,7 +351,9 @@ function formatHeartbeatSilence(ms: number): string {
 
 function nextHeartbeatThreshold(lastThresholdMs: number | null): number {
   if (lastThresholdMs === null) return HEARTBEAT_THRESHOLDS_MS[0]
-  const index = HEARTBEAT_THRESHOLDS_MS.indexOf(lastThresholdMs as (typeof HEARTBEAT_THRESHOLDS_MS)[number])
+  const index = HEARTBEAT_THRESHOLDS_MS.indexOf(
+    lastThresholdMs as (typeof HEARTBEAT_THRESHOLDS_MS)[number],
+  )
   if (index >= 0 && index < HEARTBEAT_THRESHOLDS_MS.length - 1) {
     return HEARTBEAT_THRESHOLDS_MS[index + 1]
   }
@@ -362,7 +379,9 @@ export async function createClaudeSdkExecutionHandle(
     if (options.abortSignal.aborted) {
       externalAbort()
     } else {
-      options.abortSignal.addEventListener("abort", externalAbort, { once: true })
+      options.abortSignal.addEventListener("abort", externalAbort, {
+        once: true,
+      })
     }
   }
 
@@ -403,11 +422,11 @@ export async function createClaudeSdkExecutionHandle(
     try {
       const permission = resolveClaudePermissionMode(options)
       const mcpConfigPath = options.mcpConfigPath || parsedArgs.mcpConfigPath
-      const tools = options.disableBuiltInTools
-        ? []
-        : parsedArgs.tools
+      const tools = options.disableBuiltInTools ? [] : parsedArgs.tools
       const extraArgs = {
-        ...(options.disableSlashCommands ? { "disable-slash-commands": null } : {}),
+        ...(options.disableSlashCommands
+          ? { "disable-slash-commands": null }
+          : {}),
         ...parsedArgs.extraArgs,
       }
       const sdkOptions: ClaudeSdkOptions = {
@@ -416,7 +435,8 @@ export async function createClaudeSdkExecutionHandle(
         env: {
           ...process.env,
           ...options.extraEnv,
-          CLAUDE_AGENT_SDK_CLIENT_APP: process.env.CLAUDE_AGENT_SDK_CLIENT_APP || "c8c",
+          CLAUDE_AGENT_SDK_CLIENT_APP:
+            process.env.CLAUDE_AGENT_SDK_CLIENT_APP || "c8c",
         },
         model: options.model,
         maxTurns: options.maxTurns,
@@ -429,8 +449,11 @@ export async function createClaudeSdkExecutionHandle(
         mcpServers: buildClaudeSdkMcpServers(mcpConfigPath),
         pathToClaudeCodeExecutable: resolveClaudeExecutablePath(),
         permissionMode: permission.permissionMode,
-        allowDangerouslySkipPermissions: permission.allowDangerouslySkipPermissions,
-        persistSession: options.resumeSessionId ? true : (options.persistSession ?? false),
+        allowDangerouslySkipPermissions:
+          permission.allowDangerouslySkipPermissions,
+        persistSession: options.resumeSessionId
+          ? true
+          : (options.persistSession ?? false),
         resume: options.resumeSessionId,
         includePartialMessages: true,
         settingSources: toClaudeSettingSources(options.settingSources),
@@ -463,7 +486,9 @@ export async function createClaudeSdkExecutionHandle(
         }
 
         if (message.type === "auth_status") {
-          const text = [...message.output, message.error || ""].filter(Boolean).join("\n")
+          const text = [...message.output, message.error || ""]
+            .filter(Boolean)
+            .join("\n")
           if (text) {
             queue.push({ type: "stderr", text: `${text}\n` })
           }
@@ -499,11 +524,16 @@ export async function createClaudeSdkExecutionHandle(
         killed: false,
         aborted: sdkAbortController.signal.aborted,
         durationMs: Date.now() - startedAt,
-        error: sdkAbortController.signal.aborted ? "Execution aborted." : "Claude SDK query finished without a result message.",
+        error: sdkAbortController.signal.aborted
+          ? "Execution aborted."
+          : "Claude SDK query finished without a result message.",
         providerSessionId: sessionId,
         backend: "claude_sdk",
       }
-      queue.push({ type: "error", text: summary.error || "Claude SDK query failed." })
+      queue.push({
+        type: "error",
+        text: summary.error || "Claude SDK query failed.",
+      })
       queue.push({ type: "finish", summary })
       return summary
     } catch (error) {
@@ -519,7 +549,10 @@ export async function createClaudeSdkExecutionHandle(
         providerSessionId: sessionId,
         backend: "claude_sdk",
       }
-      queue.push({ type: "error", text: summary.error || "Claude SDK query failed." })
+      queue.push({
+        type: "error",
+        text: summary.error || "Claude SDK query failed.",
+      })
       queue.push({ type: "finish", summary })
       return summary
     } finally {

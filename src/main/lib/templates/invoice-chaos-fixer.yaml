@@ -33,7 +33,8 @@ nodes:
       y: 200
     config:
       skillRef: composio/invoice-organizer
-      prompt: Scan this folder of invoices and receipts. Identify each document, extract key info (vendor, amount, date,
+      prompt:
+        Scan this folder of invoices and receipts. Identify each document, extract key info (vendor, amount, date,
         category), rename files consistently.
   - id: pdf-1
     type: skill
@@ -42,7 +43,8 @@ nodes:
       y: 200
     config:
       skillRef: anthropic/pdf
-      prompt: "Extract structured data from all PDF invoices: vendor name, invoice number, date, line items, totals, tax
+      prompt:
+        "Extract structured data from all PDF invoices: vendor name, invoice number, date, line items, totals, tax
         amounts, and payment terms."
   - id: xlsx-1
     type: skill
@@ -51,7 +53,8 @@ nodes:
       y: 200
     config:
       skillRef: anthropic/xlsx
-      prompt: "Create a comprehensive expense spreadsheet with columns: Date, Vendor, Category, Amount, Tax, Total, Payment
+      prompt:
+        "Create a comprehensive expense spreadsheet with columns: Date, Vendor, Category, Amount, Tax, Total, Payment
         Status. Add a summary sheet with totals by category and month."
   - id: finance-1
     type: skill
@@ -60,7 +63,8 @@ nodes:
       y: 200
     config:
       skillRef: support/Finance Tracker
-      prompt: "Review the expense data for anomalies: duplicate charges, unusual amounts, missing categories, tax deduction
+      prompt:
+        "Review the expense data for anomalies: duplicate charges, unusual amounts, missing categories, tax deduction
         opportunities. Provide a financial summary."
   - id: evaluator-1
     type: evaluator
@@ -68,7 +72,8 @@ nodes:
       x: 1500
       y: 200
     config:
-      criteria: "Score 1-10 on: data completeness (all invoices captured?), categorization accuracy, spreadsheet usability,
+      criteria:
+        "Score 1-10 on: data completeness (all invoices captured?), categorization accuracy, spreadsheet usability,
         and anomaly detection thoroughness."
       threshold: 7
       maxRetries: 2

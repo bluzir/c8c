@@ -1,14 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const {
-  createTelemetryClientMock,
-  logWarnMock,
-  readFileMock,
-} = vi.hoisted(() => ({
-  createTelemetryClientMock: vi.fn(),
-  logWarnMock: vi.fn(),
-  readFileMock: vi.fn(),
-}))
+const { createTelemetryClientMock, logWarnMock, readFileMock } = vi.hoisted(
+  () => ({
+    createTelemetryClientMock: vi.fn(),
+    logWarnMock: vi.fn(),
+    readFileMock: vi.fn(),
+  }),
+)
 
 vi.mock("electron", () => ({
   app: {
@@ -23,7 +21,8 @@ vi.mock("node:fs/promises", () => ({
 }))
 
 vi.mock("./index", () => ({
-  createTelemetryClient: (...args: unknown[]) => createTelemetryClientMock(...args),
+  createTelemetryClient: (...args: unknown[]) =>
+    createTelemetryClientMock(...args),
 }))
 
 vi.mock("../atomic-write", () => ({
@@ -58,7 +57,9 @@ describe("telemetry service", () => {
     createTelemetryClientMock.mockReset()
     logWarnMock.mockReset()
     readFileMock.mockReset()
-    readFileMock.mockRejectedValue(Object.assign(new Error("missing"), { code: "ENOENT" }))
+    readFileMock.mockRejectedValue(
+      Object.assign(new Error("missing"), { code: "ENOENT" }),
+    )
   })
 
   it("falls back to noop telemetry and retries after an init failure", async () => {
@@ -69,7 +70,8 @@ describe("telemetry service", () => {
       })
       .mockImplementation(() => createClient())
 
-    const { initTelemetryService, getTelemetrySettings } = await import("./service")
+    const { initTelemetryService, getTelemetrySettings } =
+      await import("./service")
 
     await expect(initTelemetryService()).resolves.toBeUndefined()
     expect(logWarnMock).toHaveBeenCalledWith(

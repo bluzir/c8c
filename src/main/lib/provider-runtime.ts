@@ -7,7 +7,10 @@ import type {
   Workflow,
   WorkflowNode,
 } from "@shared/types"
-import { resolveNodeProvider, resolveWorkflowProvider } from "@shared/provider-metadata"
+import {
+  resolveNodeProvider,
+  resolveWorkflowProvider,
+} from "@shared/provider-metadata"
 import { getProviderSettings } from "./provider-settings"
 import { resolveAgentProvider } from "./providers"
 
@@ -19,7 +22,9 @@ export function applyProviderFeatureFlags(
   return provider
 }
 
-export async function resolveWorkflowProviderId(workflow: Workflow): Promise<ProviderId> {
+export async function resolveWorkflowProviderId(
+  workflow: Workflow,
+): Promise<ProviderId> {
   const settings = await getProviderSettings()
   const requested = resolveWorkflowProvider(workflow, settings.defaultProvider)
   return applyProviderFeatureFlags(requested, settings.features.codexProvider)
@@ -30,7 +35,11 @@ export async function resolveNodeProviderId(
   workflow: Workflow,
 ): Promise<ProviderId> {
   const settings = await getProviderSettings()
-  const requested = resolveNodeProvider(node, workflow, settings.defaultProvider)
+  const requested = resolveNodeProvider(
+    node,
+    workflow,
+    settings.defaultProvider,
+  )
   return applyProviderFeatureFlags(requested, settings.features.codexProvider)
 }
 
@@ -40,7 +49,9 @@ export interface ProviderReadiness {
   auth: ProviderAuthStatus
 }
 
-export async function getProviderReadiness(provider: ProviderId): Promise<ProviderReadiness> {
+export async function getProviderReadiness(
+  provider: ProviderId,
+): Promise<ProviderReadiness> {
   const resolved = resolveAgentProvider(provider)
   const [health, auth] = await Promise.all([
     resolved.checkAvailability(),
@@ -54,7 +65,9 @@ export async function getProviderReadiness(provider: ProviderId): Promise<Provid
   }
 }
 
-export function providerReadinessError(readiness: ProviderReadiness): string | null {
+export function providerReadinessError(
+  readiness: ProviderReadiness,
+): string | null {
   if (!readiness.health.available) {
     if (readiness.provider === "codex") {
       return "cli_unavailable:Codex CLI is not installed or not executable. Install it with: npm install -g @openai/codex"

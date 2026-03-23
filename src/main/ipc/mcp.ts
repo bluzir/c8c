@@ -1,7 +1,11 @@
 import { ipcMain } from "electron"
 import { resolve } from "node:path"
 import type { McpServerInfo, McpServerScope, ProviderId } from "@shared/types"
-import { validateMcpServerInfo, validateMcpServerName, validateMcpServerScope } from "../lib/mcp-validation"
+import {
+  validateMcpServerInfo,
+  validateMcpServerName,
+  validateMcpServerScope,
+} from "../lib/mcp-validation"
 import { listPluginMcpServers } from "../lib/plugin-mcp"
 import { setPluginMcpServerApproved } from "../lib/plugins"
 import { resolveMcpProvider } from "../lib/providers"
@@ -59,22 +63,34 @@ function invalidMutation(error: string): { success: false; error: string } {
 }
 
 export function registerMcpHandlers() {
-  ipcMain.handle("mcp:list-servers", async (_event, provider: ProviderId, projectPath?: string) => {
-    try {
-      const safeProjectPath = await resolveOptionalProjectPath(projectPath, "mcp:list-servers")
-      return resolveMcpProvider(provider).listServers(undefined, safeProjectPath)
-    } catch {
-      return []
-    }
-  })
+  ipcMain.handle(
+    "mcp:list-servers",
+    async (_event, provider: ProviderId, projectPath?: string) => {
+      try {
+        const safeProjectPath = await resolveOptionalProjectPath(
+          projectPath,
+          "mcp:list-servers",
+        )
+        return resolveMcpProvider(provider).listServers(
+          undefined,
+          safeProjectPath,
+        )
+      } catch {
+        return []
+      }
+    },
+  )
 
-  ipcMain.handle("mcp:list-all-servers", async (_event, provider: ProviderId) => {
-    try {
-      return resolveMcpProvider(provider).listAllServers?.() ?? []
-    } catch {
-      return []
-    }
-  })
+  ipcMain.handle(
+    "mcp:list-all-servers",
+    async (_event, provider: ProviderId) => {
+      try {
+        return resolveMcpProvider(provider).listAllServers?.() ?? []
+      } catch {
+        return []
+      }
+    },
+  )
 
   ipcMain.handle("mcp:list-plugin-servers", async () => {
     return listPluginMcpServers()
@@ -82,7 +98,12 @@ export function registerMcpHandlers() {
 
   ipcMain.handle(
     "mcp:add-server",
-    async (_event, provider: ProviderId, server: McpServerInfo, projectPath?: string) => {
+    async (
+      _event,
+      provider: ProviderId,
+      server: McpServerInfo,
+      projectPath?: string,
+    ) => {
       const validatedServer = validateMcpServerInfo(server)
       if (!validatedServer.ok) {
         return invalidMutation(validatedServer.error)
@@ -94,7 +115,10 @@ export function registerMcpHandlers() {
           projectPath ?? validatedServer.value.projectPath,
           "mcp:add-server",
         )
-        return resolveMcpProvider(provider).addServer(validatedServer.value, safeProjectPath)
+        return resolveMcpProvider(provider).addServer(
+          validatedServer.value,
+          safeProjectPath,
+        )
       } catch (error) {
         return invalidMutation(errorMessage(error))
       }
@@ -103,7 +127,13 @@ export function registerMcpHandlers() {
 
   ipcMain.handle(
     "mcp:update-server",
-    async (_event, provider: ProviderId, name: string, server: McpServerInfo, projectPath?: string) => {
+    async (
+      _event,
+      provider: ProviderId,
+      name: string,
+      server: McpServerInfo,
+      projectPath?: string,
+    ) => {
       const normalizedName = validateMcpServerName(name)
       if (!normalizedName.ok) {
         return invalidMutation(normalizedName.error)
@@ -125,7 +155,11 @@ export function registerMcpHandlers() {
           projectPath ?? validatedServer.value.projectPath,
           "mcp:update-server",
         )
-        return mcpProvider.updateServer(normalizedName.value.name, validatedServer.value, safeProjectPath)
+        return mcpProvider.updateServer(
+          normalizedName.value.name,
+          validatedServer.value,
+          safeProjectPath,
+        )
       } catch (error) {
         return invalidMutation(errorMessage(error))
       }
@@ -134,7 +168,13 @@ export function registerMcpHandlers() {
 
   ipcMain.handle(
     "mcp:remove-server",
-    async (_event, provider: ProviderId, name: string, scope: McpServerScope, projectPath?: string) => {
+    async (
+      _event,
+      provider: ProviderId,
+      name: string,
+      scope: McpServerScope,
+      projectPath?: string,
+    ) => {
       const normalizedName = validateMcpServerName(name)
       if (!normalizedName.ok) {
         return invalidMutation(normalizedName.error)
@@ -145,8 +185,16 @@ export function registerMcpHandlers() {
       }
 
       try {
-        const safeProjectPath = await resolveScopedProjectPath(normalizedScope.value, projectPath, "mcp:remove-server")
-        return resolveMcpProvider(provider).removeServer(normalizedName.value.name, normalizedScope.value, safeProjectPath)
+        const safeProjectPath = await resolveScopedProjectPath(
+          normalizedScope.value,
+          projectPath,
+          "mcp:remove-server",
+        )
+        return resolveMcpProvider(provider).removeServer(
+          normalizedName.value.name,
+          normalizedScope.value,
+          safeProjectPath,
+        )
       } catch (error) {
         return invalidMutation(errorMessage(error))
       }
@@ -173,7 +221,11 @@ export function registerMcpHandlers() {
       }
 
       try {
-        const safeProjectPath = await resolveScopedProjectPath(normalizedScope.value, projectPath, "mcp:toggle-server")
+        const safeProjectPath = await resolveScopedProjectPath(
+          normalizedScope.value,
+          projectPath,
+          "mcp:toggle-server",
+        )
         return resolveMcpProvider(provider).toggleServer(
           normalizedName.value.name,
           normalizedScope.value,
@@ -188,7 +240,13 @@ export function registerMcpHandlers() {
 
   ipcMain.handle(
     "mcp:test-server",
-    async (_event, provider: ProviderId, name: string, scope: McpServerScope, projectPath?: string) => {
+    async (
+      _event,
+      provider: ProviderId,
+      name: string,
+      scope: McpServerScope,
+      projectPath?: string,
+    ) => {
       const normalizedName = validateMcpServerName(name)
       if (!normalizedName.ok) {
         return {
@@ -209,8 +267,16 @@ export function registerMcpHandlers() {
       }
 
       try {
-        const safeProjectPath = await resolveScopedProjectPath(normalizedScope.value, projectPath, "mcp:test-server")
-        return resolveMcpProvider(provider).testServer(normalizedName.value.name, normalizedScope.value, safeProjectPath)
+        const safeProjectPath = await resolveScopedProjectPath(
+          normalizedScope.value,
+          projectPath,
+          "mcp:test-server",
+        )
+        return resolveMcpProvider(provider).testServer(
+          normalizedName.value.name,
+          normalizedScope.value,
+          safeProjectPath,
+        )
       } catch (error) {
         return {
           healthy: false,
@@ -224,7 +290,12 @@ export function registerMcpHandlers() {
 
   ipcMain.handle(
     "mcp:discover-tools",
-    async (_event, provider: ProviderId, serverName?: string, projectPath?: string) => {
+    async (
+      _event,
+      provider: ProviderId,
+      serverName?: string,
+      projectPath?: string,
+    ) => {
       if (serverName !== undefined) {
         const normalizedName = validateMcpServerName(serverName)
         if (!normalizedName.ok) {
@@ -234,15 +305,24 @@ export function registerMcpHandlers() {
       }
 
       try {
-        const safeProjectPath = await resolveOptionalProjectPath(projectPath, "mcp:discover-tools")
-        return resolveMcpProvider(provider).discoverTools(serverName, safeProjectPath)
+        const safeProjectPath = await resolveOptionalProjectPath(
+          projectPath,
+          "mcp:discover-tools",
+        )
+        return resolveMcpProvider(provider).discoverTools(
+          serverName,
+          safeProjectPath,
+        )
       } catch {
         return []
       }
     },
   )
 
-  ipcMain.handle("mcp:set-plugin-server-approved", async (_event, serverId: string, approved: boolean) => {
-    return setPluginMcpServerApproved(serverId, approved)
-  })
+  ipcMain.handle(
+    "mcp:set-plugin-server-approved",
+    async (_event, serverId: string, approved: boolean) => {
+      return setPluginMcpServerApproved(serverId, approved)
+    },
+  )
 }

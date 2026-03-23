@@ -13,17 +13,28 @@ describe("artifact-store", () => {
     projectDir = await mkdtemp(join(tmpdir(), "artifact-store-project-"))
     workspaceDir = join(projectDir, ".c8c", "runs", "run-1")
     await mkdir(workspaceDir, { recursive: true })
-    await writeFile(join(workspaceDir, "run-result.json"), JSON.stringify({
-      runId: "run-1",
-      status: "completed",
-      workflowName: "Delivery Factory: Shape Project",
-      workflowPath: join(projectDir, ".c8c", "shape-project.chain"),
-      startedAt: 1,
-      completedAt: 2,
-      reportPath: join(workspaceDir, "report.md"),
-      workspace: workspaceDir,
-    }, null, 2))
-    await writeFile(join(workspaceDir, "report.md"), "# Output\n\nStructured project shape.\n", "utf-8")
+    await writeFile(
+      join(workspaceDir, "run-result.json"),
+      JSON.stringify(
+        {
+          runId: "run-1",
+          status: "completed",
+          workflowName: "Delivery Factory: Shape Project",
+          workflowPath: join(projectDir, ".c8c", "shape-project.chain"),
+          startedAt: 1,
+          completedAt: 2,
+          reportPath: join(workspaceDir, "report.md"),
+          workspace: workspaceDir,
+        },
+        null,
+        2,
+      ),
+    )
+    await writeFile(
+      join(workspaceDir, "report.md"),
+      "# Output\n\nStructured project shape.\n",
+      "utf-8",
+    )
   })
 
   afterEach(async () => {
@@ -49,12 +60,18 @@ describe("artifact-store", () => {
     })
 
     expect(result.artifacts).toHaveLength(2)
-    expect(result.artifacts.map((artifact) => artifact.kind)).toEqual(["project_brief", "roadmap"])
+    expect(result.artifacts.map((artifact) => artifact.kind)).toEqual([
+      "project_brief",
+      "roadmap",
+    ])
     expect(result.artifacts[0]?.relativePath).toContain(".c8c/artifacts/")
 
     const storedArtifacts = await listProjectArtifacts(projectDir)
     expect(storedArtifacts).toHaveLength(2)
-    expect(storedArtifacts.map((artifact) => artifact.title).sort()).toEqual(["Project Brief", "Roadmap"])
+    expect(storedArtifacts.map((artifact) => artifact.title).sort()).toEqual([
+      "Project Brief",
+      "Roadmap",
+    ])
     expect(storedArtifacts[0]?.factoryId).toBe("factory:delivery-foundation")
     expect(storedArtifacts[0]?.caseId).toBe("case:delivery-foundation:abc123")
     expect(storedArtifacts[0]?.sourceArtifactIds).toEqual(["artifact-0"])
@@ -72,7 +89,9 @@ describe("artifact-store", () => {
     expect(markdown).toContain("Lab: Delivery Factory")
     expect(markdown).toContain("Track: Shape project")
     expect(markdown).toContain("Flow: Delivery Factory: Shape Project")
-    expect(markdown).toContain("Starting point: Delivery Factory: Shape Project")
+    expect(markdown).toContain(
+      "Starting point: Delivery Factory: Shape Project",
+    )
     expect(markdown).toContain("Structured project shape.")
   })
 
@@ -83,7 +102,11 @@ describe("artifact-store", () => {
       contracts: [{ kind: "phase_plan", title: "Phase Plan" }],
     })
 
-    await writeFile(join(workspaceDir, "report.md"), "# Output\n\nUpdated plan.\n", "utf-8")
+    await writeFile(
+      join(workspaceDir, "report.md"),
+      "# Output\n\nUpdated plan.\n",
+      "utf-8",
+    )
 
     const second = await persistArtifactsFromRun({
       projectPath: projectDir,
@@ -91,7 +114,9 @@ describe("artifact-store", () => {
       contracts: [{ kind: "phase_plan", title: "Phase Plan" }],
     })
 
-    expect(second.artifacts[0]?.contentPath).toBe(first.artifacts[0]?.contentPath)
+    expect(second.artifacts[0]?.contentPath).toBe(
+      first.artifacts[0]?.contentPath,
+    )
     expect(second.artifacts[0]?.createdAt).toBe(first.artifacts[0]?.createdAt)
 
     const markdown = await readFile(second.artifacts[0]!.contentPath, "utf-8")

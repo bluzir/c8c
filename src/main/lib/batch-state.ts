@@ -6,7 +6,12 @@ import { writeFileAtomic } from "./atomic-write"
 import { allowedProjectRoots } from "./security-paths"
 import { logInfo, logWarn } from "./structured-log"
 
-export type PersistedBatchStatus = "running" | "completed" | "failed" | "cancelled" | "interrupted"
+export type PersistedBatchStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "interrupted"
 
 export interface PersistedBatchState {
   batchId: string
@@ -29,7 +34,10 @@ function globalBatchRoot(): string {
   return join(homedir(), ".c8c", "batches")
 }
 
-export async function ensureBatchWorkspace(batchId: string, projectPath?: string): Promise<string> {
+export async function ensureBatchWorkspace(
+  batchId: string,
+  projectPath?: string,
+): Promise<string> {
   const root = projectPath
     ? join(projectPath, ".c8c", "batches")
     : globalBatchRoot()
@@ -46,10 +54,15 @@ export async function persistBatchState(
   workspace: string,
   state: PersistedBatchState,
 ): Promise<void> {
-  await writeFileAtomic(batchStatePath(workspace), JSON.stringify(state, null, 2))
+  await writeFileAtomic(
+    batchStatePath(workspace),
+    JSON.stringify(state, null, 2),
+  )
 }
 
-export async function readBatchState(workspace: string): Promise<PersistedBatchState | null> {
+export async function readBatchState(
+  workspace: string,
+): Promise<PersistedBatchState | null> {
   try {
     const raw = await readFile(batchStatePath(workspace), "utf-8")
     return JSON.parse(raw) as PersistedBatchState
@@ -61,15 +74,24 @@ export async function readBatchState(workspace: string): Promise<PersistedBatchS
 async function listBatchWorkspaces(root: string): Promise<string[]> {
   try {
     const entries = await readdir(root, { withFileTypes: true })
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => join(root, entry.name))
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(root, entry.name))
   } catch {
     return []
   }
 }
 
-export async function recoverBatchStates(): Promise<{ roots: number; workspaces: number; interrupted: number }> {
+export async function recoverBatchStates(): Promise<{
+  roots: number
+  workspaces: number
+  interrupted: number
+}> {
   const projectRoots = await allowedProjectRoots()
-  const roots = [globalBatchRoot(), ...projectRoots.map((projectRoot) => join(projectRoot, ".c8c", "batches"))]
+  const roots = [
+    globalBatchRoot(),
+    ...projectRoots.map((projectRoot) => join(projectRoot, ".c8c", "batches")),
+  ]
   let workspaces = 0
   let interrupted = 0
 
@@ -96,7 +118,10 @@ export async function recoverBatchStates(): Promise<{ roots: number; workspaces:
   return { roots: roots.length, workspaces, interrupted }
 }
 
-export function logBatchPersistenceFailure(batchId: string, error: unknown): void {
+export function logBatchPersistenceFailure(
+  batchId: string,
+  error: unknown,
+): void {
   logWarn("batch-state", "persist_batch_state_failed", {
     batchId,
     error: error instanceof Error ? error.message : String(error),

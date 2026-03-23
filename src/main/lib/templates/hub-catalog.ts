@@ -48,7 +48,9 @@ let memoryCacheTimestamp = 0
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 function isMemoryCacheFresh(): boolean {
-  return memoryCache !== null && Date.now() - memoryCacheTimestamp < MEMORY_TTL_MS
+  return (
+    memoryCache !== null && Date.now() - memoryCacheTimestamp < MEMORY_TTL_MS
+  )
 }
 
 async function readDiskCache(): Promise<HubCatalogCache | null> {
@@ -98,7 +100,10 @@ async function fetchCatalogFromNetwork(): Promise<HubCatalogCache> {
     throw new Error("Catalog response too large")
   }
 
-  const data = JSON.parse(body) as { generatedAt: string; entries: CatalogEntry[] }
+  const data = JSON.parse(body) as {
+    generatedAt: string
+    entries: CatalogEntry[]
+  }
   if (!data.generatedAt || !Array.isArray(data.entries)) {
     throw new Error("Invalid catalog response shape")
   }
@@ -133,7 +138,9 @@ export async function refreshHubCatalog(): Promise<void> {
     memoryCache = cache
     memoryCacheTimestamp = Date.now()
     await writeDiskCache(cache)
-    logInfo("hub-catalog", "catalog_refreshed", { entries: cache.entries.length })
+    logInfo("hub-catalog", "catalog_refreshed", {
+      entries: cache.entries.length,
+    })
   } catch (error) {
     logWarn("hub-catalog", "catalog_refresh_failed", {
       error: error instanceof Error ? error.message : String(error),
@@ -145,7 +152,9 @@ export async function refreshHubCatalog(): Promise<void> {
       if (diskCache) {
         memoryCache = diskCache
         memoryCacheTimestamp = Date.now()
-        logInfo("hub-catalog", "fell_back_to_disk_cache", { entries: diskCache.entries.length })
+        logInfo("hub-catalog", "fell_back_to_disk_cache", {
+          entries: diskCache.entries.length,
+        })
       }
     }
   }
@@ -163,7 +172,9 @@ export function initHubCatalogRefresh(): void {
     if (diskCache && !isMemoryCacheFresh()) {
       memoryCache = diskCache
       memoryCacheTimestamp = Date.now()
-      logInfo("hub-catalog", "loaded_disk_cache", { entries: diskCache.entries.length })
+      logInfo("hub-catalog", "loaded_disk_cache", {
+        entries: diskCache.entries.length,
+      })
     }
   })
 

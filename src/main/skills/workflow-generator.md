@@ -32,13 +32,22 @@ A flow is a directed graph with nodes and edges:
 ## Node Types
 
 ### input
+
 Entry point. Always exactly one per flow.
+
 ```json
-{ "id": "input-1", "type": "input", "position": { "x": 0, "y": 200 }, "config": {} }
+{
+  "id": "input-1",
+  "type": "input",
+  "position": { "x": 0, "y": 200 },
+  "config": {}
+}
 ```
 
 ### skill
+
 Runs a Claude agent/skill. The main work block.
+
 ```json
 {
   "id": "skill-name-1",
@@ -52,10 +61,13 @@ Runs a Claude agent/skill. The main work block.
   }
 }
 ```
+
 `skillRef` may be an empty string when no listed reusable skill is a close semantic match for the job. In that case, rely on a strong prompt instead of forcing an unrelated skill.
 
 ### evaluator
+
 AI quality check. Scores content by rubric, routes pass/fail.
+
 ```json
 {
   "id": "eval-1",
@@ -70,12 +82,15 @@ AI quality check. Scores content by rubric, routes pass/fail.
   }
 }
 ```
+
 Evaluator config never uses `skillRef`. The only skill-related evaluator field is `skillRefs`.
 Evaluator edges: "pass" goes forward, "fail" goes back to retryFrom node.
 
 ### splitter
+
 AI decomposition into parallel subtasks. Creates N branches at runtime.
 Important: splitter does NOT do discovery/extraction from messy input. It only splits an already prepared list/document into independent subtasks.
+
 ```json
 {
   "id": "splitter-1",
@@ -89,7 +104,9 @@ Important: splitter does NOT do discovery/extraction from messy input. It only s
 ```
 
 ### merger
+
 Collects results from parallel branches.
+
 ```json
 {
   "id": "merger-1",
@@ -101,12 +118,20 @@ Collects results from parallel branches.
   }
 }
 ```
+
 Strategies: "concatenate" (join all), "summarize" (AI synthesis), "select_best" (AI picks winner)
 
 ### output
+
 Final result. Always exactly one per flow.
+
 ```json
-{ "id": "output-1", "type": "output", "position": { "x": 900, "y": 200 }, "config": {} }
+{
+  "id": "output-1",
+  "type": "output",
+  "position": { "x": 900, "y": 200 },
+  "config": {}
+}
 ```
 
 ## Edge Types
@@ -116,17 +141,24 @@ Final result. Always exactly one per flow.
 - **fail**: From evaluator back to retry node
 
 ```json
-{ "id": "e-source-target", "source": "source-id", "target": "target-id", "type": "default" }
+{
+  "id": "e-source-target",
+  "source": "source-id",
+  "target": "target-id",
+  "type": "default"
+}
 ```
 
 ## Common Patterns
 
 ### Linear pipeline
+
 ```
 input -> skill-A -> skill-B -> output
 ```
 
 ### Quality loop (iterate until good)
+
 ```
 input -> skill -> evaluator -> output (pass)
                     | (fail)
@@ -134,18 +166,22 @@ input -> skill -> evaluator -> output (pass)
 ```
 
 ### Fan-out (parallel processing)
+
 ```
 input -> skill-pre-split-analysis -> splitter -> skill-template -> merger -> output
 ```
+
 The pre-split analysis skill prepares a structured document for splitter (for example: list of components/screens/files/scenarios, or extracted target-file content).
 At runtime, ALL nodes between splitter and merger are cloned N times for parallel execution.
 Multiple skills can be placed between splitter and merger:
+
 ```
 input -> splitter -> [skill-A, skill-B] -> merger -> output     (parallel pipelines)
 input -> splitter -> skill-A -> skill-B -> merger -> output     (chained per subtask)
 ```
 
 ### Fan-out + quality check
+
 ```
 input -> splitter -> skill -> merger -> evaluator -> output
                                          | (fail)

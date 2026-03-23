@@ -66,7 +66,9 @@ function makeUniqueSubtaskKey(baseKey: string, usedKeys: Set<string>): string {
   return candidate
 }
 
-function currentRuntimeMeta(workflow: Workflow): Record<string, RuntimeNodeMeta> {
+function currentRuntimeMeta(
+  workflow: Workflow,
+): Record<string, RuntimeNodeMeta> {
   const maybeRuntime = workflow as Partial<RuntimeWorkflow>
   return maybeRuntime.runtimeMeta ? { ...maybeRuntime.runtimeMeta } : {}
 }
@@ -86,7 +88,10 @@ export function collapseSplitterExpansion(
   const splitterOutEdges = runtimeWorkflow.edges.filter(
     (e) => e.source === splitterId && e.type === "default",
   )
-  if (splitterOutEdges.length === 0 || !splitterOutEdges[0].target.includes("::")) {
+  if (
+    splitterOutEdges.length === 0 ||
+    !splitterOutEdges[0].target.includes("::")
+  ) {
     return { workflow: runtimeWorkflow, removedIds }
   }
 
@@ -109,7 +114,8 @@ export function collapseSplitterExpansion(
     }
   }
 
-  if (!mergerId || removedIds.size === 0) return { workflow: runtimeWorkflow, removedIds }
+  if (!mergerId || removedIds.size === 0)
+    return { workflow: runtimeWorkflow, removedIds }
 
   // Remove clone nodes and edges touching them
   const nextNodes = runtimeWorkflow.nodes.filter((n) => !removedIds.has(n.id))
@@ -154,8 +160,10 @@ export function collapseSplitterExpansion(
   const restoredEdges = [...nextEdges]
   for (const origEdge of originalWorkflow.edges) {
     if (
-      (origEdge.source === splitterId && origTemplateIds.has(origEdge.target)) ||
-      (origTemplateIds.has(origEdge.source) && origTemplateIds.has(origEdge.target)) ||
+      (origEdge.source === splitterId &&
+        origTemplateIds.has(origEdge.target)) ||
+      (origTemplateIds.has(origEdge.source) &&
+        origTemplateIds.has(origEdge.target)) ||
       (origTemplateIds.has(origEdge.source) && origEdge.target === mergerId)
     ) {
       if (!restoredEdges.some((e) => e.id === origEdge.id)) {
@@ -182,23 +190,31 @@ export function expandSplitter(
 ): RuntimeWorkflow {
   const splitterNode = workflow.nodes.find((n) => n.id === splitterId)
   if (!splitterNode || splitterNode.type !== "splitter") {
-    throw new RuntimeGraphError("SPLITTER_NOT_FOUND", `Node "${splitterId}" is not a splitter`)
+    throw new RuntimeGraphError(
+      "SPLITTER_NOT_FOUND",
+      `Node "${splitterId}" is not a splitter`,
+    )
   }
 
   const config = splitterNode.config as SplitterNodeConfig
   const maxBranches = config.maxBranches || 8
   if (subtasks.length === 0) {
-    throw new RuntimeGraphError("EMPTY_SUBTASKS", `Splitter "${splitterId}" produced no subtasks`)
+    throw new RuntimeGraphError(
+      "EMPTY_SUBTASKS",
+      `Splitter "${splitterId}" produced no subtasks`,
+    )
   }
 
   const usedSubtaskKeys = new Set<string>()
-  const limitedSubtasks = subtasks.slice(0, maxBranches).map((subtask, index) => {
-    const normalizedKey = sanitizeSubtaskKey(subtask.key, index)
-    return {
-      ...subtask,
-      key: makeUniqueSubtaskKey(normalizedKey, usedSubtaskKeys),
-    }
-  })
+  const limitedSubtasks = subtasks
+    .slice(0, maxBranches)
+    .map((subtask, index) => {
+      const normalizedKey = sanitizeSubtaskKey(subtask.key, index)
+      return {
+        ...subtask,
+        key: makeUniqueSubtaskKey(normalizedKey, usedSubtaskKeys),
+      }
+    })
 
   // Find all outgoing default edges from splitter
   const splitterOutEdges = workflow.edges.filter(
@@ -232,7 +248,10 @@ export function expandSplitter(
   }
 
   if (!mergerId) {
-    throw new RuntimeGraphError("NO_MERGER", `No merger found downstream of splitter "${splitterId}"`)
+    throw new RuntimeGraphError(
+      "NO_MERGER",
+      `No merger found downstream of splitter "${splitterId}"`,
+    )
   }
   if (templateIds.size === 0) {
     throw new RuntimeGraphError(
@@ -258,7 +277,9 @@ export function expandSplitter(
   )
   // Entry points: template nodes directly reached from splitter
   const entryIds = new Set(
-    splitterOutEdges.map((e) => e.target).filter((id) => runtimeTemplateIds.has(id)),
+    splitterOutEdges
+      .map((e) => e.target)
+      .filter((id) => runtimeTemplateIds.has(id)),
   )
   // Exit edges: template nodes with edges to merger (preserve edge type)
   const exitEdges = workflow.edges.filter(
@@ -266,7 +287,8 @@ export function expandSplitter(
   )
 
   // Build runtime nodes and edges
-  const runtimeMeta: Record<string, RuntimeNodeMeta> = currentRuntimeMeta(workflow)
+  const runtimeMeta: Record<string, RuntimeNodeMeta> =
+    currentRuntimeMeta(workflow)
   const runtimeNodes: WorkflowNode[] = []
   const runtimeEdges: WorkflowEdge[] = []
 
@@ -284,8 +306,14 @@ export function expandSplitter(
       let clonedConfig = tplNode.config
       if (tplNode.type === "evaluator") {
         const evalConfig = tplNode.config as EvaluatorNodeConfig
-        if (evalConfig.retryFrom && runtimeTemplateIds.has(evalConfig.retryFrom)) {
-          clonedConfig = { ...evalConfig, retryFrom: evalConfig.retryFrom + suffix }
+        if (
+          evalConfig.retryFrom &&
+          runtimeTemplateIds.has(evalConfig.retryFrom)
+        ) {
+          clonedConfig = {
+            ...evalConfig,
+            retryFrom: evalConfig.retryFrom + suffix,
+          }
         }
       }
 
@@ -348,7 +376,10 @@ export function expandSplitter(
     .concat(runtimeNodes)
 
   const newEdges = workflow.edges
-    .filter((e) => !runtimeTemplateIds.has(e.source) && !runtimeTemplateIds.has(e.target))
+    .filter(
+      (e) =>
+        !runtimeTemplateIds.has(e.source) && !runtimeTemplateIds.has(e.target),
+    )
     .concat(runtimeEdges)
 
   return {

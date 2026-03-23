@@ -19,7 +19,10 @@ function pickString(source: unknown, paths: string[][]): string | undefined {
   return undefined
 }
 
-function pickRecord(source: unknown, paths: string[][]): Record<string, unknown> | undefined {
+function pickRecord(
+  source: unknown,
+  paths: string[][],
+): Record<string, unknown> | undefined {
   for (const path of paths) {
     const value = readPath(source, path)
     if (isRecord(value)) return value
@@ -65,18 +68,24 @@ function eventKey(event: Record<string, unknown>): string {
 }
 
 function looksLikeSupportedLogEvent(event: Record<string, unknown>): boolean {
-  return typeof event.type === "string" && [
-    "assistant",
-    "tool_use",
-    "tool_result",
-    "content_block_start",
-    "message_start",
-    "message_delta",
-    "error",
-  ].includes(event.type)
+  return (
+    typeof event.type === "string" &&
+    [
+      "assistant",
+      "tool_use",
+      "tool_result",
+      "content_block_start",
+      "message_start",
+      "message_delta",
+      "error",
+    ].includes(event.type)
+  )
 }
 
-function buildAssistantEvent(subtype: "text" | "thinking", content: string): string {
+function buildAssistantEvent(
+  subtype: "text" | "thinking",
+  content: string,
+): string {
   return JSON.stringify({
     type: "assistant",
     subtype,
@@ -84,7 +93,11 @@ function buildAssistantEvent(subtype: "text" | "thinking", content: string): str
   })
 }
 
-function buildToolUseEvent(id: string, name: string, input: Record<string, unknown>): string {
+function buildToolUseEvent(
+  id: string,
+  name: string,
+  input: Record<string, unknown>,
+): string {
   return JSON.stringify({
     type: "tool_use",
     id,
@@ -135,18 +148,22 @@ function extractToolId(event: Record<string, unknown>): string | undefined {
   ])
 }
 
-function extractToolInput(event: Record<string, unknown>): Record<string, unknown> {
-  return pickRecord(event, [
-    ["input"],
-    ["arguments"],
-    ["args"],
-    ["tool_input"],
-    ["call", "input"],
-    ["call", "arguments"],
-    ["tool_call", "input"],
-    ["params", "input"],
-    ["params", "arguments"],
-  ]) || {}
+function extractToolInput(
+  event: Record<string, unknown>,
+): Record<string, unknown> {
+  return (
+    pickRecord(event, [
+      ["input"],
+      ["arguments"],
+      ["args"],
+      ["tool_input"],
+      ["call", "input"],
+      ["call", "arguments"],
+      ["tool_call", "input"],
+      ["params", "input"],
+      ["params", "arguments"],
+    ]) || {}
+  )
 }
 
 function extractToolOutput(event: Record<string, unknown>): string | undefined {
@@ -158,18 +175,20 @@ function extractToolOutput(event: Record<string, unknown>): string | undefined {
       ["toolResult"],
       ["error"],
       ["message"],
-    ]) || pickArray(event, [
-      ["output"],
-      ["result"],
-      ["content"],
-      ["item", "content"],
-      ["params", "result"],
-    ]) || pickRecord(event, [
-      ["output"],
-      ["result"],
-      ["item", "output"],
-      ["params", "result"],
-    ]),
+    ]) ||
+      pickArray(event, [
+        ["output"],
+        ["result"],
+        ["content"],
+        ["item", "content"],
+        ["params", "result"],
+      ]) ||
+      pickRecord(event, [
+        ["output"],
+        ["result"],
+        ["item", "output"],
+        ["params", "result"],
+      ]),
   )
 
   if (direct) return direct
@@ -182,7 +201,9 @@ function extractToolOutput(event: Record<string, unknown>): string | undefined {
   return coerceText(content)
 }
 
-function extractAssistantText(event: Record<string, unknown>): string | undefined {
+function extractAssistantText(
+  event: Record<string, unknown>,
+): string | undefined {
   const delta = pickString(event, [
     ["delta"],
     ["text_delta"],
@@ -246,9 +267,9 @@ export function normalizeCodexJsonLine(
   }
 
   if (
-    key.includes("tool_call_begin")
-    || key.includes("tool/call")
-    || key.includes("item.started")
+    key.includes("tool_call_begin") ||
+    key.includes("tool/call") ||
+    key.includes("item.started")
   ) {
     const toolName = extractToolName(parsed)
     if (toolName) {
@@ -259,25 +280,24 @@ export function normalizeCodexJsonLine(
     }
   }
 
-  if (
-    key.includes("tool_call_end")
-    || key.includes("item.completed")
-  ) {
+  if (key.includes("tool_call_end") || key.includes("item.completed")) {
     const toolId = extractToolId(parsed)
     const knownToolName = toolId ? state.toolNamesById.get(toolId) : undefined
     const toolName = extractToolName(parsed) || knownToolName
     const output = extractToolOutput(parsed)
     if (toolId && output && toolName) {
-      events.push(buildToolResultEvent(toolId, toolName, output, key.includes("error")))
+      events.push(
+        buildToolResultEvent(toolId, toolName, output, key.includes("error")),
+      )
       return events
     }
   }
 
   if (
-    key.includes("message")
-    || key.includes("text")
-    || key.includes("turn.completed")
-    || key.includes("item.completed")
+    key.includes("message") ||
+    key.includes("text") ||
+    key.includes("turn.completed") ||
+    key.includes("item.completed")
   ) {
     const text = extractAssistantText(parsed)
     if (text) {
@@ -287,7 +307,8 @@ export function normalizeCodexJsonLine(
   }
 
   if (key.includes("error")) {
-    const message = pickString(parsed, [["message"], ["error"]]) || "Codex CLI error"
+    const message =
+      pickString(parsed, [["message"], ["error"]]) || "Codex CLI error"
     events.push(JSON.stringify({ type: "error", error: message }))
   }
 

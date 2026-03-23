@@ -18,7 +18,10 @@ import { withExecutionSlot } from "./execution-pool"
 import { LogParser } from "./log-parser"
 import { prepareTemporaryMcpConfig } from "./mcp-config"
 import { getProviderSettings } from "./provider-settings"
-import { applyProviderFeatureFlags, startProviderTask } from "./provider-runtime"
+import {
+  applyProviderFeatureFlags,
+  startProviderTask,
+} from "./provider-runtime"
 import { logWarn } from "./structured-log"
 
 interface CreateEntryRouteDecision {
@@ -38,16 +41,21 @@ interface CreateEntryClarificationDecision {
   clarification: CreateEntryRouteClarification
 }
 
-type CreateEntryAgentDecision = CreateEntryRouteDecision | CreateEntryClarificationDecision
+type CreateEntryAgentDecision =
+  | CreateEntryRouteDecision
+  | CreateEntryClarificationDecision
 
 const DIRECTORY_ROUTE_TEMPLATES = new Set([
   "delivery-map-codebase",
   "ux-ui-polish-audit",
   "full-stack-code-audit",
 ])
-const ROUTER_FAILURE_MESSAGE = "The AI router couldn't choose a starting point right now. Try again."
+const ROUTER_FAILURE_MESSAGE =
+  "The AI router couldn't choose a starting point right now. Try again."
 
-function deriveIntentValue(option: CreateEntryRouteOption): CreateEntryHelpModeHint | null {
+function deriveIntentValue(
+  option: CreateEntryRouteOption,
+): CreateEntryHelpModeHint | null {
   const label = normalize(option.intentLabel).toLowerCase()
   if (label === "do it") return "do"
   if (label === "plan it") return "plan"
@@ -66,14 +74,24 @@ function normalize(value: string | undefined | null) {
   return (value || "").trim()
 }
 
-function buildAllowedOptionMap(options: CreateEntryRouteOption[], templates: WorkflowTemplate[]) {
-  const templateById = new Map(templates.map((template) => [template.id, template]))
+function buildAllowedOptionMap(
+  options: CreateEntryRouteOption[],
+  templates: WorkflowTemplate[],
+) {
+  const templateById = new Map(
+    templates.map((template) => [template.id, template]),
+  )
   return options
     .map((option) => {
       const template = templateById.get(option.templateId)
       return template ? { ...option, template } : null
     })
-    .filter((value): value is CreateEntryRouteOption & { template: WorkflowTemplate } => Boolean(value))
+    .filter(
+      (
+        value,
+      ): value is CreateEntryRouteOption & { template: WorkflowTemplate } =>
+        Boolean(value),
+    )
 }
 
 function buildRouteSeed(
@@ -88,7 +106,13 @@ function buildRouteSeed(
       primaryInputMode: "directory",
       primaryInputValue: projectInspection.projectPath,
       attachments: cleanRequestedResult
-        ? [{ kind: "text", label: "Requested result", content: cleanRequestedResult }]
+        ? [
+            {
+              kind: "text",
+              label: "Requested result",
+              content: cleanRequestedResult,
+            },
+          ]
         : [],
     }
   }
@@ -97,9 +121,17 @@ function buildRouteSeed(
     return {
       primaryInputMode: "branch_or_diff",
       primaryInputValue: projectInspection.git.branch || cleanRequestedResult,
-      attachments: cleanRequestedResult && cleanRequestedResult !== projectInspection.git.branch
-        ? [{ kind: "text", label: "Requested result", content: cleanRequestedResult }]
-        : [],
+      attachments:
+        cleanRequestedResult &&
+        cleanRequestedResult !== projectInspection.git.branch
+          ? [
+              {
+                kind: "text",
+                label: "Requested result",
+                content: cleanRequestedResult,
+              },
+            ]
+          : [],
     }
   }
 
@@ -107,9 +139,17 @@ function buildRouteSeed(
     return {
       primaryInputMode: "branch_or_diff",
       primaryInputValue: projectInspection.git.branch || cleanRequestedResult,
-      attachments: cleanRequestedResult && cleanRequestedResult !== projectInspection.git.branch
-        ? [{ kind: "text", label: "Requested result", content: cleanRequestedResult }]
-        : [],
+      attachments:
+        cleanRequestedResult &&
+        cleanRequestedResult !== projectInspection.git.branch
+          ? [
+              {
+                kind: "text",
+                label: "Requested result",
+                content: cleanRequestedResult,
+              },
+            ]
+          : [],
     }
   }
 
@@ -124,7 +164,12 @@ function validateClarification(
   clarification: unknown,
   allowedTemplateIds: Set<string>,
 ): CreateEntryRouteClarification | null {
-  if (!clarification || typeof clarification !== "object" || Array.isArray(clarification)) return null
+  if (
+    !clarification ||
+    typeof clarification !== "object" ||
+    Array.isArray(clarification)
+  )
+    return null
   const raw = clarification as Record<string, unknown>
   const kind = normalize(typeof raw.kind === "string" ? raw.kind : "")
   const title = normalize(typeof raw.title === "string" ? raw.title : "")
@@ -134,16 +179,27 @@ function validateClarification(
   if (kind === "help_mode") {
     const options = raw.options
       .map((option) => {
-        if (!option || typeof option !== "object" || Array.isArray(option)) return null
+        if (!option || typeof option !== "object" || Array.isArray(option))
+          return null
         const candidate = option as Record<string, unknown>
-        const value = normalize(typeof candidate.value === "string" ? candidate.value : "")
-        if (value !== "do" && value !== "plan" && value !== "review") return null
-        const label = normalize(typeof candidate.label === "string" ? candidate.label : "")
+        const value = normalize(
+          typeof candidate.value === "string" ? candidate.value : "",
+        )
+        if (value !== "do" && value !== "plan" && value !== "review")
+          return null
+        const label = normalize(
+          typeof candidate.label === "string" ? candidate.label : "",
+        )
         if (!label) return null
         return {
           value: value as CreateEntryHelpModeHint,
           label,
-          description: normalize(typeof candidate.description === "string" ? candidate.description : "") || undefined,
+          description:
+            normalize(
+              typeof candidate.description === "string"
+                ? candidate.description
+                : "",
+            ) || undefined,
           disabled: candidate.disabled === true,
         }
       })
@@ -156,17 +212,30 @@ function validateClarification(
   if (kind === "job_route") {
     const options = raw.options
       .map((option) => {
-        if (!option || typeof option !== "object" || Array.isArray(option)) return null
+        if (!option || typeof option !== "object" || Array.isArray(option))
+          return null
         const candidate = option as Record<string, unknown>
-        const templateId = normalize(typeof candidate.templateId === "string" ? candidate.templateId : "")
+        const templateId = normalize(
+          typeof candidate.templateId === "string" ? candidate.templateId : "",
+        )
         if (!templateId || !allowedTemplateIds.has(templateId)) return null
-        const label = normalize(typeof candidate.label === "string" ? candidate.label : "")
+        const label = normalize(
+          typeof candidate.label === "string" ? candidate.label : "",
+        )
         if (!label) return null
-        const value = normalize(typeof candidate.value === "string" ? candidate.value : templateId) || templateId
+        const value =
+          normalize(
+            typeof candidate.value === "string" ? candidate.value : templateId,
+          ) || templateId
         return {
           value,
           label,
-          description: normalize(typeof candidate.description === "string" ? candidate.description : "") || undefined,
+          description:
+            normalize(
+              typeof candidate.description === "string"
+                ? candidate.description
+                : "",
+            ) || undefined,
           templateId,
         }
       })
@@ -184,24 +253,32 @@ function validateAgentDecision(
   allowedTemplateIds: Set<string>,
 ): CreateEntryAgentDecision | null {
   const recommendedTemplateId = normalize(decision.recommendedTemplateId)
-  if (!recommendedTemplateId || !allowedTemplateIds.has(recommendedTemplateId)) return null
+  if (!recommendedTemplateId || !allowedTemplateIds.has(recommendedTemplateId))
+    return null
 
   const alternateTemplateIds = Array.isArray(decision.alternateTemplateIds)
     ? decision.alternateTemplateIds
-      .map((value) => normalize(value))
-      .filter((value) => value && value !== recommendedTemplateId && allowedTemplateIds.has(value))
+        .map((value) => normalize(value))
+        .filter(
+          (value) =>
+            value &&
+            value !== recommendedTemplateId &&
+            allowedTemplateIds.has(value),
+        )
     : []
 
   const normalizedDecision = {
     recommendedTemplateId,
     alternateTemplateIds,
     reason: normalize(decision.reason),
-    confidence: typeof decision.confidence === "number" ? decision.confidence : undefined,
+    confidence:
+      typeof decision.confidence === "number" ? decision.confidence : undefined,
   }
 
-  const clarification = "clarification" in decision
-    ? validateClarification(decision.clarification, allowedTemplateIds)
-    : null
+  const clarification =
+    "clarification" in decision
+      ? validateClarification(decision.clarification, allowedTemplateIds)
+      : null
 
   if (decision.kind === "clarification" || clarification) {
     if (!clarification) return null
@@ -232,7 +309,10 @@ function buildRouterPrompt(
   }
 
   const allowedOptionSummary = allowedOptions
-    .map((option) => `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`)
+    .map(
+      (option) =>
+        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+    )
     .join("\n")
 
   return [
@@ -282,7 +362,10 @@ function extractRouterJsonCandidate(rawText: string) {
   const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
   if (fencedMatch) return fencedMatch[1].trim()
 
-  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
     return trimmed
   }
 
@@ -290,9 +373,14 @@ function extractRouterJsonCandidate(rawText: string) {
   return objectMatch ? objectMatch[0] : trimmed
 }
 
-function parseRouterDecision(rawText: string, allowedTemplateIds: Set<string>): CreateEntryAgentDecision | null {
+function parseRouterDecision(
+  rawText: string,
+  allowedTemplateIds: Set<string>,
+): CreateEntryAgentDecision | null {
   try {
-    const parsed = JSON.parse(extractRouterJsonCandidate(rawText)) as CreateEntryAgentDecision
+    const parsed = JSON.parse(
+      extractRouterJsonCandidate(rawText),
+    ) as CreateEntryAgentDecision
     return validateAgentDecision(parsed, allowedTemplateIds)
   } catch {
     return null
@@ -306,7 +394,9 @@ async function runAgentRouteDecision(
 ): Promise<CreateEntryAgentDecision | null> {
   if (input.modeId !== "development" || allowedOptions.length === 0) return null
 
-  const allowedTemplateIds = new Set(allowedOptions.map((option) => option.templateId))
+  const allowedTemplateIds = new Set(
+    allowedOptions.map((option) => option.templateId),
+  )
   const prompt = buildRouterPrompt(input, projectInspection, allowedOptions)
   const settings = await getProviderSettings()
   const providerId = applyProviderFeatureFlags(
@@ -315,7 +405,9 @@ async function runAgentRouteDecision(
   )
   const model = getDefaultModelForProvider(providerId)
   const logParser = new LogParser()
-  const runtimeMcpConfig = await prepareTemporaryMcpConfig(projectInspection.projectPath)
+  const runtimeMcpConfig = await prepareTemporaryMcpConfig(
+    projectInspection.projectPath,
+  )
 
   try {
     const result = await withExecutionSlot(async () => {
@@ -349,7 +441,9 @@ async function runAgentRouteDecision(
     if (!text) return null
     return parseRouterDecision(text, allowedTemplateIds)
   } catch (error) {
-    logWarn("create-entry-router", "agent_route_failed", { error: String(error) })
+    logWarn("create-entry-router", "agent_route_failed", {
+      error: String(error),
+    })
     return null
   } finally {
     await runtimeMcpConfig.cleanup()
@@ -362,37 +456,52 @@ export async function routeCreateEntry(
   templates: WorkflowTemplate[],
 ): Promise<CreateEntryRouteResult> {
   if (input.modeId !== "development") {
-    throw new Error("Agent routing is currently available only for development mode.")
+    throw new Error(
+      "Agent routing is currently available only for development mode.",
+    )
   }
 
-  const fallbackTemplateId = sanitizeDirectCreateFallbackTemplateId(input.modeId, input.fallbackTemplateId)
-  const sanitizedInput = fallbackTemplateId === input.fallbackTemplateId
-    ? input
-    : { ...input, fallbackTemplateId }
+  const fallbackTemplateId = sanitizeDirectCreateFallbackTemplateId(
+    input.modeId,
+    input.fallbackTemplateId,
+  )
+  const sanitizedInput =
+    fallbackTemplateId === input.fallbackTemplateId
+      ? input
+      : { ...input, fallbackTemplateId }
   const allowedOptions = filterDirectCreateEntryOptions(
     input.modeId,
     buildAllowedOptionMap(input.allowedOptions || [], templates),
   )
-  const boundedOptions = allowedOptions.length > 0
-    ? allowedOptions.map(({ template, ...option }) => option)
-    : (
-      fallbackTemplateId
+  const boundedOptions =
+    allowedOptions.length > 0
+      ? allowedOptions.map(({ template, ...option }) => option)
+      : fallbackTemplateId
         ? [{ templateId: fallbackTemplateId, label: "Default start" }]
         : []
-    )
   const intentOptions = input.helpModeHint
     ? filterOptionsForIntent(boundedOptions, input.helpModeHint)
     : boundedOptions
-  const optionsAfterIntent = intentOptions.length > 0 ? intentOptions : boundedOptions
+  const optionsAfterIntent =
+    intentOptions.length > 0 ? intentOptions : boundedOptions
   const constrainedOptions = normalize(input.templateConstraintId)
-    ? optionsAfterIntent.filter((option) => option.templateId === normalize(input.templateConstraintId))
+    ? optionsAfterIntent.filter(
+        (option) => option.templateId === normalize(input.templateConstraintId),
+      )
     : optionsAfterIntent
-  const effectiveOptions = constrainedOptions.length > 0 ? constrainedOptions : optionsAfterIntent
+  const effectiveOptions =
+    constrainedOptions.length > 0 ? constrainedOptions : optionsAfterIntent
   if (effectiveOptions.length === 0) {
-    throw new Error("No allowed starting points are available for this request.")
+    throw new Error(
+      "No allowed starting points are available for this request.",
+    )
   }
 
-  const agentDecision = await runAgentRouteDecision(sanitizedInput, projectInspection, effectiveOptions)
+  const agentDecision = await runAgentRouteDecision(
+    sanitizedInput,
+    projectInspection,
+    effectiveOptions,
+  )
   if (!agentDecision) {
     throw new Error(ROUTER_FAILURE_MESSAGE)
   }
@@ -403,7 +512,11 @@ export async function routeCreateEntry(
       alternateTemplateIds: agentDecision.alternateTemplateIds || [],
       reason: agentDecision.reason || agentDecision.clarification.message,
       projectInspection,
-      seed: buildRouteSeed(agentDecision.recommendedTemplateId, projectInspection, input.requestedResult || ""),
+      seed: buildRouteSeed(
+        agentDecision.recommendedTemplateId,
+        projectInspection,
+        input.requestedResult || "",
+      ),
       confidence: agentDecision.confidence ?? 0.7,
       source: "agent",
       clarification: agentDecision.clarification,
@@ -413,9 +526,15 @@ export async function routeCreateEntry(
   return {
     recommendedTemplateId: agentDecision.recommendedTemplateId,
     alternateTemplateIds: agentDecision.alternateTemplateIds || [],
-    reason: agentDecision.reason || "Recommended from the current request and project context.",
+    reason:
+      agentDecision.reason ||
+      "Recommended from the current request and project context.",
     projectInspection,
-    seed: buildRouteSeed(agentDecision.recommendedTemplateId, projectInspection, input.requestedResult || ""),
+    seed: buildRouteSeed(
+      agentDecision.recommendedTemplateId,
+      projectInspection,
+      input.requestedResult || "",
+    ),
     confidence: agentDecision.confidence ?? 0.8,
     source: "agent",
     clarification: null,

@@ -28,24 +28,39 @@ describe("main security helpers", () => {
   it("adds renderer and websocket origins in dev CSP", () => {
     const csp = buildRendererContentSecurityPolicy("http://127.0.0.1:5173")
 
-    expect(csp).toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:5173")
-    expect(csp).toContain("connect-src 'self' http://127.0.0.1:5173 ws://127.0.0.1:5173")
+    expect(csp).toContain(
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:5173",
+    )
+    expect(csp).toContain(
+      "connect-src 'self' http://127.0.0.1:5173 ws://127.0.0.1:5173",
+    )
   })
 
   it("replaces any existing CSP header", () => {
-    expect(applyContentSecurityPolicyHeader({
-      "content-security-policy": ["default-src *"],
-      "x-test": ["1"],
-    }, "default-src 'self'")).toEqual({
+    expect(
+      applyContentSecurityPolicyHeader(
+        {
+          "content-security-policy": ["default-src *"],
+          "x-test": ["1"],
+        },
+        "default-src 'self'",
+      ),
+    ).toEqual({
       "x-test": ["1"],
       "Content-Security-Policy": ["default-src 'self'"],
     })
   })
 
   it("applies renderer CSP only to the configured renderer origin", () => {
-    expect(shouldApplyRendererCsp("http://127.0.0.1:5173/", "http://127.0.0.1:5173")).toBe(true)
-    expect(shouldApplyRendererCsp("http://127.0.0.1:4173/", "http://127.0.0.1:5173")).toBe(false)
-    expect(shouldApplyRendererCsp("file:///tmp/index.html", "http://127.0.0.1:5173")).toBe(false)
+    expect(
+      shouldApplyRendererCsp("http://127.0.0.1:5173/", "http://127.0.0.1:5173"),
+    ).toBe(true)
+    expect(
+      shouldApplyRendererCsp("http://127.0.0.1:4173/", "http://127.0.0.1:5173"),
+    ).toBe(false)
+    expect(
+      shouldApplyRendererCsp("file:///tmp/index.html", "http://127.0.0.1:5173"),
+    ).toBe(false)
     expect(shouldApplyRendererCsp("file:///tmp/index.html")).toBe(true)
   })
 })

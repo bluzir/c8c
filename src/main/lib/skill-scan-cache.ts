@@ -27,7 +27,9 @@ export function invalidateProjectSkillScan(projectPath?: string): void {
   skillScanCache.delete(projectPath)
 }
 
-export async function getCachedProjectSkills(projectPath: string): Promise<DiscoveredSkill[]> {
+export async function getCachedProjectSkills(
+  projectPath: string,
+): Promise<DiscoveredSkill[]> {
   const ttlMs = skillScanCacheTtlMs()
   const now = Date.now()
   const cached = skillScanCache.get(projectPath)
@@ -40,18 +42,20 @@ export async function getCachedProjectSkills(projectPath: string): Promise<Disco
     return cached.promise
   }
 
-  const promise = scanAllSkills(projectPath).then((skills) => {
-    skillScanCache.set(projectPath, {
-      value: skills,
-      expiresAt: Date.now() + ttlMs,
+  const promise = scanAllSkills(projectPath)
+    .then((skills) => {
+      skillScanCache.set(projectPath, {
+        value: skills,
+        expiresAt: Date.now() + ttlMs,
+      })
+      return skills
     })
-    return skills
-  }).catch((error) => {
-    if (skillScanCache.get(projectPath)?.promise === promise) {
-      skillScanCache.delete(projectPath)
-    }
-    throw error
-  })
+    .catch((error) => {
+      if (skillScanCache.get(projectPath)?.promise === promise) {
+        skillScanCache.delete(projectPath)
+      }
+      throw error
+    })
 
   skillScanCache.set(projectPath, {
     promise,

@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { CreateEntryRouteInput, CreateEntryRouteOption, ProjectInspectionSummary, WorkflowTemplate } from "@shared/types"
+import type {
+  CreateEntryRouteInput,
+  CreateEntryRouteOption,
+  ProjectInspectionSummary,
+  WorkflowTemplate,
+} from "@shared/types"
 
 const mocks = vi.hoisted(() => ({
   getProviderSettings: vi.fn(async () => ({
@@ -40,17 +45,51 @@ vi.mock("./mcp-config", () => ({
 import { routeCreateEntry } from "./create-entry-router"
 
 const developmentOptions: CreateEntryRouteOption[] = [
-  { templateId: "delivery-map-codebase", label: "Explore this project", intentLabel: "Do it" },
-  { templateId: "delivery-shape-project", label: "Change the app", intentLabel: "Do it" },
-  { templateId: "delivery-plan-phase", label: "Plan the change", intentLabel: "Plan it" },
-  { templateId: "delivery-investigate-bug", label: "Investigate a bug", intentLabel: "Do it" },
-  { templateId: "full-stack-code-audit", label: "Code audit", intentLabel: "Review it" },
-  { templateId: "ux-ui-polish-audit", label: "UX audit", intentLabel: "Review it" },
-  { templateId: "playwright-visual-audit", label: "Visual test", intentLabel: "Review it" },
-  { templateId: "cto-optimise-audit", label: "CTO audit", intentLabel: "Review it" },
+  {
+    templateId: "delivery-map-codebase",
+    label: "Explore this project",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "delivery-shape-project",
+    label: "Change the app",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "delivery-plan-phase",
+    label: "Plan the change",
+    intentLabel: "Plan it",
+  },
+  {
+    templateId: "delivery-investigate-bug",
+    label: "Investigate a bug",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "full-stack-code-audit",
+    label: "Code audit",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "ux-ui-polish-audit",
+    label: "UX audit",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "playwright-visual-audit",
+    label: "Visual test",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "cto-optimise-audit",
+    label: "CTO audit",
+    intentLabel: "Review it",
+  },
 ]
 
-function createInspection(overrides: Partial<ProjectInspectionSummary> = {}): ProjectInspectionSummary {
+function createInspection(
+  overrides: Partial<ProjectInspectionSummary> = {},
+): ProjectInspectionSummary {
   return {
     projectPath: "/tmp/project",
     git: {
@@ -67,7 +106,9 @@ function createInspection(overrides: Partial<ProjectInspectionSummary> = {}): Pr
   }
 }
 
-function createInput(overrides: Partial<CreateEntryRouteInput> = {}): CreateEntryRouteInput {
+function createInput(
+  overrides: Partial<CreateEntryRouteInput> = {},
+): CreateEntryRouteInput {
   return {
     modeId: "development",
     projectPath: "/tmp/project",
@@ -102,33 +143,46 @@ function createTemplate(id: string, name: string): WorkflowTemplate {
   }
 }
 
-const templates = developmentOptions.map((option) => createTemplate(option.templateId, option.label))
+const templates = developmentOptions.map((option) =>
+  createTemplate(option.templateId, option.label),
+)
 
 function mockAgentJson() {
-  mocks.drainExecutionHandle.mockImplementationOnce(async (_handle, callbacks?: {
-    onLogEntry?: (entry: { type: "text"; content: string; timestamp: number }) => void
-  }) => {
-    callbacks?.onLogEntry?.({
-      type: "text",
-      content: JSON.stringify({
-        kind: "route",
-        recommendedTemplateId: "delivery-shape-project",
-        alternateTemplateIds: ["delivery-plan-phase"],
-        reason: "This is the best first step.",
-        confidence: 0.88,
-      }),
-      timestamp: Date.now(),
-    })
-    return {
-      success: true,
-      killed: false,
-      aborted: false,
-    }
-  })
+  mocks.drainExecutionHandle.mockImplementationOnce(
+    async (
+      _handle,
+      callbacks?: {
+        onLogEntry?: (entry: {
+          type: "text"
+          content: string
+          timestamp: number
+        }) => void
+      },
+    ) => {
+      callbacks?.onLogEntry?.({
+        type: "text",
+        content: JSON.stringify({
+          kind: "route",
+          recommendedTemplateId: "delivery-shape-project",
+          alternateTemplateIds: ["delivery-plan-phase"],
+          reason: "This is the best first step.",
+          confidence: 0.88,
+        }),
+        timestamp: Date.now(),
+      })
+      return {
+        success: true,
+        killed: false,
+        aborted: false,
+      }
+    },
+  )
 }
 
 function latestPrompt() {
-  const call = mocks.startProviderTask.mock.calls.at(-1) as [string, { prompt?: string }] | undefined
+  const call = mocks.startProviderTask.mock.calls.at(-1) as
+    | [string, { prompt?: string }]
+    | undefined
   if (!call) throw new Error("Expected startProviderTask to be called")
   return String(call[1]?.prompt || "")
 }
@@ -150,7 +204,9 @@ describe("routeCreateEntry JTBD prompt contract", () => {
       templates,
     )
 
-    expect(latestPrompt()).toContain("Broad audit or review requests should prefer audit entries instead of mapping first")
+    expect(latestPrompt()).toContain(
+      "Broad audit or review requests should prefer audit entries instead of mapping first",
+    )
   })
 
   it("tells the agent to keep small changes on the lightweight change path", async () => {
@@ -165,7 +221,9 @@ describe("routeCreateEntry JTBD prompt contract", () => {
       templates,
     )
 
-    expect(latestPrompt()).toContain("Small edits, quick tweaks, and straightforward app changes should stay on the lightweight change path")
+    expect(latestPrompt()).toContain(
+      "Small edits, quick tweaks, and straightforward app changes should stay on the lightweight change path",
+    )
   })
 
   it("tells the agent to prefer bug investigation for incidents and regressions", async () => {
@@ -180,7 +238,9 @@ describe("routeCreateEntry JTBD prompt contract", () => {
       templates,
     )
 
-    expect(latestPrompt()).toContain("Bug reports, production incidents, regressions, and 'something broke' requests should prefer the bug-investigation start")
+    expect(latestPrompt()).toContain(
+      "Bug reports, production incidents, regressions, and 'something broke' requests should prefer the bug-investigation start",
+    )
   })
 
   it("tells the agent that detailed PRDs and specs are plan-ready", async () => {
@@ -188,8 +248,10 @@ describe("routeCreateEntry JTBD prompt contract", () => {
 
     await routeCreateEntry(
       createInput({
-        draftPrompt: "build this app from the PRD with user stories and acceptance criteria",
-        requestedResult: "build this app from the PRD with user stories and acceptance criteria",
+        draftPrompt:
+          "build this app from the PRD with user stories and acceptance criteria",
+        requestedResult:
+          "build this app from the PRD with user stories and acceptance criteria",
       }),
       createInspection({
         git: {
@@ -206,6 +268,8 @@ describe("routeCreateEntry JTBD prompt contract", () => {
       templates,
     )
 
-    expect(latestPrompt()).toContain("Detailed PRDs, specs, and requirements docs are plan-ready starts")
+    expect(latestPrompt()).toContain(
+      "Detailed PRDs, specs, and requirements docs are plan-ready starts",
+    )
   })
 })

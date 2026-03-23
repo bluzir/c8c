@@ -4,7 +4,10 @@ import { refreshHubCatalog } from "../lib/templates/hub-catalog"
 import { getHubTemplate } from "../lib/templates/hub-template-cache"
 import { drainExecutionHandle } from "../lib/agent-execution"
 import { LogParser } from "../lib/log-parser"
-import { buildGeneratorPrompt, parseGeneratedWorkflow } from "../lib/workflow-generator"
+import {
+  buildGeneratorPrompt,
+  parseGeneratedWorkflow,
+} from "../lib/workflow-generator"
 import { scaffoldMissingSkills } from "../lib/skill-scaffold"
 import {
   listPopularTemplateIdsForProject,
@@ -12,7 +15,12 @@ import {
 } from "../lib/project-template-usage"
 import { trackTelemetryEvent } from "../lib/telemetry/service"
 import { summarizeMissingWorkflowSkillRefs } from "../lib/telemetry/workflow-usage"
-import type { DiscoveredSkill, GenerationProgress, Workflow, WorkflowTemplate } from "@shared/types"
+import type {
+  DiscoveredSkill,
+  GenerationProgress,
+  Workflow,
+  WorkflowTemplate,
+} from "@shared/types"
 import { assertRegisteredProjectPath } from "../lib/security-paths"
 import { join } from "node:path"
 import { mkdir } from "node:fs/promises"
@@ -23,18 +31,26 @@ import { logError, logInfo, logWarn } from "../lib/structured-log"
 import { withExecutionSlot } from "../lib/execution-pool"
 import { prepareTemporaryMcpConfig } from "../lib/mcp-config"
 import { getProviderSettings } from "../lib/provider-settings"
-import { applyProviderFeatureFlags, startProviderTask } from "../lib/provider-runtime"
+import {
+  applyProviderFeatureFlags,
+  startProviderTask,
+} from "../lib/provider-runtime"
 import { inspectProjectForCreateEntry } from "../lib/create-entry-inspection"
 import { routeCreateEntry } from "../lib/create-entry-router"
 import { resolveAppHomeDir } from "../lib/runtime-paths"
-import type { CreateEntryRouteInput, CreateEntryRouteResult } from "@shared/types"
+import type {
+  CreateEntryRouteInput,
+  CreateEntryRouteResult,
+} from "@shared/types"
 
 const activeGenerateControllers = new Map<number, AbortController>()
 const generateLifecycleBindings = new Set<number>()
 let templateUsageMutationQueue: Promise<unknown> = Promise.resolve()
 const MAX_GENERATION_STDERR_CHARS = 8_192
 
-function runSerializedTemplateUsageMutation<T>(operation: () => Promise<T>): Promise<T> {
+function runSerializedTemplateUsageMutation<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
   const next = templateUsageMutationQueue.then(() => operation())
   templateUsageMutationQueue = next.catch(() => undefined)
   return next
@@ -74,13 +90,22 @@ export function registerTemplateHandlers() {
 
   ipcMain.handle(
     "templates:list-popular-project",
-    async (_event, projectPath: string, limit = 5): Promise<WorkflowTemplate[]> => {
+    async (
+      _event,
+      projectPath: string,
+      limit = 5,
+    ): Promise<WorkflowTemplate[]> => {
       const safeProjectPath = await resolveGenerateWorkdir(projectPath)
       const templates = await listTemplateCatalog()
-      const popularIds = await listPopularTemplateIdsForProject(safeProjectPath, limit)
+      const popularIds = await listPopularTemplateIdsForProject(
+        safeProjectPath,
+        limit,
+      )
       if (popularIds.length === 0) return []
 
-      const templateById = new Map(templates.map((template) => [template.id, template]))
+      const templateById = new Map(
+        templates.map((template) => [template.id, template]),
+      )
       return popularIds
         .map((templateId) => templateById.get(templateId))
         .filter((template): template is WorkflowTemplate => Boolean(template))
@@ -91,7 +116,9 @@ export function registerTemplateHandlers() {
     "templates:record-usage",
     async (_event, projectPath: string, templateId: string): Promise<void> => {
       const safeProjectPath = await resolveGenerateWorkdir(projectPath)
-      const isKnownTemplate = (await listTemplateCatalog()).some((template) => template.id === templateId)
+      const isKnownTemplate = (await listTemplateCatalog()).some(
+        (template) => template.id === templateId,
+      )
       if (!isKnownTemplate) return
       await runSerializedTemplateUsageMutation(() =>
         recordProjectTemplateUsage(safeProjectPath, templateId),
@@ -122,7 +149,10 @@ export function registerTemplateHandlers() {
 
   ipcMain.handle(
     "templates:route-create-entry",
-    async (_event, input: CreateEntryRouteInput): Promise<CreateEntryRouteResult> => {
+    async (
+      _event,
+      input: CreateEntryRouteInput,
+    ): Promise<CreateEntryRouteResult> => {
       const safeProjectPath = await resolveGenerateWorkdir(input.projectPath)
       const templates = await listTemplateCatalog()
       const inspection = await inspectProjectForCreateEntry(safeProjectPath)
@@ -143,9 +173,12 @@ export function registerTemplateHandlers() {
     logInfo("templates-ipc", "generate_cancel_requested", { senderId })
   })
 
-  ipcMain.handle("templates:fetch-hub-template", async (_event, templateId: string) => {
-    return getHubTemplate(templateId)
-  })
+  ipcMain.handle(
+    "templates:fetch-hub-template",
+    async (_event, templateId: string) => {
+      return getHubTemplate(templateId)
+    },
+  )
 
   ipcMain.handle("templates:refresh-catalog", async () => {
     await refreshHubCatalog()
@@ -156,7 +189,10 @@ export function registerTemplateHandlers() {
     async (
       event,
       description: string,
-      availableSkills: Pick<DiscoveredSkill, "name" | "category" | "description">[],
+      availableSkills: Pick<
+        DiscoveredSkill,
+        "name" | "category" | "description"
+      >[],
       projectPath?: string,
     ): Promise<Workflow> => {
       bindGenerateLifecycle(event.sender)
@@ -174,7 +210,10 @@ export function registerTemplateHandlers() {
       const abortSignal = controller.signal
 
       const window = BrowserWindow.fromWebContents(event.sender)
-      const sendProgress = (step: GenerationProgress["step"], count: number) => {
+      const sendProgress = (
+        step: GenerationProgress["step"],
+        count: number,
+      ) => {
         if (window && !window.isDestroyed()) {
           window.webContents.send("generate:progress", { step, count })
         }
@@ -200,7 +239,10 @@ export function registerTemplateHandlers() {
         const runtimeMcpConfig = await prepareTemporaryMcpConfig(projectPath)
         let result
         try {
-          logInfo("templates-ipc", "generate_started", { senderId, projectPath: projectPath || null })
+          logInfo("templates-ipc", "generate_started", {
+            senderId,
+            projectPath: projectPath || null,
+          })
           result = await withExecutionSlot(async (ticket) => {
             if (ticket.queueWaitMs > 0) {
               logInfo("templates-ipc", "generate_waited_for_execution_slot", {
@@ -238,14 +280,18 @@ export function registerTemplateHandlers() {
                 logParser.applyUsage(usage)
               },
               onStderr: (text) => {
-                stderrOutput = (stderrOutput + text).slice(-MAX_GENERATION_STDERR_CHARS)
+                stderrOutput = (stderrOutput + text).slice(
+                  -MAX_GENERATION_STDERR_CHARS,
+                )
               },
             })
           })
         } catch (err) {
           const msg = String(err)
           if (msg.includes("ETIMEDOUT") || msg.includes("timeout")) {
-            throw new Error("Flow generation timed out — try a simpler description")
+            throw new Error(
+              "Flow generation timed out — try a simpler description",
+            )
           }
           throw new Error(`${providerId} process failed: ${msg.slice(0, 200)}`)
         } finally {
@@ -271,21 +317,30 @@ export function registerTemplateHandlers() {
 
         if (!result.success) {
           if (result.killed) {
-            throw new Error("Flow generation timed out — try a simpler description")
+            throw new Error(
+              "Flow generation timed out — try a simpler description",
+            )
           }
           if (result.aborted) {
             throw new Error("Flow generation was cancelled")
           }
-          const preview = logParser.textContent.trim() || logParser.rawOutput.slice(0, 200)
-          throw new Error(`Flow generation failed (exit ${result.exitCode}): ${preview || "no output"}`)
+          const preview =
+            logParser.textContent.trim() || logParser.rawOutput.slice(0, 200)
+          throw new Error(
+            `Flow generation failed (exit ${result.exitCode}): ${preview || "no output"}`,
+          )
         }
 
         if (logParser.textContent.length === 0) {
           const raw = logParser.rawOutput.trim()
           if (raw.includes("max turns")) {
-            throw new Error("Claude ran out of turns before generating output — try a simpler description")
+            throw new Error(
+              "Claude ran out of turns before generating output — try a simpler description",
+            )
           }
-          throw new Error(`Claude produced no text output: ${raw.slice(0, 200) || "empty response"}`)
+          throw new Error(
+            `Claude produced no text output: ${raw.slice(0, 200) || "empty response"}`,
+          )
         }
 
         let workflow: Workflow
@@ -293,15 +348,27 @@ export function registerTemplateHandlers() {
           workflow = parseGeneratedWorkflow(logParser.textContent)
         } catch (err) {
           const preview = logParser.textContent.slice(0, 300)
-          throw new Error(`Could not parse flow from AI response: ${(err as Error).message}\n\nResponse preview: ${preview}`)
+          throw new Error(
+            `Could not parse flow from AI response: ${(err as Error).message}\n\nResponse preview: ${preview}`,
+          )
         }
 
         if (projectPath) {
           const startedAt = Date.now()
-          const before = summarizeMissingWorkflowSkillRefs(workflow, availableSkills)
+          const before = summarizeMissingWorkflowSkillRefs(
+            workflow,
+            availableSkills,
+          )
           try {
-            workflow = await scaffoldMissingSkills(workflow, availableSkills, safeWorkdir)
-            const after = summarizeMissingWorkflowSkillRefs(workflow, availableSkills)
+            workflow = await scaffoldMissingSkills(
+              workflow,
+              availableSkills,
+              safeWorkdir,
+            )
+            const after = summarizeMissingWorkflowSkillRefs(
+              workflow,
+              availableSkills,
+            )
             void trackTelemetryEvent("skill_scaffold_completed", {
               source: "template_generate",
               status: "success",
@@ -333,9 +400,15 @@ export function registerTemplateHandlers() {
         return workflow
       } catch (error) {
         if (String(error).toLowerCase().includes("cancelled")) {
-          logWarn("templates-ipc", "generate_cancelled", { senderId, error: String(error) })
+          logWarn("templates-ipc", "generate_cancelled", {
+            senderId,
+            error: String(error),
+          })
         } else {
-          logError("templates-ipc", "generate_failed", { senderId, error: String(error) })
+          logError("templates-ipc", "generate_failed", {
+            senderId,
+            error: String(error),
+          })
         }
         sendTerminalProgress("error")
         throw error

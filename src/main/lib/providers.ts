@@ -1,8 +1,4 @@
-import type {
-  AgentProvider,
-  McpProvider,
-  ProviderId,
-} from "@shared/types"
+import type { AgentProvider, McpProvider, ProviderId } from "@shared/types"
 import { ClaudeAgentProvider } from "./providers/claude-agent-provider"
 import { ClaudeMcpProvider } from "./providers/claude-mcp-provider"
 import { CodexAgentProvider } from "./providers/codex-agent-provider"

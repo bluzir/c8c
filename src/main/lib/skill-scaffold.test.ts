@@ -52,7 +52,10 @@ describe("scaffoldMissingSkills", () => {
   it("skips skills that already exist on disk", async () => {
     const existingPath = join(tmpDir, ".claude/skills/analysis/ux-reviewer.md")
     await mkdir(join(tmpDir, ".claude/skills/analysis"), { recursive: true })
-    await writeFile(existingPath, "---\nname: ux-reviewer\n---\nExisting content\n")
+    await writeFile(
+      existingPath,
+      "---\nname: ux-reviewer\n---\nExisting content\n",
+    )
 
     const workflow = makeWorkflow([
       {
@@ -145,7 +148,9 @@ describe("scaffoldMissingSkills", () => {
     expect(content).toContain("- WebSearch")
 
     const config = result.nodes[0].config as SkillNodeConfig
-    expect(config.allowedTools).toEqual(expect.arrayContaining(["WebFetch", "WebSearch"]))
+    expect(config.allowedTools).toEqual(
+      expect.arrayContaining(["WebFetch", "WebSearch"]),
+    )
   })
 
   it("merges inferred web tools with explicitly allowed tools", async () => {
@@ -165,7 +170,9 @@ describe("scaffoldMissingSkills", () => {
     const result = await scaffoldMissingSkills(workflow, [], tmpDir)
 
     const config = result.nodes[0].config as SkillNodeConfig
-    expect(config.allowedTools).toEqual(expect.arrayContaining(["Read", "WebFetch", "WebSearch"]))
+    expect(config.allowedTools).toEqual(
+      expect.arrayContaining(["Read", "WebFetch", "WebSearch"]),
+    )
   })
 
   it("does not infer blocked web tools", async () => {

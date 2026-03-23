@@ -1,6 +1,11 @@
 import { open, readFile, stat } from "node:fs/promises"
 import { join } from "node:path"
-import type { LogEntry, NodeState, PersistedRunSnapshot, WorkflowEvent } from "@shared/types"
+import type {
+  LogEntry,
+  NodeState,
+  PersistedRunSnapshot,
+  WorkflowEvent,
+} from "@shared/types"
 import { logWarn } from "../lib/structured-log"
 
 const MAX_PERSISTED_EVENTS_BYTES = 5 * 1024 * 1024
@@ -11,10 +16,12 @@ interface PersistedEventsTail {
 }
 
 function isMissingFile(error: unknown): boolean {
-  return typeof error === "object"
-    && error !== null
-    && "code" in error
-    && String((error as { code?: unknown }).code) === "ENOENT"
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    String((error as { code?: unknown }).code) === "ENOENT"
+  )
 }
 
 function decodeUtf8TailBuffer(buffer: Buffer): string {
@@ -25,11 +32,16 @@ function decodeUtf8TailBuffer(buffer: Buffer): string {
   return buffer.subarray(start).toString("utf-8")
 }
 
-function isNodeLogEvent(event: WorkflowEvent): event is Extract<WorkflowEvent, { type: "node-log" }> {
+function isNodeLogEvent(
+  event: WorkflowEvent,
+): event is Extract<WorkflowEvent, { type: "node-log" }> {
   return event.type === "node-log"
 }
 
-export function parsePersistedNodeLogs(raw: string, truncated = false): Record<string, LogEntry[]> {
+export function parsePersistedNodeLogs(
+  raw: string,
+  truncated = false,
+): Record<string, LogEntry[]> {
   const logsByNodeId: Record<string, LogEntry[]> = {}
   const lines = raw.split("\n")
   if (truncated && lines.length > 0) {
@@ -91,7 +103,9 @@ export function mergeNodeLogsIntoSnapshot(
   }
 }
 
-export async function readPersistedEventsTail(workspace: string): Promise<PersistedEventsTail | null> {
+export async function readPersistedEventsTail(
+  workspace: string,
+): Promise<PersistedEventsTail | null> {
   const eventsPath = join(workspace, "events.jsonl")
   try {
     const info = await stat(eventsPath)
@@ -130,17 +144,22 @@ export async function readPersistedEventsTail(workspace: string): Promise<Persis
   }
 }
 
-export async function loadPersistedNodeLogs(workspace: string): Promise<Record<string, LogEntry[]>> {
+export async function loadPersistedNodeLogs(
+  workspace: string,
+): Promise<Record<string, LogEntry[]>> {
   try {
     const persistedEvents = await readPersistedEventsTail(workspace)
     if (!persistedEvents) return {}
-    return parsePersistedNodeLogs(persistedEvents.raw, persistedEvents.truncated)
+    return parsePersistedNodeLogs(
+      persistedEvents.raw,
+      persistedEvents.truncated,
+    )
   } catch (error) {
     if (
-      typeof error === "object"
-      && error !== null
-      && "code" in error
-      && String((error as { code?: unknown }).code) === "ENOENT"
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      String((error as { code?: unknown }).code) === "ENOENT"
     ) {
       return {}
     }

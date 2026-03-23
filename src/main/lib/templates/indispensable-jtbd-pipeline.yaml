@@ -22,7 +22,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Indispensable JTBD Pipeline
-description: Extract jobs from raw product data, segment users, score opportunities, distill to
+description:
+  Extract jobs from raw product data, segment users, score opportunities, distill to
   essence, sharpen positioning, and clarify messaging — with a quality-check retry loop
 defaults:
   model: sonnet
@@ -42,7 +43,8 @@ nodes:
       y: 200
     config:
       skillRef: indispensable/extract-jobs
-      prompt: "Extract structured job stories from the provided material. Transform unstructured
+      prompt:
+        "Extract structured job stories from the provided material. Transform unstructured
         product descriptions, user feedback, reviews, or support tickets into JTBD-formatted
         stories. For each job identify: the trigger/context, the desired outcome, the functional
         and emotional dimensions, aha moments, and habit bridges. Output a structured list of
@@ -54,7 +56,8 @@ nodes:
       y: 200
     config:
       skillRef: indispensable/map-segments
-      prompt: "Group the extracted job stories into user segments based on shared jobs, contexts,
+      prompt:
+        "Group the extracted job stories into user segments based on shared jobs, contexts,
         and triggers — not demographics. For each segment provide: a descriptive name, the primary
         and secondary jobs, shared context/triggers, estimated size and accessibility, and fatal
         flaw checks. Score each segment on opportunity potential."
@@ -65,7 +68,8 @@ nodes:
       y: 200
     config:
       skillRef: indispensable/score
-      prompt: "Score and rank the identified segments across 5 dimensions: job frequency, willingness
+      prompt:
+        "Score and rank the identified segments across 5 dimensions: job frequency, willingness
         to pay, accessibility, competitive gap, and strategic fit. Check each segment for fatal
         flaws (too small, no budget, unreachable, saturated). Apply the Toothbrush Test — would
         users need this daily? Produce a ranked list with clear #1 recommendation and reasoning."
@@ -76,7 +80,8 @@ nodes:
       y: 200
     config:
       skillRef: indispensable/distill
-      prompt: "Simplify the product strategy to its essence. From the scored segments and job stories,
+      prompt:
+        "Simplify the product strategy to its essence. From the scored segments and job stories,
         identify the ONE primary job, ONE key segment, and ONE value delta. Cut everything that
         doesn't serve this core. Output a clear, concise strategy statement that a team could
         align around in 30 seconds."
@@ -97,7 +102,8 @@ nodes:
       y: 200
     config:
       skillRef: indispensable/sharpen
-      prompt: "Sharpen the distilled positioning. Replace vague language with specific, measurable
+      prompt:
+        "Sharpen the distilled positioning. Replace vague language with specific, measurable
         claims tied to concrete jobs. Every word must earn its place. Remove generic phrases
         (powerful, seamless, innovative), add numbers where possible, and ensure the positioning
         clearly answers: who is this for, what job does it solve, and why is this better than
@@ -109,7 +115,8 @@ nodes:
       y: 200
     config:
       skillRef: indispensable/clarify
-      prompt: "Rewrite all product messaging through the JTBD lens. Follow the arc: user's context →
+      prompt:
+        "Rewrite all product messaging through the JTBD lens. Follow the arc: user's context →
         their job → your solution → measurable outcome. Rewrite hero text, value propositions,
         and CTAs to speak to the user's job context instead of product features. Eliminate
         feature-speak, slop words, and manipulation patterns. Be concrete, human, and honest."
@@ -119,7 +126,8 @@ nodes:
       x: 2000
       y: 200
     config:
-      criteria: "Evaluate the JTBD pipeline output across 6 dimensions (score 1-10 each):
+      criteria:
+        "Evaluate the JTBD pipeline output across 6 dimensions (score 1-10 each):
         1) Job clarity — are jobs specific, observable, and solution-agnostic?
         2) Segment coherence — do segments share real context, not just demographics?
         3) Scoring rigor — are rankings evidence-based with fatal flaw checks?

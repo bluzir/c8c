@@ -51,7 +51,9 @@ function recordAssertion(
   assertions.push(details ? { label, details } : { label })
 }
 
-function importantConsoleEntry(entry: Pick<ElectronSmokeConsoleEntry, "level">) {
+function importantConsoleEntry(
+  entry: Pick<ElectronSmokeConsoleEntry, "level">,
+) {
   return entry.level === "warning" || entry.level === "error"
 }
 
@@ -67,11 +69,16 @@ function parseSmokeProjects(rawValue: string | undefined): string[] {
   try {
     const parsed = JSON.parse(rawValue) as unknown
     if (!Array.isArray(parsed)) return []
-    return [...new Set(
-      parsed
-        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-        .map((value) => resolve(value)),
-    )]
+    return [
+      ...new Set(
+        parsed
+          .filter(
+            (value): value is string =>
+              typeof value === "string" && value.trim().length > 0,
+          )
+          .map((value) => resolve(value)),
+      ),
+    ]
   } catch {
     return []
   }
@@ -95,28 +102,39 @@ export function resolveElectronSmokeSeed(env: NodeJS.ProcessEnv = process.env) {
   const requestedSelection = env.C8C_SMOKE_SELECTED_PROJECT?.trim()
   const selectedProject = requestedSelection
     ? resolve(requestedSelection)
-    : projects[0] ?? null
+    : (projects[0] ?? null)
 
   return {
     projects,
-    selectedProject: selectedProject && projects.includes(selectedProject)
-      ? selectedProject
-      : projects[0] ?? null,
+    selectedProject:
+      selectedProject && projects.includes(selectedProject)
+        ? selectedProject
+        : (projects[0] ?? null),
   }
 }
 
-export function resolveElectronSmokeOutputDir(env: NodeJS.ProcessEnv = process.env): string {
+export function resolveElectronSmokeOutputDir(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
   const configured = env.C8C_SMOKE_OUTPUT_DIR?.trim()
   return configured
     ? resolve(configured)
     : resolve(process.cwd(), "output", "ui-smoke")
 }
 
-async function readRendererSmokeState(window: BrowserWindow): Promise<ElectronSmokeUiState | null> {
-  return window.webContents.executeJavaScript(RENDERER_SMOKE_STATE_EXPR, true) as Promise<ElectronSmokeUiState | null>
+async function readRendererSmokeState(
+  window: BrowserWindow,
+): Promise<ElectronSmokeUiState | null> {
+  return window.webContents.executeJavaScript(
+    RENDERER_SMOKE_STATE_EXPR,
+    true,
+  ) as Promise<ElectronSmokeUiState | null>
 }
 
-async function executeRendererScript<T>(window: BrowserWindow, script: string): Promise<T> {
+async function executeRendererScript<T>(
+  window: BrowserWindow,
+  script: string,
+): Promise<T> {
   return window.webContents.executeJavaScript(script, true) as Promise<T>
 }
 
@@ -149,7 +167,9 @@ async function waitForElementText(
 
   while (Date.now() < deadline) {
     if (window.isDestroyed()) {
-      throw new Error(`Electron smoke window closed while waiting for ${label}.`)
+      throw new Error(
+        `Electron smoke window closed while waiting for ${label}.`,
+      )
     }
 
     lastText = await readElementText(window, selector)
@@ -159,7 +179,9 @@ async function waitForElementText(
     await sleep(120)
   }
 
-  throw new Error(`Timed out waiting for ${label}.${lastText ? ` Last text: ${lastText}` : ""}`)
+  throw new Error(
+    `Timed out waiting for ${label}.${lastText ? ` Last text: ${lastText}` : ""}`,
+  )
 }
 
 async function waitForUiState(
@@ -173,7 +195,9 @@ async function waitForUiState(
 
   while (Date.now() < deadline) {
     if (window.isDestroyed()) {
-      throw new Error(`Electron smoke window closed while waiting for ${label}.`)
+      throw new Error(
+        `Electron smoke window closed while waiting for ${label}.`,
+      )
     }
 
     lastState = await readRendererSmokeState(window)
@@ -183,7 +207,9 @@ async function waitForUiState(
     await sleep(120)
   }
 
-  throw new Error(`Timed out waiting for ${label}.${lastState ? ` Last ui state: ${JSON.stringify(lastState)}` : ""}`)
+  throw new Error(
+    `Timed out waiting for ${label}.${lastState ? ` Last ui state: ${JSON.stringify(lastState)}` : ""}`,
+  )
 }
 
 async function waitForMainCondition<T>(
@@ -203,10 +229,14 @@ async function waitForMainCondition<T>(
     await sleep(120)
   }
 
-  throw new Error(`Timed out waiting for ${label}.${lastValue ? ` Last value: ${JSON.stringify(lastValue)}` : ""}`)
+  throw new Error(
+    `Timed out waiting for ${label}.${lastValue ? ` Last value: ${JSON.stringify(lastValue)}` : ""}`,
+  )
 }
 
-async function readWorkspaceRunResult(workspace: string): Promise<Record<string, unknown> | null> {
+async function readWorkspaceRunResult(
+  workspace: string,
+): Promise<Record<string, unknown> | null> {
   try {
     const raw = await readFile(join(workspace, "run-result.json"), "utf-8")
     return JSON.parse(raw) as Record<string, unknown>
@@ -249,7 +279,9 @@ async function waitForRendererSmokeMethod(
 
   while (Date.now() < deadline) {
     if (window.isDestroyed()) {
-      throw new Error(`Electron smoke window closed while waiting for ${methodName}.`)
+      throw new Error(
+        `Electron smoke window closed while waiting for ${methodName}.`,
+      )
     }
 
     const isReady = await executeRendererScript<boolean>(
@@ -271,12 +303,16 @@ async function waitForRendererSmokeMethod(
 async function callRendererSmokeMethod<T>(
   window: BrowserWindow,
   methodName: "openWorkflow" | "setMainView" | "seedExecutionState",
-  input?: ElectronSmokeWorkflowOpenInput | ElectronSmokeMainViewInput | ElectronSmokeExecutionSeedInput,
+  input?:
+    | ElectronSmokeWorkflowOpenInput
+    | ElectronSmokeMainViewInput
+    | ElectronSmokeExecutionSeedInput,
 ) {
   await waitForRendererSmokeMethod(window, methodName)
-  const invocation = input === undefined
-    ? "method.call(harness)"
-    : `method.call(harness, ${JSON.stringify(input)})`
+  const invocation =
+    input === undefined
+      ? "method.call(harness)"
+      : `method.call(harness, ${JSON.stringify(input)})`
 
   return executeRendererScript<{ ok: boolean; value?: T }>(
     window,
@@ -344,7 +380,9 @@ async function waitForDomAction(
 
   while (Date.now() < deadline) {
     if (window.isDestroyed()) {
-      throw new Error(`Electron smoke window closed while waiting for ${label}.`)
+      throw new Error(
+        `Electron smoke window closed while waiting for ${label}.`,
+      )
     }
 
     const completed = await executeRendererScript<boolean>(window, script)
@@ -459,24 +497,55 @@ async function maybeDismissOnboarding(window: BrowserWindow) {
   await waitForUiState(
     window,
     "application shell after onboarding",
-    (uiState) => uiState.applicationShellVisible && uiState.mainView !== "onboarding",
+    (uiState) =>
+      uiState.applicationShellVisible && uiState.mainView !== "onboarding",
     8_000,
   )
 }
 
-async function openSeededWorkflow(window: BrowserWindow, input: ElectronSmokeWorkflowOpenInput) {
-  const result = await callRendererSmokeMethod<boolean>(window, "openWorkflow", input)
-  assertSmoke(result.ok && result.value !== false, `Failed to open smoke flow ${input.workflowPath}.`)
+async function openSeededWorkflow(
+  window: BrowserWindow,
+  input: ElectronSmokeWorkflowOpenInput,
+) {
+  const result = await callRendererSmokeMethod<boolean>(
+    window,
+    "openWorkflow",
+    input,
+  )
+  assertSmoke(
+    result.ok && result.value !== false,
+    `Failed to open smoke flow ${input.workflowPath}.`,
+  )
 }
 
-async function setSmokeMainView(window: BrowserWindow, input: ElectronSmokeMainViewInput) {
-  const result = await callRendererSmokeMethod<boolean>(window, "setMainView", input)
-  assertSmoke(result.ok && result.value !== false, `Failed to open smoke main view ${input.mainView}.`)
+async function setSmokeMainView(
+  window: BrowserWindow,
+  input: ElectronSmokeMainViewInput,
+) {
+  const result = await callRendererSmokeMethod<boolean>(
+    window,
+    "setMainView",
+    input,
+  )
+  assertSmoke(
+    result.ok && result.value !== false,
+    `Failed to open smoke main view ${input.mainView}.`,
+  )
 }
 
-async function seedSmokeExecutionState(window: BrowserWindow, input: ElectronSmokeExecutionSeedInput) {
-  const result = await callRendererSmokeMethod<boolean>(window, "seedExecutionState", input)
-  assertSmoke(result.ok && result.value !== false, "Failed to seed smoke execution state.")
+async function seedSmokeExecutionState(
+  window: BrowserWindow,
+  input: ElectronSmokeExecutionSeedInput,
+) {
+  const result = await callRendererSmokeMethod<boolean>(
+    window,
+    "seedExecutionState",
+    input,
+  )
+  assertSmoke(
+    result.ok && result.value !== false,
+    "Failed to seed smoke execution state.",
+  )
 }
 
 async function resolveSeededProjectWorkflows(
@@ -505,10 +574,12 @@ async function waitForSeededProjectReady(
     window,
     "seeded project ready",
     (state) =>
-      state.applicationShellVisible
-      && state.projectCount > 0
-      && state.selectedProject === projectPath
-      && expectedWorkflowNames.every((workflowName) => state.availableWorkflowNames.includes(workflowName)),
+      state.applicationShellVisible &&
+      state.projectCount > 0 &&
+      state.selectedProject === projectPath &&
+      expectedWorkflowNames.every((workflowName) =>
+        state.availableWorkflowNames.includes(workflowName),
+      ),
   )
 }
 
@@ -529,12 +600,12 @@ async function assertLaunchEmptyScenario(
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
   const matchesEmptyShell = (state: ElectronSmokeUiState) =>
-    state.applicationShellVisible
-    && state.sidebarVisible
-    && state.mainView === "thread"
-    && state.firstLaunch === false
-    && state.projectCount === 0
-    && state.selectedProject === null
+    state.applicationShellVisible &&
+    state.sidebarVisible &&
+    state.mainView === "thread" &&
+    state.firstLaunch === false &&
+    state.projectCount === 0 &&
+    state.selectedProject === null
 
   let state: ElectronSmokeUiState
 
@@ -542,10 +613,18 @@ async function assertLaunchEmptyScenario(
     state = await waitForUiState(window, "empty shell", matchesEmptyShell)
   } catch {
     await maybeDismissOnboarding(window)
-    state = await waitForUiState(window, "empty shell after onboarding", matchesEmptyShell)
+    state = await waitForUiState(
+      window,
+      "empty shell after onboarding",
+      matchesEmptyShell,
+    )
   }
 
-  recordAssertion(assertions, "Opened app shell in empty state", `mainView=${state.mainView}, projects=${state.projectCount}`)
+  recordAssertion(
+    assertions,
+    "Opened app shell in empty state",
+    `mainView=${state.mainView}, projects=${state.projectCount}`,
+  )
   return {
     uiState: state,
     invariants: {
@@ -562,19 +641,29 @@ async function assertSeededProjectSidebarScenario(
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
   const seed = resolveElectronSmokeSeed()
-  assertSmoke(seed.projects.length > 0, "seeded-project-sidebar requires at least one seeded project.")
-  assertSmoke(seed.selectedProject, "seeded-project-sidebar requires a selected project.")
+  assertSmoke(
+    seed.projects.length > 0,
+    "seeded-project-sidebar requires at least one seeded project.",
+  )
+  assertSmoke(
+    seed.selectedProject,
+    "seeded-project-sidebar requires a selected project.",
+  )
 
   const state = await waitForUiState(
     window,
     "seeded project sidebar",
     (state) =>
-      state.applicationShellVisible
-      && state.sidebarVisible
-      && state.projectCount === seed.projects.length
-      && state.selectedProject === seed.selectedProject,
+      state.applicationShellVisible &&
+      state.sidebarVisible &&
+      state.projectCount === seed.projects.length &&
+      state.selectedProject === seed.selectedProject,
   )
-  recordAssertion(assertions, "Loaded seeded project sidebar", `selectedProject=${state.selectedProject}`)
+  recordAssertion(
+    assertions,
+    "Loaded seeded project sidebar",
+    `selectedProject=${state.selectedProject}`,
+  )
   return {
     uiState: state,
     invariants: {
@@ -593,7 +682,8 @@ async function assertCommandPaletteToggleScenario(
   await waitForUiState(
     window,
     "command palette closed baseline",
-    (state) => state.applicationShellVisible && state.commandPaletteOpen === false,
+    (state) =>
+      state.applicationShellVisible && state.commandPaletteOpen === false,
   )
   recordAssertion(assertions, "Started with command palette closed")
   await focusWindow(window)
@@ -621,9 +711,15 @@ async function assertSettingsNavigationScenario(
   await waitForUiState(
     window,
     "settings shortcut baseline",
-    (state) => state.applicationShellVisible && state.mainView === "thread" && state.settingsPageVisible === false,
+    (state) =>
+      state.applicationShellVisible &&
+      state.mainView === "thread" &&
+      state.settingsPageVisible === false,
   )
-  recordAssertion(assertions, "Started from thread surface before opening settings")
+  recordAssertion(
+    assertions,
+    "Started from thread surface before opening settings",
+  )
   await focusWindow(window)
   await dispatchShortcut(window, { key: ",", primary: true })
   const state = await waitForUiState(
@@ -631,7 +727,11 @@ async function assertSettingsNavigationScenario(
     "settings page visible",
     (state) => state.mainView === "settings" && state.settingsPageVisible,
   )
-  recordAssertion(assertions, "Opened settings with primary shortcut", `mainView=${state.mainView}`)
+  recordAssertion(
+    assertions,
+    "Opened settings with primary shortcut",
+    `mainView=${state.mainView}`,
+  )
   return {
     uiState: state,
     invariants: {
@@ -647,9 +747,14 @@ async function assertQuickSwitchShortcutsScenario(
   window: BrowserWindow,
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
-  const { projectPath, workflows } = await resolveSeededProjectWorkflows("quick-switch-shortcuts", 2)
-  const alphaWorkflow = findWorkflowByName(workflows, "Alpha flow") || workflows[0]
-  const betaWorkflow = findWorkflowByName(workflows, "Beta flow") || workflows[1]
+  const { projectPath, workflows } = await resolveSeededProjectWorkflows(
+    "quick-switch-shortcuts",
+    2,
+  )
+  const alphaWorkflow =
+    findWorkflowByName(workflows, "Alpha flow") || workflows[0]
+  const betaWorkflow =
+    findWorkflowByName(workflows, "Beta flow") || workflows[1]
 
   await openSeededWorkflow(window, {
     projectPath,
@@ -659,13 +764,17 @@ async function assertQuickSwitchShortcutsScenario(
     window,
     "quick switch shortcuts ready",
     (state) =>
-      state.applicationShellVisible
-      && state.currentWorkflowName === alphaWorkflow.name
-      && state.selectedWorkflowPath === alphaWorkflow.path
-      && state.availableWorkflowNames.includes(alphaWorkflow.name)
-      && state.availableWorkflowNames.includes(betaWorkflow.name),
+      state.applicationShellVisible &&
+      state.currentWorkflowName === alphaWorkflow.name &&
+      state.selectedWorkflowPath === alphaWorkflow.path &&
+      state.availableWorkflowNames.includes(alphaWorkflow.name) &&
+      state.availableWorkflowNames.includes(betaWorkflow.name),
   )
-  recordAssertion(assertions, "Prepared quick switch shortcuts", `${alphaWorkflow.name}, ${betaWorkflow.name}`)
+  recordAssertion(
+    assertions,
+    "Prepared quick switch shortcuts",
+    `${alphaWorkflow.name}, ${betaWorkflow.name}`,
+  )
 
   await focusWindow(window)
   await dispatchShortcut(window, { key: "2", primary: true })
@@ -673,20 +782,28 @@ async function assertQuickSwitchShortcutsScenario(
     window,
     "quick switched flow",
     (state) =>
-      state.currentWorkflowName === betaWorkflow.name
-      && state.selectedWorkflowPath === betaWorkflow.path,
+      state.currentWorkflowName === betaWorkflow.name &&
+      state.selectedWorkflowPath === betaWorkflow.path,
   )
-  recordAssertion(assertions, "Switched flows with primary+2", `selected=${betaWorkflow.name}`)
+  recordAssertion(
+    assertions,
+    "Switched flows with primary+2",
+    `selected=${betaWorkflow.name}`,
+  )
 
   await dispatchShortcut(window, { key: "1", primary: true })
   const finalState = await waitForUiState(
     window,
     "quick switch return shortcut",
     (state) =>
-      state.currentWorkflowName === alphaWorkflow.name
-      && state.selectedWorkflowPath === alphaWorkflow.path,
+      state.currentWorkflowName === alphaWorkflow.name &&
+      state.selectedWorkflowPath === alphaWorkflow.path,
   )
-  recordAssertion(assertions, "Switched flows with primary+1", `selected=${alphaWorkflow.name}`)
+  recordAssertion(
+    assertions,
+    "Switched flows with primary+1",
+    `selected=${alphaWorkflow.name}`,
+  )
   return {
     uiState: finalState,
     invariants: {
@@ -703,8 +820,12 @@ async function assertApprovalDialogScenario(
   window: BrowserWindow,
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
-  const { projectPath, workflows } = await resolveSeededProjectWorkflows("approval-dialog", 1)
-  const approvalWorkflow = findWorkflowByName(workflows, "Approval flow") || workflows[0]
+  const { projectPath, workflows } = await resolveSeededProjectWorkflows(
+    "approval-dialog",
+    1,
+  )
+  const approvalWorkflow =
+    findWorkflowByName(workflows, "Approval flow") || workflows[0]
 
   await waitForSeededProjectReady(window, projectPath, [approvalWorkflow.name])
   await openSeededWorkflow(window, {
@@ -716,10 +837,10 @@ async function assertApprovalDialogScenario(
     window,
     "approval flow open",
     (state) =>
-      state.applicationShellVisible
-      && state.currentWorkflowName === approvalWorkflow.name
-      && state.selectedWorkflowPath === approvalWorkflow.path
-      && state.viewMode === "list",
+      state.applicationShellVisible &&
+      state.currentWorkflowName === approvalWorkflow.name &&
+      state.selectedWorkflowPath === approvalWorkflow.path &&
+      state.viewMode === "list",
   )
 
   await seedSmokeExecutionState(window, {
@@ -746,16 +867,23 @@ async function assertApprovalDialogScenario(
   await waitForUiState(
     window,
     "approval dialog open",
-    (state) => state.approvalDialogOpen && state.currentWorkflowName === approvalWorkflow.name,
+    (state) =>
+      state.approvalDialogOpen &&
+      state.currentWorkflowName === approvalWorkflow.name,
   )
-  recordAssertion(assertions, "Opened approval dialog from seeded execution state")
+  recordAssertion(
+    assertions,
+    "Opened approval dialog from seeded execution state",
+  )
 
   await focusWindow(window)
   await dispatchShortcut(window, { key: "Enter", primary: true })
   const state = await waitForUiState(
     window,
     "approval dialog closed",
-    (state) => state.currentWorkflowName === approvalWorkflow.name && state.approvalDialogOpen === false,
+    (state) =>
+      state.currentWorkflowName === approvalWorkflow.name &&
+      state.approvalDialogOpen === false,
   )
   recordAssertion(assertions, "Approved dialog with primary+Enter")
   return {
@@ -774,7 +902,10 @@ async function assertCreateReadyContinuationScenario(
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
   const seed = resolveElectronSmokeSeed()
-  assertSmoke(seed.selectedProject, "create-ready-continuation requires a selected project.")
+  assertSmoke(
+    seed.selectedProject,
+    "create-ready-continuation requires a selected project.",
+  )
 
   await waitForSeededProjectReady(window, seed.selectedProject)
   await setSmokeMainView(window, {
@@ -786,9 +917,9 @@ async function assertCreateReadyContinuationScenario(
     window,
     "create page visible",
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "workflow_create"
-      && uiState.selectedProject === seed.selectedProject,
+      uiState.applicationShellVisible &&
+      uiState.mainView === "workflow_create" &&
+      uiState.selectedProject === seed.selectedProject,
   )
 
   const continuationText = await waitForElementText(
@@ -796,12 +927,16 @@ async function assertCreateReadyContinuationScenario(
     "ready continuation card",
     '[aria-label="Continue saved work"]',
     (text) =>
-      text.includes("Checkout polish")
-      && text.includes("Research the Change")
-      && text.includes("Latest check: Project brief saved. Research can continue."),
+      text.includes("Checkout polish") &&
+      text.includes("Research the Change") &&
+      text.includes(
+        "Latest check: Project brief saved. Research can continue.",
+      ),
   )
   assertSmoke(
-    continuationText.includes("Latest check: Project brief saved. Research can continue."),
+    continuationText.includes(
+      "Latest check: Project brief saved. Research can continue.",
+    ),
     "Ready continuation should show the durable latest check.",
   )
   assertSmoke(
@@ -809,7 +944,11 @@ async function assertCreateReadyContinuationScenario(
     "Ready continuation should expose Continue work.",
   )
   recordAssertion(assertions, "Opened create page from persisted project state")
-  recordAssertion(assertions, "Rendered ready continuation from durable result and case state", "Checkout polish -> Research the Change")
+  recordAssertion(
+    assertions,
+    "Rendered ready continuation from durable result and case state",
+    "Checkout polish -> Research the Change",
+  )
 
   return {
     uiState: state,
@@ -827,8 +966,12 @@ async function assertBlockedRelaunchScenario(
   window: BrowserWindow,
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
-  const { projectPath, workflows } = await resolveSeededProjectWorkflows("blocked-relaunch", 1)
-  const blockedWorkflow = findWorkflowByName(workflows, "Blocked approval flow") || workflows[0]
+  const { projectPath, workflows } = await resolveSeededProjectWorkflows(
+    "blocked-relaunch",
+    1,
+  )
+  const blockedWorkflow =
+    findWorkflowByName(workflows, "Blocked approval flow") || workflows[0]
 
   await waitForSeededProjectReady(window, projectPath, [blockedWorkflow.name])
   await setSmokeMainView(window, {
@@ -839,9 +982,9 @@ async function assertBlockedRelaunchScenario(
     window,
     "blocked create page visible",
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "workflow_create"
-      && uiState.selectedProject === projectPath,
+      uiState.applicationShellVisible &&
+      uiState.mainView === "workflow_create" &&
+      uiState.selectedProject === projectPath,
   )
 
   const createContinuationText = await waitForElementText(
@@ -849,26 +992,32 @@ async function assertBlockedRelaunchScenario(
     "blocked continuation card",
     '[aria-label="Continue saved work"]',
     (text) =>
-      text.includes("Checkout polish")
-      && text.includes("Open approval")
-      && text.includes("Waiting on you"),
+      text.includes("Checkout polish") &&
+      text.includes("Open approval") &&
+      text.includes("Waiting on you"),
   )
   assertSmoke(
-    createContinuationText.includes("Approval pending. Review block before verification continues."),
+    createContinuationText.includes(
+      "Approval pending. Review block before verification continues.",
+    ),
     "Blocked continuation should show the durable approval check.",
   )
-  recordAssertion(assertions, "Rendered blocked continuation on create page", "Checkout polish waiting on approval")
+  recordAssertion(
+    assertions,
+    "Rendered blocked continuation on create page",
+    "Checkout polish waiting on approval",
+  )
 
   await clickElementByText(window, "Open approval", "button")
   const state = await waitForUiState(
     window,
     "blocked flow shell open",
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "thread"
-      && uiState.currentWorkflowName === blockedWorkflow.name
-      && uiState.selectedWorkflowPath === blockedWorkflow.path
-      && uiState.viewMode === "list",
+      uiState.applicationShellVisible &&
+      uiState.mainView === "thread" &&
+      uiState.currentWorkflowName === blockedWorkflow.name &&
+      uiState.selectedWorkflowPath === blockedWorkflow.path &&
+      uiState.viewMode === "list",
   )
 
   const taskPanelText = await waitForElementText(
@@ -876,14 +1025,22 @@ async function assertBlockedRelaunchScenario(
     "blocked task panel",
     '[data-blocked-task-panel="true"]',
     (text) =>
-      text.includes("Step input")
-      && text.includes("On approve")
-      && text.includes("On reject")
-      && text.includes("Approve & Continue")
-      && text.includes("Reject"),
+      text.includes("Step input") &&
+      text.includes("On approve") &&
+      text.includes("On reject") &&
+      text.includes("Approve & Continue") &&
+      text.includes("Reject"),
   )
-  recordAssertion(assertions, "Opened blocked work into the same flow shell", blockedWorkflow.name)
-  recordAssertion(assertions, "Rendered embedded blocked task panel", "Approve & Continue")
+  recordAssertion(
+    assertions,
+    "Opened blocked work into the same flow shell",
+    blockedWorkflow.name,
+  )
+  recordAssertion(
+    assertions,
+    "Rendered embedded blocked task panel",
+    "Approve & Continue",
+  )
 
   return {
     uiState: state,
@@ -894,7 +1051,8 @@ async function assertBlockedRelaunchScenario(
       blockedHeaderVisible: false,
       blockedTaskVisible: taskPanelText.includes("Approve & Continue"),
       statusText: "Blocked",
-      reasonText: "Confirm whether the checkout polish is ready for verification.",
+      reasonText:
+        "Confirm whether the checkout polish is ready for verification.",
     },
   }
 }
@@ -904,7 +1062,10 @@ async function assertFactoryThinBridgeScenario(
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
   const seed = resolveElectronSmokeSeed()
-  assertSmoke(seed.selectedProject, "factory-thin-bridge requires a selected project.")
+  assertSmoke(
+    seed.selectedProject,
+    "factory-thin-bridge requires a selected project.",
+  )
 
   await waitForSeededProjectReady(window, seed.selectedProject)
   await setSmokeMainView(window, {
@@ -915,9 +1076,9 @@ async function assertFactoryThinBridgeScenario(
     window,
     "ready create page visible",
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "workflow_create"
-      && uiState.selectedProject === seed.selectedProject,
+      uiState.applicationShellVisible &&
+      uiState.mainView === "workflow_create" &&
+      uiState.selectedProject === seed.selectedProject,
   )
 
   const createContinuationText = await waitForElementText(
@@ -925,11 +1086,17 @@ async function assertFactoryThinBridgeScenario(
     "ready continuation card",
     '[aria-label="Continue saved work"]',
     (text) =>
-      text.includes("Checkout polish")
-      && text.includes("Research the Change")
-      && text.includes("Latest check: Project brief saved. Research can continue."),
+      text.includes("Checkout polish") &&
+      text.includes("Research the Change") &&
+      text.includes(
+        "Latest check: Project brief saved. Research can continue.",
+      ),
   )
-  recordAssertion(assertions, "Rendered the same saved work on create surface", "Checkout polish")
+  recordAssertion(
+    assertions,
+    "Rendered the same saved work on create surface",
+    "Checkout polish",
+  )
 
   await setSmokeMainView(window, {
     mainView: "factory",
@@ -939,9 +1106,9 @@ async function assertFactoryThinBridgeScenario(
     window,
     "factory page visible",
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "factory"
-      && uiState.selectedProject === seed.selectedProject,
+      uiState.applicationShellVisible &&
+      uiState.mainView === "factory" &&
+      uiState.selectedProject === seed.selectedProject,
   )
 
   const caseDetailText = await waitForElementText(
@@ -949,29 +1116,35 @@ async function assertFactoryThinBridgeScenario(
     "factory case detail",
     '[data-factory-case-shell="true"]',
     (text) =>
-      text.includes("Checkout polish")
-      && text.includes("Project Brief")
-      && text.includes("Project brief saved. Research can continue.")
-      && text.includes("Continue in runtime shell"),
+      text.includes("Checkout polish") &&
+      text.includes("Project Brief") &&
+      text.includes("Project brief saved. Research can continue.") &&
+      text.includes("Continue in runtime shell"),
   )
   assertSmoke(
-    createContinuationText.includes("Checkout polish")
-      && caseDetailText.includes("Checkout polish")
-      && createContinuationText.includes("Project brief saved. Research can continue.")
-      && caseDetailText.includes("Project brief saved. Research can continue."),
+    createContinuationText.includes("Checkout polish") &&
+      caseDetailText.includes("Checkout polish") &&
+      createContinuationText.includes(
+        "Project brief saved. Research can continue.",
+      ) &&
+      caseDetailText.includes("Project brief saved. Research can continue."),
     "Factory should preserve the same saved-work meaning as the create surface.",
   )
-  recordAssertion(assertions, "Rendered saved work in factory as a real substrate view", "Checkout polish -> Project Brief")
+  recordAssertion(
+    assertions,
+    "Rendered saved work in factory as a real substrate view",
+    "Checkout polish -> Project Brief",
+  )
 
   await clickElementByText(window, "Continue in runtime shell", "button")
   const state = await waitForUiState(
     window,
     "runtime shell open from factory",
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "thread"
-      && uiState.currentWorkflowName === "Delivery Lab: Research the Change"
-      && uiState.selectedProject === seed.selectedProject,
+      uiState.applicationShellVisible &&
+      uiState.mainView === "thread" &&
+      uiState.currentWorkflowName === "Delivery Lab: Research the Change" &&
+      uiState.selectedProject === seed.selectedProject,
   )
 
   const resumeHeaderText = await waitForElementText(
@@ -979,21 +1152,27 @@ async function assertFactoryThinBridgeScenario(
     "runtime shell resume header",
     '[data-workflow-resume-header="true"]',
     (text) =>
-      text.includes("Project Brief")
-      && text.includes("Attached")
-      && text.includes("Status")
-      && text.includes("Continue"),
+      text.includes("Project Brief") &&
+      text.includes("Attached") &&
+      text.includes("Status") &&
+      text.includes("Continue"),
   )
-  recordAssertion(assertions, "Continued from factory into runtime shell", "Delivery Lab: Research the Change")
+  recordAssertion(
+    assertions,
+    "Continued from factory into runtime shell",
+    "Delivery Lab: Research the Change",
+  )
   await waitForElementText(
     window,
     "runtime shell results",
     "body",
-    (text) =>
-      text.includes("Project Brief")
-      && text.includes("Attached"),
+    (text) => text.includes("Project Brief") && text.includes("Attached"),
   )
-  recordAssertion(assertions, "Rendered attached saved result in runtime shell", "Project Brief")
+  recordAssertion(
+    assertions,
+    "Rendered attached saved result in runtime shell",
+    "Project Brief",
+  )
 
   return {
     uiState: state,
@@ -1003,7 +1182,8 @@ async function assertFactoryThinBridgeScenario(
       latestResult: "Project Brief",
       latestCheckText: "Project brief saved. Research can continue.",
       actionLabel: "Continue in runtime shell",
-      runtimeWorkflowName: state.currentWorkflowName || "Delivery Lab: Research the Change",
+      runtimeWorkflowName:
+        state.currentWorkflowName || "Delivery Lab: Research the Change",
     },
   }
 }
@@ -1013,8 +1193,12 @@ async function openBlockedApprovalInThread(
   scenario: "blocked-approve-resolution" | "blocked-reject-resolution",
   assertions: ElectronSmokeAssertion[],
 ) {
-  const { projectPath, workflows } = await resolveSeededProjectWorkflows(scenario, 1)
-  const blockedWorkflow = findWorkflowByName(workflows, "Blocked approval flow") || workflows[0]
+  const { projectPath, workflows } = await resolveSeededProjectWorkflows(
+    scenario,
+    1,
+  )
+  const blockedWorkflow =
+    findWorkflowByName(workflows, "Blocked approval flow") || workflows[0]
 
   await waitForSeededProjectReady(window, projectPath, [blockedWorkflow.name])
   await setSmokeMainView(window, {
@@ -1025,9 +1209,9 @@ async function openBlockedApprovalInThread(
     window,
     `${scenario} create page visible`,
     (uiState) =>
-      uiState.applicationShellVisible
-      && uiState.mainView === "workflow_create"
-      && uiState.selectedProject === projectPath,
+      uiState.applicationShellVisible &&
+      uiState.mainView === "workflow_create" &&
+      uiState.selectedProject === projectPath,
   )
 
   await waitForElementText(
@@ -1035,20 +1219,20 @@ async function openBlockedApprovalInThread(
     `${scenario} continuation card`,
     '[aria-label="Continue saved work"]',
     (text) =>
-      text.includes("Checkout polish")
-      && text.includes("Open approval")
-      && text.includes("Waiting on you"),
+      text.includes("Checkout polish") &&
+      text.includes("Open approval") &&
+      text.includes("Waiting on you"),
   )
   await clickElementByText(window, "Open approval", "button")
   const uiState = await waitForUiState(
     window,
     `${scenario} blocked flow shell open`,
     (state) =>
-      state.applicationShellVisible
-      && state.mainView === "thread"
-      && state.currentWorkflowName === blockedWorkflow.name
-      && state.selectedWorkflowPath === blockedWorkflow.path
-      && state.viewMode === "list",
+      state.applicationShellVisible &&
+      state.mainView === "thread" &&
+      state.currentWorkflowName === blockedWorkflow.name &&
+      state.selectedWorkflowPath === blockedWorkflow.path &&
+      state.viewMode === "list",
   )
 
   await waitForElementText(
@@ -1056,13 +1240,17 @@ async function openBlockedApprovalInThread(
     `${scenario} blocked task panel`,
     '[data-blocked-task-panel="true"]',
     (text) =>
-      text.includes("Step input")
-      && text.includes("On approve")
-      && text.includes("On reject")
-      && text.includes("Approve & Continue")
-      && text.includes("Reject"),
+      text.includes("Step input") &&
+      text.includes("On approve") &&
+      text.includes("On reject") &&
+      text.includes("Approve & Continue") &&
+      text.includes("Reject"),
   )
-  recordAssertion(assertions, "Opened blocked approval in runtime shell", blockedWorkflow.name)
+  recordAssertion(
+    assertions,
+    "Opened blocked approval in runtime shell",
+    blockedWorkflow.name,
+  )
 
   return {
     projectPath,
@@ -1075,14 +1263,20 @@ async function assertBlockedApproveResolutionScenario(
   window: BrowserWindow,
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
-  const { projectPath, blockedWorkflow, uiState } = await openBlockedApprovalInThread(
-    window,
-    "blocked-approve-resolution",
-    assertions,
+  const { projectPath, blockedWorkflow, uiState } =
+    await openBlockedApprovalInThread(
+      window,
+      "blocked-approve-resolution",
+      assertions,
+    )
+  const caseStateBefore =
+    (await listProjectCaseStates(projectPath)).find(
+      (entry) => entry.workLabel === "Checkout polish",
+    ) || null
+  assertSmoke(
+    caseStateBefore?.workflowPath,
+    "blocked-approve-resolution requires a case state workflow path.",
   )
-  const caseStateBefore = (await listProjectCaseStates(projectPath))
-    .find((entry) => entry.workLabel === "Checkout polish") || null
-  assertSmoke(caseStateBefore?.workflowPath, "blocked-approve-resolution requires a case state workflow path.")
   const workspace = join(projectPath, ".c8c", "runs", "run-blocked-approval")
 
   await clickElementByText(window, "Approve & Continue", "button")
@@ -1096,9 +1290,13 @@ async function assertBlockedApproveResolutionScenario(
     "approved case state",
     async () => {
       const states = await listProjectCaseStates(projectPath)
-      return states.find((entry) => entry.workLabel === "Checkout polish") || null
+      return (
+        states.find((entry) => entry.workLabel === "Checkout polish") || null
+      )
     },
-    (state) => state.continuationStatus === "ready" && state.lastGate?.outcome === "passed",
+    (state) =>
+      state.continuationStatus === "ready" &&
+      state.lastGate?.outcome === "passed",
   )
   const openTasks = await waitForMainCondition(
     "closed approval tasks",
@@ -1110,10 +1308,12 @@ async function assertBlockedApproveResolutionScenario(
     "post-approval runtime shell",
     "body",
     (text) =>
-      (text.includes("Create follow-up flow") || text.includes("Start next flow") || text.includes("Continue with Agent"))
-      && text.includes("View summary")
-      && !text.includes("Approve & Continue")
-      && !text.includes("On approve"),
+      (text.includes("Create follow-up flow") ||
+        text.includes("Start next flow") ||
+        text.includes("Continue with Agent")) &&
+      text.includes("View summary") &&
+      !text.includes("Approve & Continue") &&
+      !text.includes("On approve"),
   )
   const hasCompetingRunButton = await executeRendererScript<boolean>(
     window,
@@ -1128,12 +1328,31 @@ async function assertBlockedApproveResolutionScenario(
         .some((candidate) => isVisible(candidate) && ((candidate.innerText || candidate.textContent || "").trim() === "Run"));
     })()`,
   )
-  assertSmoke(!hasCompetingRunButton, "Completed result should own the next action instead of leaving the toolbar Run visible.")
+  assertSmoke(
+    !hasCompetingRunButton,
+    "Completed result should own the next action instead of leaving the toolbar Run visible.",
+  )
 
-  recordAssertion(assertions, "Approved blocked work and finished the suspended run", blockedWorkflow.name)
-  recordAssertion(assertions, "Persisted approval pass into durable case state", resolvedCaseState.lastGate?.summaryText || "Approval recorded")
-  recordAssertion(assertions, "Completed result exposes a follow-up flow CTA", "Create follow-up flow / Start next flow")
-  recordAssertion(assertions, "Completed result still exposes a drill-down path", "View summary")
+  recordAssertion(
+    assertions,
+    "Approved blocked work and finished the suspended run",
+    blockedWorkflow.name,
+  )
+  recordAssertion(
+    assertions,
+    "Persisted approval pass into durable case state",
+    resolvedCaseState.lastGate?.summaryText || "Approval recorded",
+  )
+  recordAssertion(
+    assertions,
+    "Completed result exposes a follow-up flow CTA",
+    "Create follow-up flow / Start next flow",
+  )
+  recordAssertion(
+    assertions,
+    "Completed result still exposes a drill-down path",
+    "View summary",
+  )
 
   return {
     uiState,
@@ -1151,11 +1370,12 @@ async function assertBlockedRejectResolutionScenario(
   window: BrowserWindow,
   assertions: ElectronSmokeAssertion[],
 ): Promise<ScenarioExecutionResult> {
-  const { projectPath, blockedWorkflow, uiState } = await openBlockedApprovalInThread(
-    window,
-    "blocked-reject-resolution",
-    assertions,
-  )
+  const { projectPath, blockedWorkflow, uiState } =
+    await openBlockedApprovalInThread(
+      window,
+      "blocked-reject-resolution",
+      assertions,
+    )
 
   await clickElementByText(window, "Reject", "button")
 
@@ -1163,9 +1383,13 @@ async function assertBlockedRejectResolutionScenario(
     "rejected case state",
     async () => {
       const states = await listProjectCaseStates(projectPath)
-      return states.find((entry) => entry.workLabel === "Checkout polish") || null
+      return (
+        states.find((entry) => entry.workLabel === "Checkout polish") || null
+      )
     },
-    (state) => state.continuationStatus === "blocked_by_check" && state.lastGate?.outcome === "rejected",
+    (state) =>
+      state.continuationStatus === "blocked_by_check" &&
+      state.lastGate?.outcome === "rejected",
   )
   const openTasks = await waitForMainCondition(
     "cleared rejected approval tasks",
@@ -1181,22 +1405,30 @@ async function assertBlockedRejectResolutionScenario(
     window,
     "factory visible after reject",
     (state) =>
-      state.applicationShellVisible
-      && state.mainView === "factory"
-      && state.selectedProject === projectPath,
+      state.applicationShellVisible &&
+      state.mainView === "factory" &&
+      state.selectedProject === projectPath,
   )
   await waitForElementText(
     window,
     "rejected factory case detail",
     '[data-factory-case-shell="true"]',
     (text) =>
-      text.includes("Checkout polish")
-      && text.includes("rejected and is blocked")
-      && !text.includes("Continue in runtime shell"),
+      text.includes("Checkout polish") &&
+      text.includes("rejected and is blocked") &&
+      !text.includes("Continue in runtime shell"),
   )
 
-  recordAssertion(assertions, "Rejected blocked work and cleared the open approval task", blockedWorkflow.name)
-  recordAssertion(assertions, "Persisted rejection into durable blocked state", resolvedCaseState.lastGate?.summaryText || "Rejected")
+  recordAssertion(
+    assertions,
+    "Rejected blocked work and cleared the open approval task",
+    blockedWorkflow.name,
+  )
+  recordAssertion(
+    assertions,
+    "Persisted rejection into durable blocked state",
+    resolvedCaseState.lastGate?.summaryText || "Rejected",
+  )
 
   return {
     uiState,
@@ -1261,7 +1493,9 @@ export async function prepareElectronSmokeLaunchState(
   }
 
   const seed = resolveElectronSmokeSeed(env)
-  await Promise.all(seed.projects.map((projectPath) => mkdir(projectPath, { recursive: true })))
+  await Promise.all(
+    seed.projects.map((projectPath) => mkdir(projectPath, { recursive: true })),
+  )
   await saveProjectsConfig({
     projects: seed.projects,
     lastSelectedProject: seed.selectedProject ?? undefined,
@@ -1288,38 +1522,84 @@ function consoleEntryLevel(
 function focusSelectorsForScenario(scenario: ElectronSmokeScenario) {
   switch (scenario) {
     case "seeded-project-sidebar":
-      return [{ label: "project-sidebar", selector: '[aria-label="Project sidebar"]' }]
+      return [
+        {
+          label: "project-sidebar",
+          selector: '[aria-label="Project sidebar"]',
+        },
+      ]
     case "command-palette-toggle":
-      return [{ label: "command-palette", selector: '[aria-label="Command palette"]' }]
+      return [
+        {
+          label: "command-palette",
+          selector: '[aria-label="Command palette"]',
+        },
+      ]
     case "settings-navigation":
-      return [{ label: "settings-page", selector: 'h1' }]
+      return [{ label: "settings-page", selector: "h1" }]
     case "quick-switch-shortcuts":
-      return [{ label: "application-shell", selector: '[role="application"][aria-label="c8c"]' }]
+      return [
+        {
+          label: "application-shell",
+          selector: '[role="application"][aria-label="c8c"]',
+        },
+      ]
     case "approval-dialog":
       return [{ label: "approval-dialog", selector: '[role="dialog"]' }]
     case "create-ready-continuation":
-      return [{ label: "create-ready-continuation", selector: '[aria-label="Continue saved work"]' }]
+      return [
+        {
+          label: "create-ready-continuation",
+          selector: '[aria-label="Continue saved work"]',
+        },
+      ]
     case "blocked-relaunch":
       return [
-        { label: "blocked-resume-header", selector: '[data-workflow-resume-header="true"]' },
-        { label: "blocked-task-panel", selector: '[data-blocked-task-panel="true"]' },
+        {
+          label: "blocked-resume-header",
+          selector: '[data-workflow-resume-header="true"]',
+        },
+        {
+          label: "blocked-task-panel",
+          selector: '[data-blocked-task-panel="true"]',
+        },
       ]
     case "factory-thin-bridge":
       return [
-        { label: "factory-case-detail", selector: '[data-factory-case-shell="true"]' },
-        { label: "runtime-resume-header", selector: '[data-workflow-resume-header="true"]' },
+        {
+          label: "factory-case-detail",
+          selector: '[data-factory-case-shell="true"]',
+        },
+        {
+          label: "runtime-resume-header",
+          selector: '[data-workflow-resume-header="true"]',
+        },
       ]
     case "blocked-approve-resolution":
       return [
-        { label: "blocked-task-panel", selector: '[data-blocked-task-panel="true"]' },
-        { label: "workflow-runtime", selector: '[role="application"][aria-label="c8c"]' },
+        {
+          label: "blocked-task-panel",
+          selector: '[data-blocked-task-panel="true"]',
+        },
+        {
+          label: "workflow-runtime",
+          selector: '[role="application"][aria-label="c8c"]',
+        },
       ]
     case "blocked-reject-resolution":
       return [
-        { label: "factory-case-detail", selector: '[data-factory-case-shell="true"]' },
+        {
+          label: "factory-case-detail",
+          selector: '[data-factory-case-shell="true"]',
+        },
       ]
     default:
-      return [{ label: "application-shell", selector: '[role="application"][aria-label="c8c"]' }]
+      return [
+        {
+          label: "application-shell",
+          selector: '[role="application"][aria-label="c8c"]',
+        },
+      ]
   }
 }
 
@@ -1384,9 +1664,15 @@ export function runElectronSmokeScenarioIfRequested(window: BrowserWindow) {
       invariants = result.invariants
       const image = await window.webContents.capturePage()
       await writeFile(screenshotPath, image.toPNG())
-      const importantRendererConsole = rawRendererConsole.filter(importantConsoleEntry)
-      const ignoredRendererConsole = importantRendererConsole.filter(isAllowlistedElectronSmokeConsoleEntry)
-      const unexpectedRendererConsole = importantRendererConsole.filter((entry) => !isAllowlistedElectronSmokeConsoleEntry(entry))
+      const importantRendererConsole = rawRendererConsole.filter(
+        importantConsoleEntry,
+      )
+      const ignoredRendererConsole = importantRendererConsole.filter(
+        isAllowlistedElectronSmokeConsoleEntry,
+      )
+      const unexpectedRendererConsole = importantRendererConsole.filter(
+        (entry) => !isAllowlistedElectronSmokeConsoleEntry(entry),
+      )
       const report: ElectronSmokeScenarioReport = {
         scenario,
         ok: true,
@@ -1404,7 +1690,7 @@ export function runElectronSmokeScenarioIfRequested(window: BrowserWindow) {
     } catch (error) {
       let artifacts: ElectronSmokeArtifact[] = []
       try {
-        finalState = finalState ?? await readRendererSmokeState(window)
+        finalState = finalState ?? (await readRendererSmokeState(window))
       } catch {
         // Ignore secondary state capture failures while building the failure report.
       }
@@ -1417,10 +1703,20 @@ export function runElectronSmokeScenarioIfRequested(window: BrowserWindow) {
       }
 
       artifacts = await captureFocusedArtifacts(window, scenario, outputDir)
-      recordAssertion(assertions, "Scenario failed", error instanceof Error ? error.message : String(error))
-      const importantRendererConsole = rawRendererConsole.filter(importantConsoleEntry)
-      const ignoredRendererConsole = importantRendererConsole.filter(isAllowlistedElectronSmokeConsoleEntry)
-      const unexpectedRendererConsole = importantRendererConsole.filter((entry) => !isAllowlistedElectronSmokeConsoleEntry(entry))
+      recordAssertion(
+        assertions,
+        "Scenario failed",
+        error instanceof Error ? error.message : String(error),
+      )
+      const importantRendererConsole = rawRendererConsole.filter(
+        importantConsoleEntry,
+      )
+      const ignoredRendererConsole = importantRendererConsole.filter(
+        isAllowlistedElectronSmokeConsoleEntry,
+      )
+      const unexpectedRendererConsole = importantRendererConsole.filter(
+        (entry) => !isAllowlistedElectronSmokeConsoleEntry(entry),
+      )
 
       const report: ElectronSmokeScenarioReport = {
         scenario,

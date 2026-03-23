@@ -18,7 +18,10 @@ function resolveEnvPath(value: string | undefined): string | null {
   return trimmed ? resolve(trimmed) : null
 }
 
-function safeGetPath(app: AppPathReader | null | undefined, name: "home" | "userData"): string | null {
+function safeGetPath(
+  app: AppPathReader | null | undefined,
+  name: "home" | "userData",
+): string | null {
   try {
     const value = app?.getPath(name)
     return value ? resolve(value) : null
@@ -31,7 +34,9 @@ export function isTestMode(env: NodeJS.ProcessEnv = process.env): boolean {
   return envFlag(env.C8C_TEST_MODE)
 }
 
-export function shouldSuppressStartupSideEffects(env: NodeJS.ProcessEnv = process.env): boolean {
+export function shouldSuppressStartupSideEffects(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
   return isTestMode(env) || envFlag(env.C8C_DISABLE_STARTUP_SIDE_EFFECTS)
 }
 
@@ -60,7 +65,10 @@ export function resolveAppUserDataDir({
   if (isTestMode(env)) {
     return resolve(join(resolveAppHomeDir({ env, app }), ".c8c-test-user-data"))
   }
-  return safeGetPath(app, "userData") || resolve(join(resolveAppHomeDir({ env, app }), ".c8c-user-data"))
+  return (
+    safeGetPath(app, "userData") ||
+    resolve(join(resolveAppHomeDir({ env, app }), ".c8c-user-data"))
+  )
 }
 
 export function applyRuntimePathOverrides({

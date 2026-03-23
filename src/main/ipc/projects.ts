@@ -5,7 +5,9 @@ import { logInfo, logWarn } from "../lib/structured-log"
 
 let configMutationQueue: Promise<unknown> = Promise.resolve()
 
-function runSerializedConfigOperation<T>(operation: () => Promise<T>): Promise<T> {
+function runSerializedConfigOperation<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
   const next = configMutationQueue.then(() => operation())
   configMutationQueue = next.catch((error) => {
     logWarn("projects-ipc", "serialized_config_operation_failed", {
@@ -17,21 +19,24 @@ function runSerializedConfigOperation<T>(operation: () => Promise<T>): Promise<T
 
 export function registerIpcHandlers() {
   ipcMain.handle("projects:list", async () => {
-    const config = await runSerializedConfigOperation(() => loadProjectsConfig())
+    const config = await runSerializedConfigOperation(() =>
+      loadProjectsConfig(),
+    )
     return config.projects
   })
 
   ipcMain.handle("projects:add", async () => {
-    const window = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+    const window =
+      BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
     const result = window
       ? await dialog.showOpenDialog(window, {
-        properties: ["openDirectory"],
-        title: "Add Project Folder",
-      })
+          properties: ["openDirectory"],
+          title: "Add Project Folder",
+        })
       : await dialog.showOpenDialog({
-        properties: ["openDirectory"],
-        title: "Add Project Folder",
-      })
+          properties: ["openDirectory"],
+          title: "Add Project Folder",
+        })
     if (result.canceled || !result.filePaths[0]) return null
     const dir = result.filePaths[0]
     await runSerializedConfigOperation(async () => {
@@ -60,7 +65,10 @@ export function registerIpcHandlers() {
   ipcMain.handle("projects:reorder", async (_e, requestedOrder: string[]) => {
     return runSerializedConfigOperation(async () => {
       const config = await loadProjectsConfig()
-      config.projects = mergeProjectOrderWithCurrent(config.projects, requestedOrder)
+      config.projects = mergeProjectOrderWithCurrent(
+        config.projects,
+        requestedOrder,
+      )
       await saveProjectsConfig(config)
       logInfo("projects-ipc", "projects_reordered", {
         projectCount: config.projects.length,
@@ -79,7 +87,9 @@ export function registerIpcHandlers() {
   })
 
   ipcMain.handle("projects:get-selected", async () => {
-    const config = await runSerializedConfigOperation(() => loadProjectsConfig())
+    const config = await runSerializedConfigOperation(() =>
+      loadProjectsConfig(),
+    )
     return config.lastSelectedProject || null
   })
 }

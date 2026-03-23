@@ -103,19 +103,25 @@ describe("case-store", () => {
     await mkdir(join(projectDir, ".c8c", "case-state"), { recursive: true })
     await writeFile(
       join(projectDir, ".c8c", "case-state", "legacy-duplicate.json"),
-      JSON.stringify({
-        ...latest,
-        continuationStatus: "awaiting_approval",
-        lastGate: {
-          family: "approval",
-          outcome: "awaiting_human",
-          summaryText: "Approval pending. Review block before verification continues.",
-          reasonText: "Waiting for an approval decision before the flow can continue.",
-          stepLabel: "Verify",
-          happenedAt: 20,
+      JSON.stringify(
+        {
+          ...latest,
+          continuationStatus: "awaiting_approval",
+          lastGate: {
+            family: "approval",
+            outcome: "awaiting_human",
+            summaryText:
+              "Approval pending. Review block before verification continues.",
+            reasonText:
+              "Waiting for an approval decision before the flow can continue.",
+            stepLabel: "Verify",
+            happenedAt: 20,
+          },
+          updatedAt: 20,
         },
-        updatedAt: 20,
-      }, null, 2),
+        null,
+        2,
+      ),
     )
 
     const listed = await listProjectCaseStates(projectDir)

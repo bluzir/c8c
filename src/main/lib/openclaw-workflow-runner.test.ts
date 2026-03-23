@@ -96,12 +96,25 @@ const HUMAN_APPROVAL_WORKFLOW: Workflow = {
     { id: "output-1", type: "output", position: { x: 400, y: 0 }, config: {} },
   ],
   edges: [
-    { id: "edge-1", source: "input-1", target: "human-approval-1", type: "default" },
-    { id: "edge-2", source: "human-approval-1", target: "output-1", type: "default" },
+    {
+      id: "edge-1",
+      source: "input-1",
+      target: "human-approval-1",
+      type: "default",
+    },
+    {
+      id: "edge-2",
+      source: "human-approval-1",
+      target: "output-1",
+      type: "default",
+    },
   ],
 }
 
-async function collectRun(handle: { events: AsyncIterable<WorkflowEvent>; result: Promise<unknown> }) {
+async function collectRun(handle: {
+  events: AsyncIterable<WorkflowEvent>
+  result: Promise<unknown>
+}) {
   const events: WorkflowEvent[] = []
   const eventsPromise = (async () => {
     for await (const event of handle.events) {
@@ -122,7 +135,9 @@ async function createWorkspace(prefix: string) {
 function createApprovalRunner(workspace: string) {
   return createWorkflowRunner({
     startProviderTask() {
-      throw new Error("Provider execution should not be called for approval-only workflow tests")
+      throw new Error(
+        "Provider execution should not be called for approval-only workflow tests",
+      )
     },
     workspaceStore: {
       async createRunWorkspace() {
@@ -147,8 +162,15 @@ describe("openclaw workflow runner compatibility", () => {
     const snapshot = await runner.getSnapshot(handle.runId)
 
     expect(summary).toMatchObject({ status: "paused", workspace })
-    expect(events.some((event) => event.type === "approval-requested" && event.nodeId === "approval-1")).toBe(true)
-    expect(snapshot?.state?.nodeStates["approval-1"]?.status).toBe("waiting_approval")
+    expect(
+      events.some(
+        (event) =>
+          event.type === "approval-requested" && event.nodeId === "approval-1",
+      ),
+    ).toBe(true)
+    expect(snapshot?.state?.nodeStates["approval-1"]?.status).toBe(
+      "waiting_approval",
+    )
   })
 
   it("resumes a suspended approval run after approval is persisted", async () => {
@@ -177,7 +199,9 @@ describe("openclaw workflow runner compatibility", () => {
     const snapshot = await runner.getSnapshot(resumedHandle.runId)
 
     expect(summary).toMatchObject({ status: "completed", workspace })
-    expect(snapshot?.state?.nodeStates["output-1"]?.output?.content).toBe("Edited draft")
+    expect(snapshot?.state?.nodeStates["output-1"]?.output?.content).toBe(
+      "Edited draft",
+    )
   })
 
   it("maps explicit approval rejection to a cancelled run", async () => {
@@ -218,7 +242,9 @@ describe("openclaw workflow runner compatibility", () => {
 
     await collectRun(firstHandle)
 
-    const tasks = (await listWorkflowHilTasks([dirname(workspace)])).filter((task) => task.workspace === workspace)
+    const tasks = (await listWorkflowHilTasks([dirname(workspace)])).filter(
+      (task) => task.workspace === workspace,
+    )
     expect(tasks).toHaveLength(1)
     expect(tasks[0]).toMatchObject({
       status: "open",
@@ -226,7 +252,10 @@ describe("openclaw workflow runner compatibility", () => {
       nodeId: "approval-1",
     })
 
-    const task = await getWorkflowHilTask(workspace, approvalTaskId("approval-1"))
+    const task = await getWorkflowHilTask(
+      workspace,
+      approvalTaskId("approval-1"),
+    )
     expect(task?.request.kind).toBe("approval")
     expect(task?.state.allowEdit).toBe(true)
 
@@ -241,7 +270,9 @@ describe("openclaw workflow runner compatibility", () => {
     })
 
     expect(resolved.state.status).toBe("answered")
-    expect(resolved.latestResponse?.answers.editedContent).toBe("Edited from HIL task")
+    expect(resolved.latestResponse?.answers.editedContent).toBe(
+      "Edited from HIL task",
+    )
 
     const secondWrite = await resolveWorkflowHilTaskByRef(tasks[0].task, {
       data: {
@@ -254,7 +285,9 @@ describe("openclaw workflow runner compatibility", () => {
     })
 
     expect(secondWrite.latestResponse?.metadata.revision).toBe(1)
-    expect(secondWrite.latestResponse?.answers.editedContent).toBe("Edited from HIL task")
+    expect(secondWrite.latestResponse?.answers.editedContent).toBe(
+      "Edited from HIL task",
+    )
 
     const resumedHandle = await runner.resumeRun({
       workflow: APPROVAL_WORKFLOW,
@@ -280,10 +313,19 @@ describe("openclaw workflow runner compatibility", () => {
     const firstSnapshot = await runner.getSnapshot(firstHandle.runId)
 
     expect(firstRun.summary).toMatchObject({ status: "blocked", workspace })
-    expect(firstRun.events.some((event) => event.type === "human-task-created" && event.nodeId === "human-1")).toBe(true)
-    expect(firstSnapshot?.state?.nodeStates["human-1"]?.status).toBe("waiting_human")
+    expect(
+      firstRun.events.some(
+        (event) =>
+          event.type === "human-task-created" && event.nodeId === "human-1",
+      ),
+    ).toBe(true)
+    expect(firstSnapshot?.state?.nodeStates["human-1"]?.status).toBe(
+      "waiting_human",
+    )
 
-    const tasks = (await listWorkflowHilTasks([dirname(workspace)])).filter((task) => task.workspace === workspace)
+    const tasks = (await listWorkflowHilTasks([dirname(workspace)])).filter(
+      (task) => task.workspace === workspace,
+    )
     expect(tasks).toHaveLength(1)
     expect(tasks[0]).toMatchObject({
       kind: "form",
@@ -320,7 +362,11 @@ describe("openclaw workflow runner compatibility", () => {
     const task = await getWorkflowHilTask(workspace, humanTaskId("human-1"))
 
     expect(resumedRun.summary).toMatchObject({ status: "completed", workspace })
-    expect(JSON.parse(resumedSnapshot?.state?.nodeStates["human-1"]?.output?.content || "{}")).toMatchObject({
+    expect(
+      JSON.parse(
+        resumedSnapshot?.state?.nodeStates["human-1"]?.output?.content || "{}",
+      ),
+    ).toMatchObject({
       ok: true,
       resolution: "submitted",
       answers: {
@@ -342,7 +388,10 @@ describe("openclaw workflow runner compatibility", () => {
     })
 
     await collectRun(firstHandle)
-    const task = await getWorkflowHilTask(workspace, humanTaskId("human-approval-1"))
+    const task = await getWorkflowHilTask(
+      workspace,
+      humanTaskId("human-approval-1"),
+    )
     expect(task?.request.kind).toBe("approval")
 
     await resolveWorkflowHilTaskByRef(task!.task, {
@@ -363,7 +412,10 @@ describe("openclaw workflow runner compatibility", () => {
 
     const resumedRun = await collectRun(resumedHandle)
     const resumedSnapshot = await runner.getSnapshot(resumedHandle.runId)
-    const humanOutput = JSON.parse(resumedSnapshot?.state?.nodeStates["human-approval-1"]?.output?.content || "{}")
+    const humanOutput = JSON.parse(
+      resumedSnapshot?.state?.nodeStates["human-approval-1"]?.output?.content ||
+        "{}",
+    )
 
     expect(resumedRun.summary).toMatchObject({ status: "completed", workspace })
     expect(humanOutput).toMatchObject({

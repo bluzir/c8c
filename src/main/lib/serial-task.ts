@@ -1,6 +1,9 @@
 const serialQueues = new Map<string, Promise<void>>()
 
-export async function runSerialTask<T>(key: string, task: () => Promise<T>): Promise<T> {
+export async function runSerialTask<T>(
+  key: string,
+  task: () => Promise<T>,
+): Promise<T> {
   const previous = serialQueues.get(key) ?? Promise.resolve()
   let release!: () => void
   const current = new Promise<void>((resolve) => {

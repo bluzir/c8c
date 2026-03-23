@@ -4,7 +4,9 @@ function normalizeTerms(query: string): string[] {
   return query.toLowerCase().split(/\s+/).filter(Boolean)
 }
 
-export function toSkillRef(skill: Pick<DiscoveredSkill, "category" | "name">): string {
+export function toSkillRef(
+  skill: Pick<DiscoveredSkill, "category" | "name">,
+): string {
   return `${skill.category}/${skill.name}`
 }
 
@@ -15,7 +17,8 @@ export function scoreSkillMatch(
   const terms = normalizeTerms(query)
   if (terms.length === 0) return 0
 
-  const searchable = `${skill.name} ${skill.category} ${skill.description}`.toLowerCase()
+  const searchable =
+    `${skill.name} ${skill.category} ${skill.description}`.toLowerCase()
   let score = 0
 
   for (const term of terms) {
@@ -42,8 +45,15 @@ export function scoreSkillMatch(
  * Build a category tree from flat skill list.
  * Skills have category like "marketing/seo" or "code/analysis".
  */
-export function buildCategoryTree(skills: DiscoveredSkill[]): SkillCategoryNode {
-  const root: SkillCategoryNode = { name: "root", path: "", count: 0, children: [] }
+export function buildCategoryTree(
+  skills: DiscoveredSkill[],
+): SkillCategoryNode {
+  const root: SkillCategoryNode = {
+    name: "root",
+    path: "",
+    count: 0,
+    children: [],
+  }
 
   for (const skill of skills) {
     const parts = skill.category.split("/").filter(Boolean)
@@ -97,7 +107,9 @@ export function formatCategoryTreeSummary(root: SkillCategoryNode): string {
     for (const child of node.children.sort((a, b) => b.count - a.count)) {
       const prefix = "  ".repeat(indent)
       const subcats = child.children.map((c) => c.name).join(", ")
-      lines.push(`${prefix}${child.name}/ (${child.count})${subcats ? ` — ${subcats}` : ""}`)
+      lines.push(
+        `${prefix}${child.name}/ (${child.count})${subcats ? ` — ${subcats}` : ""}`,
+      )
       if (indent < 1 && child.children.length > 0) {
         renderLevel(child, indent + 1)
       }
@@ -138,7 +150,13 @@ export function searchSkills(
   skills: DiscoveredSkill[],
   query: string,
   limit = 20,
-): Array<{ name: string; category: string; description: string; skillRef: string; score: number }> {
+): Array<{
+  name: string
+  category: string
+  description: string
+  skillRef: string
+  score: number
+}> {
   const terms = normalizeTerms(query)
   if (terms.length === 0) return []
 

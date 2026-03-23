@@ -31,7 +31,11 @@ async function readCachedTemplate(id: string): Promise<CachedTemplate | null> {
   }
 }
 
-async function writeCachedTemplate(id: string, template: WorkflowTemplate, catalogGeneratedAt: string): Promise<void> {
+async function writeCachedTemplate(
+  id: string,
+  template: WorkflowTemplate,
+  catalogGeneratedAt: string,
+): Promise<void> {
   try {
     await mkdir(cacheDir(), { recursive: true })
     const entry: CachedTemplate = { catalogGeneratedAt, template }
@@ -54,7 +58,11 @@ export async function getHubTemplate(id: string): Promise<WorkflowTemplate> {
 
   // Try local cache
   const cached = await readCachedTemplate(id)
-  if (cached && catalogGeneratedAt && cached.catalogGeneratedAt === catalogGeneratedAt) {
+  if (
+    cached &&
+    catalogGeneratedAt &&
+    cached.catalogGeneratedAt === catalogGeneratedAt
+  ) {
     logInfo("hub-template-cache", "cache_hit", { id })
     return cached.template
   }

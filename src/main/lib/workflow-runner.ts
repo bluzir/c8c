@@ -9,7 +9,11 @@ import {
 import type { Workflow, WorkflowInput } from "@shared/types"
 import { sendWorkflowEvent } from "../workflow-notifications"
 import { prepareWorkspaceMcpConfig } from "./mcp-config"
-import { resolveNodeProviderId, resolveWorkflowProviderId, startProviderTask } from "./provider-runtime"
+import {
+  resolveNodeProviderId,
+  resolveWorkflowProviderId,
+  startProviderTask,
+} from "./provider-runtime"
 import { scanAllSkills } from "./skill-scanner"
 import { logInfo, logWarn } from "./structured-log"
 
@@ -29,7 +33,10 @@ const activeHandles = new Map<string, WorkflowRunHandle>()
 const pendingCancelledRunIds = new Set<string>()
 const pausedRunIds = new Set<string>()
 
-function streamEventsToWindow(window: BrowserWindow, handle: WorkflowRunHandle): void {
+function streamEventsToWindow(
+  window: BrowserWindow,
+  handle: WorkflowRunHandle,
+): void {
   void (async () => {
     try {
       for await (const event of handle.events) {
@@ -62,10 +69,17 @@ function streamEventsToWindow(window: BrowserWindow, handle: WorkflowRunHandle):
             status: "interrupted",
           })
         } catch (sendError) {
-          logWarn("workflow-runner-adapter", "send_stream_failure_event_failed", {
-            runId: handle.runId,
-            error: sendError instanceof Error ? sendError.message : String(sendError),
-          })
+          logWarn(
+            "workflow-runner-adapter",
+            "send_stream_failure_event_failed",
+            {
+              runId: handle.runId,
+              error:
+                sendError instanceof Error
+                  ? sendError.message
+                  : String(sendError),
+            },
+          )
         }
       }
     }
@@ -137,7 +151,9 @@ export function cancelWorkflowRun(runId: string): boolean {
   return true
 }
 
-export async function getWorkflowRunSnapshot(runId: string): Promise<(WorkflowRunSnapshot & { paused: boolean }) | null> {
+export async function getWorkflowRunSnapshot(
+  runId: string,
+): Promise<(WorkflowRunSnapshot & { paused: boolean }) | null> {
   const snapshot = await workflowRunner.getSnapshot(runId)
   if (!snapshot) return null
   return {

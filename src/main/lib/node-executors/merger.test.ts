@@ -6,7 +6,10 @@ describe("mergeResults with concatenate strategy", () => {
   it("concatenates all branch outputs with headers", () => {
     const inputs: NodeInput[] = [
       { content: "Hero section improved", metadata: { source: "skill::hero" } },
-      { content: "Features rewritten", metadata: { source: "skill::features" } },
+      {
+        content: "Features rewritten",
+        metadata: { source: "skill::features" },
+      },
       { content: "Pricing optimized", metadata: { source: "skill::pricing" } },
     ]
 
@@ -38,7 +41,11 @@ describe("buildMergerPrompt", () => {
       { content: "Result B", metadata: { source: "skill::b" } },
     ]
 
-    const prompt = buildMergerPrompt(inputs, "summarize", "Combine into a cohesive document")
+    const prompt = buildMergerPrompt(
+      inputs,
+      "summarize",
+      "Combine into a cohesive document",
+    )
     expect(prompt).toContain("Result A")
     expect(prompt).toContain("Result B")
     expect(prompt).toContain("Combine into a cohesive document")

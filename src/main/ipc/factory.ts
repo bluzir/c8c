@@ -23,27 +23,45 @@ async function assertProjectPath(projectPath: string): Promise<string> {
 }
 
 export function registerFactoryHandlers() {
-  ipcMain.handle("factory:load-blueprint", async (_event, projectPath: string): Promise<ProjectFactoryBlueprint | null> => {
-    const safeProjectPath = await assertProjectPath(projectPath)
-    return loadProjectFactoryBlueprint(safeProjectPath)
-  })
+  ipcMain.handle(
+    "factory:load-blueprint",
+    async (
+      _event,
+      projectPath: string,
+    ): Promise<ProjectFactoryBlueprint | null> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      return loadProjectFactoryBlueprint(safeProjectPath)
+    },
+  )
 
-  ipcMain.handle("factory:save-blueprint", async (_event, input: SaveProjectFactoryBlueprintInput): Promise<ProjectFactoryBlueprint> => {
-    const safeProjectPath = await assertProjectPath(input.projectPath)
-    return saveProjectFactoryBlueprint({
-      ...input,
-      projectPath: safeProjectPath,
-    })
-  })
+  ipcMain.handle(
+    "factory:save-blueprint",
+    async (
+      _event,
+      input: SaveProjectFactoryBlueprintInput,
+    ): Promise<ProjectFactoryBlueprint> => {
+      const safeProjectPath = await assertProjectPath(input.projectPath)
+      return saveProjectFactoryBlueprint({
+        ...input,
+        projectPath: safeProjectPath,
+      })
+    },
+  )
 
-  ipcMain.handle("factory:load-state", async (_event, projectPath: string): Promise<ProjectFactoryState> => {
-    const safeProjectPath = await assertProjectPath(projectPath)
-    return loadProjectFactoryState(safeProjectPath)
-  })
+  ipcMain.handle(
+    "factory:load-state",
+    async (_event, projectPath: string): Promise<ProjectFactoryState> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      return loadProjectFactoryState(safeProjectPath)
+    },
+  )
 
   ipcMain.handle(
     "factory:spawn-cases-from-artifact",
-    async (_event, input: SpawnFactoryCasesFromArtifactInput): Promise<SpawnFactoryCasesFromArtifactResult> => {
+    async (
+      _event,
+      input: SpawnFactoryCasesFromArtifactInput,
+    ): Promise<SpawnFactoryCasesFromArtifactResult> => {
       const safeProjectPath = await assertProjectPath(input.projectPath)
       return spawnFactoryCasesFromArtifact({
         ...input,

@@ -1,6 +1,8 @@
 type IpcHandler = (event: any, ...args: any[]) => any
 
-function parseAllowedRendererOrigin(rendererUrl: string | undefined): string | null {
+function parseAllowedRendererOrigin(
+  rendererUrl: string | undefined,
+): string | null {
   if (!rendererUrl) return null
   try {
     const url = new URL(rendererUrl)
@@ -13,7 +15,10 @@ function parseAllowedRendererOrigin(rendererUrl: string | undefined): string | n
 
 export function isTrustedRendererFrame(event: {
   senderFrame?: { url?: string; routingId?: number } | null
-  sender?: { getURL?: () => string; mainFrame?: { routingId?: number } | null } | null
+  sender?: {
+    getURL?: () => string
+    mainFrame?: { routingId?: number } | null
+  } | null
 }): boolean {
   const senderFrame = event.senderFrame
   const sender = event.sender
@@ -28,9 +33,9 @@ export function isTrustedRendererFrame(event: {
 
   const mainFrameRoutingId = sender.mainFrame?.routingId
   if (
-    typeof mainFrameRoutingId === "number"
-    && typeof senderFrame.routingId === "number"
-    && senderFrame.routingId !== mainFrameRoutingId
+    typeof mainFrameRoutingId === "number" &&
+    typeof senderFrame.routingId === "number" &&
+    senderFrame.routingId !== mainFrameRoutingId
   ) {
     return false
   }
@@ -41,17 +46,24 @@ export function isTrustedRendererFrame(event: {
       return frameUrl.pathname.toLowerCase().endsWith("/index.html")
     }
 
-    const allowedOrigin = parseAllowedRendererOrigin(process.env.ELECTRON_RENDERER_URL)
+    const allowedOrigin = parseAllowedRendererOrigin(
+      process.env.ELECTRON_RENDERER_URL,
+    )
     return Boolean(allowedOrigin) && frameUrl.origin === allowedOrigin
   } catch {
     return false
   }
 }
 
-export function guardIpcInvokeHandler(channel: string, handler: IpcHandler): IpcHandler {
+export function guardIpcInvokeHandler(
+  channel: string,
+  handler: IpcHandler,
+): IpcHandler {
   return async (event, ...args) => {
     if (!isTrustedRendererFrame(event)) {
-      throw new Error(`Blocked IPC call from unexpected renderer frame: ${channel}`)
+      throw new Error(
+        `Blocked IPC call from unexpected renderer frame: ${channel}`,
+      )
     }
     return handler(event, ...args)
   }

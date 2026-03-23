@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { moveChatHistory, loadChatHistory, saveChatHistory, createConversation } from "./chat-storage"
+import {
+  moveChatHistory,
+  loadChatHistory,
+  saveChatHistory,
+  createConversation,
+} from "./chat-storage"
 import type { Workflow } from "@shared/types"
 
 function createWorkflow(name: string): Workflow {
@@ -10,7 +15,12 @@ function createWorkflow(name: string): Workflow {
     version: 1,
     name,
     description: "",
-    defaults: { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+    defaults: {
+      model: "sonnet",
+      maxTurns: 120,
+      timeout_minutes: 30,
+      maxParallel: 8,
+    },
     nodes: [],
     edges: [],
   }
@@ -58,7 +68,9 @@ describe("chat-storage", () => {
   it("is a no-op when source chat does not exist", async () => {
     const fromWorkflowPath = join(dir, "missing.chain")
     const toWorkflowPath = join(dir, "next.chain")
-    await expect(moveChatHistory(fromWorkflowPath, toWorkflowPath)).resolves.toBeUndefined()
+    await expect(
+      moveChatHistory(fromWorkflowPath, toWorkflowPath),
+    ).resolves.toBeUndefined()
   })
 
   it("does not overwrite destination chat history", async () => {

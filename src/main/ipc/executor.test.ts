@@ -86,9 +86,11 @@ const {
 
 vi.mock("electron", () => ({
   ipcMain: {
-    handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
-      ipcHandlers.set(channel, handler)
-    }),
+    handle: vi.fn(
+      (channel: string, handler: (...args: unknown[]) => unknown) => {
+        ipcHandlers.set(channel, handler)
+      },
+    ),
   },
   BrowserWindow: {
     fromWebContents: (...args: unknown[]) => fromWebContentsMock(...args),
@@ -106,15 +108,19 @@ vi.mock("../lib/workflow-runner", () => ({
   resumeWorkflowRun: (...args: unknown[]) => resumeWorkflowRunMock(...args),
   resolveApproval: (...args: unknown[]) => resolveApprovalMock(...args),
   resolveEvalOverride: (...args: unknown[]) => resolveEvalOverrideMock(...args),
-  continueRunFromWorkspace: (...args: unknown[]) => continueRunFromWorkspaceMock(...args),
-  getWorkflowRunSnapshot: (...args: unknown[]) => getWorkflowRunSnapshotMock(...args),
+  continueRunFromWorkspace: (...args: unknown[]) =>
+    continueRunFromWorkspaceMock(...args),
+  getWorkflowRunSnapshot: (...args: unknown[]) =>
+    getWorkflowRunSnapshotMock(...args),
 }))
 
 vi.mock("@c8c/workflow-runner", () => ({
   approvalTaskId: (nodeId: string) => `approval-${nodeId}`,
   getWorkflowHilTask: (...args: unknown[]) => getWorkflowHilTaskMock(...args),
-  listWorkflowHilTasks: (...args: unknown[]) => listWorkflowHilTasksMock(...args),
-  writeWorkflowHilTaskResponse: (...args: unknown[]) => writeWorkflowHilTaskResponseMock(...args),
+  listWorkflowHilTasks: (...args: unknown[]) =>
+    listWorkflowHilTasksMock(...args),
+  writeWorkflowHilTaskResponse: (...args: unknown[]) =>
+    writeWorkflowHilTaskResponseMock(...args),
 }))
 
 vi.mock("../lib/batch-runner", () => ({
@@ -124,7 +130,8 @@ vi.mock("../lib/batch-runner", () => ({
 }))
 
 vi.mock("../lib/skill-scaffold", () => ({
-  scaffoldMissingSkills: (...args: unknown[]) => scaffoldMissingSkillsMock(...args),
+  scaffoldMissingSkills: (...args: unknown[]) =>
+    scaffoldMissingSkillsMock(...args),
 }))
 
 vi.mock("../lib/skill-scanner", () => ({
@@ -146,12 +153,15 @@ vi.mock("../lib/telemetry/workflow-usage", () => ({
 }))
 
 vi.mock("../lib/artifact-store", () => ({
-  listProjectArtifacts: (...args: unknown[]) => listProjectArtifactsMock(...args),
-  persistArtifactsFromRun: (...args: unknown[]) => persistArtifactsFromRunMock(...args),
+  listProjectArtifacts: (...args: unknown[]) =>
+    listProjectArtifactsMock(...args),
+  persistArtifactsFromRun: (...args: unknown[]) =>
+    persistArtifactsFromRunMock(...args),
 }))
 
 vi.mock("../lib/case-store", () => ({
-  listProjectCaseStates: (...args: unknown[]) => listProjectCaseStatesMock(...args),
+  listProjectCaseStates: (...args: unknown[]) =>
+    listProjectCaseStatesMock(...args),
   upsertCaseState: (...args: unknown[]) => upsertCaseStateMock(...args),
 }))
 
@@ -168,18 +178,24 @@ vi.mock("../lib/structured-log", () => ({
 }))
 
 vi.mock("../lib/provider-runtime", () => ({
-  getProviderReadiness: (...args: unknown[]) => getProviderReadinessMock(...args),
-  providerReadinessError: (...args: unknown[]) => providerReadinessErrorMock(...args),
-  resolveWorkflowProviderId: (...args: unknown[]) => resolveWorkflowProviderIdMock(...args),
+  getProviderReadiness: (...args: unknown[]) =>
+    getProviderReadinessMock(...args),
+  providerReadinessError: (...args: unknown[]) =>
+    providerReadinessErrorMock(...args),
+  resolveWorkflowProviderId: (...args: unknown[]) =>
+    resolveWorkflowProviderIdMock(...args),
 }))
 
 vi.mock("@shared/provider-metadata", () => ({
-  workflowRequiresProvider: (...args: unknown[]) => workflowRequiresProviderMock(...args),
+  workflowRequiresProvider: (...args: unknown[]) =>
+    workflowRequiresProviderMock(...args),
 }))
 
 vi.mock("@shared/workflow-execution-validation", () => ({
-  validateWorkflowForExecution: (...args: unknown[]) => validateWorkflowForExecutionMock(...args),
-  formatWorkflowExecutionIssue: (...args: unknown[]) => formatWorkflowExecutionIssueMock(...args),
+  validateWorkflowForExecution: (...args: unknown[]) =>
+    validateWorkflowForExecutionMock(...args),
+  formatWorkflowExecutionIssue: (...args: unknown[]) =>
+    formatWorkflowExecutionIssueMock(...args),
 }))
 
 vi.mock("../workflow-notifications", () => ({
@@ -187,8 +203,10 @@ vi.mock("../workflow-notifications", () => ({
 }))
 
 vi.mock("./run-snapshot", () => ({
-  hydratePersistedRunSnapshotLogs: (...args: unknown[]) => hydratePersistedRunSnapshotLogsMock(...args),
-  readPersistedEventsTail: (...args: unknown[]) => readPersistedEventsTailMock(...args),
+  hydratePersistedRunSnapshotLogs: (...args: unknown[]) =>
+    hydratePersistedRunSnapshotLogsMock(...args),
+  readPersistedEventsTail: (...args: unknown[]) =>
+    readPersistedEventsTailMock(...args),
 }))
 
 interface MockWindow {
@@ -207,9 +225,7 @@ const TEST_WORKFLOW: Workflow = {
     { id: "input", type: "input", position: { x: 0, y: 0 }, config: {} },
     { id: "output", type: "output", position: { x: 120, y: 0 }, config: {} },
   ],
-  edges: [
-    { id: "edge-1", source: "input", target: "output", type: "default" },
-  ],
+  edges: [{ id: "edge-1", source: "input", target: "output", type: "default" }],
 }
 
 const TEST_INPUT: WorkflowInput = {
@@ -248,7 +264,9 @@ function createEvent(windowId: number) {
   }
 }
 
-function getHandler<T extends (...args: unknown[]) => unknown>(channel: string): T {
+function getHandler<T extends (...args: unknown[]) => unknown>(
+  channel: string,
+): T {
   const handler = ipcHandlers.get(channel)
   expect(handler).toBeDefined()
   return handler as T
@@ -260,7 +278,9 @@ describe("executor IPC", () => {
     vi.resetModules()
     ipcHandlers.clear()
     windowBySender.clear()
-    fromWebContentsMock.mockImplementation((sender: object) => windowBySender.get(sender) ?? null)
+    fromWebContentsMock.mockImplementation(
+      (sender: object) => windowBySender.get(sender) ?? null,
+    )
 
     runWorkflowMock.mockResolvedValue(undefined)
     rerunFromNodeMock.mockResolvedValue(undefined)
@@ -273,7 +293,9 @@ describe("executor IPC", () => {
     resolveEvalOverrideMock.mockResolvedValue(true)
     runBatchMock.mockResolvedValue(undefined)
     cancelBatchMock.mockReturnValue(true)
-    scaffoldMissingSkillsMock.mockImplementation(async (workflow: Workflow) => workflow)
+    scaffoldMissingSkillsMock.mockImplementation(
+      async (workflow: Workflow) => workflow,
+    )
     scanAllSkillsMock.mockResolvedValue([])
     trackTelemetryEventMock.mockResolvedValue(undefined)
     listProjectArtifactsMock.mockResolvedValue([])
@@ -282,25 +304,29 @@ describe("executor IPC", () => {
     upsertCaseStateMock.mockResolvedValue(undefined)
     allowedProjectRootsMock.mockResolvedValue(["/safe"])
     allowedReportRootsMock.mockResolvedValue(["/reports"])
-    assertWithinRootsMock.mockImplementation((candidatePath: string, _roots: string[], label: string) => {
-      if (label === "Project path") {
-        if (!candidatePath.startsWith("/safe")) {
-          throw new Error("Project path is outside allowed directories")
+    assertWithinRootsMock.mockImplementation(
+      (candidatePath: string, _roots: string[], label: string) => {
+        if (label === "Project path") {
+          if (!candidatePath.startsWith("/safe")) {
+            throw new Error("Project path is outside allowed directories")
+          }
+          return candidatePath
+        }
+        if (label === "Run workspace" || label === "Report path") {
+          if (!candidatePath.startsWith("/reports")) {
+            throw new Error(`${label} is outside allowed directories`)
+          }
+          return candidatePath
         }
         return candidatePath
-      }
-      if (label === "Run workspace" || label === "Report path") {
-        if (!candidatePath.startsWith("/reports")) {
-          throw new Error(`${label} is outside allowed directories`)
-        }
-        return candidatePath
-      }
-      return candidatePath
-    })
+      },
+    )
     getProviderReadinessMock.mockResolvedValue({})
     providerReadinessErrorMock.mockReturnValue(null)
     resolveWorkflowProviderIdMock.mockResolvedValue("claude")
-    hydratePersistedRunSnapshotLogsMock.mockImplementation(async (_workspace: string, snapshot: unknown) => snapshot)
+    hydratePersistedRunSnapshotLogsMock.mockImplementation(
+      async (_workspace: string, snapshot: unknown) => snapshot,
+    )
     readPersistedEventsTailMock.mockResolvedValue([])
     workflowRequiresProviderMock.mockReturnValue(false)
     validateWorkflowForExecutionMock.mockReturnValue([])
@@ -314,11 +340,28 @@ describe("executor IPC", () => {
     {
       name: "run",
       channel: "executor:run",
-      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
-        const handler = getHandler<
-          (event: unknown, workflow: Workflow, input: WorkflowInput, projectPath?: string, workflowPath?: string) => Promise<ExecutionStartResult>
-        >("executor:run")
-        return handler(event, workflow, TEST_INPUT, projectPath, "/tmp/workflow.chain")
+      invoke: (
+        event: unknown,
+        projectPath?: string,
+        workflow: Workflow = TEST_WORKFLOW,
+      ) => {
+        const handler =
+          getHandler<
+            (
+              event: unknown,
+              workflow: Workflow,
+              input: WorkflowInput,
+              projectPath?: string,
+              workflowPath?: string,
+            ) => Promise<ExecutionStartResult>
+          >("executor:run")
+        return handler(
+          event,
+          workflow,
+          TEST_INPUT,
+          projectPath,
+          "/tmp/workflow.chain",
+        )
       },
       targetMock: runWorkflowMock,
       projectPathArgIndex: 4,
@@ -326,7 +369,11 @@ describe("executor IPC", () => {
     {
       name: "rerun-from",
       channel: "executor:rerun-from",
-      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
+      invoke: (
+        event: unknown,
+        projectPath?: string,
+        workflow: Workflow = TEST_WORKFLOW,
+      ) => {
         const handler = getHandler<
           (
             event: unknown,
@@ -337,7 +384,14 @@ describe("executor IPC", () => {
             workflowPath?: string,
           ) => Promise<ExecutionStartResult>
         >("executor:rerun-from")
-        return handler(event, "input", workflow, "/reports/workspace", projectPath, "/tmp/workflow.chain")
+        return handler(
+          event,
+          "input",
+          workflow,
+          "/reports/workspace",
+          projectPath,
+          "/tmp/workflow.chain",
+        )
       },
       targetMock: rerunFromNodeMock,
       projectPathArgIndex: 5,
@@ -345,17 +399,28 @@ describe("executor IPC", () => {
     {
       name: "continue",
       channel: "executor:continue",
-      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
-        const handler = getHandler<
-          (
-            event: unknown,
-            workflow: Workflow,
-            workspace: string,
-            projectPath?: string,
-            workflowPath?: string,
-          ) => Promise<ExecutionStartResult>
-        >("executor:continue")
-        return handler(event, workflow, "/reports/workspace", projectPath, "/tmp/workflow.chain")
+      invoke: (
+        event: unknown,
+        projectPath?: string,
+        workflow: Workflow = TEST_WORKFLOW,
+      ) => {
+        const handler =
+          getHandler<
+            (
+              event: unknown,
+              workflow: Workflow,
+              workspace: string,
+              projectPath?: string,
+              workflowPath?: string,
+            ) => Promise<ExecutionStartResult>
+          >("executor:continue")
+        return handler(
+          event,
+          workflow,
+          "/reports/workspace",
+          projectPath,
+          "/tmp/workflow.chain",
+        )
       },
       targetMock: continueRunFromWorkspaceMock,
       projectPathArgIndex: 4,
@@ -363,76 +428,112 @@ describe("executor IPC", () => {
     {
       name: "run-batch",
       channel: "executor:run-batch",
-      invoke: (event: unknown, projectPath?: string, workflow: Workflow = TEST_WORKFLOW) => {
-        const handler = getHandler<
-          (
-            event: unknown,
-            workflow: Workflow,
-            inputs: WorkflowInput[],
-            concurrency: number,
-            stopOnFailure: boolean,
-            projectPath?: string,
-            workflowPath?: string,
-          ) => Promise<ExecutionStartResult>
-        >("executor:run-batch")
-        return handler(event, workflow, [TEST_INPUT], 1, false, projectPath, "/tmp/workflow.chain")
+      invoke: (
+        event: unknown,
+        projectPath?: string,
+        workflow: Workflow = TEST_WORKFLOW,
+      ) => {
+        const handler =
+          getHandler<
+            (
+              event: unknown,
+              workflow: Workflow,
+              inputs: WorkflowInput[],
+              concurrency: number,
+              stopOnFailure: boolean,
+              projectPath?: string,
+              workflowPath?: string,
+            ) => Promise<ExecutionStartResult>
+          >("executor:run-batch")
+        return handler(
+          event,
+          workflow,
+          [TEST_INPUT],
+          1,
+          false,
+          projectPath,
+          "/tmp/workflow.chain",
+        )
       },
       targetMock: runBatchMock,
       projectPathArgIndex: 6,
     },
   ] as const
 
-  it.each(startCases)("returns a structured start error for invalid projectPath in $name", async ({ invoke, targetMock }) => {
-    const { registerExecutorHandlers } = await import("./executor")
-    registerExecutorHandlers()
-    const owner = createEvent(1)
+  it.each(startCases)(
+    "returns a structured start error for invalid projectPath in $name",
+    async ({ invoke, targetMock }) => {
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+      const owner = createEvent(1)
 
-    const result = await invoke(owner.event, "/unsafe/project")
+      const result = await invoke(owner.event, "/unsafe/project")
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        error: "Project path is outside allowed directories",
-      }),
-    )
-    expect(scanAllSkillsMock).not.toHaveBeenCalled()
-    expect(scaffoldMissingSkillsMock).not.toHaveBeenCalled()
-    expect(targetMock).not.toHaveBeenCalled()
-  })
+      expect(result).toEqual(
+        expect.objectContaining({
+          error: "Project path is outside allowed directories",
+        }),
+      )
+      expect(scanAllSkillsMock).not.toHaveBeenCalled()
+      expect(scaffoldMissingSkillsMock).not.toHaveBeenCalled()
+      expect(targetMock).not.toHaveBeenCalled()
+    },
+  )
 
-  it.each(startCases)("passes the validated projectPath downstream in $name", async ({ invoke, targetMock, projectPathArgIndex }) => {
-    const { registerExecutorHandlers } = await import("./executor")
-    registerExecutorHandlers()
-    const owner = createEvent(1)
+  it.each(startCases)(
+    "passes the validated projectPath downstream in $name",
+    async ({ invoke, targetMock, projectPathArgIndex }) => {
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+      const owner = createEvent(1)
 
-    const result = await invoke(owner.event, "/safe/project")
+      const result = await invoke(owner.event, "/safe/project")
 
-    expect(typeof result).toBe("string")
-    expect(scanAllSkillsMock).toHaveBeenCalledWith("/safe/project")
-    expect(scaffoldMissingSkillsMock).toHaveBeenCalledWith(TEST_WORKFLOW, [], "/safe/project")
-    expect(targetMock).toHaveBeenCalledTimes(1)
-    expect(targetMock.mock.calls[0]?.[projectPathArgIndex]).toBe("/safe/project")
-  })
+      expect(typeof result).toBe("string")
+      expect(scanAllSkillsMock).toHaveBeenCalledWith("/safe/project")
+      expect(scaffoldMissingSkillsMock).toHaveBeenCalledWith(
+        TEST_WORKFLOW,
+        [],
+        "/safe/project",
+      )
+      expect(targetMock).toHaveBeenCalledTimes(1)
+      expect(targetMock.mock.calls[0]?.[projectPathArgIndex]).toBe(
+        "/safe/project",
+      )
+    },
+  )
 
-  it.each(startCases)("returns a structured validation error for malformed workflow payload in $name", async ({ invoke, targetMock }) => {
-    const { registerExecutorHandlers } = await import("./executor")
-    registerExecutorHandlers()
-    const owner = createEvent(1)
+  it.each(startCases)(
+    "returns a structured validation error for malformed workflow payload in $name",
+    async ({ invoke, targetMock }) => {
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+      const owner = createEvent(1)
 
-    const result = await invoke(owner.event, undefined, {
-      version: 1,
-      name: "Broken",
-      nodes: [{ id: "input", type: "input", position: { x: "0", y: 0 }, config: {} }],
-      edges: [],
-    } as unknown as Workflow)
+      const result = await invoke(owner.event, undefined, {
+        version: 1,
+        name: "Broken",
+        nodes: [
+          {
+            id: "input",
+            type: "input",
+            position: { x: "0", y: 0 },
+            config: {},
+          },
+        ],
+        edges: [],
+      } as unknown as Workflow)
 
-    expect(result).toEqual(
-      expect.objectContaining({
-        code: "validation",
-        error: 'Workflow payload node "input" position must include finite x/y numbers.',
-      }),
-    )
-    expect(targetMock).not.toHaveBeenCalled()
-  })
+      expect(result).toEqual(
+        expect.objectContaining({
+          code: "validation",
+          error:
+            'Workflow payload node "input" position must include finite x/y numbers.',
+        }),
+      )
+      expect(targetMock).not.toHaveBeenCalled()
+    },
+  )
 
   it("caps concurrent executions per window before starting another run", async () => {
     const runDeferred = createDeferred<void>()
@@ -441,19 +542,29 @@ describe("executor IPC", () => {
     const { registerExecutorHandlers } = await import("./executor")
     registerExecutorHandlers()
     const owner = createEvent(1)
-    const runHandler = getHandler<
-      (event: unknown, workflow: Workflow, input: WorkflowInput, projectPath?: string, workflowPath?: string) => Promise<ExecutionStartResult>
-    >("executor:run")
+    const runHandler =
+      getHandler<
+        (
+          event: unknown,
+          workflow: Workflow,
+          input: WorkflowInput,
+          projectPath?: string,
+          workflowPath?: string,
+        ) => Promise<ExecutionStartResult>
+      >("executor:run")
 
     for (let index = 0; index < 8; index += 1) {
       const result = await runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT)
       expect(typeof result).toBe("string")
     }
 
-    await expect(runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT)).resolves.toEqual(
+    await expect(
+      runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT),
+    ).resolves.toEqual(
       expect.objectContaining({
         code: "preflight",
-        error: "Too many active executions in this window. Close or cancel a run before starting another (max 8).",
+        error:
+          "Too many active executions in this window. Close or cancel a run before starting another (max 8).",
       }),
     )
 
@@ -466,7 +577,10 @@ describe("executor IPC", () => {
       name: "cancel",
       channel: "executor:cancel",
       invoke: (event: unknown, runId: string) => {
-        const handler = getHandler<(event: unknown, runId: string) => Promise<boolean>>("executor:cancel")
+        const handler =
+          getHandler<(event: unknown, runId: string) => Promise<boolean>>(
+            "executor:cancel",
+          )
         return handler(event, runId)
       },
       targetMock: cancelWorkflowRunMock,
@@ -478,7 +592,10 @@ describe("executor IPC", () => {
       name: "pause",
       channel: "run:pause",
       invoke: (event: unknown, runId: string) => {
-        const handler = getHandler<(event: unknown, runId: string) => Promise<boolean>>("run:pause")
+        const handler =
+          getHandler<(event: unknown, runId: string) => Promise<boolean>>(
+            "run:pause",
+          )
         return handler(event, runId)
       },
       targetMock: pauseWorkflowRunMock,
@@ -490,7 +607,10 @@ describe("executor IPC", () => {
       name: "resume",
       channel: "run:resume",
       invoke: (event: unknown, runId: string) => {
-        const handler = getHandler<(event: unknown, runId: string) => Promise<boolean>>("run:resume")
+        const handler =
+          getHandler<(event: unknown, runId: string) => Promise<boolean>>(
+            "run:resume",
+          )
         return handler(event, runId)
       },
       targetMock: resumeWorkflowRunMock,
@@ -502,9 +622,15 @@ describe("executor IPC", () => {
       name: "approve",
       channel: "executor:approve",
       invoke: (event: unknown, runId: string) => {
-        const handler = getHandler<
-          (event: unknown, runId: string, nodeId: string, editedContent?: string) => Promise<boolean>
-        >("executor:approve")
+        const handler =
+          getHandler<
+            (
+              event: unknown,
+              runId: string,
+              nodeId: string,
+              editedContent?: string,
+            ) => Promise<boolean>
+          >("executor:approve")
         return handler(event, runId, "node-1", "edited")
       },
       targetMock: resolveApprovalMock,
@@ -516,7 +642,10 @@ describe("executor IPC", () => {
       name: "reject",
       channel: "executor:reject",
       invoke: (event: unknown, runId: string) => {
-        const handler = getHandler<(event: unknown, runId: string, nodeId: string) => Promise<boolean>>("executor:reject")
+        const handler =
+          getHandler<
+            (event: unknown, runId: string, nodeId: string) => Promise<boolean>
+          >("executor:reject")
         return handler(event, runId, "node-1")
       },
       targetMock: resolveApprovalMock,
@@ -528,7 +657,9 @@ describe("executor IPC", () => {
       name: "override-evaluator",
       channel: "executor:override-evaluator",
       invoke: (event: unknown, runId: string) => {
-        const handler = getHandler<(event: unknown, runId: string, nodeId: string) => Promise<boolean>>("executor:override-evaluator")
+        const handler = getHandler<
+          (event: unknown, runId: string, nodeId: string) => Promise<boolean>
+        >("executor:override-evaluator")
         return handler(event, runId, "node-1")
       },
       targetMock: resolveEvalOverrideMock,
@@ -538,49 +669,59 @@ describe("executor IPC", () => {
     },
   ] as const
 
-  it.each(runMutationCases)("allows same-window $name and blocks cross-window $name", async ({
-    invoke,
-    targetMock,
-    expectedArgs,
-    expectedAuthorizedResult,
-    action,
-  }) => {
-    const runDeferred = createDeferred<void>()
-    runWorkflowMock.mockReturnValue(runDeferred.promise)
+  it.each(runMutationCases)(
+    "allows same-window $name and blocks cross-window $name",
+    async ({
+      invoke,
+      targetMock,
+      expectedArgs,
+      expectedAuthorizedResult,
+      action,
+    }) => {
+      const runDeferred = createDeferred<void>()
+      runWorkflowMock.mockReturnValue(runDeferred.promise)
 
-    const { registerExecutorHandlers } = await import("./executor")
-    registerExecutorHandlers()
-    const owner = createEvent(1)
-    const intruder = createEvent(2)
-    const runHandler = getHandler<
-      (event: unknown, workflow: Workflow, input: WorkflowInput, projectPath?: string, workflowPath?: string) => Promise<ExecutionStartResult>
-    >("executor:run")
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+      const owner = createEvent(1)
+      const intruder = createEvent(2)
+      const runHandler =
+        getHandler<
+          (
+            event: unknown,
+            workflow: Workflow,
+            input: WorkflowInput,
+            projectPath?: string,
+            workflowPath?: string,
+          ) => Promise<ExecutionStartResult>
+        >("executor:run")
 
-    const runId = await runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT)
-    expect(typeof runId).toBe("string")
+      const runId = await runHandler(owner.event, TEST_WORKFLOW, TEST_INPUT)
+      expect(typeof runId).toBe("string")
 
-    targetMock.mockClear()
-    const authorizedResult = await invoke(owner.event, runId as string)
-    expect(authorizedResult).toBe(expectedAuthorizedResult)
-    expect(targetMock).toHaveBeenCalledWith(...expectedArgs(runId as string))
+      targetMock.mockClear()
+      const authorizedResult = await invoke(owner.event, runId as string)
+      expect(authorizedResult).toBe(expectedAuthorizedResult)
+      expect(targetMock).toHaveBeenCalledWith(...expectedArgs(runId as string))
 
-    targetMock.mockClear()
-    const unauthorizedResult = await invoke(intruder.event, runId as string)
-    expect(unauthorizedResult).toBe(false)
-    expect(targetMock).not.toHaveBeenCalled()
-    expect(logWarnMock).toHaveBeenCalledWith(
-      "executor-ipc",
-      "execution_mutation_denied",
-      expect.objectContaining({
-        action,
-        windowId: 2,
-        executionId: runId,
-      }),
-    )
+      targetMock.mockClear()
+      const unauthorizedResult = await invoke(intruder.event, runId as string)
+      expect(unauthorizedResult).toBe(false)
+      expect(targetMock).not.toHaveBeenCalled()
+      expect(logWarnMock).toHaveBeenCalledWith(
+        "executor-ipc",
+        "execution_mutation_denied",
+        expect.objectContaining({
+          action,
+          windowId: 2,
+          executionId: runId,
+        }),
+      )
 
-    runDeferred.resolve()
-    await Promise.resolve()
-  })
+      runDeferred.resolve()
+      await Promise.resolve()
+    },
+  )
 
   it("allows same-window batch cancel and blocks cross-window batch cancel", async () => {
     const batchDeferred = createDeferred<void>()
@@ -590,28 +731,41 @@ describe("executor IPC", () => {
     registerExecutorHandlers()
     const owner = createEvent(1)
     const intruder = createEvent(2)
-    const batchHandler = getHandler<
-      (
-        event: unknown,
-        workflow: Workflow,
-        inputs: WorkflowInput[],
-        concurrency: number,
-        stopOnFailure: boolean,
-        projectPath?: string,
-        workflowPath?: string,
-      ) => Promise<ExecutionStartResult>
-    >("executor:run-batch")
-    const cancelHandler = getHandler<(event: unknown, batchId: string) => Promise<boolean>>("executor:cancel-batch")
+    const batchHandler =
+      getHandler<
+        (
+          event: unknown,
+          workflow: Workflow,
+          inputs: WorkflowInput[],
+          concurrency: number,
+          stopOnFailure: boolean,
+          projectPath?: string,
+          workflowPath?: string,
+        ) => Promise<ExecutionStartResult>
+      >("executor:run-batch")
+    const cancelHandler = getHandler<
+      (event: unknown, batchId: string) => Promise<boolean>
+    >("executor:cancel-batch")
 
-    const batchId = await batchHandler(owner.event, TEST_WORKFLOW, [TEST_INPUT], 1, false)
+    const batchId = await batchHandler(
+      owner.event,
+      TEST_WORKFLOW,
+      [TEST_INPUT],
+      1,
+      false,
+    )
     expect(typeof batchId).toBe("string")
 
     cancelBatchMock.mockClear()
-    await expect(cancelHandler(owner.event, batchId as string)).resolves.toBe(true)
+    await expect(cancelHandler(owner.event, batchId as string)).resolves.toBe(
+      true,
+    )
     expect(cancelBatchMock).toHaveBeenCalledWith(batchId)
 
     cancelBatchMock.mockClear()
-    await expect(cancelHandler(intruder.event, batchId as string)).resolves.toBe(false)
+    await expect(
+      cancelHandler(intruder.event, batchId as string),
+    ).resolves.toBe(false)
     expect(cancelBatchMock).not.toHaveBeenCalled()
     expect(logWarnMock).toHaveBeenCalledWith(
       "executor-ipc",

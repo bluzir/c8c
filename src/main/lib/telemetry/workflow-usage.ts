@@ -1,4 +1,8 @@
-import type { EvaluatorNodeConfig, SkillNodeConfig, Workflow } from "@shared/types"
+import type {
+  EvaluatorNodeConfig,
+  SkillNodeConfig,
+  Workflow,
+} from "@shared/types"
 import { createHash } from "node:crypto"
 
 const MAX_REFS_IN_LIST = 20
@@ -40,7 +44,9 @@ function refsList(refs: Set<string>): string | null {
   return list.join(",")
 }
 
-export function summarizeWorkflowSkillCoverage(workflow: Workflow): WorkflowSkillCoverage {
+export function summarizeWorkflowSkillCoverage(
+  workflow: Workflow,
+): WorkflowSkillCoverage {
   const skillRefs = new Set<string>()
   const evaluatorSkillRefs = new Set<string>()
   let skillNodesTotal = 0
@@ -125,6 +131,9 @@ export function summarizeMissingWorkflowSkillRefs(
 export function workflowFingerprint(workflow: Workflow): string {
   const id = typeof workflow.id === "string" ? workflow.id.trim() : ""
   const name = typeof workflow.name === "string" ? workflow.name.trim() : ""
-  const fingerprintSeed = id || name || `nodes:${workflow.nodes.length};edges:${workflow.edges.length}`
+  const fingerprintSeed =
+    id ||
+    name ||
+    `nodes:${workflow.nodes.length};edges:${workflow.edges.length}`
   return createHash("sha256").update(fingerprintSeed).digest("hex").slice(0, 16)
 }

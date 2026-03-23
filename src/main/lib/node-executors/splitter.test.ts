@@ -74,9 +74,17 @@ Let me know if you need changes.`
 
 describe("shouldRetrySplitter", () => {
   it("retries when single subtask content is empty", () => {
-    const input = "1. Analyze onboarding\n2. Analyze checkout\n3. Analyze settings"
+    const input =
+      "1. Analyze onboarding\n2. Analyze checkout\n3. Analyze settings"
     const subtasks = [{ key: "subtask-0", content: "" }]
-    expect(shouldRetrySplitter(subtasks, '[{"key":"subtask-0","content":""}]', input, 5)).toBe(true)
+    expect(
+      shouldRetrySplitter(
+        subtasks,
+        '[{"key":"subtask-0","content":""}]',
+        input,
+        5,
+      ),
+    ).toBe(true)
   })
 
   it("retries when normalized subtask keys collide", () => {
@@ -86,15 +94,19 @@ describe("shouldRetrySplitter", () => {
       { key: "pre run", content: "Review run button gating" },
     ]
 
-    expect(shouldRetrySplitter(subtasks, JSON.stringify(subtasks), input, 5)).toBe(true)
+    expect(
+      shouldRetrySplitter(subtasks, JSON.stringify(subtasks), input, 5),
+    ).toBe(true)
   })
 
   it("detects instruction-echo output as invalid split", () => {
-    const input = "Research RAG best practices and split into independent aspects."
+    const input =
+      "Research RAG best practices and split into independent aspects."
     const subtasks = [
       {
         key: "subtask-0",
-        content: "You are a task decomposer. Return ONLY a JSON array. Create 4-6 independent research aspects.",
+        content:
+          "You are a task decomposer. Return ONLY a JSON array. Create 4-6 independent research aspects.",
       },
     ]
 
@@ -103,8 +115,15 @@ describe("shouldRetrySplitter", () => {
 
   it("does not retry for a normal single unsplittable task", () => {
     const input = "Summarize this short note."
-    const subtasks = [{ key: "summary", content: "Summarize this short note with key conclusions." }]
-    expect(shouldRetrySplitter(subtasks, subtasks[0].content, input)).toBe(false)
+    const subtasks = [
+      {
+        key: "summary",
+        content: "Summarize this short note with key conclusions.",
+      },
+    ]
+    expect(shouldRetrySplitter(subtasks, subtasks[0].content, input)).toBe(
+      false,
+    )
   })
 
   it("retries when output is under target branch count for markdown tables", () => {
@@ -118,7 +137,9 @@ describe("shouldRetrySplitter", () => {
       { key: "ipc", content: "Review IPC handlers as one group" },
       { key: "ui", content: "Review renderer components as one group" },
     ]
-    expect(shouldRetrySplitter(subtasks, JSON.stringify(subtasks), input, 4)).toBe(true)
+    expect(
+      shouldRetrySplitter(subtasks, JSON.stringify(subtasks), input, 4),
+    ).toBe(true)
   })
 })
 
@@ -132,7 +153,11 @@ describe("buildSplitterPrompt", () => {
 
 describe("buildSplitterRecoveryPrompt", () => {
   it("includes hard output constraints and max branch bounds", () => {
-    const prompt = buildSplitterRecoveryPrompt("Split by entities", "Input body", 6)
+    const prompt = buildSplitterRecoveryPrompt(
+      "Split by entities",
+      "Input body",
+      6,
+    )
     expect(prompt).toContain("Return a JSON array with 2-6 objects")
     expect(prompt).toContain("Do NOT echo instructions")
     expect(prompt).toContain("Split by entities")
@@ -186,7 +211,8 @@ describe("tryStructuredSplit", () => {
   })
 
   it("returns null for plain prose", () => {
-    const input = "Research RAG best practices and split into independent aspects."
+    const input =
+      "Research RAG best practices and split into independent aspects."
     const result = tryStructuredSplit(input, 8)
     expect(result).toBeNull()
   })

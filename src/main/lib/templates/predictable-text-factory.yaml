@@ -34,7 +34,8 @@ nodes:
       y: 200
     config:
       skillRef: factory/text-planner
-      prompt: "Turn the source text into a production plan. Define 5-10 sections in strict order. For each section include:
+      prompt:
+        "Turn the source text into a production plan. Define 5-10 sections in strict order. For each section include:
         section_id, objective, must_keep_facts, constraints, and done_criteria. Output as structured markdown so each
         section can be executed independently."
   - id: splitter-1
@@ -43,7 +44,8 @@ nodes:
       x: 600
       y: 200
     config:
-      strategy: "Split the plan into independent section tasks. Each task must include full local context: section_id,
+      strategy:
+        "Split the plan into independent section tasks. Each task must include full local context: section_id,
         objective, required facts, constraints, done_criteria, and section order index."
       maxBranches: 10
   - id: section-writer-1
@@ -53,7 +55,8 @@ nodes:
       y: 200
     config:
       skillRef: factory/section-writer
-      prompt: Produce ONE final draft for this section only. Respect objective and constraints exactly, preserve required
+      prompt:
+        Produce ONE final draft for this section only. Respect objective and constraints exactly, preserve required
         facts, avoid adding unsupported claims, and keep the section self-contained.
   - id: section-evaluator-1
     type: evaluator
@@ -61,7 +64,8 @@ nodes:
       x: 1200
       y: 200
     config:
-      criteria: "Gate each section with infostyle + slop-check. Score 1-10 on: (1) requirement adherence (objective +
+      criteria:
+        "Gate each section with infostyle + slop-check. Score 1-10 on: (1) requirement adherence (objective +
         constraints), (2) factual integrity (all required facts preserved, no invented claims), (3) infostyle discipline
         (facts, no buzzwords/manipulation, no padding), (4) slop risk (generic AI phrasing, fake confidence, weak
         causality, low detail density). Hard fail if verdict is probable_slop or infostyle bans are violated. Return
@@ -87,7 +91,8 @@ nodes:
       y: 200
     config:
       skillRef: factory/text-integrator
-      prompt: "Integrate assembled sections into one coherent text. Only do cross-section normalization: transitions,
+      prompt:
+        "Integrate assembled sections into one coherent text. Only do cross-section normalization: transitions,
         terminology consistency, duplicate removal, and ordering. Do not drop required facts."
   - id: final-evaluator-1
     type: evaluator
@@ -95,7 +100,8 @@ nodes:
       x: 2100
       y: 200
     config:
-      criteria: "Final gate: check if the document is publishable (not slop). Score 1-10 on: (1) coherence across sections,
+      criteria:
+        "Final gate: check if the document is publishable (not slop). Score 1-10 on: (1) coherence across sections,
         (2) consistency of terminology and claims, (3) infostyle quality end-to-end (facts/utility, no manipulative
         fluff), (4) slop-check verdict across the whole text (clean/good/acceptable/probable_slop). PASS only if text is
         clean or good and requires no manual structural rewrites."

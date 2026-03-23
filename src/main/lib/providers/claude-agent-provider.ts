@@ -39,7 +39,9 @@ async function checkClaudeAvailability(): Promise<ProviderHealth> {
   const executablePath = findClaudeExecutable() || undefined
 
   try {
-    const { stdout, stderr } = await execClaude(["--version"], { timeout: 5_000 })
+    const { stdout, stderr } = await execClaude(["--version"], {
+      timeout: 5_000,
+    })
     const version = `${stdout}\n${stderr}`
       .split("\n")
       .map((line) => line.trim())
@@ -81,15 +83,24 @@ export class ClaudeAgentProvider implements AgentProvider {
     }
   }
 
-  private async runLegacyClaude(options: AgentRunOptions): Promise<AgentRunResult> {
+  private async runLegacyClaude(
+    options: AgentRunOptions,
+  ): Promise<AgentRunResult> {
     return spawnClaude(toClaudeSpawnOptions(options))
   }
 
-  async executeInteractive(options: AgentRunOptions): Promise<AgentExecutionHandle> {
+  async executeInteractive(
+    options: AgentRunOptions,
+  ): Promise<AgentExecutionHandle> {
     try {
       return await createClaudeSdkExecutionHandle(options)
     } catch {
-      return createLegacyExecutionHandle(this.id, "claude_cli", options, this.runLegacyClaude.bind(this))
+      return createLegacyExecutionHandle(
+        this.id,
+        "claude_cli",
+        options,
+        this.runLegacyClaude.bind(this),
+      )
     }
   }
 
@@ -97,7 +108,12 @@ export class ClaudeAgentProvider implements AgentProvider {
     try {
       return await createClaudeSdkExecutionHandle(options)
     } catch {
-      return createLegacyExecutionHandle(this.id, "claude_cli", options, this.runLegacyClaude.bind(this))
+      return createLegacyExecutionHandle(
+        this.id,
+        "claude_cli",
+        options,
+        this.runLegacyClaude.bind(this),
+      )
     }
   }
 

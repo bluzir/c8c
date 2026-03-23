@@ -3,7 +3,13 @@ import { mkdir, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 import { projectsConfigPath, saveProjectsConfig } from "../lib/projects-config"
-import { resolveAppHomeDir, resolveAppUserDataDir, isPathWithin, isTestMode, shouldSuppressStartupSideEffects } from "../lib/runtime-paths"
+import {
+  resolveAppHomeDir,
+  resolveAppUserDataDir,
+  isPathWithin,
+  isTestMode,
+  shouldSuppressStartupSideEffects,
+} from "../lib/runtime-paths"
 import { ensureChainsDir } from "../lib/yaml-io"
 import { windowStatePath } from "../window-state"
 
@@ -46,15 +52,24 @@ export function registerTestHarnessHandlers() {
       input: { projects: string[]; lastSelectedProject?: string | null },
     ) => {
       assertTestModeEnabled()
-      const projects = [...new Set(
-        input.projects
-          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-          .map((value) => resolve(value)),
-      )]
-      await Promise.all(projects.map((projectPath) => mkdir(projectPath, { recursive: true })))
+      const projects = [
+        ...new Set(
+          input.projects
+            .filter(
+              (value): value is string =>
+                typeof value === "string" && value.trim().length > 0,
+            )
+            .map((value) => resolve(value)),
+        ),
+      ]
+      await Promise.all(
+        projects.map((projectPath) => mkdir(projectPath, { recursive: true })),
+      )
       await saveProjectsConfig({
         projects,
-        lastSelectedProject: input.lastSelectedProject ? resolve(input.lastSelectedProject) : undefined,
+        lastSelectedProject: input.lastSelectedProject
+          ? resolve(input.lastSelectedProject)
+          : undefined,
       })
       return true
     },
@@ -62,10 +77,7 @@ export function registerTestHarnessHandlers() {
 
   ipcMain.handle("test-harness:reset-persistent-state", async () => {
     assertTestModeEnabled()
-    const paths = [...new Set([
-      resolveAppHomeDir(),
-      resolveAppUserDataDir(),
-    ])]
+    const paths = [...new Set([resolveAppHomeDir(), resolveAppUserDataDir()])]
     for (const path of paths) {
       assertSafeResetPath(path)
       await rm(path, { recursive: true, force: true })

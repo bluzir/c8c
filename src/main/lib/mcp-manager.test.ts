@@ -53,7 +53,11 @@ vi.mock("./atomic-write", async () => {
   return {
     writeFileAtomic: async (filePath: string, content: string) => {
       testState.writeCallCount += 1
-      if (testState.delayFirstWrite && testState.writeCallCount === 1 && testState.firstWriteGate) {
+      if (
+        testState.delayFirstWrite &&
+        testState.writeCallCount === 1 &&
+        testState.firstWriteGate
+      ) {
         await testState.firstWriteGate.promise
       }
       await mkdir(dirname(filePath), { recursive: true })
@@ -100,37 +104,45 @@ describe("mcp-manager", () => {
   it("lists local, project, and user MCP servers with inferred transport", async () => {
     await writeFile(
       join(projectPath, ".mcp.json"),
-      JSON.stringify({
-        mcpServers: {
-          localNode: {
-            command: "node",
-            args: ["./local.js"],
+      JSON.stringify(
+        {
+          mcpServers: {
+            localNode: {
+              command: "node",
+              args: ["./local.js"],
+            },
           },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
       "utf8",
     )
 
     await mkdir(testState.homeDir, { recursive: true })
     await writeFile(
       join(testState.homeDir, ".claude.json"),
-      JSON.stringify({
-        mcpServers: {
-          userHttp: {
-            type: "http",
-            url: "https://example.com/mcp",
+      JSON.stringify(
+        {
+          mcpServers: {
+            userHttp: {
+              type: "http",
+              url: "https://example.com/mcp",
+            },
           },
-        },
-        projects: {
-          [projectPath]: {
-            mcpServers: {
-              projectSse: {
-                url: "https://example.com/sse",
+          projects: {
+            [projectPath]: {
+              mcpServers: {
+                projectSse: {
+                  url: "https://example.com/sse",
+                },
               },
             },
           },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
       "utf8",
     )
 
@@ -211,11 +223,15 @@ describe("mcp-manager", () => {
     await mkdir(testState.homeDir, { recursive: true })
     await writeFile(
       join(testState.homeDir, ".claude.json"),
-      JSON.stringify({
-        mcpServers: {
-          github: { command: "node", args: ["./github.js"] },
+      JSON.stringify(
+        {
+          mcpServers: {
+            github: { command: "node", args: ["./github.js"] },
+          },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
       "utf8",
     )
 
@@ -236,11 +252,15 @@ describe("mcp-manager", () => {
     await mkdir(testState.homeDir, { recursive: true })
     await writeFile(
       join(testState.homeDir, ".claude.json"),
-      JSON.stringify({
-        mcpServers: {
-          github: { command: "node", args: ["./github.js"] },
+      JSON.stringify(
+        {
+          mcpServers: {
+            github: { command: "node", args: ["./github.js"] },
+          },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
       "utf8",
     )
 
@@ -260,13 +280,17 @@ describe("mcp-manager", () => {
 
     const { addMcpServer, discoverMcpTools } = await loadMcpManager()
     await discoverMcpTools(undefined, projectPath)
-    await expect(addMcpServer(createServer({
-      name: "github",
-      scope: "user",
-      type: "stdio",
-      command: "node",
-      args: ["./github.js"],
-    }))).resolves.toEqual({ success: true })
+    await expect(
+      addMcpServer(
+        createServer({
+          name: "github",
+          scope: "user",
+          type: "stdio",
+          command: "node",
+          args: ["./github.js"],
+        }),
+      ),
+    ).resolves.toEqual({ success: true })
 
     await expect(discoverMcpTools(undefined, projectPath)).resolves.toEqual([
       {
@@ -284,12 +308,16 @@ describe("mcp-manager", () => {
     const claudeConfigPath = join(testState.homeDir, ".claude.json")
     await writeFile(
       claudeConfigPath,
-      JSON.stringify({
-        mcpServers: {
-          alpha: { command: "node", args: ["./alpha.js"] },
-          beta: { command: "node", args: ["./beta.js"] },
+      JSON.stringify(
+        {
+          mcpServers: {
+            alpha: { command: "node", args: ["./alpha.js"] },
+            beta: { command: "node", args: ["./beta.js"] },
+          },
         },
-      }, null, 2),
+        null,
+        2,
+      ),
       "utf8",
     )
 

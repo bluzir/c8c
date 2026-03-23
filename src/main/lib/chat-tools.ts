@@ -27,7 +27,10 @@ export interface ToolResult {
   workflowMutated: boolean
 }
 
-type ToolHandler = (ctx: ToolContext, input: Record<string, unknown>) => ToolResult | Promise<ToolResult>
+type ToolHandler = (
+  ctx: ToolContext,
+  input: Record<string, unknown>,
+) => ToolResult | Promise<ToolResult>
 
 function nextNodeId(workflow: Workflow, prefix = "node"): string {
   const existing = new Set(workflow.nodes.map((n) => n.id))
@@ -56,7 +59,8 @@ function nextEdgeId(
 
 const toolHandlers: Record<string, ToolHandler> = {
   async synthesize_workflow(ctx, input) {
-    const request = typeof input.request === "string" ? input.request.trim() : ""
+    const request =
+      typeof input.request === "string" ? input.request.trim() : ""
     const mode = input.mode === "edit" ? "edit" : "create"
 
     if (!request) {
@@ -90,15 +94,28 @@ const toolHandlers: Record<string, ToolHandler> = {
   update_workflow(ctx, input) {
     const newWorkflow = input.workflow as any
     if (!newWorkflow || typeof newWorkflow !== "object") {
-      return { output: "Error: flow object is required", workflowMutated: false }
+      return {
+        output: "Error: flow object is required",
+        workflowMutated: false,
+      }
     }
-    if (!Array.isArray(newWorkflow.nodes) || !Array.isArray(newWorkflow.edges)) {
-      return { output: "Error: flow must have nodes and edges arrays", workflowMutated: false }
+    if (
+      !Array.isArray(newWorkflow.nodes) ||
+      !Array.isArray(newWorkflow.edges)
+    ) {
+      return {
+        output: "Error: flow must have nodes and edges arrays",
+        workflowMutated: false,
+      }
     }
 
     ctx.workflow.name = newWorkflow.name || ctx.workflow.name
-    ctx.workflow.description = newWorkflow.description ?? ctx.workflow.description
-    ctx.workflow.defaults = { ...ctx.workflow.defaults, ...newWorkflow.defaults }
+    ctx.workflow.description =
+      newWorkflow.description ?? ctx.workflow.description
+    ctx.workflow.defaults = {
+      ...ctx.workflow.defaults,
+      ...newWorkflow.defaults,
+    }
     ctx.workflow.nodes = normalizeNodes(newWorkflow.nodes)
     ctx.workflow.edges = normalizeEdges(newWorkflow.edges)
 
@@ -111,7 +128,10 @@ const toolHandlers: Record<string, ToolHandler> = {
   add_node(ctx, input) {
     const nodeInput = input.node as any
     if (!nodeInput || typeof nodeInput !== "object") {
-      return { output: "Error: node object is required", workflowMutated: false }
+      return {
+        output: "Error: node object is required",
+        workflowMutated: false,
+      }
     }
 
     const afterNodeId = input.after_node_id as string | undefined
@@ -119,19 +139,30 @@ const toolHandlers: Record<string, ToolHandler> = {
     if (afterNodeId) {
       afterNode = ctx.workflow.nodes.find((n) => n.id === afterNodeId)
       if (!afterNode) {
-        return { output: `Error: after_node_id "${afterNodeId}" not found`, workflowMutated: false }
+        return {
+          output: `Error: after_node_id "${afterNodeId}" not found`,
+          workflowMutated: false,
+        }
       }
     }
 
-    if (typeof nodeInput.id === "string" && ctx.workflow.nodes.some((n) => n.id === nodeInput.id)) {
-      return { output: `Error: node "${nodeInput.id}" already exists`, workflowMutated: false }
+    if (
+      typeof nodeInput.id === "string" &&
+      ctx.workflow.nodes.some((n) => n.id === nodeInput.id)
+    ) {
+      return {
+        output: `Error: node "${nodeInput.id}" already exists`,
+        workflowMutated: false,
+      }
     }
 
     // Normalize the single node
-    const [node] = normalizeNodes([{
-      ...nodeInput,
-      id: nodeInput.id || nextNodeId(ctx.workflow, nodeInput.type || "skill"),
-    }])
+    const [node] = normalizeNodes([
+      {
+        ...nodeInput,
+        id: nodeInput.id || nextNodeId(ctx.workflow, nodeInput.type || "skill"),
+      },
+    ])
 
     // Position: place after the reference node or at end
     if (afterNode) {
@@ -145,11 +176,15 @@ const toolHandlers: Record<string, ToolHandler> = {
 
     // Auto-wire: if after_node_id specified, insert between it and its targets
     if (afterNodeId) {
-      const outgoingEdges = ctx.workflow.edges.filter((e) => e.source === afterNodeId)
+      const outgoingEdges = ctx.workflow.edges.filter(
+        (e) => e.source === afterNodeId,
+      )
 
       if (outgoingEdges.length > 0) {
         // Rewire: afterNode -> newNode -> (original targets)
-        const retainedEdges = ctx.workflow.edges.filter((edge) => edge.source !== afterNodeId)
+        const retainedEdges = ctx.workflow.edges.filter(
+          (edge) => edge.source !== afterNodeId,
+        )
         const rewiredEdges: WorkflowEdge[] = []
         for (const edge of outgoingEdges) {
           rewiredEdges.push({
@@ -195,7 +230,10 @@ const toolHandlers: Record<string, ToolHandler> = {
 
     const nodeIndex = ctx.workflow.nodes.findIndex((n) => n.id === nodeId)
     if (nodeIndex === -1) {
-      return { output: `Error: node "${nodeId}" not found`, workflowMutated: false }
+      return {
+        output: `Error: node "${nodeId}" not found`,
+        workflowMutated: false,
+      }
     }
 
     // Rewire: connect incoming sources to outgoing targets
@@ -209,7 +247,9 @@ const toolHandlers: Record<string, ToolHandler> = {
 
     // Create bridge edges
     const existingEdgeKeys = new Set(
-      ctx.workflow.edges.map((edge) => `${edge.source}=>${edge.target}:${edge.type}`),
+      ctx.workflow.edges.map(
+        (edge) => `${edge.source}=>${edge.target}:${edge.type}`,
+      ),
     )
     for (const inEdge of incoming) {
       for (const outEdge of outgoing) {
@@ -219,7 +259,12 @@ const toolHandlers: Record<string, ToolHandler> = {
         const edgeKey = `${inEdge.source}=>${outEdge.target}:${bridgeType}`
         if (existingEdgeKeys.has(edgeKey)) continue
         ctx.workflow.edges.push({
-          id: nextEdgeId(ctx.workflow, inEdge.source, outEdge.target, bridgeType),
+          id: nextEdgeId(
+            ctx.workflow,
+            inEdge.source,
+            outEdge.target,
+            bridgeType,
+          ),
           source: inEdge.source,
           target: outEdge.target,
           type: bridgeType,
@@ -247,7 +292,10 @@ const toolHandlers: Record<string, ToolHandler> = {
 
     const node = ctx.workflow.nodes.find((n) => n.id === nodeId)
     if (!node) {
-      return { output: `Error: node "${nodeId}" not found`, workflowMutated: false }
+      return {
+        output: `Error: node "${nodeId}" not found`,
+        workflowMutated: false,
+      }
     }
 
     if (!config) {
@@ -271,18 +319,32 @@ const toolHandlers: Record<string, ToolHandler> = {
     const type = (input.type as string) || "default"
 
     if (!source || !target) {
-      return { output: "Error: source and target are required", workflowMutated: false }
+      return {
+        output: "Error: source and target are required",
+        workflowMutated: false,
+      }
     }
 
     if (!ctx.workflow.nodes.find((n) => n.id === source)) {
-      return { output: `Error: source node "${source}" not found`, workflowMutated: false }
+      return {
+        output: `Error: source node "${source}" not found`,
+        workflowMutated: false,
+      }
     }
     if (!ctx.workflow.nodes.find((n) => n.id === target)) {
-      return { output: `Error: target node "${target}" not found`, workflowMutated: false }
+      return {
+        output: `Error: target node "${target}" not found`,
+        workflowMutated: false,
+      }
     }
 
     const edge: WorkflowEdge = {
-      id: nextEdgeId(ctx.workflow, source, target, type as WorkflowEdge["type"]),
+      id: nextEdgeId(
+        ctx.workflow,
+        source,
+        target,
+        type as WorkflowEdge["type"],
+      ),
       source,
       target,
       type: type as WorkflowEdge["type"],
@@ -303,7 +365,10 @@ const toolHandlers: Record<string, ToolHandler> = {
 
     const index = ctx.workflow.edges.findIndex((e) => e.id === edgeId)
     if (index === -1) {
-      return { output: `Error: edge "${edgeId}" not found`, workflowMutated: false }
+      return {
+        output: `Error: edge "${edgeId}" not found`,
+        workflowMutated: false,
+      }
     }
 
     ctx.workflow.edges.splice(index, 1)
@@ -316,7 +381,10 @@ const toolHandlers: Record<string, ToolHandler> = {
   set_defaults(ctx, input) {
     const defaults = input.defaults as Partial<WorkflowDefaults> | undefined
     if (!defaults) {
-      return { output: "Error: defaults object is required", workflowMutated: false }
+      return {
+        output: "Error: defaults object is required",
+        workflowMutated: false,
+      }
     }
 
     ctx.workflow.defaults = { ...ctx.workflow.defaults, ...defaults }
@@ -336,7 +404,10 @@ const toolHandlers: Record<string, ToolHandler> = {
 
     const results = searchSkillsFn(ctx.skills, query, limit)
     if (results.length === 0) {
-      return { output: `No skills found matching "${query}"`, workflowMutated: false }
+      return {
+        output: `No skills found matching "${query}"`,
+        workflowMutated: false,
+      }
     }
 
     const formatted = results
@@ -361,7 +432,9 @@ const toolHandlers: Record<string, ToolHandler> = {
       return { output: `Category "${path}" not found`, workflowMutated: false }
     }
 
-    const parts: string[] = [`Category: ${node.path || "root"} (${node.count} skills)`]
+    const parts: string[] = [
+      `Category: ${node.path || "root"} (${node.count} skills)`,
+    ]
 
     if (node.children.length > 0) {
       parts.push("\nSubcategories:")
@@ -403,7 +476,9 @@ const toolHandlers: Record<string, ToolHandler> = {
       }
     }
 
-    parts.push(`\nSummary: ${ctx.workflow.nodes.length} nodes, ${ctx.workflow.edges.length} edges`)
+    parts.push(
+      `\nSummary: ${ctx.workflow.nodes.length} nodes, ${ctx.workflow.edges.length} edges`,
+    )
 
     return { output: parts.join("\n"), workflowMutated: false }
   },

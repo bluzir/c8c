@@ -57,31 +57,47 @@ import {
 
 describe("canUseCodexAcpExecution", () => {
   it("allows additional directories that already sit under the working directory", () => {
-    expect(canUseCodexAcpExecution({
-      workdir: "/tmp/project",
-      addDirs: ["/tmp/project/.claude/skills"],
-      executionMode: "edit",
-    }, "workspace_auto")).toEqual({
+    expect(
+      canUseCodexAcpExecution(
+        {
+          workdir: "/tmp/project",
+          addDirs: ["/tmp/project/.claude/skills"],
+          executionMode: "edit",
+        },
+        "workspace_auto",
+      ),
+    ).toEqual({
       supported: true,
     })
   })
 
   it("rejects additional directories outside the working directory", () => {
-    expect(canUseCodexAcpExecution({
-      workdir: "/tmp/project",
-      addDirs: ["/tmp/extra"],
-      executionMode: "edit",
-    }, "workspace_auto")).toEqual({
+    expect(
+      canUseCodexAcpExecution(
+        {
+          workdir: "/tmp/project",
+          addDirs: ["/tmp/extra"],
+          executionMode: "edit",
+        },
+        "workspace_auto",
+      ),
+    ).toEqual({
       supported: false,
-      reason: "additional directories outside the working directory are not supported by ACP sessions",
+      reason:
+        "additional directories outside the working directory are not supported by ACP sessions",
     })
   })
 
   it("rejects unsupported safety profiles", () => {
-    expect(canUseCodexAcpExecution({
-      executionMode: "edit",
-      safetyProfile: "dangerous",
-    }, "workspace_auto")).toEqual({
+    expect(
+      canUseCodexAcpExecution(
+        {
+          executionMode: "edit",
+          safetyProfile: "dangerous",
+        },
+        "workspace_auto",
+      ),
+    ).toEqual({
       supported: false,
       reason: "unsupported safety profile dangerous",
     })
@@ -176,15 +192,17 @@ describe("createCodexAcpExecutionHandle", () => {
       accountLabel: "ChatGPT subscription",
       apiKeyConfigured: false,
     })
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      authMethodId: undefined,
-      env: expect.objectContaining({
-        ACP_AI_PROVIDER_WARN_MISSING_AUTH_METHOD: "0",
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authMethodId: undefined,
+        env: expect.objectContaining({
+          ACP_AI_PROVIDER_WARN_MISSING_AUTH_METHOD: "0",
+        }),
+        session: expect.objectContaining({
+          mcpServers: [],
+        }),
       }),
-      session: expect.objectContaining({
-        mcpServers: [],
-      }),
-    }))
+    )
     expect(cleanupMock).toHaveBeenCalled()
   })
 
@@ -204,13 +222,15 @@ describe("createCodexAcpExecutionHandle", () => {
       authMethod: "chatgpt",
       accountLabel: "ChatGPT subscription",
     })
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      authMethodId: undefined,
-      env: expect.not.objectContaining({
-        OPENAI_API_KEY: "ambient-openai-key",
-        CODEX_API_KEY: "ambient-codex-key",
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authMethodId: undefined,
+        env: expect.not.objectContaining({
+          OPENAI_API_KEY: "ambient-openai-key",
+          CODEX_API_KEY: "ambient-codex-key",
+        }),
       }),
-    }))
+    )
   })
 
   it("still forces codex-api-key when the app-managed override is configured", async () => {
@@ -226,13 +246,17 @@ describe("createCodexAcpExecutionHandle", () => {
       accountLabel: "App-managed CODEX_API_KEY",
       apiKeyConfigured: true,
     })
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      authMethodId: "codex-api-key",
-    }))
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authMethodId: "codex-api-key",
+      }),
+    )
   })
 
   it("marks Codex as unauthenticated when ACP returns an auth-required error", async () => {
-    initSessionMock.mockRejectedValue(new Error("Authentication required. Run codex login."))
+    initSessionMock.mockRejectedValue(
+      new Error("Authentication required. Run codex login."),
+    )
 
     const status = await probeCodexAcpAuthStatus()
 
@@ -246,7 +270,9 @@ describe("createCodexAcpExecutionHandle", () => {
   })
 
   it("returns an unknown auth state for non-auth ACP transport failures", async () => {
-    initSessionMock.mockRejectedValue(new Error("HTTP error: 426 Upgrade Required"))
+    initSessionMock.mockRejectedValue(
+      new Error("HTTP error: 426 Upgrade Required"),
+    )
 
     const status = await probeCodexAcpAuthStatus()
 
@@ -268,7 +294,11 @@ describe("createCodexAcpExecutionHandle", () => {
           transport: {
             type: "stdio",
             command: "npx",
-            args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/project/docs"],
+            args: [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "/tmp/project/docs",
+            ],
             env: { DOCS_ROOT: "/tmp/project/docs" },
           },
         },
@@ -276,7 +306,7 @@ describe("createCodexAcpExecutionHandle", () => {
       stderr: "",
     })
     streamTextMock.mockReturnValue({
-      fullStream: (async function *() {
+      fullStream: (async function* () {
         yield { type: "text-delta", text: "Hello from ACP", id: "text-1" }
         yield { type: "reasoning-delta", text: "Thinking", id: "think-1" }
         yield {
@@ -324,7 +354,13 @@ describe("createCodexAcpExecutionHandle", () => {
       model: "gpt-5.4",
     })
 
-    const entries: Array<{ type: string; content?: string; tool?: string; input?: unknown; output?: string }> = []
+    const entries: Array<{
+      type: string
+      content?: string
+      tool?: string
+      input?: unknown
+      output?: string
+    }> = []
     const usages: Array<{ inputTokens: number; outputTokens: number }> = []
     const summary = await drainExecutionHandle(handle, {
       onLogEntry: (entry) => {
@@ -335,12 +371,22 @@ describe("createCodexAcpExecutionHandle", () => {
       },
     })
 
-    expect(entries).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "text", content: "Hello from ACP" }),
-      expect.objectContaining({ type: "thinking", content: "Thinking" }),
-      expect.objectContaining({ type: "tool_use", tool: "Read", input: { file_path: "file.txt" } }),
-      expect.objectContaining({ type: "tool_result", tool: "Read", output: JSON.stringify({ ok: true }) }),
-    ]))
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "text", content: "Hello from ACP" }),
+        expect.objectContaining({ type: "thinking", content: "Thinking" }),
+        expect.objectContaining({
+          type: "tool_use",
+          tool: "Read",
+          input: { file_path: "file.txt" },
+        }),
+        expect.objectContaining({
+          type: "tool_result",
+          tool: "Read",
+          output: JSON.stringify({ ok: true }),
+        }),
+      ]),
+    )
     expect(usages.at(-1)).toEqual({ inputTokens: 3, outputTokens: 4 })
     expect(summary).toMatchObject({
       success: true,
@@ -352,25 +398,31 @@ describe("createCodexAcpExecutionHandle", () => {
       cwd: "/tmp/project",
       timeout: 10_000,
     })
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      session: expect.objectContaining({
-        cwd: "/tmp/project",
-        mcpServers: [
-          expect.objectContaining({
-            name: "local-docs",
-            command: "npx",
-            args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/project/docs"],
-          }),
-        ],
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session: expect.objectContaining({
+          cwd: "/tmp/project",
+          mcpServers: [
+            expect.objectContaining({
+              name: "local-docs",
+              command: "npx",
+              args: [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "/tmp/project/docs",
+              ],
+            }),
+          ],
+        }),
       }),
-    }))
+    )
     expect(languageModelMock).toHaveBeenCalledWith("gpt-5.4/xhigh", undefined)
     expect(cleanupMock).toHaveBeenCalled()
   })
 
   it("maps legacy codex aliases onto currently available ACP model ids", async () => {
     streamTextMock.mockReturnValue({
-      fullStream: (async function *() {
+      fullStream: (async function* () {
         yield { type: "finish", finishReason: "stop" }
       })(),
       totalUsage: Promise.resolve({
@@ -388,7 +440,10 @@ describe("createCodexAcpExecutionHandle", () => {
 
     await drainExecutionHandle(handle)
 
-    expect(languageModelMock).toHaveBeenCalledWith("gpt-5.3-codex/xhigh", undefined)
+    expect(languageModelMock).toHaveBeenCalledWith(
+      "gpt-5.3-codex/xhigh",
+      undefined,
+    )
   })
 
   it("skips auth-backed remote MCP servers unless they were explicitly configured for this run", async () => {
@@ -423,7 +478,7 @@ describe("createCodexAcpExecutionHandle", () => {
     })
 
     streamTextMock.mockReturnValue({
-      fullStream: (async function *() {
+      fullStream: (async function* () {
         yield { type: "finish", finishReason: "stop" }
       })(),
       totalUsage: Promise.resolve({
@@ -441,17 +496,19 @@ describe("createCodexAcpExecutionHandle", () => {
 
     await drainExecutionHandle(handle)
 
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      session: expect.objectContaining({
-        mcpServers: [
-          expect.objectContaining({
-            name: "docs",
-            command: "npx",
-            env: [{ name: "DOCS_ROOT", value: "/tmp/project/docs" }],
-          }),
-        ],
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session: expect.objectContaining({
+          mcpServers: [
+            expect.objectContaining({
+              name: "docs",
+              command: "npx",
+              env: [{ name: "DOCS_ROOT", value: "/tmp/project/docs" }],
+            }),
+          ],
+        }),
       }),
-    }))
+    )
   })
 
   it("keeps an auth-backed remote MCP server when it is explicitly configured for the current run", async () => {
@@ -460,17 +517,20 @@ describe("createCodexAcpExecutionHandle", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "codex-acp-mcp-"))
     tempDirs.push(tempDir)
     const mcpConfigPath = join(tempDir, ".mcp.json")
-    writeFileSync(mcpConfigPath, JSON.stringify({
-      mcpServers: {
-        linear: {
-          type: "http",
-          url: "https://mcp.linear.app/sse",
-          headers: {
-            Authorization: "Bearer linear-secret",
+    writeFileSync(
+      mcpConfigPath,
+      JSON.stringify({
+        mcpServers: {
+          linear: {
+            type: "http",
+            url: "https://mcp.linear.app/sse",
+            headers: {
+              Authorization: "Bearer linear-secret",
+            },
           },
         },
-      },
-    }))
+      }),
+    )
 
     execCodexMock.mockResolvedValue({
       stdout: JSON.stringify([
@@ -488,7 +548,7 @@ describe("createCodexAcpExecutionHandle", () => {
     })
 
     streamTextMock.mockReturnValue({
-      fullStream: (async function *() {
+      fullStream: (async function* () {
         yield { type: "finish", finishReason: "stop" }
       })(),
       totalUsage: Promise.resolve({
@@ -507,17 +567,21 @@ describe("createCodexAcpExecutionHandle", () => {
 
     await drainExecutionHandle(handle)
 
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      session: expect.objectContaining({
-        mcpServers: [
-          expect.objectContaining({
-            name: "linear",
-            type: "http",
-            headers: [{ name: "Authorization", value: "Bearer linear-secret" }],
-          }),
-        ],
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session: expect.objectContaining({
+          mcpServers: [
+            expect.objectContaining({
+              name: "linear",
+              type: "http",
+              headers: [
+                { name: "Authorization", value: "Bearer linear-secret" },
+              ],
+            }),
+          ],
+        }),
       }),
-    }))
+    )
   })
 
   it("skips remote runtime MCP servers with unsupported auth when they were not explicitly configured", async () => {
@@ -537,7 +601,7 @@ describe("createCodexAcpExecutionHandle", () => {
     })
 
     streamTextMock.mockReturnValue({
-      fullStream: (async function *() {
+      fullStream: (async function* () {
         yield { type: "finish", finishReason: "stop" }
       })(),
       totalUsage: Promise.resolve({
@@ -555,17 +619,19 @@ describe("createCodexAcpExecutionHandle", () => {
 
     await drainExecutionHandle(handle)
 
-    expect(createACPProviderMock).toHaveBeenCalledWith(expect.objectContaining({
-      session: expect.objectContaining({
-        mcpServers: [],
+    expect(createACPProviderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session: expect.objectContaining({
+          mcpServers: [],
+        }),
       }),
-    }))
+    )
   })
 
   it("cleans up the ACP provider only once when abort races with completion", async () => {
     let releaseStream: (() => void) | undefined
     streamTextMock.mockReturnValue({
-      fullStream: (async function *() {
+      fullStream: (async function* () {
         await new Promise<void>((resolve) => {
           releaseStream = resolve
         })

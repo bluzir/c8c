@@ -38,7 +38,9 @@ export function registerMainHandlers(
     ["mcp", registerMcpHandlers],
     ["files", registerFilesHandlers],
     ["factory", registerFactoryHandlers],
-    ...(isTestMode() ? [["test-harness", registerTestHarnessHandlers] as const] : []),
+    ...(isTestMode()
+      ? [["test-harness", registerTestHarnessHandlers] as const]
+      : []),
   ] as const
 
   const failedDomains: string[] = []
@@ -57,6 +59,8 @@ export function registerMainHandlers(
   }
 
   if (failedDomains.length > 0) {
-    throw new Error(`Failed to register IPC handler domains: ${failedDomains.join(", ")}`)
+    throw new Error(
+      `Failed to register IPC handler domains: ${failedDomains.join(", ")}`,
+    )
   }
 }

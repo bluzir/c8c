@@ -113,7 +113,10 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function readJsonFile<T>(path: string, kind: string): Promise<T | undefined> {
+async function readJsonFile<T>(
+  path: string,
+  kind: string,
+): Promise<T | undefined> {
   try {
     const raw = await readFile(path, "utf-8")
     return JSON.parse(raw) as T
@@ -145,7 +148,9 @@ async function countSkillAssets(rootPath: string): Promise<number> {
       return
     }
 
-    const hasSkillFile = entries.some((entry) => entry.isFile() && entry.name === "SKILL.md")
+    const hasSkillFile = entries.some(
+      (entry) => entry.isFile() && entry.name === "SKILL.md",
+    )
     if (hasSkillFile) {
       count += 1
       return
@@ -158,7 +163,11 @@ async function countSkillAssets(rootPath: string): Promise<number> {
         continue
       }
 
-      if (depth <= 2 && entry.name.endsWith(".md") && entry.name !== "README.md") {
+      if (
+        depth <= 2 &&
+        entry.name.endsWith(".md") &&
+        entry.name !== "README.md"
+      ) {
         count += 1
       }
     }
@@ -203,7 +212,10 @@ async function countTemplateAssets(rootPath: string): Promise<number> {
 }
 
 async function countMcpServers(mcpPath: string): Promise<number> {
-  const manifest = await readJsonFile<{ mcpServers?: unknown; servers?: unknown }>(mcpPath, "mcp")
+  const manifest = await readJsonFile<{
+    mcpServers?: unknown
+    servers?: unknown
+  }>(mcpPath, "mcp")
   if (!manifest) return 0
 
   const candidate = manifest.mcpServers ?? manifest.servers
@@ -251,7 +263,10 @@ async function summarizeAssets(
   }
 
   let mcpCount = 0
-  if (pluginManifest?.mcpServers && typeof pluginManifest.mcpServers === "object") {
+  if (
+    pluginManifest?.mcpServers &&
+    typeof pluginManifest.mcpServers === "object"
+  ) {
     mcpCount = Object.keys(pluginManifest.mcpServers).length
   } else {
     for (const mcpPath of [...new Set(mcpCandidates)]) {
@@ -262,7 +277,8 @@ async function summarizeAssets(
 
   const assets: PluginAssetSummary[] = []
   if (skillCount > 0) assets.push({ capability: "skill", count: skillCount })
-  if (templateCount > 0) assets.push({ capability: "template", count: templateCount })
+  if (templateCount > 0)
+    assets.push({ capability: "template", count: templateCount })
   if (mcpCount > 0) assets.push({ capability: "mcp", count: mcpCount })
   return assets
 }
@@ -279,43 +295,56 @@ async function buildInstalledPlugin(params: {
   marketplaceManifest?: MarketplaceManifest
   disabledPluginIds: Set<string>
 }): Promise<InstalledPlugin | null> {
-  const pluginManifestPath = join(params.pluginRoot, ".claude-plugin", "plugin.json")
-  const pluginManifest = await readJsonFile<PluginManifest>(pluginManifestPath, "plugin")
+  const pluginManifestPath = join(
+    params.pluginRoot,
+    ".claude-plugin",
+    "plugin.json",
+  )
+  const pluginManifest = await readJsonFile<PluginManifest>(
+    pluginManifestPath,
+    "plugin",
+  )
   const pluginName =
-    normalizeString(pluginManifest?.name)
-    || normalizeString(params.marketplaceEntry?.name)
-    || basename(params.pluginRoot)
+    normalizeString(pluginManifest?.name) ||
+    normalizeString(params.marketplaceEntry?.name) ||
+    basename(params.pluginRoot)
   const pluginId = buildPluginId(params.marketplaceId, pluginName)
-  const assets = await summarizeAssets(params.pluginRoot, pluginManifest, params.marketplaceEntry)
+  const assets = await summarizeAssets(
+    params.pluginRoot,
+    pluginManifest,
+    params.marketplaceEntry,
+  )
 
   return {
     id: pluginId,
     name: pluginName,
     description:
-      normalizeString(pluginManifest?.description)
-      || normalizeString(params.marketplaceEntry?.description)
-      || "",
+      normalizeString(pluginManifest?.description) ||
+      normalizeString(params.marketplaceEntry?.description) ||
+      "",
     version:
-      normalizeString(pluginManifest?.version)
-      || normalizeString(params.marketplaceEntry?.version)
-      || normalizeString(params.marketplaceManifest?.metadata?.version),
+      normalizeString(pluginManifest?.version) ||
+      normalizeString(params.marketplaceEntry?.version) ||
+      normalizeString(params.marketplaceManifest?.metadata?.version),
     marketplaceId: params.marketplaceId,
     marketplaceName: params.marketplaceName,
     pluginPath: params.pluginRoot,
-    manifestPath: (await exists(pluginManifestPath)) ? pluginManifestPath : undefined,
+    manifestPath: (await exists(pluginManifestPath))
+      ? pluginManifestPath
+      : undefined,
     homepage:
-      normalizeString(pluginManifest?.homepage)
-      || normalizeString(params.marketplaceEntry?.homepage),
+      normalizeString(pluginManifest?.homepage) ||
+      normalizeString(params.marketplaceEntry?.homepage),
     repository:
-      normalizeString(pluginManifest?.repository)
-      || normalizeString(params.marketplaceEntry?.repository),
+      normalizeString(pluginManifest?.repository) ||
+      normalizeString(params.marketplaceEntry?.repository),
     author:
-      normalizeString(pluginManifest?.author?.name)
-      || normalizeString(params.marketplaceEntry?.author?.name)
-      || normalizeString(params.marketplaceManifest?.owner?.name),
+      normalizeString(pluginManifest?.author?.name) ||
+      normalizeString(params.marketplaceEntry?.author?.name) ||
+      normalizeString(params.marketplaceManifest?.owner?.name),
     category:
-      normalizeString(pluginManifest?.category)
-      || normalizeString(params.marketplaceEntry?.category),
+      normalizeString(pluginManifest?.category) ||
+      normalizeString(params.marketplaceEntry?.category),
     tags: normalizeStringList(
       pluginManifest?.tags,
       pluginManifest?.keywords,
@@ -333,14 +362,17 @@ async function discoverMarketplacePlugins(
   disabledPluginIds: Set<string>,
 ): Promise<InstalledPlugin[]> {
   const marketplaceId = basename(marketplaceRoot)
-  const marketplaceManifestPath = join(marketplaceRoot, ".claude-plugin", "marketplace.json")
+  const marketplaceManifestPath = join(
+    marketplaceRoot,
+    ".claude-plugin",
+    "marketplace.json",
+  )
   const marketplaceManifest = await readJsonFile<MarketplaceManifest>(
     marketplaceManifestPath,
     "marketplace",
   )
   const marketplaceName =
-    normalizeString(marketplaceManifest?.name)
-    || marketplaceId
+    normalizeString(marketplaceManifest?.name) || marketplaceId
   const plugins: InstalledPlugin[] = []
   const pluginEntries = Array.isArray(marketplaceManifest?.plugins)
     ? marketplaceManifest?.plugins
@@ -348,7 +380,10 @@ async function discoverMarketplacePlugins(
 
   if (Array.isArray(pluginEntries) && pluginEntries.length > 0) {
     for (const entry of pluginEntries) {
-      const pluginRoot = resolveSafePath(marketplaceRoot, normalizeString(entry.source) || ".")
+      const pluginRoot = resolveSafePath(
+        marketplaceRoot,
+        normalizeString(entry.source) || ".",
+      )
       if (!pluginRoot) {
         logWarn("plugin-scanner", "plugin_source_outside_marketplace", {
           marketplaceRoot,
@@ -382,7 +417,11 @@ async function discoverMarketplacePlugins(
     return plugins
   }
 
-  const rootPluginManifestPath = join(marketplaceRoot, ".claude-plugin", "plugin.json")
+  const rootPluginManifestPath = join(
+    marketplaceRoot,
+    ".claude-plugin",
+    "plugin.json",
+  )
   if (!(await exists(rootPluginManifestPath))) {
     return []
   }
@@ -420,7 +459,12 @@ export async function discoverInstalledPlugins(
   const plugins: InstalledPlugin[] = []
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
-    plugins.push(...await discoverMarketplacePlugins(join(marketplacesDir, entry.name), disabledPluginIds))
+    plugins.push(
+      ...(await discoverMarketplacePlugins(
+        join(marketplacesDir, entry.name),
+        disabledPluginIds,
+      )),
+    )
   }
 
   return plugins.sort((left, right) => {

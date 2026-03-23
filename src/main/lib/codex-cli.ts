@@ -82,7 +82,14 @@ function bundledCodexResourceDirs(): string[] {
     dirs.push(join(resourcesPath, "bin"))
   }
 
-  dirs.push(join(process.cwd(), "resources", "bin", `${process.platform}-${process.arch}`))
+  dirs.push(
+    join(
+      process.cwd(),
+      "resources",
+      "bin",
+      `${process.platform}-${process.arch}`,
+    ),
+  )
   return [...new Set(dirs)]
 }
 
@@ -161,7 +168,9 @@ function collectExplicitCodexOverrides(
   return env
 }
 
-function buildCodexLookupEnv(source: NodeJS.ProcessEnv | Record<string, string | undefined>): NodeJS.ProcessEnv {
+function buildCodexLookupEnv(
+  source: NodeJS.ProcessEnv | Record<string, string | undefined>,
+): NodeJS.ProcessEnv {
   return {
     ...collectAllowedCodexEnv(source),
     PATH: buildCodexPath(source.PATH),
@@ -200,7 +209,9 @@ export async function getCodexShellEnv(): Promise<Record<string, string>> {
         env: buildCodexLookupEnv(process.env),
       })
 
-      const parsed = collectAllowedCodexEnv(parseNullDelimitedEnv(stdout), { includePath: true })
+      const parsed = collectAllowedCodexEnv(parseNullDelimitedEnv(stdout), {
+        includePath: true,
+      })
       if (Object.keys(parsed).length > 0) {
         return parsed
       }

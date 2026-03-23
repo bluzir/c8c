@@ -15,15 +15,7 @@ const MANIFEST_FILES = [
   "composer.json",
 ]
 
-const CODE_DIRS = [
-  "src",
-  "app",
-  "pages",
-  "components",
-  "lib",
-  "server",
-  "api",
-]
+const CODE_DIRS = ["src", "app", "pages", "components", "lib", "server", "api"]
 
 const IGNORED_DIRS = new Set([
   ".git",
@@ -47,11 +39,17 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
-async function resolveGitState(projectPath: string): Promise<ProjectInspectionSummary["git"]> {
+async function resolveGitState(
+  projectPath: string,
+): Promise<ProjectInspectionSummary["git"]> {
   try {
-    const { stdout: repoStdout } = await execFile("git", ["-C", projectPath, "rev-parse", "--is-inside-work-tree"], {
-      timeout: 1500,
-    })
+    const { stdout: repoStdout } = await execFile(
+      "git",
+      ["-C", projectPath, "rev-parse", "--is-inside-work-tree"],
+      {
+        timeout: 1500,
+      },
+    )
     const isRepo = repoStdout.trim() === "true"
     if (!isRepo) {
       return {
@@ -61,14 +59,19 @@ async function resolveGitState(projectPath: string): Promise<ProjectInspectionSu
       }
     }
 
-    const [{ stdout: branchStdout }, { stdout: diffStdout }] = await Promise.all([
-      execFile("git", ["-C", projectPath, "rev-parse", "--abbrev-ref", "HEAD"], {
-        timeout: 1500,
-      }).catch(() => ({ stdout: "" })),
-      execFile("git", ["-C", projectPath, "status", "--porcelain"], {
-        timeout: 1500,
-      }).catch(() => ({ stdout: "" })),
-    ])
+    const [{ stdout: branchStdout }, { stdout: diffStdout }] =
+      await Promise.all([
+        execFile(
+          "git",
+          ["-C", projectPath, "rev-parse", "--abbrev-ref", "HEAD"],
+          {
+            timeout: 1500,
+          },
+        ).catch(() => ({ stdout: "" })),
+        execFile("git", ["-C", projectPath, "status", "--porcelain"], {
+          timeout: 1500,
+        }).catch(() => ({ stdout: "" })),
+      ])
 
     const branch = branchStdout.trim() || null
     return {
@@ -85,7 +88,11 @@ async function resolveGitState(projectPath: string): Promise<ProjectInspectionSu
   }
 }
 
-async function countProjectFiles(root: string, maxFiles = 200, maxDepth = 3): Promise<number> {
+async function countProjectFiles(
+  root: string,
+  maxFiles = 200,
+  maxDepth = 3,
+): Promise<number> {
   let count = 0
 
   async function walk(currentPath: string, depth: number): Promise<void> {
@@ -124,7 +131,11 @@ function classifyProjectKind(input: {
 
   if (git.isRepo && git.hasUncommittedDiff) return "review_ready"
 
-  if (fileCountEstimate === 0 && manifests.length === 0 && codeDirs.length === 0) {
+  if (
+    fileCountEstimate === 0 &&
+    manifests.length === 0 &&
+    codeDirs.length === 0
+  ) {
     return "greenfield_empty"
   }
 
@@ -139,14 +150,26 @@ function classifyProjectKind(input: {
   return "ambiguous"
 }
 
-export async function inspectProjectForCreateEntry(projectPath: string): Promise<ProjectInspectionSummary> {
+export async function inspectProjectForCreateEntry(
+  projectPath: string,
+): Promise<ProjectInspectionSummary> {
   const resolvedProjectPath = resolve(projectPath)
   const [git, manifests, codeDirs, fileCountEstimate] = await Promise.all([
     resolveGitState(resolvedProjectPath),
-    Promise.all(MANIFEST_FILES.map(async (name) => (await pathExists(join(resolvedProjectPath, name))) ? name : null))
-      .then((entries) => entries.filter((value): value is string => Boolean(value))),
-    Promise.all(CODE_DIRS.map(async (name) => (await pathExists(join(resolvedProjectPath, name))) ? name : null))
-      .then((entries) => entries.filter((value): value is string => Boolean(value))),
+    Promise.all(
+      MANIFEST_FILES.map(async (name) =>
+        (await pathExists(join(resolvedProjectPath, name))) ? name : null,
+      ),
+    ).then((entries) =>
+      entries.filter((value): value is string => Boolean(value)),
+    ),
+    Promise.all(
+      CODE_DIRS.map(async (name) =>
+        (await pathExists(join(resolvedProjectPath, name))) ? name : null,
+      ),
+    ).then((entries) =>
+      entries.filter((value): value is string => Boolean(value)),
+    ),
     countProjectFiles(resolvedProjectPath),
   ])
 
@@ -162,7 +185,12 @@ export async function inspectProjectForCreateEntry(projectPath: string): Promise
     git,
     manifests,
     codeDirs,
-    fileDensity: fileCountEstimate === 0 ? "empty" : fileCountEstimate <= 8 ? "scaffold" : "active",
+    fileDensity:
+      fileCountEstimate === 0
+        ? "empty"
+        : fileCountEstimate <= 8
+          ? "scaffold"
+          : "active",
     fileCountEstimate,
     projectKind,
   }

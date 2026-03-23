@@ -1,4 +1,8 @@
-import { autoUpdater, type UpdateDownloadedEvent, type UpdateInfo as ElectronUpdateInfo } from "electron-updater"
+import {
+  autoUpdater,
+  type UpdateDownloadedEvent,
+  type UpdateInfo as ElectronUpdateInfo,
+} from "electron-updater"
 import { app, BrowserWindow } from "electron"
 import type { UpdateInfo, UpdateEvent } from "@shared/types"
 import { trackTelemetryEvent } from "./telemetry/service"
@@ -26,7 +30,10 @@ export function getUpdateStatus(): UpdateInfo {
 
 export async function checkForUpdate(): Promise<void> {
   if (!app.isPackaged) {
-    updateState({ status: "error", error: "Auto-updates are not available in development mode." })
+    updateState({
+      status: "error",
+      error: "Auto-updates are not available in development mode.",
+    })
     return
   }
   try {

@@ -9,7 +9,10 @@ import type {
   ProviderHealth,
   SafetyProfile,
 } from "@shared/types"
-import { createErroredExecutionHandle, createLegacyExecutionHandle } from "../agent-execution"
+import {
+  createErroredExecutionHandle,
+  createLegacyExecutionHandle,
+} from "../agent-execution"
 import {
   canUseCodexAcpExecution,
   createCodexAcpExecutionHandle,
@@ -43,7 +46,9 @@ function buildCodexToolPolicyPrefix(options: AgentRunOptions): string {
     sections.push(`Allowed tools: ${options.allowedTools.join(", ")}.`)
   }
   if (options.disallowedTools?.length) {
-    sections.push(`Disallowed tools: ${options.disallowedTools.join(", ")}. Never use them.`)
+    sections.push(
+      `Disallowed tools: ${options.disallowedTools.join(", ")}. Never use them.`,
+    )
   }
   if (sections.length === 0) return options.prompt
   return `${sections.join("\n\n")}\n\n${options.prompt}`
@@ -61,7 +66,12 @@ function codexSafetyArgs(profile: SafetyProfile): string[] {
       return ["--dangerously-bypass-approvals-and-sandbox"]
     case "workspace_auto":
     default:
-      return ["--sandbox", "workspace-write", "--ask-for-approval", "on-request"]
+      return [
+        "--sandbox",
+        "workspace-write",
+        "--ask-for-approval",
+        "on-request",
+      ]
   }
 }
 
@@ -69,7 +79,9 @@ async function checkCodexAvailability(): Promise<ProviderHealth> {
   const executablePath = findCodexExecutable() || undefined
 
   try {
-    const { stdout, stderr } = await execCodex(["--version"], { timeout: 5_000 })
+    const { stdout, stderr } = await execCodex(["--version"], {
+      timeout: 5_000,
+    })
     const version = `${stdout}\n${stderr}`
       .split("\n")
       .map((line) => line.trim())
@@ -130,10 +142,7 @@ export function buildCodexLegacyExecArgs(
   }
 
   const mcpOverrideArgs = buildProviderExtraArgs("codex", options.mcpConfigPath)
-  const legacyExtraArgs = [
-    ...mcpOverrideArgs,
-    ...(options.extraArgs || []),
-  ]
+  const legacyExtraArgs = [...mcpOverrideArgs, ...(options.extraArgs || [])]
   if (legacyExtraArgs.length > 0) {
     args.push(...legacyExtraArgs)
   }
@@ -156,7 +165,11 @@ export class CodexAgentProvider implements AgentProvider {
     reason: string,
   ): Promise<AgentExecutionHandle> {
     const message = `Codex ACP could not be used (${reason}), and the installed Codex CLI does not support the legacy \`codex exec\` backend. Restart on a build with ACP working, or upgrade the Codex CLI fallback implementation.`
-    logWarn("codex-provider", "legacy-exec-unavailable", { mode, reason, message })
+    logWarn("codex-provider", "legacy-exec-unavailable", {
+      mode,
+      reason,
+      message,
+    })
     return createErroredExecutionHandle(this.id, "codex_exec", message)
   }
 
@@ -190,7 +203,10 @@ export class CodexAgentProvider implements AgentProvider {
 
     if (!support.supported) {
       if (!(await supportsCodexExecSubcommand())) {
-        return this.createCodexLegacyUnavailableHandle(mode, support.reason ?? "ACP unsupported")
+        return this.createCodexLegacyUnavailableHandle(
+          mode,
+          support.reason ?? "ACP unsupported",
+        )
       }
       logWarn("codex-provider", "legacy-fallback", {
         mode,
@@ -198,7 +214,12 @@ export class CodexAgentProvider implements AgentProvider {
         workdir: options.workdir,
         hasMcpConfigPath: Boolean(options.mcpConfigPath),
       })
-      return createLegacyExecutionHandle(this.id, "codex_exec", options, this.runLegacyCodex.bind(this))
+      return createLegacyExecutionHandle(
+        this.id,
+        "codex_exec",
+        options,
+        this.runLegacyCodex.bind(this),
+      )
     }
 
     try {
@@ -211,7 +232,10 @@ export class CodexAgentProvider implements AgentProvider {
       return handle
     } catch (error) {
       if (!(await supportsCodexExecSubcommand())) {
-        return this.createCodexLegacyUnavailableHandle(mode, errorMessage(error))
+        return this.createCodexLegacyUnavailableHandle(
+          mode,
+          errorMessage(error),
+        )
       }
       logWarn("codex-provider", "acp-init-failed", {
         mode,
@@ -219,7 +243,12 @@ export class CodexAgentProvider implements AgentProvider {
         hasMcpConfigPath: Boolean(options.mcpConfigPath),
         error: errorMessage(error),
       })
-      return createLegacyExecutionHandle(this.id, "codex_exec", options, this.runLegacyCodex.bind(this))
+      return createLegacyExecutionHandle(
+        this.id,
+        "codex_exec",
+        options,
+        this.runLegacyCodex.bind(this),
+      )
     }
   }
 
@@ -235,9 +264,13 @@ export class CodexAgentProvider implements AgentProvider {
     return false
   }
 
-  private async runLegacyCodex(options: AgentRunOptions): Promise<AgentRunResult> {
+  private async runLegacyCodex(
+    options: AgentRunOptions,
+  ): Promise<AgentRunResult> {
     if (!(await supportsCodexExecSubcommand())) {
-      throw new Error("Installed Codex CLI does not support the legacy `codex exec` backend.")
+      throw new Error(
+        "Installed Codex CLI does not support the legacy `codex exec` backend.",
+      )
     }
 
     const executable = findCodexExecutable() || "codex"
@@ -341,7 +374,10 @@ export class CodexAgentProvider implements AgentProvider {
 
       child.on("close", (code, signal) => {
         if (stdoutBuffer.trim()) {
-          const normalized = normalizeCodexJsonLine(stdoutBuffer.trim(), normalizerState)
+          const normalized = normalizeCodexJsonLine(
+            stdoutBuffer.trim(),
+            normalizerState,
+          )
           for (const eventLine of normalized) {
             options.onStdout?.(Buffer.from(`${eventLine}\n`))
           }

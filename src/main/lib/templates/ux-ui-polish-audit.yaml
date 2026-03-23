@@ -19,7 +19,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: UX/UI Polish Audit
-description: Map the full product surface, audit the entire project through UX/UI lenses, and produce
+description:
+  Map the full product surface, audit the entire project through UX/UI lenses, and produce
   one prioritized polish report
 defaults:
   model: sonnet

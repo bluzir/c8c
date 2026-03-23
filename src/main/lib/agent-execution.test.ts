@@ -38,6 +38,9 @@ describe("AsyncEventQueue", () => {
     queue.close()
 
     await expect(iterator.next()).resolves.toEqual({ value: 3, done: false })
-    await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true })
+    await expect(iterator.next()).resolves.toEqual({
+      value: undefined,
+      done: true,
+    })
   })
 })

@@ -37,7 +37,8 @@ nodes:
       y: 200
     config:
       skillRef: anthropic/frontend-design
-      prompt: Create a production-ready frontend component from this description. Use React, Tailwind CSS, and modern
+      prompt:
+        Create a production-ready frontend component from this description. Use React, Tailwind CSS, and modern
         patterns. Focus on visual quality, accessibility, and responsiveness.
   - id: reviewer-1
     type: skill
@@ -46,7 +47,8 @@ nodes:
       y: 200
     config:
       skillRef: dev/code-reviewer
-      prompt: "Review this component for: code quality, accessibility issues, performance concerns, naming conventions, and
+      prompt:
+        "Review this component for: code quality, accessibility issues, performance concerns, naming conventions, and
         React best practices. Provide specific fix suggestions."
   - id: eval-code-1
     type: evaluator
@@ -54,7 +56,8 @@ nodes:
       x: 900
       y: 200
     config:
-      criteria: "Score 1-10: code quality (clean, idiomatic React), visual design (polished, not generic), accessibility
+      criteria:
+        "Score 1-10: code quality (clean, idiomatic React), visual design (polished, not generic), accessibility
         (ARIA, keyboard nav), and responsiveness."
       threshold: 8
       maxRetries: 2
@@ -66,7 +69,8 @@ nodes:
       y: 200
     config:
       skillRef: anthropic/webapp-testing
-      prompt: "Write and run Playwright tests for this component. Cover: rendering, user interactions, responsive behavior,
+      prompt:
+        "Write and run Playwright tests for this component. Cover: rendering, user interactions, responsive behavior,
         and edge cases."
   - id: eval-test-1
     type: evaluator
@@ -74,7 +78,8 @@ nodes:
       x: 1500
       y: 200
     config:
-      criteria: "Score 1-10: test coverage (all user paths?), test reliability (no flaky assertions?), edge case coverage, and
+      criteria:
+        "Score 1-10: test coverage (all user paths?), test reliability (no flaky assertions?), edge case coverage, and
         assertion quality."
       threshold: 7
       maxRetries: 2

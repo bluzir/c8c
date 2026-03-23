@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { guardIpcInvokeHandler, isTrustedRendererFrame, withGuardedIpcRegistration } from "./ipc-guard"
+import {
+  guardIpcInvokeHandler,
+  isTrustedRendererFrame,
+  withGuardedIpcRegistration,
+} from "./ipc-guard"
 
-function createInvokeEvent(overrides: Partial<{
-  senderFrame: { url: string; routingId: number }
-  sender: { getURL: () => string; mainFrame: { routingId: number } }
-}> = {}) {
+function createInvokeEvent(
+  overrides: Partial<{
+    senderFrame: { url: string; routingId: number }
+    sender: { getURL: () => string; mainFrame: { routingId: number } }
+  }> = {},
+) {
   return {
     senderFrame: {
       url: "file:///app/out/renderer/index.html",
@@ -29,29 +35,48 @@ describe("ipc-guard", () => {
   })
 
   it("rejects subframe events even when the URL matches", () => {
-    expect(isTrustedRendererFrame(createInvokeEvent({
-      senderFrame: { url: "file:///app/out/renderer/index.html", routingId: 2 },
-    }))).toBe(false)
+    expect(
+      isTrustedRendererFrame(
+        createInvokeEvent({
+          senderFrame: {
+            url: "file:///app/out/renderer/index.html",
+            routingId: 2,
+          },
+        }),
+      ),
+    ).toBe(false)
   })
 
   it("rejects unexpected renderer origins in dev mode", () => {
     process.env.ELECTRON_RENDERER_URL = "http://127.0.0.1:5173"
 
-    expect(isTrustedRendererFrame(createInvokeEvent({
-      senderFrame: { url: "http://127.0.0.1:4173/", routingId: 1 },
-      sender: {
-        getURL: () => "http://127.0.0.1:4173/",
-        mainFrame: { routingId: 1 },
-      },
-    }))).toBe(false)
+    expect(
+      isTrustedRendererFrame(
+        createInvokeEvent({
+          senderFrame: { url: "http://127.0.0.1:4173/", routingId: 1 },
+          sender: {
+            getURL: () => "http://127.0.0.1:4173/",
+            mainFrame: { routingId: 1 },
+          },
+        }),
+      ),
+    ).toBe(false)
   })
 
   it("wraps registered IPC handlers with sender-frame validation", async () => {
-    const registrations = new Map<string, (event: unknown, ...args: unknown[]) => unknown>()
+    const registrations = new Map<
+      string,
+      (event: unknown, ...args: unknown[]) => unknown
+    >()
     const ipcMainLike = {
-      handle: vi.fn((channel: string, handler: (event: unknown, ...args: unknown[]) => unknown) => {
-        registrations.set(channel, handler)
-      }),
+      handle: vi.fn(
+        (
+          channel: string,
+          handler: (event: unknown, ...args: unknown[]) => unknown,
+        ) => {
+          registrations.set(channel, handler)
+        },
+      ),
     }
 
     withGuardedIpcRegistration(ipcMainLike, () => {
@@ -61,9 +86,16 @@ describe("ipc-guard", () => {
     const handler = registrations.get("system:get-app-version")
     expect(handler).toBeDefined()
     await expect(handler!(createInvokeEvent())).resolves.toBe("0.0.0")
-    await expect(handler!(createInvokeEvent({
-      senderFrame: { url: "file:///app/out/renderer/index.html", routingId: 2 },
-    }))).rejects.toThrow(
+    await expect(
+      handler!(
+        createInvokeEvent({
+          senderFrame: {
+            url: "file:///app/out/renderer/index.html",
+            routingId: 2,
+          },
+        }),
+      ),
+    ).rejects.toThrow(
       "Blocked IPC call from unexpected renderer frame: system:get-app-version",
     )
   })

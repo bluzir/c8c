@@ -16,7 +16,8 @@ const getUpdateStatusMock = vi.fn()
 const getClaudeCodeSubscriptionStatusMock = vi.fn()
 const allowedProjectRootsMock = vi.fn()
 const allowedOpenPathRootsMock = vi.fn()
-const isRegisteredRootMock = vi.fn<(candidatePath: string, rootPath: string) => boolean>()
+const isRegisteredRootMock =
+  vi.fn<(candidatePath: string, rootPath: string) => boolean>()
 const assertWithinRootsMock = vi.fn((candidatePath: string) => candidatePath)
 const resolveAgentProviderMock = vi.fn()
 
@@ -31,9 +32,11 @@ vi.mock("electron", () => ({
     getAllWindows: vi.fn(() => []),
   },
   ipcMain: {
-    handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
-      ipcHandlers.set(channel, handler)
-    }),
+    handle: vi.fn(
+      (channel: string, handler: (...args: unknown[]) => unknown) => {
+        ipcHandlers.set(channel, handler)
+      },
+    ),
   },
   Menu: {
     buildFromTemplate: vi.fn(() => ({})),
@@ -47,19 +50,23 @@ vi.mock("electron", () => ({
 
 vi.mock("../lib/provider-settings", () => ({
   getProviderSettings: (...args: unknown[]) => getProviderSettingsMock(...args),
-  updateProviderSettings: (...args: unknown[]) => updateProviderSettingsMock(...args),
+  updateProviderSettings: (...args: unknown[]) =>
+    updateProviderSettingsMock(...args),
   setCodexApiKey: (...args: unknown[]) => setCodexApiKeyMock(...args),
   clearCodexApiKey: (...args: unknown[]) => clearCodexApiKeyMock(...args),
 }))
 
 vi.mock("../lib/claude-subscription", () => ({
-  getClaudeCodeSubscriptionStatus: (...args: unknown[]) => getClaudeCodeSubscriptionStatusMock(...args),
+  getClaudeCodeSubscriptionStatus: (...args: unknown[]) =>
+    getClaudeCodeSubscriptionStatusMock(...args),
 }))
 
 vi.mock("../lib/telemetry/service", () => ({
-  getTelemetrySettings: (...args: unknown[]) => getTelemetrySettingsMock(...args),
+  getTelemetrySettings: (...args: unknown[]) =>
+    getTelemetrySettingsMock(...args),
   setTelemetryConsent: (...args: unknown[]) => setTelemetryConsentMock(...args),
-  trackTelemetryUiEvent: (...args: unknown[]) => trackTelemetryUiEventMock(...args),
+  trackTelemetryUiEvent: (...args: unknown[]) =>
+    trackTelemetryUiEventMock(...args),
 }))
 
 vi.mock("../lib/updater", () => ({
@@ -69,7 +76,8 @@ vi.mock("../lib/updater", () => ({
 }))
 
 vi.mock("../lib/security-paths", () => ({
-  allowedOpenPathRoots: (...args: unknown[]) => allowedOpenPathRootsMock(...args),
+  allowedOpenPathRoots: (...args: unknown[]) =>
+    allowedOpenPathRootsMock(...args),
   allowedProjectRoots: (...args: unknown[]) => allowedProjectRootsMock(...args),
   isRegisteredRoot: (...args: unknown[]) => isRegisteredRootMock(...args),
   assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
@@ -88,7 +96,8 @@ vi.mock("../lib/codex-cli", () => ({
 }))
 
 vi.mock("../lib/providers", () => ({
-  resolveAgentProvider: (...args: unknown[]) => resolveAgentProviderMock(...args),
+  resolveAgentProvider: (...args: unknown[]) =>
+    resolveAgentProviderMock(...args),
 }))
 
 describe("system IPC", () => {
@@ -114,21 +123,25 @@ describe("system IPC", () => {
     getClaudeCodeSubscriptionStatusMock.mockResolvedValue(null)
     allowedProjectRootsMock.mockResolvedValue([])
     allowedOpenPathRootsMock.mockResolvedValue([])
-    isRegisteredRootMock.mockImplementation((candidatePath: string, rootPath: string) => candidatePath === rootPath)
-    resolveAgentProviderMock.mockImplementation((provider: "claude" | "codex") => ({
-      checkAvailability: vi.fn(async () => ({
-        provider,
-        available: true,
-        version: "1.0.0",
-        error: null,
-      })),
-      getAuthStatus: vi.fn(async () => ({
-        provider,
-        state: "authenticated",
-        authenticated: true,
-        error: null,
-      })),
-    }))
+    isRegisteredRootMock.mockImplementation(
+      (candidatePath: string, rootPath: string) => candidatePath === rootPath,
+    )
+    resolveAgentProviderMock.mockImplementation(
+      (provider: "claude" | "codex") => ({
+        checkAvailability: vi.fn(async () => ({
+          provider,
+          available: true,
+          version: "1.0.0",
+          error: null,
+        })),
+        getAuthStatus: vi.fn(async () => ({
+          provider,
+          state: "authenticated",
+          authenticated: true,
+          error: null,
+        })),
+      }),
+    )
   })
 
   it("rejects malformed provider settings patches before mutation", async () => {
@@ -140,9 +153,9 @@ describe("system IPC", () => {
       | undefined
     expect(updateHandler).toBeDefined()
 
-    await expect(updateHandler!(undefined, { defaultProvider: "invalid" })).rejects.toThrow(
-      "Invalid provider settings payload",
-    )
+    await expect(
+      updateHandler!(undefined, { defaultProvider: "invalid" }),
+    ).rejects.toThrow("Invalid provider settings payload")
     expect(updateProviderSettingsMock).not.toHaveBeenCalled()
   })
 
@@ -163,17 +176,19 @@ describe("system IPC", () => {
 
   it("times out hung provider diagnostics checks instead of hanging indefinitely", async () => {
     const pending = new Promise<never>(() => undefined)
-    resolveAgentProviderMock.mockImplementation((provider: "claude" | "codex") => ({
-      checkAvailability: vi.fn(() => pending),
-      getAuthStatus: vi.fn(() => pending),
-    }))
+    resolveAgentProviderMock.mockImplementation(
+      (provider: "claude" | "codex") => ({
+        checkAvailability: vi.fn(() => pending),
+        getAuthStatus: vi.fn(() => pending),
+      }),
+    )
 
     const { registerSystemHandlers } = await import("./system")
     registerSystemHandlers()
 
-    const diagnosticsHandler = ipcHandlers.get("system:get-provider-diagnostics") as
-      | ((event: unknown) => Promise<ProviderDiagnostics>)
-      | undefined
+    const diagnosticsHandler = ipcHandlers.get(
+      "system:get-provider-diagnostics",
+    ) as ((event: unknown) => Promise<ProviderDiagnostics>) | undefined
     expect(diagnosticsHandler).toBeDefined()
 
     const diagnosticsPromise = diagnosticsHandler!(undefined)
@@ -198,12 +213,22 @@ describe("system IPC", () => {
     const { registerSystemHandlers } = await import("./system")
     registerSystemHandlers()
 
-    const projectStatusHandler = ipcHandlers.get("system:get-project-status") as
-      | ((event: unknown, projectPath: string | null) => Promise<{ branch: string | null }>)
+    const projectStatusHandler = ipcHandlers.get(
+      "system:get-project-status",
+    ) as
+      | ((
+          event: unknown,
+          projectPath: string | null,
+        ) => Promise<{ branch: string | null }>)
       | undefined
     expect(projectStatusHandler).toBeDefined()
 
-    await expect(projectStatusHandler!(undefined, "/safe/project-link")).resolves.toEqual({ branch: null })
-    expect(isRegisteredRootMock).toHaveBeenCalledWith("/safe/project-link", "/safe/project")
+    await expect(
+      projectStatusHandler!(undefined, "/safe/project-link"),
+    ).resolves.toEqual({ branch: null })
+    expect(isRegisteredRootMock).toHaveBeenCalledWith(
+      "/safe/project-link",
+      "/safe/project",
+    )
   })
 })

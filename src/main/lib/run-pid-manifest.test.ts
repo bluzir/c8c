@@ -23,7 +23,14 @@ describe("run-pid-manifest", () => {
 
   it("tracks start and exit of subprocesses", async () => {
     await initRunPidManifest(workspace, "run-1", "run")
-    await recordRunPidStart(workspace, "run-1", "run", 12345, "skill", "skill-1")
+    await recordRunPidStart(
+      workspace,
+      "run-1",
+      "run",
+      12345,
+      "skill",
+      "skill-1",
+    )
 
     let manifest = await loadRunPidManifest(workspace)
     expect(manifest?.runId).toBe("run-1")
@@ -32,7 +39,10 @@ describe("run-pid-manifest", () => {
     expect(manifest?.processes[0]?.active).toBe(true)
     expect(manifest?.processes[0]?.nodeId).toBe("skill-1")
 
-    await recordRunPidExit(workspace, "run-1", "run", 12345, { exitCode: 0, signal: null })
+    await recordRunPidExit(workspace, "run-1", "run", 12345, {
+      exitCode: 0,
+      signal: null,
+    })
     await finalizeRunPidManifest(workspace, "run-1", "run", "completed")
 
     manifest = await loadRunPidManifest(workspace)

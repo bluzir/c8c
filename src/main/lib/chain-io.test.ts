@@ -67,13 +67,24 @@ describe("chain-io", () => {
   })
 
   it("listChainFiles finds .chain files in directory", async () => {
-    await writeFile(join(dir, "a.chain"), JSON.stringify({ ...FIXTURE, name: "Workflow A" }), "utf-8")
-    await writeFile(join(dir, "b.chain"), JSON.stringify({ ...FIXTURE, name: "Workflow B" }), "utf-8")
+    await writeFile(
+      join(dir, "a.chain"),
+      JSON.stringify({ ...FIXTURE, name: "Workflow A" }),
+      "utf-8",
+    )
+    await writeFile(
+      join(dir, "b.chain"),
+      JSON.stringify({ ...FIXTURE, name: "Workflow B" }),
+      "utf-8",
+    )
     await writeFile(join(dir, "c.json"), "{}", "utf-8")
 
     const files = await listChainFiles(dir)
     expect(files).toHaveLength(2)
-    expect(files.map((f) => f.name).sort()).toEqual(["Workflow A", "Workflow B"])
+    expect(files.map((f) => f.name).sort()).toEqual([
+      "Workflow A",
+      "Workflow B",
+    ])
   })
 
   it("listChainFiles returns empty for nonexistent directory", async () => {

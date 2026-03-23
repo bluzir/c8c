@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { CreateEntryRouteInput, CreateEntryRouteOption, ProjectInspectionSummary, WorkflowTemplate } from "@shared/types"
+import type {
+  CreateEntryRouteInput,
+  CreateEntryRouteOption,
+  ProjectInspectionSummary,
+  WorkflowTemplate,
+} from "@shared/types"
 
 const mocks = vi.hoisted(() => ({
   getProviderSettings: vi.fn(async () => ({
@@ -40,17 +45,51 @@ vi.mock("./mcp-config", () => ({
 import { routeCreateEntry } from "./create-entry-router"
 
 const developmentOptions: CreateEntryRouteOption[] = [
-  { templateId: "delivery-map-codebase", label: "Explore this project", intentLabel: "Do it" },
-  { templateId: "delivery-shape-project", label: "Change the app", intentLabel: "Do it" },
-  { templateId: "delivery-plan-phase", label: "Plan the change", intentLabel: "Plan it" },
-  { templateId: "delivery-investigate-bug", label: "Investigate a bug", intentLabel: "Do it" },
-  { templateId: "full-stack-code-audit", label: "Code audit", intentLabel: "Review it" },
-  { templateId: "ux-ui-polish-audit", label: "UX audit", intentLabel: "Review it" },
-  { templateId: "playwright-visual-audit", label: "Visual test", intentLabel: "Review it" },
-  { templateId: "cto-optimise-audit", label: "CTO audit", intentLabel: "Review it" },
+  {
+    templateId: "delivery-map-codebase",
+    label: "Explore this project",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "delivery-shape-project",
+    label: "Change the app",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "delivery-plan-phase",
+    label: "Plan the change",
+    intentLabel: "Plan it",
+  },
+  {
+    templateId: "delivery-investigate-bug",
+    label: "Investigate a bug",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "full-stack-code-audit",
+    label: "Code audit",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "ux-ui-polish-audit",
+    label: "UX audit",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "playwright-visual-audit",
+    label: "Visual test",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "cto-optimise-audit",
+    label: "CTO audit",
+    intentLabel: "Review it",
+  },
 ]
 
-function createInspection(overrides: Partial<ProjectInspectionSummary> = {}): ProjectInspectionSummary {
+function createInspection(
+  overrides: Partial<ProjectInspectionSummary> = {},
+): ProjectInspectionSummary {
   return {
     projectPath: "/tmp/project",
     git: {
@@ -67,7 +106,9 @@ function createInspection(overrides: Partial<ProjectInspectionSummary> = {}): Pr
   }
 }
 
-function createInput(overrides: Partial<CreateEntryRouteInput> = {}): CreateEntryRouteInput {
+function createInput(
+  overrides: Partial<CreateEntryRouteInput> = {},
+): CreateEntryRouteInput {
   return {
     modeId: "development",
     projectPath: "/tmp/project",
@@ -102,25 +143,36 @@ function createTemplate(id: string, name: string): WorkflowTemplate {
   }
 }
 
-const templates = developmentOptions.map((option) => createTemplate(option.templateId, option.label))
+const templates = developmentOptions.map((option) =>
+  createTemplate(option.templateId, option.label),
+)
 
 function mockAgentJson(json: string | null) {
-  mocks.drainExecutionHandle.mockImplementationOnce(async (_handle, callbacks?: {
-    onLogEntry?: (entry: { type: "text"; content: string; timestamp: number }) => void
-  }) => {
-    if (json && callbacks?.onLogEntry) {
-      callbacks.onLogEntry({
-        type: "text",
-        content: json,
-        timestamp: Date.now(),
-      })
-    }
-    return {
-      success: Boolean(json),
-      killed: false,
-      aborted: false,
-    }
-  })
+  mocks.drainExecutionHandle.mockImplementationOnce(
+    async (
+      _handle,
+      callbacks?: {
+        onLogEntry?: (entry: {
+          type: "text"
+          content: string
+          timestamp: number
+        }) => void
+      },
+    ) => {
+      if (json && callbacks?.onLogEntry) {
+        callbacks.onLogEntry({
+          type: "text",
+          content: json,
+          timestamp: Date.now(),
+        })
+      }
+      return {
+        success: Boolean(json),
+        killed: false,
+        aborted: false,
+      }
+    },
+  )
 }
 
 describe("routeCreateEntry agent-first", () => {
@@ -129,13 +181,15 @@ describe("routeCreateEntry agent-first", () => {
   })
 
   it("accepts an agent route for mixed do-plan requests when the model chooses a direct start", async () => {
-    mockAgentJson(JSON.stringify({
-      kind: "route",
-      recommendedTemplateId: "delivery-shape-project",
-      alternateTemplateIds: ["delivery-plan-phase"],
-      reason: "This is a direct change request on the current app.",
-      confidence: 0.83,
-    }))
+    mockAgentJson(
+      JSON.stringify({
+        kind: "route",
+        recommendedTemplateId: "delivery-shape-project",
+        alternateTemplateIds: ["delivery-plan-phase"],
+        reason: "This is a direct change request on the current app.",
+        confidence: 0.83,
+      }),
+    )
 
     const route = await routeCreateEntry(
       createInput({
@@ -152,32 +206,36 @@ describe("routeCreateEntry agent-first", () => {
   })
 
   it("returns agent-provided job-route clarification for ambiguous audit requests", async () => {
-    mockAgentJson(JSON.stringify({
-      kind: "clarification",
-      recommendedTemplateId: "full-stack-code-audit",
-      alternateTemplateIds: ["ux-ui-polish-audit"],
-      reason: "This sounds like an audit request but the audit lens is ambiguous.",
-      confidence: 0.58,
-      clarification: {
-        kind: "job_route",
-        title: "Choose the audit path",
-        message: "Pick the kind of audit you want first.",
-        options: [
-          {
-            value: "code_audit",
-            label: "Code audit",
-            description: "Look for codebase risks, architecture gaps, and quality issues.",
-            templateId: "full-stack-code-audit",
-          },
-          {
-            value: "ux_audit",
-            label: "UX audit",
-            description: "Audit the product surface for UX/UI quality.",
-            templateId: "ux-ui-polish-audit",
-          },
-        ],
-      },
-    }))
+    mockAgentJson(
+      JSON.stringify({
+        kind: "clarification",
+        recommendedTemplateId: "full-stack-code-audit",
+        alternateTemplateIds: ["ux-ui-polish-audit"],
+        reason:
+          "This sounds like an audit request but the audit lens is ambiguous.",
+        confidence: 0.58,
+        clarification: {
+          kind: "job_route",
+          title: "Choose the audit path",
+          message: "Pick the kind of audit you want first.",
+          options: [
+            {
+              value: "code_audit",
+              label: "Code audit",
+              description:
+                "Look for codebase risks, architecture gaps, and quality issues.",
+              templateId: "full-stack-code-audit",
+            },
+            {
+              value: "ux_audit",
+              label: "UX audit",
+              description: "Audit the product surface for UX/UI quality.",
+              templateId: "ux-ui-polish-audit",
+            },
+          ],
+        },
+      }),
+    )
 
     const route = await routeCreateEntry(
       createInput({
@@ -190,34 +248,41 @@ describe("routeCreateEntry agent-first", () => {
 
     expect(route.source).toBe("agent")
     expect(route.clarification?.kind).toBe("job_route")
-    if (route.clarification?.kind !== "job_route") throw new Error("Expected job_route clarification")
-    expect(route.clarification.options.map((option) => option.templateId)).toEqual([
-      "full-stack-code-audit",
-      "ux-ui-polish-audit",
-    ])
+    if (route.clarification?.kind !== "job_route")
+      throw new Error("Expected job_route clarification")
+    expect(
+      route.clarification.options.map((option) => option.templateId),
+    ).toEqual(["full-stack-code-audit", "ux-ui-polish-audit"])
   })
 
   it("fails instead of silently falling back when the agent is unavailable", async () => {
     mockAgentJson(null)
 
-    await expect(routeCreateEntry(
-      createInput({
-        draftPrompt: "поменяй текст кнопки на главной и чуть поправь spacing",
-        requestedResult: "поменяй текст кнопки на главной и чуть поправь spacing",
-      }),
-      createInspection(),
-      templates,
-    )).rejects.toThrow("The AI router couldn't choose a starting point right now. Try again.")
+    await expect(
+      routeCreateEntry(
+        createInput({
+          draftPrompt: "поменяй текст кнопки на главной и чуть поправь spacing",
+          requestedResult:
+            "поменяй текст кнопки на главной и чуть поправь spacing",
+        }),
+        createInspection(),
+        templates,
+      ),
+    ).rejects.toThrow(
+      "The AI router couldn't choose a starting point right now. Try again.",
+    )
   })
 
   it("supports rerouting from a job-route clarification through a template constraint", async () => {
-    mockAgentJson(JSON.stringify({
-      kind: "route",
-      recommendedTemplateId: "ux-ui-polish-audit",
-      alternateTemplateIds: [],
-      reason: "The user selected UX audit explicitly.",
-      confidence: 0.91,
-    }))
+    mockAgentJson(
+      JSON.stringify({
+        kind: "route",
+        recommendedTemplateId: "ux-ui-polish-audit",
+        alternateTemplateIds: [],
+        reason: "The user selected UX audit explicitly.",
+        confidence: 0.91,
+      }),
+    )
 
     const route = await routeCreateEntry(
       createInput({
@@ -235,22 +300,28 @@ describe("routeCreateEntry agent-first", () => {
   })
 
   it("rejects invalid out-of-intent agent output instead of silently rerouting", async () => {
-    mockAgentJson(JSON.stringify({
-      kind: "route",
-      recommendedTemplateId: "full-stack-code-audit",
-      alternateTemplateIds: ["delivery-plan-phase"],
-      reason: "Security review seems useful.",
-      confidence: 0.84,
-    }))
-
-    await expect(routeCreateEntry(
-      createInput({
-        draftPrompt: "plan the change",
-        requestedResult: "plan the change",
-        helpModeHint: "plan",
+    mockAgentJson(
+      JSON.stringify({
+        kind: "route",
+        recommendedTemplateId: "full-stack-code-audit",
+        alternateTemplateIds: ["delivery-plan-phase"],
+        reason: "Security review seems useful.",
+        confidence: 0.84,
       }),
-      createInspection(),
-      templates,
-    )).rejects.toThrow("The AI router couldn't choose a starting point right now. Try again.")
+    )
+
+    await expect(
+      routeCreateEntry(
+        createInput({
+          draftPrompt: "plan the change",
+          requestedResult: "plan the change",
+          helpModeHint: "plan",
+        }),
+        createInspection(),
+        templates,
+      ),
+    ).rejects.toThrow(
+      "The AI router couldn't choose a starting point right now. Try again.",
+    )
   })
 })

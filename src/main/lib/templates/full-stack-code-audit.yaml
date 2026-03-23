@@ -19,7 +19,8 @@ execution_policy:
     - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: Full-Stack Code Audit
-description: Map the full project, audit the entire codebase through security, quality, architecture,
+description:
+  Map the full project, audit the entire codebase through security, quality, architecture,
   and test lenses, then produce one prioritized report
 defaults:
   model: sonnet

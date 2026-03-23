@@ -1,4 +1,8 @@
-import type { TelemetryClient, TelemetryPropertyValue, TelemetryTrackEvent } from "../types"
+import type {
+  TelemetryClient,
+  TelemetryPropertyValue,
+  TelemetryTrackEvent,
+} from "../types"
 
 export function createNoopTelemetryClient(): TelemetryClient {
   return {
@@ -9,7 +13,10 @@ export function createNoopTelemetryClient(): TelemetryClient {
     async track(_event: TelemetryTrackEvent): Promise<void> {
       // noop
     },
-    async identify(_distinctId: string, _traits?: Record<string, TelemetryPropertyValue>): Promise<void> {
+    async identify(
+      _distinctId: string,
+      _traits?: Record<string, TelemetryPropertyValue>,
+    ): Promise<void> {
       // noop
     },
     async flush(): Promise<void> {
@@ -20,4 +27,3 @@ export function createNoopTelemetryClient(): TelemetryClient {
     },
   }
 }
-

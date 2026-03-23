@@ -36,7 +36,11 @@ function trimString(value: unknown): string | undefined {
   return normalized || undefined
 }
 
-function normalizePrompt(title: string, summary?: string, scheduledFor?: string) {
+function normalizePrompt(
+  title: string,
+  summary?: string,
+  scheduledFor?: string,
+) {
   const parts = [
     `Create the item "${title}".`,
     scheduledFor ? `Planned slot: ${scheduledFor}.` : null,
@@ -45,7 +49,9 @@ function normalizePrompt(title: string, summary?: string, scheduledFor?: string)
   return parts.join("\n\n")
 }
 
-function sanitizePlannedCase(input: Partial<FactoryPlannedCase> | null | undefined): FactoryPlannedCase | null {
+function sanitizePlannedCase(
+  input: Partial<FactoryPlannedCase> | null | undefined,
+): FactoryPlannedCase | null {
   if (!input) return null
   const id = trimString(input.id)
   const factoryId = trimString(input.factoryId)
@@ -62,31 +68,45 @@ function sanitizePlannedCase(input: Partial<FactoryPlannedCase> | null | undefin
     sourceArtifactTitle: trimString(input.sourceArtifactTitle),
     templateId: trimString(input.templateId),
     scheduledFor: trimString(input.scheduledFor),
-    position: typeof input.position === "number" && Number.isFinite(input.position) ? input.position : undefined,
+    position:
+      typeof input.position === "number" && Number.isFinite(input.position)
+        ? input.position
+        : undefined,
     createdAt: typeof input.createdAt === "number" ? input.createdAt : now,
     updatedAt: typeof input.updatedAt === "number" ? input.updatedAt : now,
   }
 }
 
-function normalizeState(projectPath: string, input: Partial<ProjectFactoryState>): ProjectFactoryState {
+function normalizeState(
+  projectPath: string,
+  input: Partial<ProjectFactoryState>,
+): ProjectFactoryState {
   const plannedCases = Array.isArray(input.plannedCases)
     ? input.plannedCases
-      .map((entry) => sanitizePlannedCase(entry))
-      .filter((entry): entry is FactoryPlannedCase => entry !== null)
-      .sort((left, right) => {
-        if ((left.position ?? Number.MAX_SAFE_INTEGER) !== (right.position ?? Number.MAX_SAFE_INTEGER)) {
-          return (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER)
-        }
-        return left.createdAt - right.createdAt
-      })
+        .map((entry) => sanitizePlannedCase(entry))
+        .filter((entry): entry is FactoryPlannedCase => entry !== null)
+        .sort((left, right) => {
+          if (
+            (left.position ?? Number.MAX_SAFE_INTEGER) !==
+            (right.position ?? Number.MAX_SAFE_INTEGER)
+          ) {
+            return (
+              (left.position ?? Number.MAX_SAFE_INTEGER) -
+              (right.position ?? Number.MAX_SAFE_INTEGER)
+            )
+          }
+          return left.createdAt - right.createdAt
+        })
     : []
 
   return {
     version: 1,
     projectPath: resolve(projectPath),
     plannedCases,
-    createdAt: typeof input.createdAt === "number" ? input.createdAt : Date.now(),
-    updatedAt: typeof input.updatedAt === "number" ? input.updatedAt : Date.now(),
+    createdAt:
+      typeof input.createdAt === "number" ? input.createdAt : Date.now(),
+    updatedAt:
+      typeof input.updatedAt === "number" ? input.updatedAt : Date.now(),
   }
 }
 
@@ -148,7 +168,9 @@ function extractDraftsFromTables(markdown: string): PlannedCaseDraft[] {
 
   for (const block of blocks) {
     if (block.length < 3) continue
-    const headers = parseTableRow(block[0]).map((header) => header.toLowerCase())
+    const headers = parseTableRow(block[0]).map((header) =>
+      header.toLowerCase(),
+    )
     const alignment = parseTableRow(block[1])
     if (!isAlignmentRow(alignment)) continue
 
@@ -175,16 +197,23 @@ function extractDraftsFromTables(markdown: string): PlannedCaseDraft[] {
       const row = parseTableRow(block[rowIndex])
       if (row.every((cell) => cell.length === 0)) continue
       const title = sanitizeTitle(
-        row[titleIndex] || row.find((cell) => cell.trim().length > 0) || `Item ${drafts.length + 1}`,
+        row[titleIndex] ||
+          row.find((cell) => cell.trim().length > 0) ||
+          `Item ${drafts.length + 1}`,
       )
       if (!title) continue
-      const scheduledFor = scheduleIndex >= 0 ? trimString(row[scheduleIndex]) : undefined
+      const scheduledFor =
+        scheduleIndex >= 0 ? trimString(row[scheduleIndex]) : undefined
       const summaryParts = row
-        .map((cell, index) => ({ cell: trimString(cell), header: headers[index] || `column_${index + 1}` }))
+        .map((cell, index) => ({
+          cell: trimString(cell),
+          header: headers[index] || `column_${index + 1}`,
+        }))
         .filter((entry, index) => Boolean(entry.cell) && index !== titleIndex)
         .slice(0, 5)
         .map((entry) => `${entry.header.replace(/_/g, " ")}: ${entry.cell}`)
-      const summary = summaryParts.length > 0 ? summaryParts.join("\n") : undefined
+      const summary =
+        summaryParts.length > 0 ? summaryParts.join("\n") : undefined
       drafts.push({
         title,
         summary,
@@ -237,7 +266,11 @@ function extractDraftsFromHeadings(markdown: string): PlannedCaseDraft[] {
 }
 
 function extractDrafts(markdown: string): PlannedCaseDraft[] {
-  const body = markdown.split(/\n---\n/).slice(1).join("\n---\n") || markdown
+  const body =
+    markdown
+      .split(/\n---\n/)
+      .slice(1)
+      .join("\n---\n") || markdown
   const tableDrafts = extractDraftsFromTables(body)
   if (tableDrafts.length > 0) return tableDrafts.slice(0, 250)
   const listDrafts = extractDraftsFromList(body)
@@ -246,15 +279,20 @@ function extractDrafts(markdown: string): PlannedCaseDraft[] {
 }
 
 function buildPlannedCaseId(factoryId: string, position: number) {
-  const seed = factoryId
-    .replace(/^(factory|pack):/i, "")
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    || "factory"
+  const seed =
+    factoryId
+      .replace(/^(factory|pack):/i, "")
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "") || "factory"
   return `case:${seed}:planned:${Date.now().toString(36)}:${position.toString(36)}`
 }
 
-function dedupeKey(factoryId: string, sourceArtifactId: string | undefined, title: string, scheduledFor?: string) {
+function dedupeKey(
+  factoryId: string,
+  sourceArtifactId: string | undefined,
+  title: string,
+  scheduledFor?: string,
+) {
   return [
     factoryId,
     sourceArtifactId || "",
@@ -267,11 +305,16 @@ async function readArtifactContent(artifact: ArtifactRecord) {
   return readFile(artifact.contentPath, "utf-8")
 }
 
-export async function loadProjectFactoryState(projectPath: string): Promise<ProjectFactoryState> {
+export async function loadProjectFactoryState(
+  projectPath: string,
+): Promise<ProjectFactoryState> {
   const path = factoryStatePath(projectPath)
   try {
     const raw = await readFile(path, "utf-8")
-    return normalizeState(projectPath, JSON.parse(raw) as Partial<ProjectFactoryState>)
+    return normalizeState(
+      projectPath,
+      JSON.parse(raw) as Partial<ProjectFactoryState>,
+    )
   } catch (error) {
     if (errorCode(error) !== "ENOENT") {
       logWarn("project-factory-state", "load_failed", {
@@ -284,7 +327,10 @@ export async function loadProjectFactoryState(projectPath: string): Promise<Proj
   }
 }
 
-export async function saveProjectFactoryState(projectPath: string, plannedCases: FactoryPlannedCase[]): Promise<ProjectFactoryState> {
+export async function saveProjectFactoryState(
+  projectPath: string,
+  plannedCases: FactoryPlannedCase[],
+): Promise<ProjectFactoryState> {
   const statePath = factoryStatePath(projectPath)
   const existing = await loadProjectFactoryState(projectPath)
   const normalized = normalizeState(projectPath, {
@@ -292,7 +338,9 @@ export async function saveProjectFactoryState(projectPath: string, plannedCases:
     createdAt: existing.createdAt,
     updatedAt: Date.now(),
   })
-  await mkdir(join(resolve(projectPath), FACTORY_STATE_DIR), { recursive: true })
+  await mkdir(join(resolve(projectPath), FACTORY_STATE_DIR), {
+    recursive: true,
+  })
   await writeFileAtomic(statePath, `${JSON.stringify(normalized, null, 2)}\n`)
   return normalized
 }
@@ -316,14 +364,24 @@ export async function spawnFactoryCasesFromArtifact(
   const existing = await loadProjectFactoryState(projectPath)
   const existingKeys = new Set(
     existing.plannedCases.map((entry) =>
-      dedupeKey(entry.factoryId, entry.sourceArtifactId, entry.title, entry.scheduledFor),
+      dedupeKey(
+        entry.factoryId,
+        entry.sourceArtifactId,
+        entry.title,
+        entry.scheduledFor,
+      ),
     ),
   )
 
   const now = Date.now()
   const nextCases: FactoryPlannedCase[] = []
   for (const draft of drafts) {
-    const key = dedupeKey(input.factoryId, artifact.id, draft.title, draft.scheduledFor)
+    const key = dedupeKey(
+      input.factoryId,
+      artifact.id,
+      draft.title,
+      draft.scheduledFor,
+    )
     if (existingKeys.has(key)) continue
     existingKeys.add(key)
     nextCases.push({

@@ -1,4 +1,10 @@
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import {
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { describe, expect, it } from "vitest"
@@ -39,9 +45,9 @@ describe("security path helpers", () => {
     const { rootDir, otherDir, cleanup } = createTempLayout()
     try {
       expect(isWithinRoot(join(otherDir, "escape.txt"), rootDir)).toBe(false)
-      expect(() => assertWithinRoots(join(otherDir, "escape.txt"), [rootDir], "Path")).toThrow(
-        "Path is outside allowed directories",
-      )
+      expect(() =>
+        assertWithinRoots(join(otherDir, "escape.txt"), [rootDir], "Path"),
+      ).toThrow("Path is outside allowed directories")
     } finally {
       cleanup()
     }
@@ -71,9 +77,9 @@ describe("security path helpers", () => {
       const escapedCandidate = join(symlinkPath, "escape.txt")
 
       expect(isWithinRoot(escapedCandidate, rootDir)).toBe(false)
-      expect(() => assertWithinRoots(escapedCandidate, [rootDir], "Path")).toThrow(
-        "Path is outside allowed directories",
-      )
+      expect(() =>
+        assertWithinRoots(escapedCandidate, [rootDir], "Path"),
+      ).toThrow("Path is outside allowed directories")
     } finally {
       cleanup()
     }
@@ -100,10 +106,16 @@ describe("security path helpers", () => {
       symlinkSync(rootDir, rootAlias)
 
       expect(isRegisteredRoot(rootAlias, rootDir)).toBe(true)
-      expect(assertRegisteredRoots(rootAlias, [rootDir], "Project path")).toBe(rootAlias)
-      expect(() => assertRegisteredRoots(join(rootDir, "nested"), [rootDir], "Project path")).toThrow(
-        "Project path is not registered",
+      expect(assertRegisteredRoots(rootAlias, [rootDir], "Project path")).toBe(
+        rootAlias,
       )
+      expect(() =>
+        assertRegisteredRoots(
+          join(rootDir, "nested"),
+          [rootDir],
+          "Project path",
+        ),
+      ).toThrow("Project path is not registered")
     } finally {
       cleanup()
     }

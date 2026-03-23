@@ -32,7 +32,8 @@ nodes:
       y: 200
     config:
       skillRef: marketing/Content Creator
-      prompt: Analyze this content. Extract key ideas, main argument, supporting data, and quotable moments. Identify the core
+      prompt:
+        Analyze this content. Extract key ideas, main argument, supporting data, and quotable moments. Identify the core
         message.
   - id: splitter-1
     type: splitter
@@ -40,7 +41,8 @@ nodes:
       x: 600
       y: 200
     config:
-      strategy: "Split into 4 platform-specific content tasks: Twitter thread, LinkedIn post, Instagram caption, and email
+      strategy:
+        "Split into 4 platform-specific content tasks: Twitter thread, LinkedIn post, Instagram caption, and email
         newsletter intro. Each should be a self-contained rewriting task."
   - id: writer-1
     type: skill
@@ -49,7 +51,8 @@ nodes:
       y: 200
     config:
       skillRef: marketing/Social Media Strategist
-      prompt: Adapt the content for this specific platform. Match the platform's tone, format, and best practices. Make it
+      prompt:
+        Adapt the content for this specific platform. Match the platform's tone, format, and best practices. Make it
         native, not just reformatted.
   - id: merger-1
     type: merger
@@ -65,7 +68,8 @@ nodes:
       x: 1500
       y: 200
     config:
-      criteria: "Score 1-10 on: platform-native tone (not generic AI), consistency of core message across versions,
+      criteria:
+        "Score 1-10 on: platform-native tone (not generic AI), consistency of core message across versions,
         actionability (clear CTAs), and engagement potential."
       threshold: 7
       maxRetries: 2

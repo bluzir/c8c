@@ -13,8 +13,10 @@ interface ParsedToolCallDraft {
 }
 
 const FENCED_BLOCK_RE = /```[a-zA-Z0-9_-]*\s*\n?([\s\S]*?)\n?```/g
-const DIRECT_TOOL_CALL_INTENT_RE = /\b(execute|run|apply|invoke)\b[\s\S]{0,50}\btool\s*call\b/i
-const TOOL_RESPONSE_TAG_RE = /<tool_response\b[^>]*>([\s\S]*?)<\/tool_response>/gi
+const DIRECT_TOOL_CALL_INTENT_RE =
+  /\b(execute|run|apply|invoke)\b[\s\S]{0,50}\btool\s*call\b/i
+const TOOL_RESPONSE_TAG_RE =
+  /<tool_response\b[^>]*>([\s\S]*?)<\/tool_response>/gi
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -61,13 +63,13 @@ function extractBalancedJsonObjects(text: string): string[] {
         escaped = false
       } else if (char === "\\") {
         escaped = true
-      } else if (char === "\"") {
+      } else if (char === '"') {
         inString = false
       }
       continue
     }
 
-    if (char === "\"") {
+    if (char === '"') {
       inString = true
       continue
     }
@@ -96,37 +98,36 @@ function normalizeToolCall(value: unknown): ParsedToolCallDraft[] {
   }
 
   if (!isRecord(value)) return []
-  const explicitTool = typeof value.tool === "string"
-    ? value.tool
-    : typeof value.tool_name === "string"
-      ? value.tool_name
-      : null
+  const explicitTool =
+    typeof value.tool === "string"
+      ? value.tool
+      : typeof value.tool_name === "string"
+        ? value.tool_name
+        : null
 
-  const implicitTool = typeof value.name === "string"
-    && (
-      isRecord(value.input)
-      || isRecord(value.arguments)
-      || isRecord(value.params)
-      || isRecord(value.parameters)
-    )
-    && (
-      typeof value.call_id === "string"
-      || typeof value.callId === "string"
-      || typeof value.id === "string"
-    )
-    ? value.name
-    : null
+  const implicitTool =
+    typeof value.name === "string" &&
+    (isRecord(value.input) ||
+      isRecord(value.arguments) ||
+      isRecord(value.params) ||
+      isRecord(value.parameters)) &&
+    (typeof value.call_id === "string" ||
+      typeof value.callId === "string" ||
+      typeof value.id === "string")
+      ? value.name
+      : null
 
   const tool = (explicitTool || implicitTool || "").trim()
   if (!tool) return []
 
-  const callId = typeof value.call_id === "string"
-    ? value.call_id
-    : typeof value.callId === "string"
-      ? value.callId
-      : typeof value.id === "string"
-        ? value.id
-      : undefined
+  const callId =
+    typeof value.call_id === "string"
+      ? value.call_id
+      : typeof value.callId === "string"
+        ? value.callId
+        : typeof value.id === "string"
+          ? value.id
+          : undefined
 
   const rawInput = isRecord(value.input)
     ? value.input
@@ -138,11 +139,13 @@ function normalizeToolCall(value: unknown): ParsedToolCallDraft[] {
           ? value.parameters
           : {}
 
-  return [{
-    tool,
-    callId,
-    input: rawInput,
-  }]
+  return [
+    {
+      tool,
+      callId,
+      input: rawInput,
+    },
+  ]
 }
 
 function parseToolCallsFromCandidate(candidate: string): ParsedToolCallDraft[] {
@@ -177,13 +180,19 @@ export function parseToolCallsFromText(text: string): ParsedToolCall[] {
   if (trimmed) candidates.add(trimmed)
 
   let match: RegExpExecArray | null
-  const fencedBlockRe = new RegExp(FENCED_BLOCK_RE.source, FENCED_BLOCK_RE.flags)
+  const fencedBlockRe = new RegExp(
+    FENCED_BLOCK_RE.source,
+    FENCED_BLOCK_RE.flags,
+  )
   while ((match = fencedBlockRe.exec(text)) !== null) {
     const content = match[1]?.trim()
     if (content) candidates.add(content)
   }
 
-  const toolResponseTagRe = new RegExp(TOOL_RESPONSE_TAG_RE.source, TOOL_RESPONSE_TAG_RE.flags)
+  const toolResponseTagRe = new RegExp(
+    TOOL_RESPONSE_TAG_RE.source,
+    TOOL_RESPONSE_TAG_RE.flags,
+  )
   while ((match = toolResponseTagRe.exec(text)) !== null) {
     const content = match[1]?.trim()
     if (content) candidates.add(content)
@@ -207,9 +216,10 @@ export function parseToolCallsFromText(text: string): ParsedToolCall[] {
   let fallbackIndex = 0
 
   for (const draft of uniqueDrafts) {
-    const callId = draft.callId && draft.callId.trim()
-      ? draft.callId.trim()
-      : `tc-${fallbackIndex++}`
+    const callId =
+      draft.callId && draft.callId.trim()
+        ? draft.callId.trim()
+        : `tc-${fallbackIndex++}`
     calls.push({
       tool: draft.tool,
       callId,

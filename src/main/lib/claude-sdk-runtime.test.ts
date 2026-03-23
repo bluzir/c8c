@@ -27,17 +27,19 @@ function createMockQuery(messages: unknown[]) {
 
 describe("parseClaudeSdkLegacyArgs", () => {
   it("maps legacy extraArgs into SDK-compatible options", () => {
-    expect(parseClaudeSdkLegacyArgs([
-      "--verbose",
-      "--output-format",
-      "stream-json",
-      "--mcp-config=/tmp/.mcp.json",
-      "--disable-slash-commands",
-      "--system-prompt",
-      "System prompt",
-      "--tools",
-      "",
-    ])).toEqual({
+    expect(
+      parseClaudeSdkLegacyArgs([
+        "--verbose",
+        "--output-format",
+        "stream-json",
+        "--mcp-config=/tmp/.mcp.json",
+        "--disable-slash-commands",
+        "--system-prompt",
+        "System prompt",
+        "--tools",
+        "",
+      ]),
+    ).toEqual({
       extraArgs: {
         "disable-slash-commands": null,
       },
@@ -54,53 +56,55 @@ describe("createClaudeSdkExecutionHandle", () => {
   })
 
   it("streams SDK messages through the shared execution handle", async () => {
-    queryMock.mockReturnValue(createMockQuery([
-      {
-        type: "system",
-        subtype: "init",
-        apiKeySource: "user",
-        claude_code_version: "2.1.45",
-        cwd: "/tmp/project",
-        tools: [],
-        mcp_servers: [],
-        model: "claude-sonnet-4-6",
-        permissionMode: "acceptEdits",
-        slash_commands: [],
-        output_style: "default",
-        skills: [],
-        plugins: [],
-        uuid: "00000000-0000-0000-0000-000000000001",
-        session_id: "session-1",
-      },
-      {
-        type: "assistant",
-        message: {
-          content: [{ type: "text", text: "Hello from SDK" }],
+    queryMock.mockReturnValue(
+      createMockQuery([
+        {
+          type: "system",
+          subtype: "init",
+          apiKeySource: "user",
+          claude_code_version: "2.1.45",
+          cwd: "/tmp/project",
+          tools: [],
+          mcp_servers: [],
+          model: "claude-sonnet-4-6",
+          permissionMode: "acceptEdits",
+          slash_commands: [],
+          output_style: "default",
+          skills: [],
+          plugins: [],
+          uuid: "00000000-0000-0000-0000-000000000001",
+          session_id: "session-1",
         },
-        parent_tool_use_id: null,
-        uuid: "00000000-0000-0000-0000-000000000002",
-        session_id: "session-1",
-      },
-      {
-        type: "result",
-        subtype: "success",
-        duration_ms: 18,
-        duration_api_ms: 10,
-        is_error: false,
-        num_turns: 1,
-        result: "Hello from SDK",
-        stop_reason: "end_turn",
-        total_cost_usd: 0,
-        usage: {
-          input_tokens: 3,
-          output_tokens: 4,
+        {
+          type: "assistant",
+          message: {
+            content: [{ type: "text", text: "Hello from SDK" }],
+          },
+          parent_tool_use_id: null,
+          uuid: "00000000-0000-0000-0000-000000000002",
+          session_id: "session-1",
         },
-        modelUsage: {},
-        permission_denials: [],
-        uuid: "00000000-0000-0000-0000-000000000003",
-        session_id: "session-1",
-      },
-    ]))
+        {
+          type: "result",
+          subtype: "success",
+          duration_ms: 18,
+          duration_api_ms: 10,
+          is_error: false,
+          num_turns: 1,
+          result: "Hello from SDK",
+          stop_reason: "end_turn",
+          total_cost_usd: 0,
+          usage: {
+            input_tokens: 3,
+            output_tokens: 4,
+          },
+          modelUsage: {},
+          permission_denials: [],
+          uuid: "00000000-0000-0000-0000-000000000003",
+          session_id: "session-1",
+        },
+      ]),
+    )
 
     const handle = await createClaudeSdkExecutionHandle({
       workdir: "/tmp/project",
@@ -162,56 +166,64 @@ describe("createClaudeSdkExecutionHandle", () => {
 
     const canUseTool = queryMock.mock.calls[0]?.[0]?.options?.canUseTool
     expect(canUseTool).toBeTypeOf("function")
-    await expect(canUseTool?.("Edit", { file_path: "content.md" }, {
-      signal: new AbortController().signal,
-      hook_event_name: "PermissionRequest",
-      tool_name: "Edit",
-      tool_input: { file_path: "content.md" },
-    })).resolves.toEqual({
+    await expect(
+      canUseTool?.(
+        "Edit",
+        { file_path: "content.md" },
+        {
+          signal: new AbortController().signal,
+          hook_event_name: "PermissionRequest",
+          tool_name: "Edit",
+          tool_input: { file_path: "content.md" },
+        },
+      ),
+    ).resolves.toEqual({
       behavior: "deny",
       message: "Edit is blocked for this run.",
     })
   })
 
   it("requests persisted Claude sessions and resumes a prior session when provided", async () => {
-    queryMock.mockReturnValue(createMockQuery([
-      {
-        type: "system",
-        subtype: "init",
-        apiKeySource: "user",
-        claude_code_version: "2.1.45",
-        cwd: "/tmp/project",
-        tools: [],
-        mcp_servers: [],
-        model: "claude-sonnet-4-6",
-        permissionMode: "acceptEdits",
-        slash_commands: [],
-        output_style: "default",
-        skills: [],
-        plugins: [],
-        uuid: "00000000-0000-0000-0000-000000000021",
-        session_id: "session-2",
-      },
-      {
-        type: "result",
-        subtype: "success",
-        duration_ms: 12,
-        duration_api_ms: 12,
-        is_error: false,
-        num_turns: 1,
-        result: "",
-        stop_reason: "end_turn",
-        total_cost_usd: 0,
-        usage: {
-          input_tokens: 1,
-          output_tokens: 1,
+    queryMock.mockReturnValue(
+      createMockQuery([
+        {
+          type: "system",
+          subtype: "init",
+          apiKeySource: "user",
+          claude_code_version: "2.1.45",
+          cwd: "/tmp/project",
+          tools: [],
+          mcp_servers: [],
+          model: "claude-sonnet-4-6",
+          permissionMode: "acceptEdits",
+          slash_commands: [],
+          output_style: "default",
+          skills: [],
+          plugins: [],
+          uuid: "00000000-0000-0000-0000-000000000021",
+          session_id: "session-2",
         },
-        modelUsage: {},
-        permission_denials: [],
-        uuid: "00000000-0000-0000-0000-000000000022",
-        session_id: "session-2",
-      },
-    ]))
+        {
+          type: "result",
+          subtype: "success",
+          duration_ms: 12,
+          duration_api_ms: 12,
+          is_error: false,
+          num_turns: 1,
+          result: "",
+          stop_reason: "end_turn",
+          total_cost_usd: 0,
+          usage: {
+            input_tokens: 1,
+            output_tokens: 1,
+          },
+          modelUsage: {},
+          permission_denials: [],
+          uuid: "00000000-0000-0000-0000-000000000022",
+          session_id: "session-2",
+        },
+      ]),
+    )
 
     const handle = await createClaudeSdkExecutionHandle({
       workdir: "/tmp/project",
@@ -305,7 +317,11 @@ describe("createClaudeSdkExecutionHandle", () => {
         success: true,
         providerSessionId: "session-heartbeat",
       })
-      expect(thinkingEntries.some((content) => content.includes("Claude is still working"))).toBe(true)
+      expect(
+        thinkingEntries.some((content) =>
+          content.includes("Claude is still working"),
+        ),
+      ).toBe(true)
     } finally {
       vi.useRealTimers()
     }

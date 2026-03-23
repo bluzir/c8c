@@ -15,9 +15,13 @@ describe("content pack templates", () => {
   ] as const
 
   it("ships the first content pack templates with pack metadata and contracts", () => {
-    const templates = getBuiltinTemplates().filter((template) => targetIds.includes(template.id as (typeof targetIds)[number]))
+    const templates = getBuiltinTemplates().filter((template) =>
+      targetIds.includes(template.id as (typeof targetIds)[number]),
+    )
 
-    expect(templates.map((template) => template.id).sort()).toEqual([...targetIds].sort())
+    expect(templates.map((template) => template.id).sort()).toEqual(
+      [...targetIds].sort(),
+    )
 
     for (const template of templates) {
       expect(template.pack?.id).toBe("content-factory-alpha")
@@ -28,11 +32,16 @@ describe("content pack templates", () => {
   })
 
   it("keeps the first content pack workflows valid", () => {
-    const templates = getBuiltinTemplates().filter((template) => targetIds.includes(template.id as (typeof targetIds)[number]))
+    const templates = getBuiltinTemplates().filter((template) =>
+      targetIds.includes(template.id as (typeof targetIds)[number]),
+    )
 
     for (const template of templates) {
       const errors = validateWorkflow(template.workflow)
-      expect(errors, `Template "${template.name}" has validation errors: ${errors.join(", ")}`).toEqual([])
+      expect(
+        errors,
+        `Template "${template.name}" has validation errors: ${errors.join(", ")}`,
+      ).toEqual([])
     }
   })
 })

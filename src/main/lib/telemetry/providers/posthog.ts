@@ -52,7 +52,10 @@ export class PosthogTelemetryClient implements TelemetryClient {
     await this.enqueueJsonPost("/capture/", payload)
   }
 
-  async identify(distinctId: string, traits?: Record<string, TelemetryPropertyValue>): Promise<void> {
+  async identify(
+    distinctId: string,
+    traits?: Record<string, TelemetryPropertyValue>,
+  ): Promise<void> {
     if (!this.consent || !this.apiKey || !this.host) return
     if (!traits || Object.keys(traits).length === 0) return
 
@@ -78,14 +81,20 @@ export class PosthogTelemetryClient implements TelemetryClient {
     await this.flush()
   }
 
-  private enqueueJsonPost(path: string, payload: Record<string, unknown>): Promise<void> {
+  private enqueueJsonPost(
+    path: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     const request = this.postJson(path, payload)
     this.pendingRequests.add(request)
     void request.finally(() => this.pendingRequests.delete(request))
     return request
   }
 
-  private async postJson(path: string, payload: Record<string, unknown>): Promise<void> {
+  private async postJson(
+    path: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs)
     try {
@@ -104,4 +113,3 @@ export class PosthogTelemetryClient implements TelemetryClient {
     }
   }
 }
-

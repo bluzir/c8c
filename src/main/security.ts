@@ -30,9 +30,13 @@ export function isSafeExternalUrl(rawUrl: string): boolean {
   }
 }
 
-export function buildRendererContentSecurityPolicy(rendererUrl?: string): string {
+export function buildRendererContentSecurityPolicy(
+  rendererUrl?: string,
+): string {
   const rendererOrigin = parseRendererOrigin(rendererUrl)
-  const websocketOrigin = rendererOrigin ? toWebSocketOrigin(rendererOrigin) : ""
+  const websocketOrigin = rendererOrigin
+    ? toWebSocketOrigin(rendererOrigin)
+    : ""
   const isDevRenderer = Boolean(rendererOrigin)
   const scriptSources = isDevRenderer
     ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", rendererOrigin ?? ""]
@@ -60,13 +64,18 @@ export function applyContentSecurityPolicyHeader(
   policy: string,
 ): ResponseHeaders {
   const nextHeaders = Object.fromEntries(
-    Object.entries(responseHeaders ?? {}).filter(([key]) => key.toLowerCase() !== "content-security-policy"),
+    Object.entries(responseHeaders ?? {}).filter(
+      ([key]) => key.toLowerCase() !== "content-security-policy",
+    ),
   ) as ResponseHeaders
   nextHeaders["Content-Security-Policy"] = [policy]
   return nextHeaders
 }
 
-export function shouldApplyRendererCsp(requestUrl: string, rendererUrl?: string): boolean {
+export function shouldApplyRendererCsp(
+  requestUrl: string,
+  rendererUrl?: string,
+): boolean {
   const rendererOrigin = parseRendererOrigin(rendererUrl)
   try {
     const parsed = new URL(requestUrl)

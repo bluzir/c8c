@@ -5,15 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>()
 const allowedProjectRootsMock = vi.fn<() => Promise<string[]>>()
-const assertRegisteredProjectPathMock = vi.fn<(projectPath: string) => Promise<string>>()
+const assertRegisteredProjectPathMock =
+  vi.fn<(projectPath: string) => Promise<string>>()
 const assertWithinRootsMock = vi.fn()
 const execFileMock = vi.fn()
 
 vi.mock("electron", () => ({
   ipcMain: {
-    handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
-      ipcHandlers.set(channel, handler)
-    }),
+    handle: vi.fn(
+      (channel: string, handler: (...args: unknown[]) => unknown) => {
+        ipcHandlers.set(channel, handler)
+      },
+    ),
   },
 }))
 
@@ -23,7 +26,8 @@ vi.mock("node:child_process", () => ({
 
 vi.mock("../lib/security-paths", () => ({
   allowedProjectRoots: (...args: unknown[]) => allowedProjectRootsMock(...args),
-  assertRegisteredProjectPath: (...args: unknown[]) => assertRegisteredProjectPathMock(...args),
+  assertRegisteredProjectPath: (...args: unknown[]) =>
+    assertRegisteredProjectPathMock(...args),
   assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
 }))
 
@@ -36,13 +40,15 @@ describe("files IPC", () => {
     ipcHandlers.clear()
     projectDir = await mkdtemp(join(tmpdir(), "files-ipc-project-"))
     allowedProjectRootsMock.mockResolvedValue([projectDir])
-    assertRegisteredProjectPathMock.mockImplementation(async (projectPath: string) => {
-      const roots = await allowedProjectRootsMock()
-      if (!roots.includes(projectPath)) {
-        throw new Error("Project path is not registered")
-      }
-      return projectPath
-    })
+    assertRegisteredProjectPathMock.mockImplementation(
+      async (projectPath: string) => {
+        const roots = await allowedProjectRootsMock()
+        if (!roots.includes(projectPath)) {
+          throw new Error("Project path is not registered")
+        }
+        return projectPath
+      },
+    )
     assertWithinRootsMock.mockImplementation((value: string) => value)
   })
 
@@ -53,19 +59,23 @@ describe("files IPC", () => {
   it("validates project paths inside gitLsFiles before invoking git", async () => {
     const { gitLsFiles } = await import("./files")
 
-    await expect(gitLsFiles("/tmp/not-registered")).rejects.toThrow("Project path is not registered")
+    await expect(gitLsFiles("/tmp/not-registered")).rejects.toThrow(
+      "Project path is not registered",
+    )
     expect(execFileMock).not.toHaveBeenCalled()
   })
 
   it("lists git-tracked files for safe project paths", async () => {
-    execFileMock.mockImplementation((
-      _command: string,
-      _args: string[],
-      _options: Record<string, unknown>,
-      callback: (error: Error | null, stdout: string) => void,
-    ) => {
-      callback(null, "src/index.ts\nREADME.md\n")
-    })
+    execFileMock.mockImplementation(
+      (
+        _command: string,
+        _args: string[],
+        _options: Record<string, unknown>,
+        callback: (error: Error | null, stdout: string) => void,
+      ) => {
+        callback(null, "src/index.ts\nREADME.md\n")
+      },
+    )
 
     const { gitLsFiles } = await import("./files")
     const files = await gitLsFiles(projectDir, "read")
@@ -79,30 +89,38 @@ describe("files IPC", () => {
     await mkdir(join(projectDir, "node_modules"), { recursive: true })
     await writeFile(join(projectDir, "README.md"), "# readme\n", "utf8")
     await writeFile(join(projectDir, "src", "app.ts"), "export {}\n", "utf8")
-    await writeFile(join(projectDir, "node_modules", "skip.js"), "module.exports = {}\n", "utf8")
+    await writeFile(
+      join(projectDir, "node_modules", "skip.js"),
+      "module.exports = {}\n",
+      "utf8",
+    )
 
-    execFileMock.mockImplementation((
-      _command: string,
-      _args: string[],
-      _options: Record<string, unknown>,
-      callback: (error: Error | null, stdout: string) => void,
-    ) => {
-      callback(new Error("not a git repo"), "")
-    })
+    execFileMock.mockImplementation(
+      (
+        _command: string,
+        _args: string[],
+        _options: Record<string, unknown>,
+        callback: (error: Error | null, stdout: string) => void,
+      ) => {
+        callback(new Error("not a git repo"), "")
+      },
+    )
 
     const { registerFilesHandlers } = await import("./files")
     registerFilesHandlers()
 
     const listProjectHandler = ipcHandlers.get("files:list-project") as
-      | ((event: unknown, projectPath: string, query?: string) => Promise<Array<{ name: string; relativePath: string }>>)
+      | ((
+          event: unknown,
+          projectPath: string,
+          query?: string,
+        ) => Promise<Array<{ name: string; relativePath: string }>>)
       | undefined
 
     expect(listProjectHandler).toBeDefined()
 
     const files = await listProjectHandler!(undefined, projectDir, "app")
 
-    expect(files).toEqual([
-      { name: "app.ts", relativePath: "src/app.ts" },
-    ])
+    expect(files).toEqual([{ name: "app.ts", relativePath: "src/app.ts" }])
   })
 })

@@ -23,17 +23,27 @@ interface TelemetryPersistedState {
   consentSource: "default" | "user"
 }
 
-const BLOCKED_KEY_PARTS = ["prompt", "content", "path", "token", "secret", "key", "auth"]
+const BLOCKED_KEY_PARTS = [
+  "prompt",
+  "content",
+  "path",
+  "token",
+  "secret",
+  "key",
+  "auth",
+]
 const STRING_VALUE_LIMIT = 240
 
 const buildFlavor: BuildFlavor = __BUILD_FLAVOR__
 const releaseChannel: "stable" | "beta" = __RELEASE_CHANNEL__
 const configuredProvider: TelemetryProvider = __TELEMETRY_PROVIDER__
 const telemetryLocalTest = __TELEMETRY_LOCAL_TEST__
-const configHasPosthogCreds = Boolean(__POSTHOG_HOST__) && Boolean(__POSTHOG_KEY__)
-const telemetryAvailableInBuild = __TELEMETRY_ENABLED__
-  && configuredProvider === "posthog"
-  && configHasPosthogCreds
+const configHasPosthogCreds =
+  Boolean(__POSTHOG_HOST__) && Boolean(__POSTHOG_KEY__)
+const telemetryAvailableInBuild =
+  __TELEMETRY_ENABLED__ &&
+  configuredProvider === "posthog" &&
+  configHasPosthogCreds
 
 let telemetryClient: TelemetryClient = createTelemetryClient({
   provider: "noop",
@@ -87,20 +97,25 @@ async function loadPersistedState(): Promise<TelemetryPersistedState> {
   try {
     const raw = await readFile(telemetryStatePath(), "utf-8")
     const parsed = JSON.parse(raw) as Partial<TelemetryPersistedState>
-    const parsedConsentSource = parsed.consentSource === "user" || parsed.consentSource === "default"
-      ? parsed.consentSource
-      : undefined
-    const parsedConsent = typeof parsed.consent === "boolean" ? parsed.consent : undefined
+    const parsedConsentSource =
+      parsed.consentSource === "user" || parsed.consentSource === "default"
+        ? parsed.consentSource
+        : undefined
+    const parsedConsent =
+      typeof parsed.consent === "boolean" ? parsed.consent : undefined
     const consentSource: "default" | "user" = parsedConsentSource ?? "default"
-    const consent = consentSource === "default"
-      ? telemetryAvailableInBuild
-      : Boolean(parsedConsent)
+    const consent =
+      consentSource === "default"
+        ? telemetryAvailableInBuild
+        : Boolean(parsedConsent)
 
     return {
       consent,
-      distinctId: typeof parsed.distinctId === "string" && parsed.distinctId.trim().length > 0
-        ? parsed.distinctId
-        : randomUUID(),
+      distinctId:
+        typeof parsed.distinctId === "string" &&
+        parsed.distinctId.trim().length > 0
+          ? parsed.distinctId
+          : randomUUID(),
       consentSource,
     }
   } catch {
@@ -166,7 +181,11 @@ export async function initTelemetryService(): Promise<void> {
       })
 
       if (telemetryState.consent && !telemetryAvailableInBuild) {
-        telemetryState = { ...telemetryState, consent: false, consentSource: "default" }
+        telemetryState = {
+          ...telemetryState,
+          consent: false,
+          consentSource: "default",
+        }
         await persistState()
       }
     } catch (error) {
@@ -198,7 +217,9 @@ export async function getTelemetrySettings(): Promise<TelemetrySettings> {
   }
 }
 
-export async function setTelemetryConsent(enabled: boolean): Promise<TelemetrySettings> {
+export async function setTelemetryConsent(
+  enabled: boolean,
+): Promise<TelemetrySettings> {
   await initTelemetryService()
 
   const nextConsent = telemetryAvailableInBuild && Boolean(enabled)
@@ -246,7 +267,9 @@ export async function trackTelemetryEvent(
   })
 }
 
-export async function trackTelemetryUiEvent(name: TelemetryUiEvent): Promise<void> {
+export async function trackTelemetryUiEvent(
+  name: TelemetryUiEvent,
+): Promise<void> {
   if (name === "settings_opened") {
     await trackTelemetryEvent("settings_opened")
   }

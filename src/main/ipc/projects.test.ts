@@ -9,9 +9,11 @@ const logWarnMock = vi.fn()
 
 vi.mock("electron", () => ({
   ipcMain: {
-    handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
-      ipcHandlers.set(channel, handler)
-    }),
+    handle: vi.fn(
+      (channel: string, handler: (...args: unknown[]) => unknown) => {
+        ipcHandlers.set(channel, handler)
+      },
+    ),
   },
   dialog: {
     showOpenDialog: vi.fn(),
@@ -53,15 +55,22 @@ describe("projects IPC", () => {
       | undefined
     expect(reorderHandler).toBeDefined()
 
-    const reordered = await reorderHandler!(undefined, ["/tmp/gamma", "/tmp/alpha"])
+    const reordered = await reorderHandler!(undefined, [
+      "/tmp/gamma",
+      "/tmp/alpha",
+    ])
 
     expect(saveProjectsConfigMock).toHaveBeenCalledWith({
       projects: ["/tmp/gamma", "/tmp/alpha", "/tmp/beta"],
       removedCount: 0,
     })
     expect(reordered).toEqual(["/tmp/gamma", "/tmp/alpha", "/tmp/beta"])
-    expect(logInfoMock).toHaveBeenCalledWith("projects-ipc", "projects_reordered", {
-      projectCount: 3,
-    })
+    expect(logInfoMock).toHaveBeenCalledWith(
+      "projects-ipc",
+      "projects_reordered",
+      {
+        projectCount: 3,
+      },
+    )
   })
 })

@@ -8,7 +8,9 @@ const installMarketplaceMock = vi.fn()
 const updateMarketplaceMock = vi.fn()
 const removeMarketplaceMock = vi.fn()
 const listInstalledPluginsMock = vi.fn()
-const setPluginEnabledMock = vi.fn<(...args: unknown[]) => Promise<boolean>>(() => Promise.resolve(true))
+const setPluginEnabledMock = vi.fn<(...args: unknown[]) => Promise<boolean>>(
+  () => Promise.resolve(true),
+)
 
 const PREDEFINED_MARKETPLACES = [
   {
@@ -22,9 +24,11 @@ const PREDEFINED_MARKETPLACES = [
 
 vi.mock("electron", () => ({
   ipcMain: {
-    handle: vi.fn((channel: string, handler: (...args: unknown[]) => unknown) => {
-      ipcHandlers.set(channel, handler)
-    }),
+    handle: vi.fn(
+      (channel: string, handler: (...args: unknown[]) => unknown) => {
+        ipcHandlers.set(channel, handler)
+      },
+    ),
   },
 }))
 
@@ -33,7 +37,8 @@ vi.mock("../lib/plugins", () => ({
   installMarketplace: (...args: unknown[]) => installMarketplaceMock(...args),
   updateMarketplace: (...args: unknown[]) => updateMarketplaceMock(...args),
   removeMarketplace: (...args: unknown[]) => removeMarketplaceMock(...args),
-  listInstalledPlugins: (...args: unknown[]) => listInstalledPluginsMock(...args),
+  listInstalledPlugins: (...args: unknown[]) =>
+    listInstalledPluginsMock(...args),
   setPluginEnabled: (...args: unknown[]) => setPluginEnabledMock(...args),
   PREDEFINED_MARKETPLACES,
 }))
@@ -113,7 +118,8 @@ describe("plugins IPC locks", () => {
         version: "1.0.0",
         marketplaceId: "claude-plugins-official",
         marketplaceName: "Claude Plugins Official",
-        pluginPath: "/home/.c8c/plugins/marketplaces/claude-plugins-official/plugins/github",
+        pluginPath:
+          "/home/.c8c/plugins/marketplaces/claude-plugins-official/plugins/github",
         enabled: true,
         capabilities: ["skill"],
         assets: [{ capability: "skill", count: 2 }],
@@ -147,7 +153,10 @@ describe("plugins IPC locks", () => {
     expect(listInstalledPluginsMock).not.toHaveBeenCalled()
 
     releaseInstall.resolve()
-    const [firstResult, secondResult] = await Promise.all([firstScan, secondScan])
+    const [firstResult, secondResult] = await Promise.all([
+      firstScan,
+      secondScan,
+    ])
     await pendingInstall
 
     expect(listInstalledPluginsMock).toHaveBeenCalledTimes(1)

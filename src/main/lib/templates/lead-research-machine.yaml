@@ -40,7 +40,8 @@ nodes:
       x: 600
       y: 200
     config:
-      strategy: Identify 4-6 distinct market segments to research leads in. Each segment should target different company types
+      strategy:
+        Identify 4-6 distinct market segments to research leads in. Each segment should target different company types
         or buyer personas.
   - id: lead-finder-1
     type: skill
@@ -49,7 +50,8 @@ nodes:
       y: 200
     config:
       skillRef: composio/lead-research-assistant
-      prompt: Find high-quality leads for this segment. Research companies, find decision makers, provide contact info and
+      prompt:
+        Find high-quality leads for this segment. Research companies, find decision makers, provide contact info and
         personalization hooks.
   - id: merger-1
     type: merger
@@ -58,7 +60,8 @@ nodes:
       y: 200
     config:
       strategy: summarize
-      prompt: Compile all leads into a prioritized list. Group by segment, include research quality scores, and highlight top
+      prompt:
+        Compile all leads into a prioritized list. Group by segment, include research quality scores, and highlight top
         10 highest-potential leads.
   - id: eval-1
     type: evaluator

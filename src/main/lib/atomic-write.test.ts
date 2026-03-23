@@ -17,19 +17,19 @@ describe("atomic-write", () => {
 
   it("writes content atomically", async () => {
     const filePath = join(dir, "state.json")
-    await writeFileAtomic(filePath, "{\"ok\":true}\n")
+    await writeFileAtomic(filePath, '{"ok":true}\n')
 
     const stored = await readFile(filePath, "utf-8")
-    expect(stored).toBe("{\"ok\":true}\n")
+    expect(stored).toBe('{"ok":true}\n')
   })
 
   it("overwrites existing files and cleans up temp files", async () => {
     const filePath = join(dir, "config.json")
-    await writeFile(filePath, "{\"version\":1}\n", "utf-8")
+    await writeFile(filePath, '{"version":1}\n', "utf-8")
 
-    await writeFileAtomic(filePath, "{\"version\":2}\n")
+    await writeFileAtomic(filePath, '{"version":2}\n')
     const stored = await readFile(filePath, "utf-8")
-    expect(stored).toBe("{\"version\":2}\n")
+    expect(stored).toBe('{"version":2}\n')
 
     const entries = await readdir(dir)
     const tempEntries = entries.filter((name) => name.includes(".tmp"))

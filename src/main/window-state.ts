@@ -25,26 +25,54 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function intersectionArea(a: Rectangle, b: Rectangle): number {
-  const xOverlap = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x))
-  const yOverlap = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
+  const xOverlap = Math.max(
+    0,
+    Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x),
+  )
+  const yOverlap = Math.max(
+    0,
+    Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y),
+  )
   return xOverlap * yOverlap
 }
 
 export function normalizeBounds(bounds: Rectangle): Rectangle {
-  const nearestDisplay = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y }).workArea
-  const width = clamp(bounds.width, MIN_WINDOW_WIDTH, Math.max(MIN_WINDOW_WIDTH, nearestDisplay.width))
-  const height = clamp(bounds.height, MIN_WINDOW_HEIGHT, Math.max(MIN_WINDOW_HEIGHT, nearestDisplay.height))
+  const nearestDisplay = screen.getDisplayNearestPoint({
+    x: bounds.x,
+    y: bounds.y,
+  }).workArea
+  const width = clamp(
+    bounds.width,
+    MIN_WINDOW_WIDTH,
+    Math.max(MIN_WINDOW_WIDTH, nearestDisplay.width),
+  )
+  const height = clamp(
+    bounds.height,
+    MIN_WINDOW_HEIGHT,
+    Math.max(MIN_WINDOW_HEIGHT, nearestDisplay.height),
+  )
 
   const candidate: Rectangle = { x: bounds.x, y: bounds.y, width, height }
   const isVisible = screen.getAllDisplays().some((display) => {
     const visibleArea = intersectionArea(candidate, display.workArea)
-    return visibleArea >= Math.min(candidate.width * candidate.height * 0.15, 120_000)
+    return (
+      visibleArea >=
+      Math.min(candidate.width * candidate.height * 0.15, 120_000)
+    )
   })
 
   if (!isVisible) {
     const primary = screen.getPrimaryDisplay().workArea
-    const centeredWidth = clamp(width, MIN_WINDOW_WIDTH, Math.max(MIN_WINDOW_WIDTH, primary.width))
-    const centeredHeight = clamp(height, MIN_WINDOW_HEIGHT, Math.max(MIN_WINDOW_HEIGHT, primary.height))
+    const centeredWidth = clamp(
+      width,
+      MIN_WINDOW_WIDTH,
+      Math.max(MIN_WINDOW_WIDTH, primary.width),
+    )
+    const centeredHeight = clamp(
+      height,
+      MIN_WINDOW_HEIGHT,
+      Math.max(MIN_WINDOW_HEIGHT, primary.height),
+    )
     return {
       x: Math.round(primary.x + (primary.width - centeredWidth) / 2),
       y: Math.round(primary.y + (primary.height - centeredHeight) / 2),
@@ -65,14 +93,24 @@ export function normalizeBounds(bounds: Rectangle): Rectangle {
   }
 }
 
-export function normalizeWindowState(saved: PersistedWindowState): PersistedWindowState {
+export function normalizeWindowState(
+  saved: PersistedWindowState,
+): PersistedWindowState {
   const hasPosition = typeof saved.x === "number" && typeof saved.y === "number"
   if (!hasPosition) {
     const primary = screen.getPrimaryDisplay().workArea
     return {
       ...saved,
-      width: clamp(saved.width, MIN_WINDOW_WIDTH, Math.max(MIN_WINDOW_WIDTH, primary.width)),
-      height: clamp(saved.height, MIN_WINDOW_HEIGHT, Math.max(MIN_WINDOW_HEIGHT, primary.height)),
+      width: clamp(
+        saved.width,
+        MIN_WINDOW_WIDTH,
+        Math.max(MIN_WINDOW_WIDTH, primary.width),
+      ),
+      height: clamp(
+        saved.height,
+        MIN_WINDOW_HEIGHT,
+        Math.max(MIN_WINDOW_HEIGHT, primary.height),
+      ),
     }
   }
 
@@ -93,7 +131,9 @@ export function normalizeWindowState(saved: PersistedWindowState): PersistedWind
 }
 
 export function areBoundsEqual(a: Rectangle, b: Rectangle): boolean {
-  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+  return (
+    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+  )
 }
 
 export function windowStatePath(): string {
@@ -105,12 +145,14 @@ export async function loadWindowState(): Promise<PersistedWindowState> {
     const raw = await readFile(windowStatePath(), "utf-8")
     const parsed = JSON.parse(raw) as Partial<PersistedWindowState>
     return {
-      width: typeof parsed.width === "number"
-        ? Math.max(MIN_WINDOW_WIDTH, Math.round(parsed.width))
-        : DEFAULT_WINDOW_STATE.width,
-      height: typeof parsed.height === "number"
-        ? Math.max(MIN_WINDOW_HEIGHT, Math.round(parsed.height))
-        : DEFAULT_WINDOW_STATE.height,
+      width:
+        typeof parsed.width === "number"
+          ? Math.max(MIN_WINDOW_WIDTH, Math.round(parsed.width))
+          : DEFAULT_WINDOW_STATE.width,
+      height:
+        typeof parsed.height === "number"
+          ? Math.max(MIN_WINDOW_HEIGHT, Math.round(parsed.height))
+          : DEFAULT_WINDOW_STATE.height,
       x: typeof parsed.x === "number" ? Math.round(parsed.x) : undefined,
       y: typeof parsed.y === "number" ? Math.round(parsed.y) : undefined,
       isMaximized: Boolean(parsed.isMaximized),
@@ -122,7 +164,9 @@ export async function loadWindowState(): Promise<PersistedWindowState> {
 
 export async function persistWindowState(window: BrowserWindow): Promise<void> {
   const isMaximized = window.isMaximized()
-  const bounds: Rectangle = isMaximized ? window.getNormalBounds() : window.getBounds()
+  const bounds: Rectangle = isMaximized
+    ? window.getNormalBounds()
+    : window.getBounds()
   const payload: PersistedWindowState = {
     width: bounds.width,
     height: bounds.height,

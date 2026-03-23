@@ -2,7 +2,9 @@ import { createNoopTelemetryClient } from "./providers/noop"
 import { PosthogTelemetryClient } from "./providers/posthog"
 import type { TelemetryClient, TelemetryProviderConfig } from "./types"
 
-export function createTelemetryClient(config: TelemetryProviderConfig): TelemetryClient {
+export function createTelemetryClient(
+  config: TelemetryProviderConfig,
+): TelemetryClient {
   if (config.provider !== "posthog") {
     return createNoopTelemetryClient()
   }
@@ -17,4 +19,3 @@ export function createTelemetryClient(config: TelemetryProviderConfig): Telemetr
     consent: config.consent,
   })
 }
-

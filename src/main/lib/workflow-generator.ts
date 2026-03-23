@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import type { Workflow, WorkflowNode, WorkflowEdge, EdgeType, NodeType } from "@shared/types"
+import type {
+  Workflow,
+  WorkflowNode,
+  WorkflowEdge,
+  EdgeType,
+  NodeType,
+} from "@shared/types"
 import { validateWorkflow } from "./graph-engine"
 
 interface SkillInfo {
@@ -91,7 +97,14 @@ function buildAvailableSkillsSection(availableSkills: SkillInfo[]): string {
 }
 
 const VALID_EDGE_TYPES = new Set<string>(["default", "pass", "fail"])
-const VALID_NODE_TYPES = new Set<string>(["input", "skill", "evaluator", "splitter", "merger", "output"])
+const VALID_NODE_TYPES = new Set<string>([
+  "input",
+  "skill",
+  "evaluator",
+  "splitter",
+  "merger",
+  "output",
+])
 
 function normalizeConfig(n: any): any {
   const type: string = VALID_NODE_TYPES.has(n.type) ? n.type : "skill"
@@ -144,7 +157,10 @@ export function normalizeNodes(nodes: any[]): WorkflowNode[] {
     ...n,
     id: n.id || `node-${i}`,
     type: (VALID_NODE_TYPES.has(n.type) ? n.type : "skill") as NodeType,
-    position: n.position && typeof n.position.x === "number" ? n.position : { x: i * 300, y: 200 },
+    position:
+      n.position && typeof n.position.x === "number"
+        ? n.position
+        : { x: i * 300, y: 200 },
     config: normalizeConfig(n),
   }))
 }

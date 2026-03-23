@@ -63,9 +63,7 @@ const TEST_WORKFLOW: Workflow = {
     { id: "input", type: "input", position: { x: 0, y: 0 }, config: {} },
     { id: "output", type: "output", position: { x: 120, y: 0 }, config: {} },
   ],
-  edges: [
-    { id: "edge-1", source: "input", target: "output", type: "default" },
-  ],
+  edges: [{ id: "edge-1", source: "input", target: "output", type: "default" }],
 }
 
 const TEST_INPUT: WorkflowInput = {
@@ -102,10 +100,14 @@ describe("workflow-runner adapter", () => {
   })
 
   it("honors cancel requests that arrive before a run handle is attached", async () => {
-    let resolveStart: ((handle: ReturnType<typeof createHandle>) => void) | undefined
+    let resolveStart:
+      | ((handle: ReturnType<typeof createHandle>) => void)
+      | undefined
     startRunMock.mockReturnValue(
       new Promise((resolve) => {
-        resolveStart = resolve as (handle: ReturnType<typeof createHandle>) => void
+        resolveStart = resolve as (
+          handle: ReturnType<typeof createHandle>,
+        ) => void
       }),
     )
 
@@ -123,7 +125,9 @@ describe("workflow-runner adapter", () => {
     resolveStart?.(handle)
     await runPromise
 
-    expect(handle.cancel).toHaveBeenCalledWith("cancelled before handle attached")
+    expect(handle.cancel).toHaveBeenCalledWith(
+      "cancelled before handle attached",
+    )
   })
 
   it("logs and emits an interrupted run when the event stream fails", async () => {
@@ -138,7 +142,12 @@ describe("workflow-runner adapter", () => {
     const mockWindow = { isDestroyed: () => false } as never
     const { runWorkflow } = await import("./workflow-runner")
 
-    await runWorkflow("run-stream-failure", TEST_WORKFLOW, TEST_INPUT, mockWindow)
+    await runWorkflow(
+      "run-stream-failure",
+      TEST_WORKFLOW,
+      TEST_INPUT,
+      mockWindow,
+    )
     await Promise.resolve()
     await Promise.resolve()
 

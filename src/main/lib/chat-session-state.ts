@@ -23,7 +23,9 @@ const activeChatSessionIdByWorkflow = new Map<string, string>()
 function cloneMessage(message: ChatSessionMessage): ChatSessionMessage {
   return {
     ...message,
-    toolInput: message.toolInput ? structuredClone(message.toolInput) : undefined,
+    toolInput: message.toolInput
+      ? structuredClone(message.toolInput)
+      : undefined,
   }
 }
 
@@ -39,7 +41,10 @@ function cloneSnapshot(record: ActiveChatSessionRecord): ChatSessionSnapshot {
   }
 }
 
-function createStreamingPlaceholder(sessionId: string, timestamp: number): ChatSessionMessage {
+function createStreamingPlaceholder(
+  sessionId: string,
+  timestamp: number,
+): ChatSessionMessage {
   return {
     id: `streaming-${sessionId}`,
     role: "assistant",
@@ -49,7 +54,9 @@ function createStreamingPlaceholder(sessionId: string, timestamp: number): ChatS
   }
 }
 
-function ensureStreamingPlaceholder(record: ActiveChatSessionRecord): ChatSessionMessage {
+function ensureStreamingPlaceholder(
+  record: ActiveChatSessionRecord,
+): ChatSessionMessage {
   const existing = record.messages.find(
     (message) => message.role === "assistant" && message.streaming,
   )
@@ -73,7 +80,9 @@ function toSessionMessage(message: ChatMessage): ChatSessionMessage {
     content: message.content,
     timestamp: message.timestamp,
     toolName: message.toolName,
-    toolInput: message.toolInput ? structuredClone(message.toolInput) : undefined,
+    toolInput: message.toolInput
+      ? structuredClone(message.toolInput)
+      : undefined,
     toolCallId: message.toolCallId,
     toolOutput: message.toolOutput,
     toolError: message.toolError,
@@ -93,7 +102,10 @@ export function beginActiveChatSession(
     status: "thinking",
     activeToolName: null,
     workflow: structuredClone(workflow),
-    messages: [...messages.map(toSessionMessage), createStreamingPlaceholder(sessionId, timestamp)],
+    messages: [
+      ...messages.map(toSessionMessage),
+      createStreamingPlaceholder(sessionId, timestamp),
+    ],
     updatedAt: timestamp,
   }
   activeChatSessionsById.set(sessionId, record)
@@ -179,7 +191,9 @@ export function applyChatEventToActiveSession(event: ChatEvent): void {
   }
 }
 
-export function getActiveChatSessionSnapshot(workflowPath: string): ChatSessionSnapshot | null {
+export function getActiveChatSessionSnapshot(
+  workflowPath: string,
+): ChatSessionSnapshot | null {
   const sessionId = activeChatSessionIdByWorkflow.get(workflowPath)
   if (!sessionId) return null
   const record = activeChatSessionsById.get(sessionId)

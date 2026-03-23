@@ -41,8 +41,14 @@ describe("plugin-scanner", () => {
       skills: "./skills",
       templates: "./templates",
     })
-    await writeText(join(pluginRoot, "skills", "design-system", "SKILL.md"), "---\nname: Design System\n---\n")
-    await writeText(join(pluginRoot, "templates", "landing.yaml"), "version: 1\nname: Landing\n")
+    await writeText(
+      join(pluginRoot, "skills", "design-system", "SKILL.md"),
+      "---\nname: Design System\n---\n",
+    )
+    await writeText(
+      join(pluginRoot, "templates", "landing.yaml"),
+      "version: 1\nname: Landing\n",
+    )
     await writeJson(join(pluginRoot, ".mcp.json"), {
       mcpServers: {
         github: {
@@ -72,26 +78,35 @@ describe("plugin-scanner", () => {
   it("discovers multiple plugins from a marketplace manifest and preserves enable state", async () => {
     const marketplaceRoot = join(root, "official-marketplace")
 
-    await writeJson(join(marketplaceRoot, ".claude-plugin", "marketplace.json"), {
-      name: "Official Marketplace",
-      owner: {
-        name: "Anthropic",
+    await writeJson(
+      join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+      {
+        name: "Official Marketplace",
+        owner: {
+          name: "Anthropic",
+        },
+        plugins: [
+          {
+            name: "alpha",
+            source: "./plugins/alpha",
+            description: "Alpha skills",
+          },
+          {
+            name: "beta",
+            source: "./plugins/beta",
+            description: "Beta templates",
+          },
+        ],
       },
-      plugins: [
-        {
-          name: "alpha",
-          source: "./plugins/alpha",
-          description: "Alpha skills",
-        },
-        {
-          name: "beta",
-          source: "./plugins/beta",
-          description: "Beta templates",
-        },
-      ],
-    })
-    await writeText(join(marketplaceRoot, "plugins", "alpha", "skills", "writer", "SKILL.md"), "---\nname: Writer\n---\n")
-    await writeText(join(marketplaceRoot, "plugins", "beta", "templates", "review.yaml"), "version: 1\n")
+    )
+    await writeText(
+      join(marketplaceRoot, "plugins", "alpha", "skills", "writer", "SKILL.md"),
+      "---\nname: Writer\n---\n",
+    )
+    await writeText(
+      join(marketplaceRoot, "plugins", "beta", "templates", "review.yaml"),
+      "version: 1\n",
+    )
     await writeJson(join(marketplaceRoot, "plugins", "beta", ".mcp.json"), {
       mcpServers: {
         linear: {
@@ -131,7 +146,10 @@ describe("plugin-scanner", () => {
   it("skips invalid marketplace manifests without throwing", async () => {
     const marketplaceRoot = join(root, "broken-marketplace")
 
-    await writeText(join(marketplaceRoot, ".claude-plugin", "marketplace.json"), "{not-valid-json")
+    await writeText(
+      join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+      "{not-valid-json",
+    )
 
     const plugins = await discoverInstalledPlugins({ marketplacesDir: root })
 
@@ -142,19 +160,31 @@ describe("plugin-scanner", () => {
   it("returns plugins with empty asset summaries when directories are missing", async () => {
     const marketplaceRoot = join(root, "empty-marketplace")
 
-    await writeJson(join(marketplaceRoot, ".claude-plugin", "marketplace.json"), {
-      name: "Empty Marketplace",
-      plugins: [
-        {
-          name: "empty-pack",
-          source: "./plugins/empty-pack",
-        },
-      ],
-    })
-    await writeJson(join(marketplaceRoot, "plugins", "empty-pack", ".claude-plugin", "plugin.json"), {
-      name: "empty-pack",
-      description: "No assets yet",
-    })
+    await writeJson(
+      join(marketplaceRoot, ".claude-plugin", "marketplace.json"),
+      {
+        name: "Empty Marketplace",
+        plugins: [
+          {
+            name: "empty-pack",
+            source: "./plugins/empty-pack",
+          },
+        ],
+      },
+    )
+    await writeJson(
+      join(
+        marketplaceRoot,
+        "plugins",
+        "empty-pack",
+        ".claude-plugin",
+        "plugin.json",
+      ),
+      {
+        name: "empty-pack",
+        description: "No assets yet",
+      },
+    )
 
     const plugins = await discoverInstalledPlugins({ marketplacesDir: root })
 

@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { spawnClaudeMock, createClaudeSdkExecutionHandleMock } = vi.hoisted(() => ({
-  spawnClaudeMock: vi.fn(),
-  createClaudeSdkExecutionHandleMock: vi.fn(),
-}))
+const { spawnClaudeMock, createClaudeSdkExecutionHandleMock } = vi.hoisted(
+  () => ({
+    spawnClaudeMock: vi.fn(),
+    createClaudeSdkExecutionHandleMock: vi.fn(),
+  }),
+)
 
 vi.mock("@claude-tools/runner", () => ({
   spawnClaude: (...args: unknown[]) => spawnClaudeMock(...args),
 }))
 
 vi.mock("../claude-sdk-runtime", () => ({
-  createClaudeSdkExecutionHandle: (...args: unknown[]) => createClaudeSdkExecutionHandleMock(...args),
+  createClaudeSdkExecutionHandle: (...args: unknown[]) =>
+    createClaudeSdkExecutionHandleMock(...args),
 }))
 
 vi.mock("../mcp-config", () => ({
@@ -33,7 +36,9 @@ describe("ClaudeAgentProvider legacy fallback", () => {
   })
 
   it("forwards resume and persistence flags when SDK execution falls back to CLI", async () => {
-    createClaudeSdkExecutionHandleMock.mockRejectedValue(new Error("sdk unavailable"))
+    createClaudeSdkExecutionHandleMock.mockRejectedValue(
+      new Error("sdk unavailable"),
+    )
     spawnClaudeMock.mockResolvedValue({
       success: true,
       exitCode: 0,
@@ -59,12 +64,14 @@ describe("ClaudeAgentProvider legacy fallback", () => {
       providerSessionId: null,
     })
     expect(spawnClaudeMock).toHaveBeenCalledTimes(1)
-    expect(spawnClaudeMock).toHaveBeenCalledWith(expect.objectContaining({
-      extraArgs: expect.arrayContaining([
-        "--resume",
-        "saved-session-7",
-        "--no-session-persistence",
-      ]),
-    }))
+    expect(spawnClaudeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraArgs: expect.arrayContaining([
+          "--resume",
+          "saved-session-7",
+          "--no-session-persistence",
+        ]),
+      }),
+    )
   })
 })

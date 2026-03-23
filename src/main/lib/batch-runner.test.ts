@@ -21,7 +21,12 @@ const TEST_WORKFLOW: Workflow = {
   defaults: { model: "sonnet" },
   nodes: [
     { id: "input-1", type: "input", position: { x: 0, y: 0 }, config: {} },
-    { id: "skill-1", type: "skill", position: { x: 300, y: 0 }, config: { skillRef: "test", prompt: "do it" } },
+    {
+      id: "skill-1",
+      type: "skill",
+      position: { x: 300, y: 0 },
+      config: { skillRef: "test", prompt: "do it" },
+    },
     { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
   ],
   edges: [
@@ -40,7 +45,11 @@ const APPROVAL_WORKFLOW: Workflow = {
       id: "approval-1",
       type: "approval",
       position: { x: 300, y: 0 },
-      config: { show_content: true, allow_edit: false, message: "Review content" },
+      config: {
+        show_content: true,
+        allow_edit: false,
+        message: "Review content",
+      },
     },
     { id: "output-1", type: "output", position: { x: 600, y: 0 }, config: {} },
   ],
@@ -81,7 +90,10 @@ const HUMAN_WORKFLOW: Workflow = {
   ],
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 500): Promise<void> {
+async function waitFor(
+  predicate: () => boolean,
+  timeoutMs = 500,
+): Promise<void> {
   const start = Date.now()
   while (!predicate()) {
     if (Date.now() - start > timeoutMs) {
@@ -219,7 +231,14 @@ describe("batch-runner", () => {
       { type: "text", value: "D" },
     ]
 
-    const batchPromise = runBatch("batch-concurrency", TEST_WORKFLOW, inputs, 2, false, mockWindow)
+    const batchPromise = runBatch(
+      "batch-concurrency",
+      TEST_WORKFLOW,
+      inputs,
+      2,
+      false,
+      mockWindow,
+    )
     await waitFor(() => mockRunWorkflow.mock.calls.length === 2)
     expect(maxActive).toBe(2)
 
@@ -268,7 +287,14 @@ describe("batch-runner", () => {
       value: `Item ${index}`,
     }))
 
-    await runBatch("batch-clamped", TEST_WORKFLOW, inputs, 50, false, mockWindow)
+    await runBatch(
+      "batch-clamped",
+      TEST_WORKFLOW,
+      inputs,
+      50,
+      false,
+      mockWindow,
+    )
 
     expect(maxActive).toBeLessThanOrEqual(10)
   })
@@ -284,7 +310,14 @@ describe("batch-runner", () => {
     const { runBatch } = await import("./batch-runner")
     const inputs: WorkflowInput[] = [{ type: "text", value: "A" }]
 
-    await runBatch("batch-approval", APPROVAL_WORKFLOW, inputs, 1, false, mockWindow)
+    await runBatch(
+      "batch-approval",
+      APPROVAL_WORKFLOW,
+      inputs,
+      1,
+      false,
+      mockWindow,
+    )
 
     const errorEvent = events.find((e) => e.type === "batch-error")
     expect(errorEvent).toBeDefined()
@@ -315,7 +348,14 @@ describe("batch-runner", () => {
     const { runBatch } = await import("./batch-runner")
     const inputs: WorkflowInput[] = [{ type: "text", value: "A" }]
 
-    await runBatch("batch-undefined", TEST_WORKFLOW, inputs, 1, false, mockWindow)
+    await runBatch(
+      "batch-undefined",
+      TEST_WORKFLOW,
+      inputs,
+      1,
+      false,
+      mockWindow,
+    )
 
     const doneEvent = events.find((e) => e.type === "batch-done")
     expect(doneEvent).toBeDefined()
@@ -338,7 +378,14 @@ describe("batch-runner", () => {
     const { runBatch } = await import("./batch-runner")
     const inputs: WorkflowInput[] = [{ type: "text", value: "A" }]
 
-    await runBatch("batch-invalid-concurrency", TEST_WORKFLOW, inputs, 0, false, mockWindow)
+    await runBatch(
+      "batch-invalid-concurrency",
+      TEST_WORKFLOW,
+      inputs,
+      0,
+      false,
+      mockWindow,
+    )
 
     const errorEvent = events.find((e) => e.type === "batch-error")
     expect(errorEvent).toBeDefined()
@@ -346,15 +393,20 @@ describe("batch-runner", () => {
   })
 
   it("cancels in-flight runs via cancelBatch", async () => {
-    let resolveRun: ((value: {
-      status: "cancelled"
-      evalScores: Record<string, number>
-      totalCost: number
-      durationMs: number
-    }) => void) | null = null
-    mockRunWorkflow.mockImplementation(() => new Promise((resolve) => {
-      resolveRun = resolve as typeof resolveRun
-    }))
+    let resolveRun:
+      | ((value: {
+          status: "cancelled"
+          evalScores: Record<string, number>
+          totalCost: number
+          durationMs: number
+        }) => void)
+      | null = null
+    mockRunWorkflow.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRun = resolve as typeof resolveRun
+        }),
+    )
     mockCancelWorkflowRun.mockImplementation(() => {
       resolveRun?.({
         status: "cancelled",
@@ -370,7 +422,14 @@ describe("batch-runner", () => {
       { type: "text", value: "B" },
     ]
 
-    const batchPromise = runBatch("batch-cancel", TEST_WORKFLOW, inputs, 1, false, mockWindow)
+    const batchPromise = runBatch(
+      "batch-cancel",
+      TEST_WORKFLOW,
+      inputs,
+      1,
+      false,
+      mockWindow,
+    )
     for (let i = 0; i < 10 && mockRunWorkflow.mock.calls.length === 0; i++) {
       await new Promise((resolve) => setTimeout(resolve, 0))
     }
@@ -387,21 +446,27 @@ describe("batch-runner", () => {
   })
 
   it("cancels only target batch when two batches run in parallel", async () => {
-    const runResolvers = new Map<string, (result: {
-      status: "completed" | "cancelled"
-      evalScores: Record<string, number>
-      totalCost: number
-      durationMs: number
-    }) => void>()
+    const runResolvers = new Map<
+      string,
+      (result: {
+        status: "completed" | "cancelled"
+        evalScores: Record<string, number>
+        totalCost: number
+        durationMs: number
+      }) => void
+    >()
 
     mockRunWorkflow.mockImplementation((runId: string) => {
       return new Promise((resolve) => {
-        runResolvers.set(runId, resolve as (result: {
-          status: "completed" | "cancelled"
-          evalScores: Record<string, number>
-          totalCost: number
-          durationMs: number
-        }) => void)
+        runResolvers.set(
+          runId,
+          resolve as (result: {
+            status: "completed" | "cancelled"
+            evalScores: Record<string, number>
+            totalCost: number
+            durationMs: number
+          }) => void,
+        )
       })
     })
 
@@ -425,15 +490,33 @@ describe("batch-runner", () => {
       { type: "text", value: "B-2" },
     ]
 
-    const runA = runBatch("batch-A", TEST_WORKFLOW, batchAInputs, 1, false, mockWindow)
-    const runB = runBatch("batch-B", TEST_WORKFLOW, batchBInputs, 2, false, mockWindow)
+    const runA = runBatch(
+      "batch-A",
+      TEST_WORKFLOW,
+      batchAInputs,
+      1,
+      false,
+      mockWindow,
+    )
+    const runB = runBatch(
+      "batch-B",
+      TEST_WORKFLOW,
+      batchBInputs,
+      2,
+      false,
+      mockWindow,
+    )
 
     await waitFor(() => mockRunWorkflow.mock.calls.length >= 3)
     expect(cancelBatch("batch-A")).toBe(true)
 
     await waitFor(() => mockCancelWorkflowRun.mock.calls.length > 0)
-    const cancelledRunIds = mockCancelWorkflowRun.mock.calls.map((call) => String(call[0]))
-    expect(cancelledRunIds.every((runId) => runId.includes("batch-batch-A-item-"))).toBe(true)
+    const cancelledRunIds = mockCancelWorkflowRun.mock.calls.map((call) =>
+      String(call[0]),
+    )
+    expect(
+      cancelledRunIds.every((runId) => runId.includes("batch-batch-A-item-")),
+    ).toBe(true)
 
     for (const [runId, resolveRun] of runResolvers.entries()) {
       if (runId.includes("batch-batch-B-item-")) {
@@ -449,8 +532,12 @@ describe("batch-runner", () => {
     await Promise.all([runA, runB])
 
     const doneEvents = events.filter((event) => event.type === "batch-done")
-    const doneA = doneEvents.find((event) => event.type === "batch-done" && event.batchId === "batch-A")
-    const doneB = doneEvents.find((event) => event.type === "batch-done" && event.batchId === "batch-B")
+    const doneA = doneEvents.find(
+      (event) => event.type === "batch-done" && event.batchId === "batch-A",
+    )
+    const doneB = doneEvents.find(
+      (event) => event.type === "batch-done" && event.batchId === "batch-B",
+    )
 
     expect(doneA).toBeDefined()
     expect(doneB).toBeDefined()

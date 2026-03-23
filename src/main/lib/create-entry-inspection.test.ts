@@ -13,7 +13,11 @@ async function createTempProject(name: string) {
 }
 
 afterEach(async () => {
-  await Promise.all(createdDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
+  await Promise.all(
+    createdDirs
+      .splice(0)
+      .map((dir) => rm(dir, { recursive: true, force: true })),
+  )
 })
 
 describe("inspectProjectForCreateEntry", () => {
@@ -29,7 +33,11 @@ describe("inspectProjectForCreateEntry", () => {
 
   it("classifies a scaffold project as greenfield_scaffold", async () => {
     const projectPath = await createTempProject("entry-scaffold")
-    await writeFile(join(projectPath, "package.json"), '{"name":"demo"}\n', "utf-8")
+    await writeFile(
+      join(projectPath, "package.json"),
+      '{"name":"demo"}\n',
+      "utf-8",
+    )
     await mkdir(join(projectPath, "src"))
 
     const inspection = await inspectProjectForCreateEntry(projectPath)
@@ -41,13 +49,25 @@ describe("inspectProjectForCreateEntry", () => {
 
   it("classifies a denser code project as existing_repo", async () => {
     const projectPath = await createTempProject("entry-existing")
-    await writeFile(join(projectPath, "package.json"), '{"name":"demo"}\n', "utf-8")
+    await writeFile(
+      join(projectPath, "package.json"),
+      '{"name":"demo"}\n',
+      "utf-8",
+    )
     await mkdir(join(projectPath, "src"))
     await mkdir(join(projectPath, "components"))
     for (let index = 0; index < 7; index += 1) {
-      await writeFile(join(projectPath, "src", `file-${index}.ts`), `export const value${index} = ${index}\n`, "utf-8")
+      await writeFile(
+        join(projectPath, "src", `file-${index}.ts`),
+        `export const value${index} = ${index}\n`,
+        "utf-8",
+      )
     }
-    await writeFile(join(projectPath, "components", "hero.tsx"), "export function Hero() { return null }\n", "utf-8")
+    await writeFile(
+      join(projectPath, "components", "hero.tsx"),
+      "export function Hero() { return null }\n",
+      "utf-8",
+    )
     await writeFile(join(projectPath, "README.md"), "# demo\n", "utf-8")
 
     const inspection = await inspectProjectForCreateEntry(projectPath)
