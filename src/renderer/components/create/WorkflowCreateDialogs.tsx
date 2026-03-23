@@ -62,16 +62,16 @@ export function RouteClarificationDialog({
                     key={option.templateId}
                     type="button"
                     variant="outline"
-                    size="sm"
+                    size="auto"
                     onClick={() =>
                       onSelect({
                         kind: "job_route",
                         templateId: option.templateId,
                       })
                     }
-                    className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left"
+                    className="w-full justify-start rounded-lg px-3 py-3 text-left"
                   >
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block text-body-sm font-medium text-foreground">
                         {option.label}
                       </span>
@@ -94,14 +94,14 @@ export function RouteClarificationDialog({
                   key={option.value}
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="auto"
                   disabled={option.disabled}
                   onClick={() =>
                     onSelect({ kind: "help_mode", helpMode: option.value })
                   }
-                  className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left"
+                  className="w-full justify-start rounded-lg px-3 py-3 text-left"
                 >
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block text-body-sm font-medium text-foreground">
                       {option.label}
                     </span>
