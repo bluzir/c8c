@@ -371,6 +371,7 @@ async function executeSkillNode(
 
   const prompt = context.helpers.sanitizeInvalidUnicode(
     [
+      `Today: ${new Date().toISOString().slice(0, 10)}`,
       `Workspace: ${context.workspace}`,
       `Content file: ${contentFile}`,
       "",
