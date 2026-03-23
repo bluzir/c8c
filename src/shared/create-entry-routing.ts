@@ -4,29 +4,13 @@ import type {
   ProjectInspectionSummary,
   ResultModeId,
 } from "./types"
-
-export const DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS = new Set([
-  "delivery-implement-phase",
-  "delivery-verify-phase",
-  "gstack-preflight-gate",
-])
-
-export const CONTENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS = new Set([
-  "content-ready-posts",
-  "content-distribution-bundle",
-  "content-editorial-calendar",
-  "content-idea-backlog",
-])
+import { getDomain } from "./domains"
 
 export function isBannedDirectCreateEntryTemplateId(
   modeId: ResultModeId,
   templateId: string,
 ): boolean {
-  if (modeId === "development")
-    return DEVELOPMENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS.has(templateId)
-  if (modeId === "content")
-    return CONTENT_BANNED_DIRECT_ENTRY_TEMPLATE_IDS.has(templateId)
-  return false
+  return getDomain(modeId).bannedEntryTemplateIds.has(templateId)
 }
 
 export function filterDirectCreateEntryOptions<

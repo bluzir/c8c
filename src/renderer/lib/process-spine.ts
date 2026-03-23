@@ -4,8 +4,13 @@ import type {
   RunStatus,
   WorkflowTemplate,
 } from "@shared/types"
+import { allDomains } from "@shared/domains"
 import type { ExecutionRunStatus } from "@/lib/workflow-execution"
 import type { WorkflowTemplateRunContext } from "@/lib/workflow-entry"
+import { initDomains } from "@/lib/domain-init"
+
+// Ensure domains are registered before any module-level constants are built.
+initDomains()
 
 export type ProcessSpineStageId =
   | "shape_map"
@@ -56,44 +61,16 @@ const STAGE_RANK: Record<ProcessSpineStageId, number> = {
   ship: 5,
 }
 
-const TEMPLATE_STAGE_OVERRIDES: Record<string, ProcessSpineStageId> = {
-  // Development
-  "delivery-map-codebase": "shape_map",
-  "delivery-shape-project": "shape_map",
-  "delivery-plan-phase": "plan",
-  "delivery-implement-phase": "implement",
-  "delivery-review-phase": "review",
-  "delivery-verify-phase": "verify",
-  "delivery-investigate-bug": "shape_map",
-  "full-stack-code-audit": "review",
-  "ux-ui-polish-audit": "review",
-  "impeccable-ui-pipeline": "review",
-  "playwright-visual-audit": "review",
-  "gstack-feature-squad": "shape_map",
-  "gstack-web-quality-board": "review",
-  "gstack-preflight-gate": "verify",
-  "gstack-release-room": "ship",
-  // Content Lab
-  "content-trend-watch": "shape_map",
-  "content-post-calendar": "plan",
-  "content-draft-post": "implement",
-  "content-qa-review": "verify",
-  "content-ready-posts": "ship",
-  "content-repurposing-factory": "implement",
-  "content-pipeline": "ship",
-  "content-editorial-calendar": "plan",
-  "content-idea-backlog": "shape_map",
-  "content-distribution-bundle": "ship",
-  "predictable-text-factory": "implement",
-  "copy-quality-pipeline": "verify",
-}
+// Merged from all domains
+const TEMPLATE_STAGE_OVERRIDES: Record<string, ProcessSpineStageId> =
+  Object.fromEntries(
+    allDomains().flatMap((d) => Object.entries(d.templateStageOverrides)),
+  ) as Record<string, ProcessSpineStageId>
 
-const DEV_PROCESS_PACK_IDS = new Set(["delivery-foundation", "gstack-team"])
-const CONTENT_PROCESS_PACK_IDS = new Set(["content-factory-alpha"])
-const PROCESS_PACK_IDS = new Set([
-  ...DEV_PROCESS_PACK_IDS,
-  ...CONTENT_PROCESS_PACK_IDS,
-])
+const PROCESS_PACK_IDS = new Set(
+  allDomains().flatMap((d) => [...d.spinePackIds]),
+)
+
 const DEV_PROCESS_TEMPLATE_IDS = new Set(Object.keys(TEMPLATE_STAGE_OVERRIDES))
 
 const JOURNEY_STAGE_TO_PROCESS_STAGE: Record<string, ProcessSpineStageId> = {
