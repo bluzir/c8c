@@ -422,9 +422,6 @@ export function ProjectSidebar({
                 <p className="text-sidebar-item text-muted-foreground">
                   {projectRequired.blockerStatement}
                 </p>
-                <p className="text-sidebar-meta text-muted-foreground">
-                  No custom skills needed to start.
-                </p>
               </div>
               <Button
                 type="button"
