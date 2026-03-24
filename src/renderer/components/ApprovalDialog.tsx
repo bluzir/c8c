@@ -96,6 +96,9 @@ export function ApprovalDialog() {
         : null,
     [executionStates, request],
   )
+  const isEvalOverride = Boolean(
+    request && requestExecutionState?.evalOverrideNodeIds.has(request.nodeId),
+  )
   const evaluatorSummary = useMemo(() => {
     if (!request || !requestExecutionState?.workflowSnapshot) return null
 
@@ -201,11 +204,18 @@ export function ApprovalDialog() {
     () => deriveExecutionLoopFlowRules(evaluatorSummary),
     [evaluatorSummary],
   )
-  const gateTitle = requestContext
-    ? `Approve ${requestContext.stageLabel}`
-    : "Approve this step"
+  const gateTitle = isEvalOverride
+    ? requestContext
+      ? `Check failed — ${requestContext.stageLabel}`
+      : "Check exhausted retries"
+    : requestContext
+      ? `Approve ${requestContext.stageLabel}`
+      : "Approve this step"
   const gateDescription =
-    request?.message || "Review this exact step before the flow continues."
+    request?.message ||
+    (isEvalOverride
+      ? "The check exhausted all retries. Override to accept the result, or reject to stop the flow."
+      : "Review this exact step before the flow continues.")
   const dialogOpen = Boolean(request && requestKey !== dismissedRequestKey)
   const hasDecisionDetails = flowRules.length > 0 || evaluatorSummary !== null
 
@@ -298,21 +308,40 @@ export function ApprovalDialog() {
     const content = request.allowEdit ? editedContent : undefined
     setPendingAction("approve")
     try {
-      const ok = await withIpcTimeout(
-        window.api.approveNode(request.runId, request.nodeId, content),
-        DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Approval timed out. Try again, or restart the app if the problem continues.",
-      )
+      let ok: boolean
+      if (isEvalOverride) {
+        ok = await withIpcTimeout(
+          window.api.overrideEvaluator(request.runId, request.nodeId),
+          DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+          "Override timed out. Try again, or restart the app if the problem continues.",
+        )
+      } else {
+        ok = await withIpcTimeout(
+          window.api.approveNode(request.runId, request.nodeId, content),
+          DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
+          "Approval timed out. Try again, or restart the app if the problem continues.",
+        )
+      }
       if (!ok) {
-        toastError("Could not approve step: this flow is no longer active")
+        toastError(
+          isEvalOverride
+            ? "Could not override check: this flow is no longer active"
+            : "Could not approve step: this flow is no longer active",
+        )
         removeRequestByKey(targetKey)
         return
       }
-      toast.success("Step approved — flow continuing.")
+      toast.success(
+        isEvalOverride
+          ? "Check overridden — flow continuing."
+          : "Step approved — flow continuing.",
+      )
       removeRequestByKey(targetKey)
     } catch (err) {
       console.error("[ApprovalDialog] approve failed:", err)
-      toastError("Could not approve step")
+      toastError(
+        isEvalOverride ? "Could not override check" : "Could not approve step",
+      )
     } finally {
       if (mountedRef.current) {
         setPendingAction(null)
@@ -499,7 +528,7 @@ export function ApprovalDialog() {
 
             <DialogFooter className="ui-section-divider">
               <span className="mr-auto ui-meta-text text-muted-foreground">
-                {primaryShortcutLabel} approve
+                {primaryShortcutLabel} {isEvalOverride ? "override" : "approve"}
               </span>
               <Button
                 variant="destructive"
@@ -509,7 +538,7 @@ export function ApprovalDialog() {
                 disabled={pendingAction !== null}
               >
                 {pendingAction !== "reject" && <X size={14} />}
-                Reject & stop
+                {isEvalOverride ? "Cancel run" : "Reject & stop"}
               </Button>
               <Button
                 size="sm"
@@ -519,7 +548,9 @@ export function ApprovalDialog() {
                 autoFocus
               >
                 {pendingAction !== "approve" && <Check size={14} />}
-                Approve & continue
+                {isEvalOverride
+                  ? "Override — accept result"
+                  : "Approve & continue"}
               </Button>
             </DialogFooter>
           </div>

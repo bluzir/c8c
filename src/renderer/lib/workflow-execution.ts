@@ -539,18 +539,47 @@ export function reduceWorkflowExecutionEvent(
         nextState: {
           ...previousState,
           evalOverrideNodeIds: nextOverrideIds,
+          nodeStates: {
+            ...previousState.nodeStates,
+            [event.nodeId]: {
+              ...getNodeState(previousState, event.nodeId),
+              status: "waiting_approval",
+            },
+          },
         },
-        effects: {},
+        effects: {
+          approvalRequest: {
+            runId: event.runId,
+            nodeId: event.nodeId,
+            content: `Check failed after ${event.attempt} attempts. Score: ${event.score}/${event.threshold}.`,
+            message:
+              "Check exhausted all retries. Override to accept the result, or reject to stop the flow.",
+            allowEdit: false,
+          },
+        },
       }
     }
 
     case "eval-overridden": {
       const nextOverrideIds = new Set(previousState.evalOverrideNodeIds)
       nextOverrideIds.delete(event.nodeId)
+      const prevNodeState = getNodeState(previousState, event.nodeId)
       return {
         nextState: {
           ...previousState,
           evalOverrideNodeIds: nextOverrideIds,
+          nodeStates: {
+            ...previousState.nodeStates,
+            [event.nodeId]: {
+              ...prevNodeState,
+              // Clear waiting_approval back to running so the status bar
+              // doesn't keep showing "waiting for input" after the override
+              status:
+                prevNodeState.status === "waiting_approval"
+                  ? "running"
+                  : prevNodeState.status,
+            },
+          },
         },
         effects: {},
       }

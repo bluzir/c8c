@@ -66,6 +66,14 @@ function handleWorkflowNotification(
       flash: true,
     })
   }
+
+  if (event.type === "eval-exhausted") {
+    showNotification(window, {
+      body: `Check needs override to continue`,
+      bounce: "critical",
+      flash: true,
+    })
+  }
 }
 
 export function sendWorkflowEvent(
