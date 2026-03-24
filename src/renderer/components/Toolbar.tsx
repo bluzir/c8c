@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type Ref } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import type { InputNodeConfig, PermissionMode } from "@shared/types"
+import type { InputNodeConfig, PermissionMode, RunResult } from "@shared/types"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { runIdAtom, runStatusAtom } from "@/features/execution"
+import { pastRunsAtom, runIdAtom, runStatusAtom } from "@/features/execution"
 import { workflowHistoryRunsAtom } from "@/features/execution"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { WorkflowPrimaryActions } from "@/components/toolbar/WorkflowPrimaryActions"
@@ -113,6 +113,7 @@ export function Toolbar({
   const [flowSurfaceMode] = useAtom(flowSurfaceModeAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
+  const setPastRuns = useSetAtom(pastRunsAtom)
   const [desktopRuntime] = useAtom(desktopRuntimeAtom)
   const [sidebarOpen] = useAtom(projectSidebarOpenAtom)
   const [workflowReviewMode] = useAtom(workflowReviewModeAtom)
@@ -142,6 +143,36 @@ export function Toolbar({
     "pause" | "resume" | null
   >(null)
   const flashTimerRef = useRef<number | null>(null)
+
+  const refreshPastRuns = useCallback(async () => {
+    if (!selectedProject) return
+    const runs = await window.api.listRuns(selectedProject)
+    setPastRuns(runs)
+    setSelectedPastRun((current) =>
+      current && !runs.some((run) => run.runId === current.runId)
+        ? null
+        : current,
+    )
+  }, [selectedProject, setPastRuns, setSelectedPastRun])
+
+  const handleDeleteStoredRun = useCallback(
+    async (run: RunResult) => {
+      const result = await window.api.deleteRun(run.workspace)
+      await refreshPastRuns()
+      return result
+    },
+    [refreshPastRuns],
+  )
+
+  const handleCleanupStoredRuns = useCallback(async () => {
+    if (!selectedProject) {
+      throw new Error("Select a project before cleaning up old runs")
+    }
+    const result = await window.api.cleanupRuns(selectedProject)
+    await refreshPastRuns()
+    return result
+  }, [refreshPastRuns, selectedProject])
+
   const { confirmDiscard, unsavedChangesDialog } = useUnsavedChangesDialog()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
   const { createBlankWorkflow } = useBlankWorkflowCreation({ confirmDiscard })
@@ -777,7 +808,11 @@ export function Toolbar({
       </div>
 
       <WorkflowRunBlocker
-        suppressed={shellState !== "idle" || runLaunchPending}
+        suppressed={
+          shellState !== "idle" ||
+          runLaunchPending ||
+          (runDisabledReason === "Input is required" && !inputValue?.trim())
+        }
         isRunning={isRunning}
         workflowReviewMode={workflowReviewMode}
         runDisabledReason={runDisabledReason}
@@ -838,6 +873,10 @@ export function Toolbar({
                 runStatus={runStatus}
                 onOpenReport={(path) => void window.api.openReport(path)}
                 onContinueRun={() => {}}
+                onDeleteRun={handleDeleteStoredRun}
+                onCleanupRuns={
+                  selectedProject ? handleCleanupStoredRuns : undefined
+                }
                 selectedRunId={null}
                 improvementRecommendations={[]}
                 onSelectRun={(run) => {
