@@ -282,18 +282,43 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   const isMac = process.platform === "darwin"
+  const focusedContents = () => BrowserWindow.getFocusedWindow()?.webContents
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac ? [{ role: "appMenu" as const }] : []),
     {
       label: "Edit",
       submenu: [
-        { role: "undo" },
-        { role: "redo" },
+        {
+          label: "Undo",
+          accelerator: "CmdOrCtrl+Z",
+          click: () => focusedContents()?.undo(),
+        },
+        {
+          label: "Redo",
+          accelerator: "Shift+CmdOrCtrl+Z",
+          click: () => focusedContents()?.redo(),
+        },
         { type: "separator" },
-        { role: "cut" },
-        { role: "copy" },
-        { role: "paste" },
-        { role: "selectAll" },
+        {
+          label: "Cut",
+          accelerator: "CmdOrCtrl+X",
+          click: () => focusedContents()?.cut(),
+        },
+        {
+          label: "Copy",
+          accelerator: "CmdOrCtrl+C",
+          click: () => focusedContents()?.copy(),
+        },
+        {
+          label: "Paste",
+          accelerator: "CmdOrCtrl+V",
+          click: () => focusedContents()?.paste(),
+        },
+        {
+          label: "Select All",
+          accelerator: "CmdOrCtrl+A",
+          click: () => focusedContents()?.selectAll(),
+        },
       ],
     },
     {
