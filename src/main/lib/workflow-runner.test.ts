@@ -1549,7 +1549,7 @@ ${rows}`
 
     const expandEvent = events.find((e) => e.type === "nodes-expanded") as any
     expect(expandEvent).toBeDefined()
-    expect(expandEvent.newNodeIds.length).toBe(20)
+    expect(expandEvent.newNodeIds.length).toBe(8)
   })
 
   it("keeps excess fan-out branches queued until a provider slot is available", async () => {

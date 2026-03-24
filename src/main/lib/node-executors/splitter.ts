@@ -204,11 +204,16 @@ export function shouldRetrySplitter(
     return true
   }
   const inputArray = extractJsonArray(inputContent)
-  const detectableItems = Math.max(
-    inputArray?.length || 0,
-    countListLikeItems(inputContent),
-    countMarkdownTableRows(inputContent),
-  )
+  // Use the most structured format detected, not the max count.
+  // JSON > tables > lists — prevents markdown tables from inflating
+  // expected count when a JSON array is the intended structure.
+  const detectableItems =
+    (inputArray?.length || 0) > 1
+      ? inputArray!.length
+      : Math.max(
+          countMarkdownTableRows(inputContent),
+          countListLikeItems(inputContent),
+        )
   const likelyMultiItemInput = detectableItems > 1
   const expectedCount = Math.min(
     Math.max(1, maxBranches),
@@ -290,22 +295,7 @@ export function tryStructuredSplit(
   const normalized = inputContent.trim()
   if (!normalized) return null
 
-  // 1. Markdown tables with >1 data rows
-  const tableRows = extractMarkdownTableRows(inputContent)
-  if (tableRows.length > 1) {
-    return tableRows.slice(0, limit).map((row, i) => {
-      const leadingCell = row.split("|")[0]?.trim() || row
-      return {
-        key: makeKebabKey(
-          leadingCell.split(/\s+/).slice(0, 6).join(" "),
-          `row-${i + 1}`,
-        ),
-        content: row,
-      }
-    })
-  }
-
-  // 2. JSON arrays with >1 items
+  // 1. JSON arrays with >1 items (highest priority — most structured)
   const array = extractJsonArray(inputContent)
   if (array && array.length > 1) {
     const prefix = normalizeWhitespace(
@@ -330,6 +320,21 @@ export function tryStructuredSplit(
       }
     }
     if (subtasks.length > 1) return subtasks
+  }
+
+  // 2. Markdown tables with >1 data rows
+  const tableRows = extractMarkdownTableRows(inputContent)
+  if (tableRows.length > 1) {
+    return tableRows.slice(0, limit).map((row, i) => {
+      const leadingCell = row.split("|")[0]?.trim() || row
+      return {
+        key: makeKebabKey(
+          leadingCell.split(/\s+/).slice(0, 6).join(" "),
+          `row-${i + 1}`,
+        ),
+        content: row,
+      }
+    })
   }
 
   // 3. Bullet/numbered lists with >1 items
@@ -364,20 +369,7 @@ export function heuristicSplitInput(
     return [{ key: "subtask-0", content: inputContent }]
   }
 
-  const tableRows = extractMarkdownTableRows(inputContent)
-  if (tableRows.length > 1) {
-    return tableRows.slice(0, limit).map((row, i) => {
-      const leadingCell = row.split("|")[0]?.trim() || row
-      return {
-        key: makeKebabKey(
-          leadingCell.split(/\s+/).slice(0, 6).join(" "),
-          `row-${i + 1}`,
-        ),
-        content: row,
-      }
-    })
-  }
-
+  // JSON arrays first — most structured, highest signal
   const array = extractJsonArray(inputContent)
   if (array && array.length > 1) {
     const prefix = normalizeWhitespace(
@@ -408,6 +400,21 @@ export function heuristicSplitInput(
       }
     }
     if (subtasks.length > 1) return subtasks
+  }
+
+  // Markdown tables
+  const tableRows = extractMarkdownTableRows(inputContent)
+  if (tableRows.length > 1) {
+    return tableRows.slice(0, limit).map((row, i) => {
+      const leadingCell = row.split("|")[0]?.trim() || row
+      return {
+        key: makeKebabKey(
+          leadingCell.split(/\s+/).slice(0, 6).join(" "),
+          `row-${i + 1}`,
+        ),
+        content: row,
+      }
+    })
   }
 
   const listItems = normalized
