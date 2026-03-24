@@ -532,7 +532,7 @@ export function OutputPanel({
       <ExecutionSurfaceNoticeBanner
         notice={{
           level: "error",
-          title: "Run needs attention",
+          title: "Run failed",
           description:
             failedNodeErrors.length === 0
               ? "Inspect the activity log for the failing step or the last interrupted step."

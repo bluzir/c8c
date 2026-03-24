@@ -221,7 +221,7 @@ export function buildExecutionSurfaceNotice(
   if (runDisplayState.state === "failed") {
     return {
       level: "error",
-      title: "Run needs attention",
+      title: "Run failed",
       description:
         state.lastError ||
         "The flow did not finish successfully. Inspect summary to review the failure.",
