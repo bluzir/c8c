@@ -362,7 +362,7 @@ export function ApprovalDialog() {
           )}
         >
           {queueCount > 1 && (
-            <div className="ui-slab border-r border-hairline overflow-y-auto ui-scroll-region max-h-[calc(80vh-2rem)]">
+            <div className="border-r border-hairline overflow-y-auto ui-scroll-region max-h-[calc(80vh-2rem)]">
               {requests.map((req, index) => {
                 const label = queueLabels[index]
                 return (
