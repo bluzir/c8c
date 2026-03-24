@@ -59,21 +59,34 @@ nodes:
       skillRef: jtbd/context-scout
       prompt: >-
         Analyze the provided input (product description, landing page, research doc,
-        or market area) and produce two outputs:
+        or market area) and produce three outputs:
 
-        PART 1 — CONTEXT BRIEF:
-        Product/market identity, B2B vs B2C classification, market trends,
-        vocabulary/jargon the audience uses, competitive landscape hints.
+        PART 1 — GLOBAL CONTEXT:
+        Run 5-8 broad searches. Extract: product/market identity, B2B vs B2C,
+        3-5 macro trends (each with severity + 2 verbatim quotes + source URLs),
+        invariant mapping (each trend → Safety/Status/Autonomy/Belonging/Growth),
+        vocabulary (jargon, emotional markers from real sources).
 
-        PART 2 — SEGMENT HYPOTHESES (6-10):
-        For each: name (specific role + context), primary JTBD, triggers,
-        estimated size, grounding (verbatim quote + URL), validation signals.
+        PART 2 — SUPER DISCOVERY:
+        (a) 3-5 Timeless Big Jobs — pass the 50-year test, map to invariants,
+        include historical_solution.
+        (b) Alternative Solution Landscape — what people use instead: spreadsheet,
+        manual, assistant, workaround, ignore, competitor. Note prevalence + switching friction.
+        (c) Shadow Search — 5 queries: market reports, real frustrations, post-mortems,
+        founder interviews, current workarounds. Per insight: verbatim quote + URL + confidence.
+        (d) Graveyard — 2-3 failed attempts. Per entry: name, failed premise, lesson.
 
-        Rules: segment by role+context not tool usage, include one non-obvious segment,
-        apply solo founder reachability filter.
+        PART 3 — SEGMENT HYPOTHESES (6-10):
+        Each anchored to a Big Job from Part 2a. Include: name (role+context),
+        primary JTBD, big job anchor, triggers, estimated size, grounding
+        (verbatim quote + URL), validation signals, graveyard check.
 
-        Output as JSON with keys: context_brief, segment_hypotheses.
-        Then output a JSON array of signal types to collect:
+        Rules: segment by role+context not tool, every claim traced to source URL,
+        no segments matching failed premises unless new context invalidates,
+        solo founder reachability filter.
+
+        Output as JSON with keys: global_context, super_discovery, segment_hypotheses.
+        Then output a signal types array:
         ["problems", "triggers", "solutions", "barriers", "emotions", "success_criteria", "price_value", "competitors"]
   - id: splitter-1
     type: splitter
@@ -136,10 +149,12 @@ nodes:
         3. COVERAGE REPORT per signal type: total count, tier distribution,
            recency distribution, coverage quality (strong/adequate/weak)
         4. GAPS: flag signal types with fewer than 5 signals or no S/A tier sources
-        5. PASS THROUGH: include the original segment_hypotheses array verbatim —
-           the downstream scorer needs them to match signals to segments
+        5. PASS THROUGH: include the original segment_hypotheses and super_discovery
+           (big jobs, alternative landscape, graveyard) verbatim — the downstream
+           scorer needs them to match signals to segments and anchor to big jobs
 
-        Output the full signal bank, coverage report, and verbatim segment_hypotheses.
+        Output the full signal bank, coverage report, and verbatim segment_hypotheses
+        + super_discovery.
         Do NOT filter or discard signals.
   - id: segment-scorer-1
     type: skill
