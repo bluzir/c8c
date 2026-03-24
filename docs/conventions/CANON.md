@@ -23,6 +23,7 @@ Single source of truth for c8c product decisions. All specs, plans, and implemen
 
 **In progress:**
 - Content guided experience — routing agent, intents, domain context, router destination registry
+- QA audit remediation (Wave 1) — 3 P1 + 2 critical P2 bugs. Registry: `docs/superpowers/specs/2026-03-24-qa-audit-findings.md`
 
 **Not working / incomplete:**
 - Marketing remains library-only
