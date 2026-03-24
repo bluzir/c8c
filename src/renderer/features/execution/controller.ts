@@ -416,7 +416,7 @@ export class WorkflowExecutionController {
           const msg = buildCompleteMessage({
             runId: event.runId,
             flowName: finishedState.workflowName,
-            summary: "Flow completed.",
+            summary: extractFlowSummary(finishedState),
             findings: [],
             limitations: [],
             artifacts: event.reportPath
@@ -669,6 +669,53 @@ function synthesizeApprovalRequest(
     message: approvalConfig?.message,
     allowEdit: approvalConfig?.allow_edit ?? false,
   }
+}
+
+/**
+ * Extract a human-readable summary from the last completed node's output.
+ * Prefers the output node, falls back to the last completed skill node.
+ */
+function extractFlowSummary(state: WorkflowExecutionState): string {
+  const nodes = state.workflowSnapshot?.nodes ?? state.runtimeNodes ?? []
+  const outputNodeIds = new Set(
+    nodes.filter((n) => n.type === "output").map((n) => n.id),
+  )
+
+  // Try the output node first
+  let lastContent: string | undefined
+  for (const nodeId of outputNodeIds) {
+    const ns = state.nodeStates[nodeId]
+    if (ns?.status === "completed" && ns.output?.content) {
+      lastContent = ns.output.content
+      break
+    }
+  }
+
+  // Fall back to last completed node with output (by completedAt)
+  if (!lastContent) {
+    const completedNodes = Object.values(state.nodeStates)
+      .filter(
+        (ns): ns is typeof ns & { output: { content: string } } =>
+          ns.status === "completed" &&
+          typeof ns.output?.content === "string" &&
+          ns.output.content.length > 0,
+      )
+      .sort((a, b) => (a.completedAt ?? 0) - (b.completedAt ?? 0))
+
+    lastContent = completedNodes[completedNodes.length - 1]?.output?.content
+  }
+
+  if (!lastContent) {
+    return "Flow completed."
+  }
+
+  // Take first 2-3 sentences (up to 300 chars)
+  const sentences = lastContent
+    .split(/(?<=[.!?])\s+/)
+    .slice(0, 3)
+    .join(" ")
+  if (!sentences) return "Flow completed."
+  return sentences.length > 300 ? sentences.slice(0, 297) + "..." : sentences
 }
 
 function areApprovalRequestsEqual(
