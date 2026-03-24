@@ -545,13 +545,15 @@ export class WorkflowExecutionController {
       this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
 
       // Emit initial Progress message
+      const startedAt = Date.now()
       const progressMsg = buildProgressMessage({
         flowName,
         steps: initialSteps,
+        startedAt,
       })
       this.progressMessageIds.set(workflowKey, progressMsg.id)
       this.progressSteps.set(workflowKey, initialSteps)
-      this.progressStartTimes.set(workflowKey, Date.now())
+      this.progressStartTimes.set(workflowKey, startedAt)
       this.deps.onFlowChatMessage?.({ workflowKey, message: progressMsg })
       return
     }
@@ -705,6 +707,7 @@ export class WorkflowExecutionController {
       const collapsedData: ProgressContent = {
         steps,
         elapsed,
+        startedAt: startTime,
         collapsed: true,
         collapsedLabel: `All ${doneCount} steps completed \u00b7 ${elapsed}`,
       }
@@ -732,7 +735,7 @@ export class WorkflowExecutionController {
       seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)} min`
 
     // Also update sub-steps done status based on node-done events
-    const data: ProgressContent = { steps, elapsed }
+    const data: ProgressContent = { steps, elapsed, startedAt: startTime }
     this.deps.onFlowChatProgressUpdate?.({
       workflowKey,
       messageId,

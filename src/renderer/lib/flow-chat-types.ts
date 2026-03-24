@@ -71,6 +71,8 @@ export interface ProgressStep {
 export interface ProgressContent {
   steps: ProgressStep[]
   elapsed?: string
+  /** Epoch ms when the run started — used for live elapsed timer in the UI */
+  startedAt?: number
   collapsed?: boolean
   collapsedLabel?: string
 }

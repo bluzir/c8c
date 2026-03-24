@@ -195,14 +195,16 @@ export function buildStartMessage(input: {
 export function buildProgressMessage(input: {
   flowName: string
   steps: ProgressStep[]
+  startedAt?: number
 }): FlowChatMessage {
+  const startedAt = input.startedAt ?? Date.now()
   return {
     id: crypto.randomUUID(),
     flowName: input.flowName,
     timestamp: Date.now(),
     content: {
       type: "progress",
-      data: { steps: input.steps },
+      data: { steps: input.steps, startedAt },
     },
   }
 }

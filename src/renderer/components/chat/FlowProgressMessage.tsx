@@ -1,10 +1,17 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ChevronRight } from "lucide-react"
 import { cn } from "@/lib/cn"
 import type { ProgressContent, ProgressStep } from "@/lib/flow-chat-types"
 
 interface FlowProgressMessageProps {
   data: ProgressContent
+}
+
+function formatElapsed(startedAt: number): string {
+  const seconds = Math.round((Date.now() - startedAt) / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.round(seconds / 60)
+  return `${minutes} min`
 }
 
 function StepIcon({ status }: { status: ProgressStep["status"] }) {
@@ -74,8 +81,36 @@ function SubStepPills({
   )
 }
 
+/** Live elapsed timer that ticks every second while the flow is active */
+function useElapsedTimer(
+  startedAt: number | undefined,
+  collapsed: boolean | undefined,
+): string | null {
+  const [elapsed, setElapsed] = useState<string | null>(() =>
+    startedAt ? formatElapsed(startedAt) : null,
+  )
+
+  useEffect(() => {
+    if (!startedAt || collapsed) {
+      // For collapsed state, use the frozen elapsed from data
+      setElapsed(startedAt ? formatElapsed(startedAt) : null)
+      return
+    }
+
+    // Set immediately, then tick every second
+    setElapsed(formatElapsed(startedAt))
+    const interval = setInterval(() => {
+      setElapsed(formatElapsed(startedAt))
+    }, 1_000)
+    return () => clearInterval(interval)
+  }, [startedAt, collapsed])
+
+  return elapsed
+}
+
 export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
+  const liveElapsed = useElapsedTimer(data.startedAt, data.collapsed)
 
   if (data.collapsed && data.collapsedLabel) {
     return (
@@ -90,6 +125,8 @@ export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
 
   const doneCount = data.steps.filter((s) => s.status === "done").length
   const totalCount = data.steps.length
+  // Use live timer when available, fall back to snapshot elapsed from data
+  const displayElapsed = liveElapsed ?? data.elapsed
 
   const toggleExpand = (nodeId: string) => {
     setExpandedSteps((prev) => {
@@ -181,10 +218,10 @@ export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
         <span>
           {doneCount}/{totalCount} steps
         </span>
-        {data.elapsed && (
+        {displayElapsed && (
           <>
             <span aria-hidden="true">&middot;</span>
-            <span>{data.elapsed}</span>
+            <span>{displayElapsed}</span>
           </>
         )}
       </div>
