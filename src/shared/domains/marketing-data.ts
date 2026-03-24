@@ -26,13 +26,13 @@ export const marketingDomain: Omit<DomainDefinition, "scoreTemplate"> = {
     successCriteria:
       "What would make the strategy or assets clearly useful, grounded, and worth shipping?",
   },
-  guidedPath: ["Research the market", "Choose the angle", "Ship the assets"],
+  guidedPath: ["Understand", "Plan", "Build", "Check", "Ship"],
   startTemplateId: "segment-research-gate",
-  startActionLabel: "Start guided path",
+  startActionLabel: "Start from request",
   runtimeLine: "Approves angle and sample quality before scaling.",
 
   // Routing
-  guidedRouting: false,
+  guidedRouting: true,
   bannedEntryTemplateIds: new Set<string>(),
 
   // Templates + Scoring
@@ -75,14 +75,39 @@ export const marketingDomain: Omit<DomainDefinition, "scoreTemplate"> = {
     "ads",
   ],
   stagePreferences: ["research", "strategy", "outreach"],
-  quickStarts: [],
+  quickStarts: [
+    {
+      templateId: "segment-research-gate",
+      label: "Research a segment",
+      summary: "Validate a market segment with research gates.",
+      intentLabel: "Do it",
+    },
+    {
+      templateId: "landing-page-generator",
+      label: "Build a landing page",
+      summary: "Generate landing page copy from positioning.",
+      intentLabel: "Do it",
+    },
+    {
+      templateId: "indispensable-jtbd-pipeline",
+      label: "Map jobs to be done",
+      summary: "Research and map customer jobs, pains, and gains.",
+      intentLabel: "Plan it",
+    },
+    {
+      templateId: "cold-outreach-pipeline",
+      label: "Build outreach pipeline",
+      summary: "Create targeted outreach sequences.",
+      intentLabel: "Do it",
+    },
+  ],
 
   // Spine
   templateStageOverrides: {},
   spinePackIds: new Set<string>(),
 
   // Intents
-  intentsEnabled: false,
+  intentsEnabled: true,
 
   // Config form
   configFields: [

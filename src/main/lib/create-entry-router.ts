@@ -298,10 +298,10 @@ function buildRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous between distinct job entries inside that intent.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses|research","reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|marketing|courses|research","reason":"one sentence","confidence":0.0}',
     "",
     "Clarification output schema:",
-    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|courses|research","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
+    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|marketing|courses|research","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
   ].join("\n")
 }
 
@@ -413,6 +413,59 @@ function buildResearchRouterPrompt(
   ].join("\n")
 }
 
+function buildMarketingRouterPrompt(
+  input: CreateEntryRouteInput,
+  allowedOptions: CreateEntryRouteOption[],
+): string {
+  const requestSections = {
+    draftPrompt: normalize(input.draftPrompt),
+    requestedResult: normalize(input.requestedResult),
+    helpModeHint: input.helpModeHint || null,
+  }
+
+  const allowedOptionSummary = allowedOptions
+    .map(
+      (option) =>
+        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+    )
+    .join("\n")
+
+  return [
+    "You are c8c's bounded entry router for the Marketing domain.",
+    "Choose the best FIRST starting point for the user's marketing request. Return JSON only.",
+    "",
+    "Marketing domain contract:",
+    "- The user wants to research a market, shape positioning, or ship marketing assets — SEO, campaigns, landing pages, outreach, or growth loops.",
+    "- Segment research is the right first step when the user needs to validate a market, audience, or segment before acting.",
+    "- Landing page generation is right when the user has positioning and needs page copy or structure.",
+    "- JTBD mapping is right when the user wants to understand customer jobs, pains, and gains before building anything.",
+    "- Outreach pipeline is right when the user wants to build targeted cold outreach or email sequences.",
+    "- Competitor intelligence is right when the user needs to scan competitor ads, positioning, and messaging.",
+    "- Lead research is right when the user needs to find and qualify leads or accounts.",
+    "- Positioning / resonance research is right when the user is exploring differentiation, messaging fit, or irresistible offers.",
+    "- Campaign launches should prefer the new-vertical-to-live-campaign or segmented-outreach-launchpad entries when available.",
+    "- Help mode is a hard constraint when present.",
+    "- Handle English, Russian, and mixed-language requests.",
+    "",
+    "Allowed starting points:",
+    allowedOptionSummary,
+    "",
+    "User request:",
+    JSON.stringify(requestSections, null, 2),
+    "",
+    "Clarification policy:",
+    "- Use `help_mode` clarification when the ambiguity is mainly about kind of help: Do it vs Plan it vs Review it.",
+    "- Use `job_route` clarification when the ambiguity is between different marketing jobs (e.g., segment research vs outreach vs landing page).",
+    "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous.",
+    "",
+    "Route output schema:",
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"marketing","reason":"one sentence","confidence":0.0}',
+    "",
+    "Clarification output schema:",
+    '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"marketing","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
+  ].join("\n")
+}
+
 function extractRouterJsonCandidate(rawText: string) {
   const trimmed = rawText.trim()
   if (!trimmed) return ""
@@ -467,6 +520,8 @@ async function runAgentRouteDecision(
     ).catch(() => [])
     const contentContext = buildContentDomainContext(artifacts)
     prompt = buildContentRouterPrompt(input, contentContext, allowedOptions)
+  } else if (input.modeId === "marketing") {
+    prompt = buildMarketingRouterPrompt(input, allowedOptions)
   } else if (input.modeId === "research") {
     prompt = buildResearchRouterPrompt(input, allowedOptions)
   } else {

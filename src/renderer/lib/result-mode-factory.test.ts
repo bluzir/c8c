@@ -37,9 +37,11 @@ describe("result-mode-factory", () => {
     ])
     expect(factory.recipe?.packIds).toEqual(["ai-cmo"])
     expect(factory.recipe?.stageOrder).toEqual([
-      "Research the market",
-      "Choose the angle",
-      "Ship the assets",
+      "Understand",
+      "Plan",
+      "Build",
+      "Check",
+      "Ship",
     ])
   })
 
@@ -70,32 +72,32 @@ describe("result-mode-factory", () => {
     expect(reusable?.id).toBe(existing.id)
   })
 
-  it("keeps existing ids and fills default strategist checkpoints for content", () => {
-    const mode = getResultMode("courses")
+  it("keeps existing ids and fills default strategist checkpoints for marketing", () => {
+    const mode = getResultMode("marketing")
     const existing = {
-      id: "factory:course-launch",
-      modeId: "courses" as const,
-      label: "AI Course Launch",
+      id: "factory:campaign-launch",
+      modeId: "marketing" as const,
+      label: "AI Campaign Launch",
       createdAt: 10,
       updatedAt: 20,
     }
 
     const factory = buildFactoryFromResultMode({
       mode,
-      values: normalizeResultModeConfig("courses", {
-        course_outcome: "Launch a practical AI agents course",
-        audience: "Operators and founders",
+      values: normalizeResultModeConfig("marketing", {
+        content_goal: "Launch a targeted outreach campaign",
+        channel_and_audience: "LinkedIn for AI founders",
       }),
       existingFactory: existing,
       now: 30,
     })
 
     expect(factory.id).toBe(existing.id)
-    expect(factory.modeId).toBe("courses")
-    expect(factory.recipe?.packIds).toEqual(["courses-factory-alpha"])
+    expect(factory.modeId).toBe("marketing")
+    expect(factory.recipe?.packIds).toEqual(["ai-cmo"])
     expect(factory.recipe?.strategistCheckpoints).toEqual([
-      "Approve structure and curriculum",
-      "Approve lesson quality",
+      "Approve audience and angle",
+      "Approve sample asset quality",
     ])
   })
 
