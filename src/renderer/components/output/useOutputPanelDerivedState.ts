@@ -933,6 +933,7 @@ export function useOutputPanelDerivedState({
     (reviewingRunHistory ||
       runStatus === "done" ||
       runStatus === "error" ||
+      runStatus === "cancelled" ||
       pastRuns.length > 0)
   const canRerunStages =
     Boolean(onRerunFrom) && !isRunInFlight(runStatus as any) && !!rerunWorkspace
