@@ -11,6 +11,7 @@ import { FlowRoutingMessage } from "./FlowRoutingMessage"
 import { cn } from "@/lib/cn"
 import { ArrowDown } from "lucide-react"
 import {
+  chatFlowInputRequestAtom,
   chatScrollTopByWorkflowAtom,
   currentWorkflowAtom,
   mainViewAtom,
@@ -63,6 +64,11 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const setMainView = useSetAtom(mainViewAtom)
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const selectedProject = useAtomValue(selectedProjectAtom)
+
+  const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
+  const handleRunFromRouting = useCallback(() => {
+    setChatFlowInputRequest("run")
+  }, [setChatFlowInputRequest])
 
   const handleFollowUp = useCallback(
     (followUp: FlowFollowUp) => {
@@ -416,7 +422,10 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                       index === 0 && "pt-0",
                     )}
                   >
-                    <FlowRoutingMessage data={flowMsg.content.data} />
+                    <FlowRoutingMessage
+                      data={flowMsg.content.data}
+                      onRun={handleRunFromRouting}
+                    />
                   </div>
                 )
               }

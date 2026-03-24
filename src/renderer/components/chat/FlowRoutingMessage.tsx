@@ -1,9 +1,11 @@
 import { cn } from "@/lib/cn"
+import { Button } from "@/components/ui/button"
 import type { RoutingContent } from "@/lib/flow-chat-types"
-import { CheckCircle2, Circle, Loader2 } from "lucide-react"
+import { CheckCircle2, Circle, Loader2, Play } from "lucide-react"
 
 interface FlowRoutingMessageProps {
   data: RoutingContent
+  onRun?: () => void
 }
 
 function StepIcon({ status }: { status: "pending" | "running" | "done" }) {
@@ -21,20 +23,20 @@ function StepIcon({ status }: { status: "pending" | "running" | "done" }) {
   return <Circle size={14} className="shrink-0 text-muted-foreground/30" />
 }
 
-export function FlowRoutingMessage({ data }: FlowRoutingMessageProps) {
+export function FlowRoutingMessage({ data, onRun }: FlowRoutingMessageProps) {
   const allDone = data.steps.every((s) => s.status === "done")
   const template = data.selectedTemplate
 
   return (
     <div className="space-y-3">
-      {/* Header — flat text, no bubble */}
+      {/* Header */}
       <p className="ui-meta-label text-muted-foreground">
         {allDone
           ? "Starting point selected"
           : "Choosing the best starting point\u2026"}
       </p>
 
-      {/* Step checklist — flat, no container */}
+      {/* Step checklist */}
       <div className="space-y-2">
         {data.steps.map((step) => (
           <div key={step.label} className="flex items-center gap-2.5">
@@ -55,21 +57,30 @@ export function FlowRoutingMessage({ data }: FlowRoutingMessageProps) {
         ))}
       </div>
 
-      {/* Selected template — flat text, not a card */}
-      {template && (
-        <div className="space-y-1">
-          <p className="text-body-sm font-medium text-foreground">
-            {template.name}
-          </p>
-          {template.description && (
-            <p className="text-body-sm text-muted-foreground">
-              {template.description}
+      {/* Selected template + Run button */}
+      {template && allDone && (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-body-md font-medium text-foreground">
+              {template.name}
             </p>
-          )}
-          {template.estimatedCost && (
-            <p className="ui-meta-text text-muted-foreground">
-              {template.estimatedCost}
-            </p>
+            {template.description && (
+              <p className="text-body-sm text-muted-foreground">
+                {template.description}
+              </p>
+            )}
+            {template.estimatedCost && (
+              <p className="ui-meta-text text-muted-foreground">
+                {template.estimatedCost}
+              </p>
+            )}
+          </div>
+
+          {onRun && (
+            <Button size="sm" onClick={onRun}>
+              <Play size={14} />
+              Run
+            </Button>
           )}
         </div>
       )}

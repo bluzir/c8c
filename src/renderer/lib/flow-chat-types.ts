@@ -76,6 +76,7 @@ export interface ProgressContent {
 }
 
 export interface RoutingContent {
+  userRequest?: string
   steps: Array<{ label: string; status: "pending" | "running" | "done" }>
   selectedTemplate?: {
     name: string
