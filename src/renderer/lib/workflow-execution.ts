@@ -69,6 +69,7 @@ export interface WorkflowExecutionState {
   artifactPersistenceError: string | null
   surfaceNotice: ExecutionSurfaceNotice | null
   evalOverrideNodeIds: Set<string>
+  resumeNodeId: string | null
 }
 
 export interface ApprovalRequest {
@@ -143,6 +144,7 @@ export function createEmptyWorkflowExecutionState(): WorkflowExecutionState {
     artifactPersistenceError: null,
     surfaceNotice: null,
     evalOverrideNodeIds: new Set(),
+    resumeNodeId: null,
   }
 }
 

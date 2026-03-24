@@ -39,6 +39,7 @@ const ALLOWED_CONFIG_KEYS = {
   ]),
   skill: new Set([
     "skillRef",
+    "skillRefs",
     "prompt",
     "outputMode",
     "maxTurns",
@@ -248,6 +249,7 @@ export function validateWorkflowNodeConfig(
           "permissionMode must be plan or edit.",
         )
       }
+      validateOptionalStringArray(config, node.id, "skillRefs", issues)
       validateOptionalStringArray(config, node.id, "skillPaths", issues)
       validateOptionalStringArray(config, node.id, "allowedTools", issues)
       validateOptionalStringArray(config, node.id, "disallowedTools", issues)

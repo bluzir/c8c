@@ -377,10 +377,12 @@ export function useExecutionCommands({
 
   const rerunFrom = useCallback(
     async (fromNodeId: string, options?: { workspace?: string | null }) => {
+      if (runStartingRef.current) return
       if (isRunInFlight(runStatus)) return
       const rerunWorkspace = options?.workspace ?? workspace
       if (!rerunWorkspace || !workflow.nodes.length) return
 
+      runStartingRef.current = true
       const workflowKeyForRun = toWorkflowExecutionKey(
         selectedWorkflowPath ?? null,
       )
@@ -397,7 +399,10 @@ export function useExecutionCommands({
           warningMode: "skip_token_budget",
         },
       )
-      if (!preflight) return
+      if (!preflight) {
+        runStartingRef.current = false
+        return
+      }
       const startHandle = controller.beginExecution(
         workflowForRun,
         selectedWorkflowPath ?? null,
@@ -406,7 +411,10 @@ export function useExecutionCommands({
           preserveExecutionSnapshot: true,
         },
       )
-      if (!startHandle) return
+      if (!startHandle) {
+        runStartingRef.current = false
+        return
+      }
       setActiveExecutionProvider(preflight.effectiveProvider)
       const { workflowForExecution } = prepareWorkflowForExecution(
         workflowForRun,
@@ -466,6 +474,8 @@ export function useExecutionCommands({
           "Could not restart from selected node",
           errorToUserMessage(error),
         )
+      } finally {
+        runStartingRef.current = false
       }
 
       controller.rollbackExecutionStart(startHandle)
@@ -492,6 +502,7 @@ export function useExecutionCommands({
       workflowForRun: Workflow,
       workflowPathForRun: string | null,
     ) => {
+      if (runStartingRef.current) return false
       if (!canStartManualContinuation(runStatus)) return false
       if (!runToContinue.workspace) {
         toastError("Could not continue run", {
@@ -511,11 +522,15 @@ export function useExecutionCommands({
         return false
       }
 
+      runStartingRef.current = true
       const preflight = await preflightExecutionStart(
         workflowForRun,
         "Could not continue run",
       )
-      if (!preflight) return false
+      if (!preflight) {
+        runStartingRef.current = false
+        return false
+      }
       const startHandle = controller.beginExecution(
         workflowForRun,
         workflowPathForRun,
@@ -524,7 +539,10 @@ export function useExecutionCommands({
           preserveExecutionSnapshot: true,
         },
       )
-      if (!startHandle) return false
+      if (!startHandle) {
+        runStartingRef.current = false
+        return false
+      }
       setActiveExecutionProvider(preflight.effectiveProvider)
       controller.updateExecutionForKey(startHandle.workflowKey, (previous) => ({
         ...previous,
@@ -589,6 +607,8 @@ export function useExecutionCommands({
           "Could not continue run",
           errorToUserMessage(error),
         )
+      } finally {
+        runStartingRef.current = false
       }
 
       controller.rollbackExecutionStart(startHandle)
@@ -611,6 +631,7 @@ export function useExecutionCommands({
 
   const continueRun = useCallback(
     async (runToContinue: RunResult) => {
+      if (runStartingRef.current) return
       if (!canStartManualContinuation(runStatus)) return
       if (!runToContinue.workspace) {
         toastError("Could not continue run", {

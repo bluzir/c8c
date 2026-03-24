@@ -711,6 +711,7 @@ export interface CreateEntryRouteOption {
   templateId: string
   label: string
   intentLabel?: string
+  intentValues?: CreateEntryHelpModeHint[]
   recommended?: boolean
 }
 
@@ -763,6 +764,7 @@ export interface CreateEntryRouteInput {
   promptScaffold?: CreateEntryPromptScaffold | null
   allowedOptions?: CreateEntryRouteOption[]
   contentContext?: ContentDomainContext
+  webSearchBackend?: "builtin" | "exa"
 }
 
 export interface CreateEntryHelpModeClarificationOption {
@@ -1295,6 +1297,21 @@ export interface PersistedRunSnapshot {
 export interface LoadedRunResult extends RunResult {
   reportContent: string
   snapshot: PersistedRunSnapshot | null
+}
+
+export type TerminalRunSnapshot =
+  | { status: "completed"; result: RunResult }
+  | {
+      status: "interrupted"
+      snapshot: PersistedRunSnapshot
+      resumeNodeId: string | null
+    }
+
+export interface InFlightManifestEntry {
+  runId: string
+  workspace: string
+  workflowPath: string | null
+  workflowName: string
 }
 
 export interface RunWorkspaceDeleteResult {
