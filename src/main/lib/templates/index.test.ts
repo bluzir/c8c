@@ -24,7 +24,6 @@ describe("builtin template metadata", () => {
       "ai-cmo-seo-engine",
       "competitor-ad-intelligence",
       "content-trend-watch",
-      "deep-research",
       "lead-research-machine",
       "new-vertical-to-live-campaign",
       "seed-account-map-pipeline",

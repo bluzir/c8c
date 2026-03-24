@@ -4,18 +4,17 @@ stage_family: understand
 recommended_next: []
 emoji: "\U0001F50D"
 headline: Research any topic from multiple angles
-how: Decomposes a topic into lenses, investigates each separately, then synthesizes a structured report
+how: Decomposes a topic into lenses, investigates each via web and Reddit in parallel with source quality filtering, then synthesizes a structured report
 input: A topic or research question
 output: Structured research report with executive summary, findings per angle, and practical conclusions
 use_when: You need grounded evidence before making a decision, not a single-pass summary.
 time: ~8-12 min.
 steps:
-  - Decompose topic into 4-6 research lenses with key questions
-  - Fan out parallel investigation per lens
-  - Synthesize findings into a comprehensive report
-  - Evaluate evidence quality, disconfirming coverage, and source specificity
+  - Decompose topic into 4-6 research lenses with personas and recency profiles
+  - Fan out parallel investigation per lens (web + Reddit) with source quality filtering
+  - Synthesize findings into a comprehensive report with cross-platform analysis
+  - Evaluate evidence quality, source tiers, slop presence, and coverage
 suggested_tools:
-  - web_search
   - exa
   - serper
 contract_out:
@@ -28,12 +27,14 @@ contract_out:
 version: 1
 name: Deep Research
 description:
-  Plan a topic via multi-angle decomposition and KAC, investigate each aspect separately, synthesize into a
-  structured report
+  Plan a topic via multi-angle decomposition with anti-bias and KAC, investigate each aspect
+  via web and Reddit with source quality filtering (tier + slop + recency), synthesize with
+  cross-platform analysis and contradiction detection
 defaults:
   model: sonnet
   maxTurns: 120
   timeout_minutes: 30
+  maxParallel: 8
 nodes:
   - id: input-1
     type: input
@@ -41,89 +42,166 @@ nodes:
       x: 0
       y: 200
     config: {}
-  - id: decomposition-1
+  - id: scout-1
     type: skill
     position:
       x: 250
       y: 200
     config:
-      skillRef: researcher
-      prompt:
-        "Create a QUICK decomposition plan — do NOT research yet, only plan. Return ONLY a JSON array (no markdown, no
-        explanation) where each aspect has: name, lens, key_question, why_it_matters, priority (high|medium), and
-        query_seeds (3-4 search queries). Cover 4-6 distinct lenses, avoid overlap. Add 1-2 KAC (Key Assumptions Check)
-        aspects that try to disprove hidden assumptions. This step should take under 30 seconds — just think and output
-        the plan JSON. Do NOT call any search tools."
+      skillRef: topic-scout
+      prompt: >-
+        Scan the topic landscape. Run 3-5 broad searches to understand who the key players are,
+        what the main debates/directions are, what's recent vs established.
+
+        Then decompose the topic into 4-6 distinct research aspects.
+        For each aspect include: name, lens, key_question, why_it_matters,
+        and 3-4 query_seeds for downstream researchers.
+
+        If the topic is framed with a slant, add a Counter-Aspect that seeks
+        evidence AGAINST the implied thesis. Add 1-2 KAC (Key Assumptions Check)
+        aspects that try to disprove hidden assumptions.
   - id: splitter-1
     type: splitter
     position:
-      x: 650
+      x: 550
       y: 200
     config:
       strategy:
         The input is a JSON array of research aspects. Create exactly ONE branch per JSON object in the array.
-        Each branch content must be the full JSON object for that aspect (name, lens, key_question, query_seeds).
+        Each branch content must be the full JSON object for that aspect (name, lens, key_question, query_seeds,
+        recency_profile, persona).
         Do NOT split within an aspect. Do NOT split by sentences or table rows. One aspect = one branch.
       maxBranches: 8
-  - id: researcher-1
+  - id: web-researcher-1
     type: skill
     position:
-      x: 950
-      y: 200
+      x: 850
+      y: 100
     config:
-      skillRef: researcher
+      skillRef: web-researcher
+      skillRefs:
+        - source-evaluation
       prompt: >-
-        Research this aspect thoroughly using ALL available sources in parallel:
-        1) WEB (via Exa or web search): articles, blogs, reports, expert analysis.
-        2) REDDIT (via Serper): search site:reddit.com for community insights,
-        scrape top threads with includeMarkdown=true, extract scored comments.
-        3) X/TWITTER (via Exa): category "tweet" for recent discussions and opinions.
-        Find credible sources, key data points, expert opinions, and emerging trends.
-        Prioritize primary sources and recent publications. Cite Reddit scores and
-        tweet engagement where available. For KAC/assumption-check aspects, prioritize
-        disconfirming evidence, failure cases, and counter-examples.
+        Research this aspect thoroughly using web sources.
+
+        ADOPT THE PERSONA from the aspect definition — think and search from that perspective.
+
+        Apply SOURCE EVALUATION to every source: classify tier (S/A/B/C/D), check for AI-slop,
+        apply recency weighting based on the aspect's recency_profile.
+        Exclude sources that FAIL evaluation. Note excluded sources briefly.
+
+        For each finding, note [Tier X, Score NN] inline.
+        Prefer fewer high-quality findings over many weak ones.
+
+        For KAC/assumption-check aspects, prioritize disconfirming evidence and counter-examples.
+  - id: reddit-researcher-1
+    type: skill
+    position:
+      x: 850
+      y: 300
+    config:
+      skillRef: reddit-researcher
+      skillRefs:
+        - source-evaluation
+      prompt: >-
+        Research this aspect on Reddit.
+
+        ADOPT THE PERSONA from the aspect definition — search from that perspective.
+
+        Apply SOURCE EVALUATION: check thread age against recency_profile,
+        filter by comment scores, skip low-effort responses.
+
+        Extract: top-voted answers, common pain points, contrarian views,
+        recommended tools/resources, real-world experience reports.
+
+        For KAC/assumption-check aspects, look for failure stories and dissenting opinions.
   - id: merger-1
     type: merger
     position:
-      x: 1250
+      x: 1150
       y: 200
     config:
       strategy: summarize
-      prompt:
-        Synthesize all research findings into a comprehensive, well-structured report. Include an executive summary, key
-        findings per aspect, KAC outcomes (which assumptions held or failed), cross-cutting themes, and actionable
-        conclusions.
+      prompt: >-
+        Synthesize all research findings into a comprehensive, well-structured report.
+
+
+        CROSS-PLATFORM ANALYSIS: Each aspect has web research and Reddit community insights.
+        Explicitly compare them — where do formal sources and practitioners agree or disagree?
+        Disagreements are data, not noise.
+
+
+        CONTRADICTION DETECTION: When sources contradict each other, do not pick one.
+        Note the contradiction, classify it (factual, methodological, temporal), and present both sides.
+
+
+        STRUCTURE:
+
+        1. Executive summary (3-5 sentences, no fluff)
+
+        2. Key findings per aspect (with source tier annotations preserved)
+
+        3. KAC outcomes — which assumptions held, which failed
+
+        4. Cross-cutting themes across aspects
+
+        5. Three insights:
+           - cross_aspect: a non-obvious connection between 2+ aspects
+           - actionable: a specific action with evidence trail
+           - wildcard: a low-probability high-impact scenario
+
+        6. Evidence gaps — what could NOT be reliably sourced
+
+
+        Do NOT generate generic conclusions. Every claim must trace to a cited source.
   - id: eval-1
     type: evaluator
     position:
-      x: 1570
+      x: 1450
       y: 200
     config:
-      criteria: "Score 1-10: report covers multiple aspects with concrete evidence, sources are cited, no speculative conclusions presented as facts. Do NOT re-research — only evaluate the written report."
+      criteria: >-
+        Score 1-10 on: (1) source quality — are Tier S/A sources present, are low-tier sources flagged,
+        (2) slop in the report itself — does the synthesis use vague language, unsourced claims, or
+        generic conclusions like "use best practices", (3) coverage — are all aspects addressed with
+        concrete evidence, (4) contradiction handling — are disagreements noted rather than hidden,
+        (5) information density — ratio of facts/data/citations to filler words.
+        Fail if the report reads like AI-generated summary without specific evidence.
+        Do NOT re-research — only evaluate the written report.
       threshold: 5
       maxRetries: 1
-      retryFrom: merger-1
+      retryFrom: splitter-1
+      skillRefs:
+        - source-evaluation
   - id: output-1
     type: output
     position:
-      x: 1890
+      x: 1750
       y: 200
     config: {}
 edges:
-  - id: e-input-decomposition
+  - id: e-input-scout
     source: input-1
-    target: decomposition-1
+    target: scout-1
     type: default
-  - id: e-decomposition-splitter
-    source: decomposition-1
+  - id: e-scout-splitter
+    source: scout-1
     target: splitter-1
     type: default
-  - id: e-splitter-researcher
+  - id: e-splitter-web
     source: splitter-1
-    target: researcher-1
+    target: web-researcher-1
     type: default
-  - id: e-researcher-merger
-    source: researcher-1
+  - id: e-splitter-reddit
+    source: splitter-1
+    target: reddit-researcher-1
+    type: default
+  - id: e-web-merger
+    source: web-researcher-1
+    target: merger-1
+    type: default
+  - id: e-reddit-merger
+    source: reddit-researcher-1
     target: merger-1
     type: default
   - id: e-merger-eval
