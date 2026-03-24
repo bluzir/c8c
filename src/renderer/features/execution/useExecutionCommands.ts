@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react"
 import { useAtomValue, useSetAtom } from "jotai"
+import { toast } from "sonner"
 import { useInboxNotifications } from "@/hooks/useInboxNotifications"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
@@ -213,6 +214,7 @@ export function useExecutionCommands({
       const resolvedInput = resolveExecutionInput(workflow, inputValue)
       if (!resolvedInput.valid) {
         runStartingRef.current = false
+        toast.error("This flow requires input before it can run.")
         return
       }
 
@@ -252,7 +254,13 @@ export function useExecutionCommands({
         const result = await withIpcTimeout(
           window.api.runChain(
             workflowForExecution,
-            { type: resolvedInput.type, value: assembledValue },
+            {
+              type: resolvedInput.type,
+              value: assembledValue,
+              ...(requestedResult?.trim()
+                ? { context: requestedResult.trim() }
+                : {}),
+            },
             selectedProject ?? undefined,
             selectedWorkflowPath ?? undefined,
             webSearchBackend,
