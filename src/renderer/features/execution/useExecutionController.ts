@@ -334,7 +334,45 @@ export function useExecutionController({
           })
       },
       onFlowChatMessage: ({ workflowKey, message }) => {
-        addFlowChatMessageRef.current({ workflowKey, message })
+        let enrichedMessage = message
+
+        // Enrich Complete messages with follow-ups from template metadata
+        if (message.content.type === "complete") {
+          const templateContext =
+            workflowTemplateContextsRef.current[workflowKey]
+          const recommendedNext = templateContext?.recommendedNext ?? []
+
+          if (
+            recommendedNext.length > 0 &&
+            message.content.data.followUps.length === 0
+          ) {
+            const followUps = recommendedNext.map((templateId: string) => ({
+              label: templateId
+                .split("-")
+                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                .join(" "),
+              emoji: "\u2192",
+              source: "recommended_next" as const,
+              templateId,
+            }))
+
+            enrichedMessage = {
+              ...message,
+              content: {
+                ...message.content,
+                data: {
+                  ...message.content.data,
+                  followUps,
+                },
+              },
+            }
+          }
+        }
+
+        addFlowChatMessageRef.current({
+          workflowKey,
+          message: enrichedMessage,
+        })
       },
       onError: (scope, error) => {
         console.error(`[useChainExecution] ${scope} failed:`, error)
