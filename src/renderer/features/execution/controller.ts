@@ -16,11 +16,19 @@ import type {
   WorkflowEvent,
   WorkflowNode,
 } from "@shared/types"
-import type { FlowChatMessage } from "@/lib/flow-chat-types"
+import type {
+  FlowChatMessage,
+  ProgressContent,
+  ProgressStep,
+} from "@/lib/flow-chat-types"
 import {
   buildDecisionMessage,
   buildCompleteMessage,
+  buildErrorMessage,
+  buildStartMessage,
+  buildProgressMessage,
 } from "@/lib/flow-chat-transformer"
+import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 
 type UpdateValue<T> = T | ((prev: T) => T)
 
@@ -47,6 +55,11 @@ interface WorkflowExecutionControllerDeps {
   onFlowChatMessage?: (args: {
     workflowKey: string
     message: FlowChatMessage
+  }) => void
+  onFlowChatProgressUpdate?: (args: {
+    workflowKey: string
+    messageId: string
+    data: ProgressContent
   }) => void
 }
 
@@ -91,6 +104,12 @@ export class WorkflowExecutionController {
   >()
   private readonly workflowSnapshots = new Map<string, Workflow>()
   private readonly pendingStarts = new Map<string, PendingExecutionStart>()
+  /** Tracks the progress chat message ID per workflow key */
+  private readonly progressMessageIds = new Map<string, string>()
+  /** Tracks the current progress steps per workflow key */
+  private readonly progressSteps = new Map<string, ProgressStep[]>()
+  /** Tracks when the run started for elapsed calculation */
+  private readonly progressStartTimes = new Map<string, number>()
   private nextStartAttemptId = 0
   private listRunsRequestId = 0
 
@@ -338,6 +357,9 @@ export class WorkflowExecutionController {
     )
     this.updateExecutionForKey(workflowKey, transition.nextState)
 
+    // ── Progress tracking ──────────────────────────────────
+    this.handleProgressEvent(workflowKey, event, transition.nextState)
+
     if (transition.effects.approvalRequest) {
       const approvalPayload = transition.effects.approvalRequest
       this.commitApprovalRequests((previous) => {
@@ -433,6 +455,20 @@ export class WorkflowExecutionController {
             costUsd,
           })
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+        } else if (finishedState.runOutcome) {
+          const variant =
+            finishedState.runOutcome === "cancelled" ? "cancelled" : "error"
+          const failedNode = Object.entries(finishedState.nodeStates).find(
+            ([, ns]) => ns.status === "failed",
+          )
+          const msg = buildErrorMessage({
+            runId: event.runId,
+            flowName: finishedState.workflowName,
+            variant,
+            errorMessage: finishedState.lastError || failedNode?.[1]?.error,
+            failedNodeLabel: failedNode?.[0],
+          })
+          this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
         }
       }
 
@@ -443,6 +479,265 @@ export class WorkflowExecutionController {
       this.workflowSnapshots.delete(workflowKey)
       this.refreshPastRuns()
     }
+  }
+
+  private handleProgressEvent(
+    workflowKey: string,
+    event: WorkflowEvent,
+    state: WorkflowExecutionState,
+  ) {
+    const flowName = state.workflowName || "Flow"
+
+    // Determine which nodes are "trackable" (skip input/output/internal types)
+    const getTrackableNodes = (): WorkflowNode[] => {
+      const nodes =
+        state.runtimeNodes.length > 0
+          ? state.runtimeNodes
+          : (state.workflowSnapshot?.nodes ?? [])
+      return nodes.filter(
+        (n) => n.type !== "input" && n.type !== "output" && n.type !== "merger",
+      )
+    }
+
+    const getNodeLabel = (nodeId: string): string => {
+      const nodes =
+        state.runtimeNodes.length > 0
+          ? state.runtimeNodes
+          : (state.workflowSnapshot?.nodes ?? [])
+      const node = nodes.find((n) => n.id === nodeId)
+      if (!node) return nodeId
+      const presentation = getRuntimeStagePresentation(node, {
+        fallbackId: nodeId,
+      })
+      return presentation.title
+    }
+
+    const formatElapsed = (startTime: number): string => {
+      const seconds = Math.round((Date.now() - startTime) / 1000)
+      if (seconds < 60) return `${seconds}s`
+      const minutes = Math.round(seconds / 60)
+      return `${minutes} min`
+    }
+
+    // On first node-start for this workflow key, emit Start + initial Progress
+    if (
+      event.type === "node-start" &&
+      !this.progressMessageIds.has(workflowKey)
+    ) {
+      const trackableNodes = getTrackableNodes()
+      const initialSteps: ProgressStep[] = trackableNodes.map((node) => ({
+        nodeId: node.id,
+        label: getNodeLabel(node.id),
+        status: node.id === event.nodeId ? "running" : "pending",
+      }))
+
+      // Build description from node labels
+      const stepLabels = trackableNodes
+        .map((n) => getNodeLabel(n.id).toLowerCase())
+        .slice(0, 4)
+      const description =
+        stepLabels.length <= 4
+          ? `I'll ${stepLabels.join(", then ")}.`
+          : `I'll ${stepLabels.slice(0, 3).join(", ")}, and ${trackableNodes.length - 3} more steps.`
+
+      // Emit Start message
+      const startMsg = buildStartMessage({ flowName, description })
+      this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
+
+      // Emit initial Progress message
+      const progressMsg = buildProgressMessage({
+        flowName,
+        steps: initialSteps,
+      })
+      this.progressMessageIds.set(workflowKey, progressMsg.id)
+      this.progressSteps.set(workflowKey, initialSteps)
+      this.progressStartTimes.set(workflowKey, Date.now())
+      this.deps.onFlowChatMessage?.({ workflowKey, message: progressMsg })
+      return
+    }
+
+    // Update existing progress on node-start
+    if (
+      event.type === "node-start" &&
+      this.progressMessageIds.has(workflowKey)
+    ) {
+      const steps = this.progressSteps.get(workflowKey) ?? []
+
+      // If node not in the list yet (could happen from expansion), add it
+      const existingStep = steps.find((s) => s.nodeId === event.nodeId)
+      let updatedSteps: ProgressStep[]
+      if (existingStep) {
+        updatedSteps = steps.map((s) =>
+          s.nodeId === event.nodeId ? { ...s, status: "running" as const } : s,
+        )
+      } else {
+        updatedSteps = [
+          ...steps,
+          {
+            nodeId: event.nodeId,
+            label: getNodeLabel(event.nodeId),
+            status: "running" as const,
+          },
+        ]
+      }
+
+      this.progressSteps.set(workflowKey, updatedSteps)
+      this.emitProgressUpdate(workflowKey, updatedSteps)
+      return
+    }
+
+    // Update progress on node-done
+    if (
+      event.type === "node-done" &&
+      this.progressMessageIds.has(workflowKey)
+    ) {
+      const steps = this.progressSteps.get(workflowKey) ?? []
+      const outputContent =
+        typeof event.output?.content === "string"
+          ? event.output.content
+          : undefined
+
+      // Extract a brief summary from output (first sentence, max 60 chars)
+      let summary: string | undefined
+      if (outputContent) {
+        const firstSentence = outputContent.split(/[.!?\n]/)[0]?.trim()
+        if (firstSentence) {
+          summary =
+            firstSentence.length > 60
+              ? firstSentence.slice(0, 57) + "..."
+              : firstSentence
+        }
+      }
+
+      const updatedSteps = steps.map((s) =>
+        s.nodeId === event.nodeId
+          ? { ...s, status: "done" as const, summary, output: outputContent }
+          : s,
+      )
+
+      this.progressSteps.set(workflowKey, updatedSteps)
+      this.emitProgressUpdate(workflowKey, updatedSteps)
+      return
+    }
+
+    // Update progress on node-error
+    if (
+      event.type === "node-error" &&
+      this.progressMessageIds.has(workflowKey)
+    ) {
+      const steps = this.progressSteps.get(workflowKey) ?? []
+      const updatedSteps = steps.map((s) =>
+        s.nodeId === event.nodeId ? { ...s, status: "failed" as const } : s,
+      )
+      this.progressSteps.set(workflowKey, updatedSteps)
+      this.emitProgressUpdate(workflowKey, updatedSteps)
+      return
+    }
+
+    // Handle fan-out: nodes-expanded adds sub-steps to the parent step
+    if (
+      event.type === "nodes-expanded" &&
+      this.progressMessageIds.has(workflowKey)
+    ) {
+      const steps = this.progressSteps.get(workflowKey) ?? []
+
+      // Find the parent splitter node — the new node IDs came from it
+      // New nodes are added as sub-steps of the last running/pending step, or as new top-level steps
+      const newSteps = event.newNodeIds.map((nodeId) => ({
+        nodeId,
+        label: getNodeLabel(nodeId),
+        status: "pending" as const,
+      }))
+
+      // Try to find the parent splitter — the runtimeMeta for new nodes contains splitterId
+      const runtimeMeta = event.runtimeMeta
+      let parentSplitterId: string | undefined
+      if (runtimeMeta) {
+        for (const newId of event.newNodeIds) {
+          const meta = runtimeMeta[newId]
+          if (meta?.splitterId) {
+            parentSplitterId = meta.splitterId
+            break
+          }
+        }
+      }
+
+      let updatedSteps: ProgressStep[]
+      if (parentSplitterId) {
+        const parentStep = steps.find((s) => s.nodeId === parentSplitterId)
+        if (parentStep) {
+          updatedSteps = steps.map((s) =>
+            s.nodeId === parentSplitterId
+              ? {
+                  ...s,
+                  subSteps: [
+                    ...(s.subSteps ?? []),
+                    ...event.newNodeIds.map((nodeId) => ({
+                      key: nodeId,
+                      label: getNodeLabel(nodeId),
+                      done: false,
+                    })),
+                  ],
+                }
+              : s,
+          )
+        } else {
+          updatedSteps = [...steps, ...newSteps]
+        }
+      } else {
+        // No clear parent — add as top-level steps
+        updatedSteps = [...steps, ...newSteps]
+      }
+
+      this.progressSteps.set(workflowKey, updatedSteps)
+      this.emitProgressUpdate(workflowKey, updatedSteps)
+      return
+    }
+
+    // Collapse on run-done
+    if (event.type === "run-done" && this.progressMessageIds.has(workflowKey)) {
+      const steps = this.progressSteps.get(workflowKey) ?? []
+      const startTime = this.progressStartTimes.get(workflowKey) ?? Date.now()
+      const elapsed = formatElapsed(startTime)
+      const doneCount = steps.filter((s) => s.status === "done").length
+
+      const messageId = this.progressMessageIds.get(workflowKey)!
+      const collapsedData: ProgressContent = {
+        steps,
+        elapsed,
+        collapsed: true,
+        collapsedLabel: `All ${doneCount} steps completed \u00b7 ${elapsed}`,
+      }
+
+      this.deps.onFlowChatProgressUpdate?.({
+        workflowKey,
+        messageId,
+        data: collapsedData,
+      })
+
+      // Clean up tracking
+      this.progressMessageIds.delete(workflowKey)
+      this.progressSteps.delete(workflowKey)
+      this.progressStartTimes.delete(workflowKey)
+    }
+  }
+
+  private emitProgressUpdate(workflowKey: string, steps: ProgressStep[]) {
+    const messageId = this.progressMessageIds.get(workflowKey)
+    if (!messageId) return
+
+    const startTime = this.progressStartTimes.get(workflowKey) ?? Date.now()
+    const seconds = Math.round((Date.now() - startTime) / 1000)
+    const elapsed =
+      seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)} min`
+
+    // Also update sub-steps done status based on node-done events
+    const data: ProgressContent = { steps, elapsed }
+    this.deps.onFlowChatProgressUpdate?.({
+      workflowKey,
+      messageId,
+      data,
+    })
   }
 
   cancelExecution(
@@ -466,8 +761,20 @@ export class WorkflowExecutionController {
     this.pendingStarts.delete(workflowKey)
     this.previousExecutionSnapshots.delete(workflowKey)
     this.workflowSnapshots.delete(workflowKey)
+    this.progressMessageIds.delete(workflowKey)
+    this.progressSteps.delete(workflowKey)
+    this.progressStartTimes.delete(workflowKey)
     this.updateExecutionForKey(workflowKey, cancelledState)
     this.reconcileApprovalRequests()
+
+    // Emit cancelled error message
+    const msg = buildErrorMessage({
+      runId: runIdToClear ?? "",
+      flowName: cancelledState.workflowName,
+      variant: "cancelled",
+    })
+    this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+
     this.deps.onRunFinished?.({ workflowKey, state: cancelledState })
     if (runIdToClear) {
       this.refreshPastRuns()

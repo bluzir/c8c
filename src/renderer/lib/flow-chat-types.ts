@@ -48,9 +48,39 @@ export interface CompleteContent {
   runId: string
 }
 
+export interface ErrorContent {
+  variant: "error" | "cancelled" | "interrupted"
+  summary: string
+  suggestions: string[]
+  actions: FlowAction[]
+}
+
+export interface StartContent {
+  description: string
+}
+
+export interface ProgressStep {
+  nodeId: string
+  label: string
+  status: "pending" | "running" | "done" | "failed"
+  summary?: string
+  output?: string
+  subSteps?: Array<{ key: string; label: string; done: boolean }>
+}
+
+export interface ProgressContent {
+  steps: ProgressStep[]
+  elapsed?: string
+  collapsed?: boolean
+  collapsedLabel?: string
+}
+
 export type FlowChatMessageContent =
+  | { type: "start"; data: StartContent }
+  | { type: "progress"; data: ProgressContent }
   | { type: "decision"; data: DecisionContent }
   | { type: "complete"; data: CompleteContent }
+  | { type: "error"; data: ErrorContent }
 
 export interface FlowChatMessage {
   id: string
