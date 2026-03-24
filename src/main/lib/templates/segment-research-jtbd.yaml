@@ -1,0 +1,229 @@
+id: segment-research-jtbd
+stage: research
+stage_family: understand
+recommended_next:
+  - indispensable-jtbd-pipeline
+  - irresistible-resonance-pipeline
+emoji: "\U0001F3AF"
+headline: Grounded segment research with signal collection
+how: >-
+  Analyzes context, generates segment hypotheses, collects signals
+  by type in parallel (problems, triggers, solutions, barriers,
+  emotions, price/value, success criteria, competitors),
+  then matches signals to segments and scores with fatal flaw detection
+input: A product description, landing page, research doc, or market area
+output: Scored segment list with matched signals, fatal flaw analysis, and evidence quality ratings
+use_when: You need evidence-backed segments before committing strategy.
+time: ~10-15 min.
+steps:
+  - Analyze input and generate grounded segment hypotheses
+  - Collect signals by type in parallel (problems, triggers, solutions, barriers, emotions, success criteria, price/value, competitors)
+  - Build unified signal bank with coverage analysis
+  - Match signals to segments, score with fatal flaw detection
+suggested_tools:
+  - exa
+  - serper
+contract_out:
+  - kind: research_pack
+    title: Segment Research Pack
+    description: Scored segments with matched signals, fatal flaw analysis, and evidence quality ratings.
+execution_policy:
+  profile_id: solo_operator
+  summary: Solo founder operational context
+  notes:
+    - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
+version: 1
+name: Segment Research JTBD
+description: >-
+  Grounded segment research using ajbtd methodology — collects signals by type
+  in parallel, then matches to segment hypotheses and scores with fatal flaw detection
+defaults:
+  model: sonnet
+  maxTurns: 120
+  timeout_minutes: 30
+  maxParallel: 8
+nodes:
+  - id: input-1
+    type: input
+    position:
+      x: 0
+      y: 200
+    config: {}
+  - id: context-scout-1
+    type: skill
+    position:
+      x: 250
+      y: 200
+    config:
+      skillRef: jtbd/context-scout
+      prompt: >-
+        Analyze the provided input (product description, landing page, research doc,
+        or market area) and produce two outputs:
+
+        PART 1 — CONTEXT BRIEF:
+        Product/market identity, B2B vs B2C classification, market trends,
+        vocabulary/jargon the audience uses, competitive landscape hints.
+
+        PART 2 — SEGMENT HYPOTHESES (6-10):
+        For each: name (specific role + context), primary JTBD, triggers,
+        estimated size, grounding (verbatim quote + URL), validation signals.
+
+        Rules: segment by role+context not tool usage, include one non-obvious segment,
+        apply solo founder reachability filter.
+
+        Output as JSON with keys: context_brief, segment_hypotheses.
+        Then output a JSON array of signal types to collect:
+        ["problems", "triggers", "solutions", "barriers", "emotions", "success_criteria", "price_value", "competitors"]
+  - id: splitter-1
+    type: splitter
+    position:
+      x: 550
+      y: 200
+    config:
+      strategy: >-
+        The input contains a JSON array of signal types at the end.
+        Create exactly ONE branch per signal type.
+        Each branch content must include:
+        1. The signal_type name
+        2. The full context_brief from the input
+        3. The segment_hypotheses array (so each researcher knows what to look for)
+
+        Do NOT split by segments. Split by signal types only.
+        One signal type = one branch.
+      maxBranches: 8
+  - id: signal-researcher-1
+    type: skill
+    position:
+      x: 850
+      y: 200
+    config:
+      skillRef: jtbd/signal-researcher
+      skillRefs:
+        - source-evaluation
+      prompt: >-
+        You are collecting signals of ONE specific type for a market research project.
+        Your signal type and market context are provided in the input.
+
+        Run 5-8 search queries tailored to your signal type. Use vocabulary from
+        the context brief. Prioritize first-hand accounts over marketing content.
+
+        Per signal record: signal_type, verbatim_quote (min 10 chars, never paraphrase),
+        source_url, source_tier (S/A/B/C/D), recency (fresh/relevant/legacy/ancient),
+        slop_indicators, segment_hint.
+
+        Apply SOURCE EVALUATION to every source: classify tier, check for AI-slop,
+        apply recency weighting. Exclude sources that FAIL. Note excluded sources briefly.
+
+        Aim for 10-20 signals. Quality over quantity.
+  - id: merger-1
+    type: merger
+    position:
+      x: 1150
+      y: 200
+    config:
+      strategy: summarize
+      prompt: >-
+        You receive signal collections from 8 parallel researchers, each covering
+        one signal type (problems, triggers, solutions, barriers, emotions,
+        success_criteria, price_value, competitors).
+
+        Build a unified SIGNAL BANK:
+
+        1. AGGREGATE all signals into one pool, preserving signal_type, tier,
+           recency, and source metadata
+        2. CLUSTER signals by semantic similarity across types
+        3. COVERAGE REPORT per signal type: total count, tier distribution,
+           recency distribution, coverage quality (strong/adequate/weak)
+        4. GAPS: flag signal types with fewer than 5 signals or no S/A tier sources
+        5. PASS THROUGH: include the original segment_hypotheses array verbatim —
+           the downstream scorer needs them to match signals to segments
+
+        Output the full signal bank, coverage report, and verbatim segment_hypotheses.
+        Do NOT filter or discard signals.
+  - id: segment-scorer-1
+    type: skill
+    position:
+      x: 1450
+      y: 200
+    config:
+      skillRef: jtbd/segment-scorer
+      prompt: >-
+        You receive a signal bank with clustered, graded signals and the original
+        segment hypotheses passed through by the merger.
+
+        FOR EACH SEGMENT HYPOTHESIS:
+        1. Match signals using segment_hint and semantic matching
+        2. Calculate weighted count: tier_weight (S=3.0, A=2.0, B=1.5, C=1.0, D=0.5)
+           × recency_weight (fresh=1.2, relevant=1.0, legacy=0.5, ancient=0.1)
+        3. Score 5 dimensions: signal_density (0.25), problem_severity (0.25),
+           market_indicators (0.20), accessibility (0.20), signal_quality (0.10)
+        4. Fatal flaw check: NO_MONEY, LOW_FREQUENCY, RED_OCEAN, NO_PROBLEM
+        5. Apply frequency multiplier (daily/weekly=1.2, monthly=0.8, quarterly=0.5, one-off=0.3)
+        6. Final score = weighted_avg × frequency_multiplier. Fatal flaw → cap at 4.0
+
+        Output per segment: name, matched signals (raw + weighted), dimension scores,
+        final score, top 5 signals with quotes, fatal flaw verdict, recommendation
+        (PURSUE / INVESTIGATE / SKIP).
+
+        Rank all segments by final score with clear #1 recommendation.
+  - id: evaluator-1
+    type: evaluator
+    position:
+      x: 1750
+      y: 200
+    config:
+      criteria: >-
+        Score 1-10 on:
+        1) Signal coverage — are all 8 signal types represented with adequate depth?
+        2) Grounding quality — what % of signals have tier S/A sources and verbatim quotes?
+        3) Segment differentiation — are segments truly distinct, not overlapping?
+        4) Scoring rigor — are fatal flaw checks evidence-based, not speculative?
+        5) Actionability — does the output give a clear segment recommendation with evidence?
+
+        Fail if any segment recommendation relies on signals with no source URLs.
+        Fail if segment hypotheses are missing or altered — scorer must have received them.
+        Do NOT re-research — only evaluate the written output.
+      threshold: 7
+      maxRetries: 1
+      retryFrom: splitter-1
+      skillRefs:
+        - source-evaluation
+  - id: output-1
+    type: output
+    position:
+      x: 2050
+      y: 200
+    config: {}
+edges:
+  - id: e-input-context-scout
+    source: input-1
+    target: context-scout-1
+    type: default
+  - id: e-context-scout-splitter
+    source: context-scout-1
+    target: splitter-1
+    type: default
+  - id: e-splitter-signal-researcher
+    source: splitter-1
+    target: signal-researcher-1
+    type: default
+  - id: e-signal-researcher-merger
+    source: signal-researcher-1
+    target: merger-1
+    type: default
+  - id: e-merger-segment-scorer
+    source: merger-1
+    target: segment-scorer-1
+    type: default
+  - id: e-segment-scorer-evaluator
+    source: segment-scorer-1
+    target: evaluator-1
+    type: default
+  - id: e-evaluator-output
+    source: evaluator-1
+    target: output-1
+    type: pass
+  - id: e-evaluator-retry
+    source: evaluator-1
+    target: splitter-1
+    type: fail
