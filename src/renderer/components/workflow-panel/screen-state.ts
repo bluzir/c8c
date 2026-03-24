@@ -126,7 +126,13 @@ export function resolveWorkflowListSurfaceIntent({
 }
 
 export function shouldShowInlineInputPanel(intent: WorkflowListSurfaceIntent) {
-  return intent === "resume_needs_input" || intent === "start_needs_input"
+  // Input is always inline on start/idle states — user's request must be visible
+  return (
+    intent === "resume_needs_input" ||
+    intent === "start_needs_input" ||
+    intent === "start_ready" ||
+    intent === "resume_ready"
+  )
 }
 
 export function shouldShowLiveOutputPanel(state: WorkflowPrimaryScreenState) {
