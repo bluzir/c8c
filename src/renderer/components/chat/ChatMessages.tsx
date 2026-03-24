@@ -16,6 +16,7 @@ import {
   currentWorkflowAtom,
   mainViewAtom,
   queuedFollowUpTemplateIdAtom,
+  routeAlternativesOpenAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
@@ -66,9 +67,18 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const selectedProject = useAtomValue(selectedProjectAtom)
 
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
+  const setRouteAlternativesOpen = useSetAtom(routeAlternativesOpenAtom)
   const handleRunFromRouting = useCallback(() => {
     setChatFlowInputRequest("run")
   }, [setChatFlowInputRequest])
+  const handleShowRouteAlternatives = useCallback(() => {
+    setRouteAlternativesOpen(true)
+  }, [setRouteAlternativesOpen])
+  const hasRouteAlternatives = Boolean(
+    selectedProject &&
+    entryState?.routing?.source === "agent" &&
+    entryState.routing.alternateTemplateIds?.length,
+  )
 
   const handleFollowUp = useCallback(
     (followUp: FlowFollowUp) => {
@@ -425,6 +435,11 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                     <FlowRoutingMessage
                       data={flowMsg.content.data}
                       onRun={handleRunFromRouting}
+                      onShowAlternatives={
+                        hasRouteAlternatives
+                          ? handleShowRouteAlternatives
+                          : undefined
+                      }
                     />
                   </div>
                 )

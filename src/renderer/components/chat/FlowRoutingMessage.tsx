@@ -6,6 +6,7 @@ import { CheckCircle2, Circle, Loader2, Play } from "lucide-react"
 interface FlowRoutingMessageProps {
   data: RoutingContent
   onRun?: () => void
+  onShowAlternatives?: () => void
 }
 
 function StepIcon({ status }: { status: "pending" | "running" | "done" }) {
@@ -23,7 +24,11 @@ function StepIcon({ status }: { status: "pending" | "running" | "done" }) {
   return <Circle size={14} className="shrink-0 text-muted-foreground/30" />
 }
 
-export function FlowRoutingMessage({ data, onRun }: FlowRoutingMessageProps) {
+export function FlowRoutingMessage({
+  data,
+  onRun,
+  onShowAlternatives,
+}: FlowRoutingMessageProps) {
   const allDone = data.steps.every((s) => s.status === "done")
   const template = data.selectedTemplate
 
@@ -76,12 +81,19 @@ export function FlowRoutingMessage({ data, onRun }: FlowRoutingMessageProps) {
             )}
           </div>
 
-          {onRun && (
-            <Button size="sm" onClick={onRun}>
-              <Play size={14} />
-              Run
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {onRun && (
+              <Button size="sm" onClick={onRun}>
+                <Play size={14} />
+                Run
+              </Button>
+            )}
+            {onShowAlternatives && (
+              <Button size="sm" variant="ghost" onClick={onShowAlternatives}>
+                Other starts
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -394,6 +394,7 @@ export const selectedWorkflowSavedRunReviewRequestedAtom = atom(
   },
 )
 export const workflowRunBlockReasonAtom = atom<string | null>(null)
+export const routeAlternativesOpenAtom = atom(false)
 export type WorkflowOpenStatus = "idle" | "loading" | "error"
 export interface WorkflowOpenState {
   status: WorkflowOpenStatus

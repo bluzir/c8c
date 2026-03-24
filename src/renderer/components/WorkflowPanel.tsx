@@ -30,6 +30,7 @@ import {
   desktopRuntimeAtom,
   openSkillPickerAtom,
   selectedNodeIdAtom,
+  routeAlternativesOpenAtom,
 } from "@/lib/store"
 import {
   activeNodeIdAtom,
@@ -211,7 +212,9 @@ export function WorkflowPanel() {
   const [showSavedRunReview, setShowSavedRunReview] = useAtom(
     selectedWorkflowSavedRunReviewRequestedAtom,
   )
-  const [routeAlternativesOpen, setRouteAlternativesOpen] = useState(false)
+  const [routeAlternativesOpen, setRouteAlternativesOpen] = useAtom(
+    routeAlternativesOpenAtom,
+  )
   const [
     pendingRouteAlternativeTemplateId,
     setPendingRouteAlternativeTemplateId,

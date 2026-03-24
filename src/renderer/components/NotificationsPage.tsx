@@ -15,6 +15,7 @@ import {
   selectedFactoryCaseIdAtom,
   selectedInboxTaskKeyAtom,
   selectedWorkflowPathAtom,
+  viewModeAtom,
   type InboxNotification,
   workflowTemplateContextsAtom,
   workflowSavedSnapshotAtom,
@@ -108,6 +109,7 @@ export function NotificationsPage() {
   const [selectedFactoryId] = useAtom(selectedFactoryIdAtom)
   const [selectedCaseId, setSelectedCaseId] = useAtom(selectedFactoryCaseIdAtom)
   const [, setMainView] = useAtom(mainViewAtom)
+  const [, setViewMode] = useAtom(viewModeAtom)
   const [, setSelectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
   const [, setWorkflow] = useAtom(currentWorkflowAtom)
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
@@ -453,6 +455,7 @@ export function NotificationsPage() {
         setSelectedTaskId(null)
       }
       setSelectedPastRun(options?.pastRun ?? null)
+      setViewMode("chat")
       setMainView("thread")
       return workflow
     },
@@ -461,6 +464,7 @@ export function NotificationsPage() {
       setSelectedPastRun,
       setSelectedTaskId,
       setSelectedWorkflowPath,
+      setViewMode,
       setWorkflow,
       setWorkflowSavedSnapshot,
     ],
@@ -556,6 +560,7 @@ export function NotificationsPage() {
         selectedTask.workflowPath,
       )
       if (started) {
+        setViewMode("chat")
         setMainView("thread")
         return
       }
