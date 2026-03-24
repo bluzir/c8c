@@ -1,6 +1,6 @@
 import {
   Activity,
-  FileStack,
+  FileText,
   FolderOpen,
   Inbox,
   LayoutTemplate,
@@ -9,6 +9,8 @@ import {
   Plus,
   PanelLeftClose,
 } from "lucide-react"
+import { useAtomValue } from "jotai"
+import { factoryBetaEnabledAtom } from "@/lib/store"
 import { SidebarNavItem } from "@/components/sidebar/SidebarNavItem"
 import {
   Tooltip,
@@ -65,6 +67,7 @@ export function ProjectSidebarChrome({
   onToggleVisibility,
   showVisibilityToggle = false,
 }: ProjectSidebarChromeProps) {
+  const factoryBetaEnabled = useAtomValue(factoryBetaEnabledAtom)
   return (
     <>
       {showVisibilityToggle && onToggleVisibility ? (
@@ -114,7 +117,14 @@ export function ProjectSidebarChrome({
           active={mainView === "skills"}
           onClick={onOpenSkills}
         />
-        {/* Results page hidden — premature without recurring execution (R4). Behind factory beta flag. */}
+        {factoryBetaEnabled && (
+          <SidebarNavItem
+            icon={FileText}
+            label="Results"
+            active={mainView === "artifacts"}
+            onClick={onOpenArtifacts}
+          />
+        )}
       </div>
 
       <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">
