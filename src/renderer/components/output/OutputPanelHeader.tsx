@@ -79,7 +79,7 @@ export function OutputPanelHeader({
                   onClick={onExitReview}
                 >
                   <ArrowLeft size={12} />
-                  Back to current
+                  Back to live
                 </Button>
               )}
               <span className="ui-status-badge h-control-xs shrink-0 border border-hairline px-2 text-muted-foreground">
