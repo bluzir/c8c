@@ -805,3 +805,27 @@ User presses Cancel → runOutcome = "cancelled"
 → Result tab shows "Run cancelled at step N" + "Run again" button
 → Click → resets to idle → user re-runs
 ```
+
+---
+
+## Appendix: Stuck Branch Detection (Engine-Level)
+
+### Bug ENGINE-1: No per-branch timeout or stuck detection
+
+**Problem:** Claude Code subprocess can hang indefinitely ("No new output for 23m 3s" repeating every minute). Per-run `timeout_minutes: 30` doesn't apply to individual branches. One stuck branch blocks the entire fan-out.
+
+**User sees:** "Thinking..." with no progress, heartbeat messages incrementing. No way to kill one branch without cancelling the whole run.
+
+**Fix (engine-level, not UI):**
+1. **Stuck detection**: if no new log entry (excluding heartbeat) for N minutes → mark branch as stuck
+2. **UI**: show "This step is not responding" with two options:
+   - "Resume" — reconnect to Claude Code session (session ID is in subprocess state)
+   - "Skip" — kill subprocess, mark branch as failed, continue with remaining branches
+3. **Auto-timeout**: configurable per-node `stuckTimeout` (default 10min for research nodes). After timeout → auto-skip with warning in result.
+
+**Files to modify:**
+- `packages/workflow-runner/src/lib/run-node-executors.ts` — heartbeat detection + auto-kill
+- `packages/workflow-runner/src/lib/agent-execution.ts` — session resume capability
+- `src/renderer/components/output/StepRow.tsx` — "Not responding" UI state
+
+**Priority:** P1 — not blocking ship but severely impacts research/content flows with parallel branches.
