@@ -89,7 +89,9 @@ interface InFlightManifestEntry {
 2. Try read `{workspace}/run-state.json` → if exists, parse → return `{ status: "interrupted", snapshot: PersistedRunState }`
 3. Neither exists → return `null`
 
-**Security**: validate workspace path against `allowedReportRoots()` (same pattern as existing `system:show-in-finder`).
+**Security**: validate workspace path against `allowedReportRoots()` from `src/main/lib/security-paths.ts` (same roots used for run workspace access).
+
+**Reuse existing code**: the handler should reuse the existing `loadPersistedRunSnapshot()` function at `src/main/ipc/executor.ts:371` for reading `run-state.json`. For `run-result.json`, reuse the existing `loadRunResult()` pattern from `run-workspace-store.ts`.
 
 **Return type**:
 ```ts
@@ -97,17 +99,13 @@ type TerminalRunSnapshot =
   | { status: "completed"; result: RunResult }
   | {
       status: "interrupted"
-      snapshot: {
-        nodeStates: Record<string, NodeState>
-        runtimeNodes: WorkflowNode[]
-        runtimeEdges: WorkflowEdge[]
-        runtimeMeta: Record<string, RuntimeMetaEntry>
-        input: WorkflowInput
-      }
-      resumeNodeId: string | null  // from findResumeNodeId
+      snapshot: PersistedRunSnapshot  // reuse existing type from src/shared/types.ts
+      resumeNodeId: string | null
     }
   | null
 ```
+
+`PersistedRunSnapshot` already exists in `src/shared/types.ts` with optional fields (`runtimeNodes?`, `runtimeEdges?`, `runtimeMeta?`, `input?`). The IPC handler normalizes these with defaults (empty arrays/objects) — same pattern as `loadPersistedRunSnapshot` already does.
 
 `resumeNodeId` is computed server-side using existing `findResumeNodeId(savedState)` from `packages/workflow-runner/src/lib/persisted-run-state.ts`. This avoids shipping the function to renderer.
 
@@ -125,22 +123,25 @@ type TerminalRunSnapshot =
    - Check `workflowExecutionStatesAtom[key]` — if already has `isRunInFlight` status → skip (alive, reconnected)
    - Call `window.api.getTerminalRunSnapshot(entry.workspace)`
    - If `null` → skip
-   - If `completed` → populate execution state:
+   - If `completed` → merge into empty state:
      ```ts
-     { runStatus: "done", runOutcome: "completed",
+     { ...createEmptyWorkflowExecutionState(),
+       runStatus: "done", runOutcome: "completed",
        runId: entry.runId, workspace: entry.workspace,
-       workflowPath: entry.workflowPath, workflowName: entry.workflowName,
-       finalContent: result.report || "", ... }
+       runWorkflowPath: entry.workflowPath, workflowName: entry.workflowName,
+       finalContent: result.report || "" }
      ```
-   - If `interrupted` → populate execution state:
+   - If `interrupted` → merge into empty state to fill all required fields:
      ```ts
-     { runStatus: "done", runOutcome: "interrupted",
+     { ...createEmptyWorkflowExecutionState(),
+       runStatus: "done", runOutcome: "interrupted",
        runId: entry.runId, workspace: entry.workspace,
-       workflowPath: entry.workflowPath, workflowName: entry.workflowName,
-       nodeStates: snapshot.nodeStates,
-       runtimeNodes: snapshot.runtimeNodes,
-       runtimeEdges: snapshot.runtimeEdges,
-       runtimeMeta: snapshot.runtimeMeta,
+       runWorkflowPath: entry.workflowPath, workflowName: entry.workflowName,
+       nodeStates: snapshot.nodeStates || {},
+       runtimeNodes: snapshot.runtimeNodes || [],
+       runtimeEdges: snapshot.runtimeEdges || [],
+       runtimeMeta: snapshot.runtimeMeta || {},
+       evalResults: snapshot.evalResults || {},
        resumeNodeId: snapshot.resumeNodeId }
      ```
 5. Clear manifest from localStorage
@@ -150,14 +151,17 @@ type TerminalRunSnapshot =
 
 ## Section 4: runOutcome "interrupted"
 
-**Type change**: add `"interrupted"` to the `runOutcome` union in `WorkflowExecutionState`. Currently used values: `null`, `"completed"`, `"failed"`, `"cancelled"`, `"blocked"`.
+**Type**: `"interrupted"` already exists in the `RunStatus` union (`src/shared/types.ts:917`). `WorkflowExecutionState.runOutcome` is typed as `RunStatus | null`, so no type change needed. Only consuming code needs new branches.
 
-**Where runOutcome is checked** (grep for `runOutcome`):
-- `useVerdictData` — add `"interrupted"` case for headline/tone
-- `ResultTab` — add `"interrupted"` to action items branch (alongside cancelled/failed/completed)
+**`useVerdictData`**: currently maps `runOutcome === "interrupted"` to `terminalVariant: "failed"` (line ~344). Change this to a new `terminalVariant: "interrupted"` — add `"interrupted"` to the `VerdictTerminalVariant` union type at `src/renderer/components/output/useVerdictData.ts:11`.
+
+**Where runOutcome is checked** (places that need `"interrupted"` handling):
+- `useVerdictData` — new `"interrupted"` terminalVariant with warning tone + custom headline
+- `ResultTab` — new action items branch for `terminalVariant === "interrupted"`
 - `deriveSidebarWorkflowRowState` — add interrupted badge
 - `buildExecutionSurfaceNotice` — no change needed (interrupted is terminal, not an active error)
 - `screen-state.ts` — interrupted should resolve to the same screen state as completed (show result surface)
+- `showResultSurface` — already covers interrupted via `runStatus === "done" && runOutcome !== "blocked"` fallthrough. Adding explicit `"interrupted"` check is optional for readability.
 
 ## Section 5: Interrupted UI
 
@@ -229,16 +233,16 @@ if (runOutcome === "interrupted") return { badge: "Interrupted", variant: "warni
 ### Modify: Main process
 - `src/main/ipc/executor.ts` — add `executor:get-terminal-run-snapshot` handler
 - `src/preload/index.ts` — add `getTerminalRunSnapshot` to window.api
-- `src/shared/types.ts` — add `TerminalRunSnapshot` type, add `"interrupted"` to runOutcome union
+- `src/shared/types.ts` — add `TerminalRunSnapshot` type (`"interrupted"` already exists in `RunStatus` union)
 
 ### Modify: Renderer
-- `src/renderer/lib/workflow-execution.ts` — add `resumeNodeId` to `WorkflowExecutionState`, add `"interrupted"` to runOutcome, update `createEmptyWorkflowExecutionState`
+- `src/renderer/lib/workflow-execution.ts` — add `resumeNodeId` to `WorkflowExecutionState`, update `createEmptyWorkflowExecutionState`
 - `src/renderer/features/execution/state.ts` — add `resumeNodeIdAtom`
 - `src/renderer/components/output/useVerdictData.ts` — add interrupted case
 - `src/renderer/components/output/ResultTab.tsx` — add interrupted action branch
 - `src/renderer/components/output/useOutputPanelDerivedState.ts` — add interrupted to `showResultSurface`
 - `src/renderer/components/sidebar/projectSidebarUtils.ts` — add interrupted badge
-- `src/renderer/components/App.tsx` (or app root) — mount `useRecoverInterruptedRuns`
+- `src/renderer/App.tsx` — mount `useRecoverInterruptedRuns`
 - `src/renderer/features/execution/useExecutionController.ts` — add beforeunload manifest persist
 
 ### Modify: Shared
