@@ -284,7 +284,9 @@ function createDefaultLogger(): WorkflowLogger {
   }
 }
 
-export function createFilesystemWorkspaceStore(): WorkflowWorkspaceStore {
+export function createFilesystemWorkspaceStore(
+  activeWorkspacePaths?: () => ReadonlySet<string>,
+): WorkflowWorkspaceStore {
   const retentionSweeps = new Map<string, Promise<void>>()
 
   return {
@@ -300,7 +302,12 @@ export function createFilesystemWorkspaceStore(): WorkflowWorkspaceStore {
       if (existingSweep) {
         await existingSweep
       } else {
-        const sweep = cleanupRunWorkspaces(workspaceBase).then(
+        const sweep = cleanupRunWorkspaces(
+          workspaceBase,
+          undefined,
+          undefined,
+          activeWorkspacePaths?.() ?? new Set(),
+        ).then(
           () => undefined,
           () => undefined,
         )
@@ -467,7 +474,6 @@ async function readHumanTaskResponse(
 
 export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
   const logger = deps.logger || createDefaultLogger()
-  const workspaceStore = deps.workspaceStore || createFilesystemWorkspaceStore()
   const activeRuns = new Map<string, AbortController>()
   const pausedRuns = new Map<
     string,
@@ -475,6 +481,9 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
   >()
   const interrupts = createRunInterruptRegistry()
   const runWorkspaces = new Map<string, string>()
+  const workspaceStore =
+    deps.workspaceStore ||
+    createFilesystemWorkspaceStore(() => new Set(runWorkspaces.values()))
 
   const resolveWorkflowProviderId =
     deps.resolveWorkflowProviderId ||
@@ -1119,6 +1128,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
       interrupts.resolvePendingEvalOverridesForRun(runId)
       activeRuns.delete(runId)
       pausedRuns.delete(runId)
+      runWorkspaces.delete(runId)
     }
   }
 

@@ -253,7 +253,7 @@ export function spawnClaude(
       })
     })
 
-    child.on("error", () => {
+    child.on("error", (error) => {
       clearTimeout(timer)
       resolve({
         success: false,
@@ -263,6 +263,7 @@ export function spawnClaude(
         aborted: false,
         durationMs: Date.now() - startedAt,
         pid: child.pid,
+        error: error.message,
       })
     })
   })

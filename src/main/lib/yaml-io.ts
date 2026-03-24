@@ -44,7 +44,6 @@ export async function saveChainYaml(
 export async function listChains(dir?: string): Promise<WorkflowFile[]> {
   const targetDir = dir || chainsDir()
   try {
-    await mkdir(targetDir, { recursive: true })
     const entries = await readdir(targetDir, { withFileTypes: true })
     const workflows = await Promise.all(
       entries

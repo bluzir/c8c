@@ -14,6 +14,7 @@ import {
   toWorkflowFileStem,
 } from "@shared/workflow-name"
 import { moveChatHistory } from "../lib/chat-storage"
+import { hasActiveRuns } from "../lib/workflow-runner"
 import {
   allowedWorkflowRoots,
   assertRegisteredProjectPath as assertRegisteredProjectRoot,
@@ -26,16 +27,23 @@ async function uniqueWorkflowPath(
   stem: string,
   extension: ".chain" | ".yaml" | ".yml",
 ): Promise<string> {
+  const { open } = await import("node:fs/promises")
   const baseStem = stem || "flow"
   let index = 1
   let candidate = join(dir, `${baseStem}${extension}`)
 
-  while (await pathExists(candidate)) {
-    index += 1
-    candidate = join(dir, `${baseStem}-${index}${extension}`)
+  // Use O_CREAT|O_EXCL (wx flag) for atomic create-if-not-exists to avoid TOCTOU race
+  for (;;) {
+    try {
+      const fh = await open(candidate, "wx")
+      await fh.close()
+      return candidate
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err
+      index += 1
+      candidate = join(dir, `${baseStem}-${index}${extension}`)
+    }
   }
-
-  return candidate
 }
 
 function assertSupportedWorkflowExtension(filePath: string): void {
@@ -270,6 +278,9 @@ export function registerWorkflowsHandlers() {
       await saveChain(destinationPath, { ...workflow, name: normalizedTitle })
 
       if (destinationPath !== safeFilePath) {
+        if (hasActiveRuns()) {
+          throw new Error("Cannot rename a flow while a run is active")
+        }
         await moveChatHistory(safeFilePath, destinationPath)
         await unlink(safeFilePath)
       }

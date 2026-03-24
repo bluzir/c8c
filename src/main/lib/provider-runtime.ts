@@ -22,10 +22,23 @@ export function applyProviderFeatureFlags(
   return provider
 }
 
+let settingsSnapshot: Awaited<ReturnType<typeof getProviderSettings>> | null =
+  null
+
+/** Snapshot provider settings so they remain stable for the entire run. */
+export function snapshotProviderSettings(): void {
+  settingsSnapshot = null
+}
+
+async function getSnapshotSettings() {
+  if (!settingsSnapshot) settingsSnapshot = await getProviderSettings()
+  return settingsSnapshot
+}
+
 export async function resolveWorkflowProviderId(
   workflow: Workflow,
 ): Promise<ProviderId> {
-  const settings = await getProviderSettings()
+  const settings = await getSnapshotSettings()
   const requested = resolveWorkflowProvider(workflow, settings.defaultProvider)
   return applyProviderFeatureFlags(requested, settings.features.codexProvider)
 }
@@ -34,7 +47,7 @@ export async function resolveNodeProviderId(
   node: WorkflowNode,
   workflow: Workflow,
 ): Promise<ProviderId> {
-  const settings = await getProviderSettings()
+  const settings = await getSnapshotSettings()
   const requested = resolveNodeProvider(
     node,
     workflow,

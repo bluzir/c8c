@@ -13,6 +13,7 @@ import { prepareWorkspaceMcpConfig } from "./mcp-config"
 import {
   resolveNodeProviderId,
   resolveWorkflowProviderId,
+  snapshotProviderSettings,
   startProviderTask,
 } from "./provider-runtime"
 import { scanAllSkills } from "./skill-scanner"
@@ -138,10 +139,15 @@ export async function resolveEvalOverride(
   return workflowRunner.resolveEvalOverride({ runId, nodeId })
 }
 
+export function hasActiveRuns(): boolean {
+  return activeHandles.size > 0
+}
+
 export function cancelWorkflowRun(runId: string): boolean {
   const handle = activeHandles.get(runId)
   if (!handle) {
     pendingCancelledRunIds.add(runId)
+    setTimeout(() => pendingCancelledRunIds.delete(runId), 60_000).unref()
     return true
   }
   pausedRunIds.delete(runId)
@@ -169,6 +175,7 @@ export async function runWorkflow(
   workflowPath?: string,
   webSearchBackend?: WebSearchBackend,
 ): Promise<WorkflowRunSummary> {
+  snapshotProviderSettings()
   try {
     const handle = await workflowRunner.startRun({
       runId,

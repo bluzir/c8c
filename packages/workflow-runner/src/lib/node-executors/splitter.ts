@@ -366,7 +366,7 @@ export function heuristicSplitInput(
   const limit = Math.max(2, maxBranches)
   const normalized = inputContent.trim()
   if (!normalized) {
-    return [{ key: "subtask-0", content: inputContent }]
+    return []
   }
 
   // JSON arrays first — most structured, highest signal

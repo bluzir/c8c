@@ -39,6 +39,7 @@ export async function cleanupRunWorkspaces(
   runsDir: string,
   policy: RunWorkspaceRetentionPolicy = resolveRunWorkspaceRetentionPolicy(),
   now: number = Date.now(),
+  excludePaths: ReadonlySet<string> = new Set(),
 ): Promise<number> {
   let entries
   try {
@@ -64,7 +65,8 @@ export async function cleanupRunWorkspaces(
 
   const removals = directories.filter(
     (entry, index) =>
-      index >= policy.maxWorkspaces || now - entry.mtimeMs > policy.maxAgeMs,
+      !excludePaths.has(entry.path) &&
+      (index >= policy.maxWorkspaces || now - entry.mtimeMs > policy.maxAgeMs),
   )
 
   for (const entry of removals) {

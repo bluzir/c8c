@@ -415,7 +415,7 @@ export function BatchPanel() {
                     onClick={handleRetryFailed}
                   >
                     <Play size={14} />
-                    Retry {failedCount} Failed
+                    Retry {failedCount} Incomplete
                   </Button>
                 )}
                 <Button
@@ -594,7 +594,7 @@ function BatchItemList({
                 </span>
               )}
               <span className="ml-auto text-muted-foreground">
-                {(item.duration_ms / 1000).toFixed(1)}s
+                {((item.duration_ms ?? 0) / 1000).toFixed(1)}s
               </span>
             </button>
             <div className="ui-collapsible" data-open={String(isExpanded)}>
