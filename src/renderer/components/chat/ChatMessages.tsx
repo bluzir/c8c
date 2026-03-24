@@ -25,7 +25,10 @@ import {
   resolvedDecisionIdsAtom,
   resolveFlowChatDecisionAtom,
 } from "@/features/execution/flow-chat-state"
-import { selectedWorkflowExecutionAtom } from "@/features/execution/state"
+import {
+  selectedWorkflowExecutionAtom,
+  workflowHistoryRunsAtom,
+} from "@/features/execution/state"
 import { buildCompleteMessage } from "@/lib/flow-chat-transformer"
 import type { FlowChatMessage, FlowFollowUp } from "@/lib/flow-chat-types"
 
@@ -52,6 +55,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const workflow = useAtomValue(currentWorkflowAtom)
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
   const executionState = useAtomValue(selectedWorkflowExecutionAtom)
+  const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
   const setQueuedFollowUpTemplateId = useSetAtom(queuedFollowUpTemplateIdAtom)
   const setMainView = useSetAtom(mainViewAtom)
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
@@ -115,13 +119,47 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     workflow?.name,
   ])
 
+  // Fallback: if no synthetic from execution state, try the latest past run
+  const latestPastRunMessage = useMemo<FlowChatMessage | null>(() => {
+    if (syntheticCompleteMessage) return null
+    if (flowMessages.length > 0) return null
+
+    const completed = workflowHistoryRuns
+      .filter((r) => r.status === "completed")
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+
+    const latest = completed[0]
+    if (!latest) return null
+
+    return buildCompleteMessage({
+      runId: latest.runId,
+      flowName: latest.workflowName || workflow?.name || "Flow",
+      summary: "Last run completed.",
+      findings: [],
+      limitations: [],
+      artifacts: latest.reportPath
+        ? [{ name: "report.md", path: latest.reportPath, kind: "report" }]
+        : [],
+      followUps: [],
+      durationMs: latest.durationMs || 0,
+      costUsd: latest.totalCost || 0,
+    })
+  }, [
+    syntheticCompleteMessage,
+    flowMessages.length,
+    workflowHistoryRuns,
+    workflow?.name,
+  ])
+
+  const syntheticMessage = syntheticCompleteMessage ?? latestPastRunMessage
+
   const timeline = useMemo<TimelineEntry[]>(() => {
     const chatEntries: TimelineEntry[] = messages.map((m) => ({
       kind: "chat",
       message: m,
     }))
-    const allFlowMessages = syntheticCompleteMessage
-      ? [...flowMessages, syntheticCompleteMessage]
+    const allFlowMessages = syntheticMessage
+      ? [...flowMessages, syntheticMessage]
       : flowMessages
     const flowEntries: TimelineEntry[] = allFlowMessages.map((m) => ({
       kind: "flow",
@@ -132,7 +170,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       const tsB = b.kind === "chat" ? b.message.timestamp : b.message.timestamp
       return tsA - tsB
     })
-  }, [messages, flowMessages, syntheticCompleteMessage])
+  }, [messages, flowMessages, syntheticMessage])
 
   useEffect(() => {
     const el = containerRef.current
@@ -199,6 +237,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     const flowName = workflow?.name || templateContext?.workflowName || "Flow"
     const description =
       workflow?.description || templateContext?.useWhen || null
+    const hasPastRuns = workflowHistoryRuns.length > 0
 
     return (
       <div className="flex-1 flex items-center justify-center px-4 py-8">
@@ -208,7 +247,9 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
             <p className="text-body-sm text-muted-foreground">{description}</p>
           )}
           <p className="ui-meta-text text-muted-foreground">
-            Click Run to start, or type a message below
+            {hasPastRuns
+              ? "No completed runs yet. Click Run to start a new one."
+              : "Click Run to start, or type a message below"}
           </p>
         </div>
       </div>
