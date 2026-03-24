@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom } from "jotai"
 import { useWorkflowWithUndo } from "@/hooks/useWorkflowWithUndo"
 import {
+  chatFlowInputRequestAtom,
   chatStatusAtom,
   selectedProjectAtom,
   selectedInboxTaskKeyAtom,
@@ -382,6 +383,27 @@ export function WorkflowPanel() {
     integrationResumeBlocked,
     pendingIntegrationRunMode,
   ])
+
+  // Chat-as-composer: when the chat input sets chatFlowInputRequestAtom,
+  // trigger a flow run on the next render (after inputValueAtom has propagated).
+  const [chatFlowInputRequest, setChatFlowInputRequest] = useAtom(
+    chatFlowInputRequestAtom,
+  )
+  useEffect(() => {
+    if (!chatFlowInputRequest) return
+    if (runStatus !== "idle") {
+      setChatFlowInputRequest(null)
+      return
+    }
+    setChatFlowInputRequest(null)
+    void handleRunRequest()
+  }, [
+    chatFlowInputRequest,
+    handleRunRequest,
+    runStatus,
+    setChatFlowInputRequest,
+  ])
+
   const {
     selectedResumeTask,
     resumeTaskAnswers,

@@ -5,6 +5,8 @@ import type {
   FlowResultFile,
   DecisionContent,
   CompleteContent,
+  ErrorContent,
+  ProgressStep,
 } from "./flow-chat-types"
 
 const MAX_FOLLOW_UPS = 3
@@ -172,5 +174,100 @@ export function buildCompleteMessage(input: CompleteInput): FlowChatMessage {
     flowName: input.flowName,
     timestamp: Date.now(),
     content: { type: "complete", data },
+  }
+}
+
+export function buildStartMessage(input: {
+  flowName: string
+  description: string
+}): FlowChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    flowName: input.flowName,
+    timestamp: Date.now(),
+    content: {
+      type: "start",
+      data: { description: input.description },
+    },
+  }
+}
+
+export function buildProgressMessage(input: {
+  flowName: string
+  steps: ProgressStep[]
+}): FlowChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    flowName: input.flowName,
+    timestamp: Date.now(),
+    content: {
+      type: "progress",
+      data: { steps: input.steps },
+    },
+  }
+}
+
+interface ErrorInput {
+  runId: string
+  flowName: string
+  variant: "error" | "cancelled" | "interrupted"
+  errorMessage?: string
+  failedNodeLabel?: string
+}
+
+export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
+  let summary: string
+  let suggestions: string[] = []
+  const actions: FlowAction[] = []
+
+  switch (input.variant) {
+    case "error":
+      summary = input.failedNodeLabel
+        ? `Step "${input.failedNodeLabel}" couldn't complete${input.errorMessage ? `: ${input.errorMessage}` : "."}`
+        : input.errorMessage || "Flow encountered an error."
+      suggestions = [
+        "Check the step details for more information.",
+        "Try running the flow again.",
+      ]
+      actions.push({
+        label: "Try again",
+        variant: "primary",
+        action: { type: "retry", runId: input.runId, nodeId: "" },
+      })
+      break
+    case "cancelled":
+      summary = "Flow stopped."
+      actions.push({
+        label: "Start again",
+        variant: "secondary",
+        action: { type: "retry", runId: input.runId, nodeId: "" },
+      })
+      break
+    case "interrupted":
+      summary = "Flow was interrupted (app closed during execution)."
+      suggestions = [
+        "Your progress was saved. You can continue from where it stopped.",
+      ]
+      actions.push({
+        label: "Continue",
+        variant: "primary",
+        action: { type: "retry", runId: input.runId, nodeId: "" },
+      })
+      actions.push({
+        label: "Start again",
+        variant: "secondary",
+        action: { type: "retry", runId: input.runId, nodeId: "" },
+      })
+      break
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    flowName: input.flowName,
+    timestamp: Date.now(),
+    content: {
+      type: "error",
+      data: { variant: input.variant, summary, suggestions, actions },
+    },
   }
 }

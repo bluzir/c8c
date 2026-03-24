@@ -1,14 +1,23 @@
-import { useEffect, useRef, useState, useMemo } from "react"
+import { useCallback, useEffect, useRef, useState, useMemo } from "react"
 import { useAtom } from "jotai"
 import { useAtomValue, useSetAtom } from "jotai"
 import { ChatMessageBubble } from "./ChatMessageBubble"
 import { FlowDecisionMessage } from "./FlowDecisionMessage"
 import { FlowCompleteMessage } from "./FlowCompleteMessage"
+import { FlowErrorMessage } from "./FlowErrorMessage"
+import { FlowStartMessage } from "./FlowStartMessage"
+import { FlowProgressMessage } from "./FlowProgressMessage"
 import { cn } from "@/lib/cn"
 import { ArrowDown } from "lucide-react"
 import {
   chatScrollTopByWorkflowAtom,
+  currentWorkflowAtom,
+  mainViewAtom,
+  queuedFollowUpTemplateIdAtom,
+  selectedProjectAtom,
   selectedWorkflowPathAtom,
+  selectedWorkflowTemplateContextAtom,
+  templateLibraryContextAtom,
   type ChatMessageDisplay,
 } from "@/lib/store"
 import {
@@ -16,7 +25,9 @@ import {
   resolvedDecisionIdsAtom,
   resolveFlowChatDecisionAtom,
 } from "@/features/execution/flow-chat-state"
-import type { FlowChatMessage } from "@/lib/flow-chat-types"
+import { selectedWorkflowExecutionAtom } from "@/features/execution/state"
+import { buildCompleteMessage } from "@/lib/flow-chat-transformer"
+import type { FlowChatMessage, FlowFollowUp } from "@/lib/flow-chat-types"
 
 type TimelineEntry =
   | { kind: "chat"; message: ChatMessageDisplay }
@@ -38,13 +49,81 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
   const resolvedIds = useAtomValue(resolvedDecisionIdsAtom)
   const resolveDecision = useSetAtom(resolveFlowChatDecisionAtom)
+  const workflow = useAtomValue(currentWorkflowAtom)
+  const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
+  const executionState = useAtomValue(selectedWorkflowExecutionAtom)
+  const setQueuedFollowUpTemplateId = useSetAtom(queuedFollowUpTemplateIdAtom)
+  const setMainView = useSetAtom(mainViewAtom)
+  const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
+  const selectedProject = useAtomValue(selectedProjectAtom)
+
+  const handleFollowUp = useCallback(
+    (followUp: FlowFollowUp) => {
+      if (!followUp.templateId) return
+      setQueuedFollowUpTemplateId(followUp.templateId)
+      setTemplateLibraryContext({
+        projectPath: selectedProject,
+        createOnly: Boolean(selectedProject),
+      })
+      setMainView("templates")
+    },
+    [
+      selectedProject,
+      setMainView,
+      setQueuedFollowUpTemplateId,
+      setTemplateLibraryContext,
+    ],
+  )
+
+  // Synthesize a Complete message for runs that finished before chat existed
+  const syntheticCompleteMessage = useMemo<FlowChatMessage | null>(() => {
+    if (flowMessages.length > 0) return null
+    if (executionState.runOutcome !== "completed") return null
+    if (!executionState.reportPath) return null
+
+    const durationMs =
+      executionState.completedAt && executionState.runStartedAt
+        ? executionState.completedAt - executionState.runStartedAt
+        : 0
+    const costUsd = Object.values(executionState.nodeStates).reduce(
+      (sum, ns) => sum + (ns.metrics?.cost_usd ?? 0),
+      0,
+    )
+
+    return buildCompleteMessage({
+      runId: executionState.runId ?? "past-run",
+      flowName: executionState.workflowName || workflow?.name || "Flow",
+      summary: "Flow completed.",
+      findings: [],
+      limitations: [],
+      artifacts: [
+        { name: "report.md", path: executionState.reportPath, kind: "report" },
+      ],
+      followUps: [],
+      durationMs,
+      costUsd,
+    })
+  }, [
+    flowMessages.length,
+    executionState.runOutcome,
+    executionState.reportPath,
+    executionState.completedAt,
+    executionState.runStartedAt,
+    executionState.nodeStates,
+    executionState.runId,
+    executionState.workflowName,
+    workflow?.name,
+  ])
 
   const timeline = useMemo<TimelineEntry[]>(() => {
     const chatEntries: TimelineEntry[] = messages.map((m) => ({
       kind: "chat",
       message: m,
     }))
-    const flowEntries: TimelineEntry[] = flowMessages.map((m) => ({
+    const allFlowMessages = syntheticCompleteMessage
+      ? [...flowMessages, syntheticCompleteMessage]
+      : flowMessages
+    const flowEntries: TimelineEntry[] = allFlowMessages.map((m) => ({
       kind: "flow",
       message: m,
     }))
@@ -53,7 +132,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       const tsB = b.kind === "chat" ? b.message.timestamp : b.message.timestamp
       return tsA - tsB
     })
-  }, [messages, flowMessages])
+  }, [messages, flowMessages, syntheticCompleteMessage])
 
   useEffect(() => {
     const el = containerRef.current
@@ -117,14 +196,19 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   ])
 
   if (timeline.length === 0) {
+    const flowName = workflow?.name || templateContext?.workflowName || "Flow"
+    const description =
+      workflow?.description || templateContext?.useWhen || null
+
     return (
-      <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <div className="ui-empty-state rounded-lg px-8 text-muted-foreground">
-          <p className="text-body-md font-medium mb-1">Agent</p>
-          <p className="ui-meta-text leading-relaxed">
-            Ask me to add skills, build pipelines,
-            <br />
-            or search through your skill library.
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="ui-empty-state-box max-w-md text-center space-y-3">
+          <p className="text-body-md font-medium text-foreground">{flowName}</p>
+          {description && (
+            <p className="text-body-sm text-muted-foreground">{description}</p>
+          )}
+          <p className="ui-meta-text text-muted-foreground">
+            Click Run to start, or type a message below
           </p>
         </div>
       </div>
@@ -147,6 +231,29 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
         {timeline.map((entry, index) => {
           if (entry.kind === "flow") {
             const flowMsg = entry.message
+            if (flowMsg.content.type === "start") {
+              return (
+                <div
+                  key={flowMsg.id}
+                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
+                >
+                  <FlowStartMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                  />
+                </div>
+              )
+            }
+            if (flowMsg.content.type === "progress") {
+              return (
+                <div
+                  key={flowMsg.id}
+                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
+                >
+                  <FlowProgressMessage data={flowMsg.content.data} />
+                </div>
+              )
+            }
             if (flowMsg.content.type === "complete") {
               return (
                 <div
@@ -156,27 +263,41 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <FlowCompleteMessage
                     flowName={flowMsg.flowName}
                     data={flowMsg.content.data}
+                    onFollowUp={handleFollowUp}
+                    onOpenReport={(path) => window.api.openPath(path)}
                   />
                 </div>
               )
             }
-            return (
-              <div
-                key={flowMsg.id}
-                className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
-              >
-                <FlowDecisionMessage
-                  flowName={flowMsg.flowName}
-                  data={
-                    flowMsg.content.type === "decision"
-                      ? flowMsg.content.data
-                      : (undefined as never)
-                  }
-                  resolved={resolvedIds.has(flowMsg.id)}
-                  onResolved={() => resolveDecision(flowMsg.id)}
-                />
-              </div>
-            )
+            if (flowMsg.content.type === "error") {
+              return (
+                <div
+                  key={flowMsg.id}
+                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
+                >
+                  <FlowErrorMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                  />
+                </div>
+              )
+            }
+            if (flowMsg.content.type === "decision") {
+              return (
+                <div
+                  key={flowMsg.id}
+                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
+                >
+                  <FlowDecisionMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                    resolved={resolvedIds.has(flowMsg.id)}
+                    onResolved={() => resolveDecision(flowMsg.id)}
+                  />
+                </div>
+              )
+            }
+            return null
           }
 
           const msg = entry.message

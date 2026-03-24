@@ -254,6 +254,12 @@ export const validationNavigationTargetAtom =
 
 // Input
 export const inputValueAtom = atom("")
+/**
+ * When the chat input wants to start a flow run, it sets this atom to the
+ * user's message text. WorkflowPanel picks it up on the next render (after
+ * inputValueAtom has propagated) and calls handleRunRequest().
+ */
+export const chatFlowInputRequestAtom = atom<string | null>(null)
 export const inputAttachmentsAtom = atom<InputAttachment[]>([])
 export const selectedNodeIdAtom = atom<string | null>(null)
 
@@ -663,6 +669,7 @@ export const workflowCreateSourceAttachmentsAtom = atom<InputAttachment[]>([])
 export const workflowCreatePendingMessageAtom = atom<Record<string, string>>({})
 export const workflowCreatePendingEntryAtom = atom<Record<string, string>>({})
 export const workflowQueuedAutoRunPathAtom = atom<string | null>(null)
+export const queuedFollowUpTemplateIdAtom = atom<string | null>(null)
 export const workflowEntryStateAtom =
   atomWithStorage<WorkflowEntryState | null>("c8c:workflow-entry-state", null)
 export const workflowContinuationEntryStatesAtom = atomWithStorage<

@@ -1,6 +1,11 @@
 import { useState, useCallback } from "react"
-import { useAtom } from "jotai"
-import { chatPanelWidthAtom } from "@/lib/store"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import {
+  chatPanelWidthAtom,
+  chatFlowInputRequestAtom,
+  inputValueAtom,
+} from "@/lib/store"
+import { runStatusAtom } from "@/features/execution"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
@@ -28,6 +33,9 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [panelWidth, setPanelWidth] = useAtom(chatPanelWidthAtom)
   const [resizing, setResizing] = useState(false)
+  const runStatus = useAtomValue(runStatusAtom)
+  const setInputValue = useSetAtom(inputValueAtom)
+  const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
 
   const {
     messages,
@@ -41,6 +49,27 @@ export function ChatPanel({
   } = useChatSession()
 
   const isStreaming = status === "thinking" || status === "streaming"
+
+  /**
+   * Dual-purpose send handler:
+   * - When the flow is idle (not running): treat the message as flow input and
+   *   trigger a run. Sets inputValueAtom and signals WorkflowPanel via
+   *   chatFlowInputRequestAtom.
+   * - When the flow is in-flight: delegate to the agent chat (existing behavior).
+   */
+  const handleSend = useCallback(
+    (message: string) => {
+      if (runStatus === "idle") {
+        // Flow is idle — start a flow run with this message as input.
+        setInputValue(message)
+        setChatFlowInputRequest(message)
+      } else {
+        // Flow is running/done/error — send as agent chat message.
+        sendMessage(message)
+      }
+    },
+    [runStatus, sendMessage, setChatFlowInputRequest, setInputValue],
+  )
   const maxPanelWidth = Math.max(
     minWidth,
     Math.min(maxWidth, Math.floor(window.innerWidth * 0.4)),
@@ -140,7 +169,7 @@ export function ChatPanel({
       <ChatMessages messages={messages} status={status} />
 
       <ChatInput
-        onSend={sendMessage}
+        onSend={handleSend}
         onCancel={cancel}
         isStreaming={isStreaming}
         autoFocus={!collapsed}

@@ -1,5 +1,5 @@
 import { atom } from "jotai"
-import type { FlowChatMessage } from "@/lib/flow-chat-types"
+import type { FlowChatMessage, ProgressContent } from "@/lib/flow-chat-types"
 import { selectedWorkflowExecutionKeyAtom } from "./state"
 
 /** All flow chat messages across runs, keyed by workflow key */
@@ -34,5 +34,33 @@ export const resolveFlowChatDecisionAtom = atom(
   (get, set, messageId: string) => {
     const prev = get(resolvedDecisionIdsAtom)
     set(resolvedDecisionIdsAtom, new Set([...prev, messageId]))
+  },
+)
+
+/** Update a progress message in-place by ID */
+export const updateFlowProgressAtom = atom(
+  null,
+  (
+    get,
+    set,
+    payload: {
+      workflowKey: string
+      messageId: string
+      data: ProgressContent
+    },
+  ) => {
+    const prev = get(flowChatMessagesAtom)
+    const existing = prev[payload.workflowKey] ?? []
+    set(flowChatMessagesAtom, {
+      ...prev,
+      [payload.workflowKey]: existing.map((msg) =>
+        msg.id === payload.messageId
+          ? {
+              ...msg,
+              content: { type: "progress" as const, data: payload.data },
+            }
+          : msg,
+      ),
+    })
   },
 )

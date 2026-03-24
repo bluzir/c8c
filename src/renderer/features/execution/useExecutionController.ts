@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { useAtomValue, useSetAtom } from "jotai"
-import { addFlowChatMessageAtom } from "./flow-chat-state"
+import {
+  addFlowChatMessageAtom,
+  updateFlowProgressAtom,
+} from "./flow-chat-state"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError } from "@/lib/toast-error"
@@ -196,11 +199,13 @@ export function useExecutionController({
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
   const setHasCompletedFirstFlow = useSetAtom(hasCompletedFirstFlowAtom)
   const addFlowChatMessage = useSetAtom(addFlowChatMessageAtom)
+  const updateFlowProgress = useSetAtom(updateFlowProgressAtom)
   const commitExecutionStateRef = useRef(commitExecutionState)
   const updateApprovalRequestsRef = useRef(updateApprovalRequests)
   const setPastRunsRef = useRef(setPastRuns)
   const addNotificationRef = useRef(addNotification)
   const addFlowChatMessageRef = useRef(addFlowChatMessage)
+  const updateFlowProgressRef = useRef(updateFlowProgress)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
   const workflowExecutionStatesRef = useRef(workflowExecutionStates)
   commitExecutionStateRef.current = commitExecutionState
@@ -208,6 +213,7 @@ export function useExecutionController({
   setPastRunsRef.current = setPastRuns
   addNotificationRef.current = addNotification
   addFlowChatMessageRef.current = addFlowChatMessage
+  updateFlowProgressRef.current = updateFlowProgress
   workflowTemplateContextsRef.current = workflowTemplateContexts
   workflowExecutionStatesRef.current = workflowExecutionStates
 
@@ -373,6 +379,9 @@ export function useExecutionController({
           workflowKey,
           message: enrichedMessage,
         })
+      },
+      onFlowChatProgressUpdate: ({ workflowKey, messageId, data }) => {
+        updateFlowProgressRef.current({ workflowKey, messageId, data })
       },
       onError: (scope, error) => {
         console.error(`[useChainExecution] ${scope} failed:`, error)

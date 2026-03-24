@@ -33,6 +33,7 @@ import {
   workflowSavedSnapshotAtom,
   webSearchBackendAtom,
   workflowsAtom,
+  queuedFollowUpTemplateIdAtom,
   type WorkflowTemplate,
 } from "@/lib/store"
 import { runStatusAtom, selectedPastRunAtom } from "@/features/execution"
@@ -148,6 +149,9 @@ export function WorkflowsTemplatesPage() {
   )
   const [, setMainView] = useAtom(mainViewAtom)
   const [runStatus] = useAtom(runStatusAtom)
+  const [queuedFollowUpTemplateId, setQueuedFollowUpTemplateId] = useAtom(
+    queuedFollowUpTemplateIdAtom,
+  )
   const [targetProjectPath, setTargetProjectPath] = useState<string | null>(
     selectedProject,
   )
@@ -179,8 +183,9 @@ export function WorkflowsTemplatesPage() {
   useEffect(() => {
     return () => {
       setTemplateLibraryContext(null)
+      setQueuedFollowUpTemplateId(null)
     }
-  }, [setTemplateLibraryContext])
+  }, [setTemplateLibraryContext, setQueuedFollowUpTemplateId])
 
   useEffect(() => {
     if (!pendingTemplate) return
@@ -204,6 +209,23 @@ export function WorkflowsTemplatesPage() {
   useEffect(() => {
     void loadTemplates()
   }, [loadTemplates])
+
+  // Auto-apply a queued follow-up template from the chat timeline
+  useEffect(() => {
+    if (!queuedFollowUpTemplateId || templates.length === 0 || loading) return
+    const template = templates.find((t) => t.id === queuedFollowUpTemplateId)
+    setQueuedFollowUpTemplateId(null)
+    if (!template) {
+      toastError("Could not find the suggested flow")
+      return
+    }
+    if (preferredProjectPath) {
+      void doCreateFromTemplate(template, preferredProjectPath)
+    } else {
+      void doApplyTemplate(template)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedFollowUpTemplateId, templates, loading])
 
   const searchFilteredTemplates = useMemo(() => {
     const q = query.trim()
