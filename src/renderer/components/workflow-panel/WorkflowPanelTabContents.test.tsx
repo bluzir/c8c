@@ -2,7 +2,6 @@
 
 import { createRef } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@/components/InputPanel", () => ({
@@ -87,15 +86,13 @@ function renderListTab(props: Parameters<typeof WorkflowListTab>[0]) {
 }
 
 describe("WorkflowListTab", () => {
-  it("keeps ready saved-work input behind local disclosure", async () => {
-    const user = userEvent.setup()
+  it("shows ready saved-work input inline", () => {
     renderListTab(createBaseProps())
 
     expect(screen.getByText("Saved work · Verify")).toBeTruthy()
-    expect(screen.getByText("Adjust step input")).toBeTruthy()
-    expect(screen.queryByText("Step input")).toBeNull()
-
-    await user.click(screen.getByRole("button", { name: /adjust step input/i }))
+    expect(
+      screen.queryByRole("button", { name: /adjust step input/i }),
+    ).toBeNull()
     expect(screen.getByText("Step input")).toBeTruthy()
   })
 
@@ -112,8 +109,7 @@ describe("WorkflowListTab", () => {
     expect(screen.getByText("Step input")).toBeTruthy()
   })
 
-  it("keeps ready start-contract input behind local disclosure", async () => {
-    const user = userEvent.setup()
+  it("shows ready start-contract input inline", () => {
     renderListTab({
       ...createBaseProps(),
       listSurfaceIntent: "start_ready",
@@ -127,10 +123,9 @@ describe("WorkflowListTab", () => {
     })
 
     expect(screen.getByText("Next step")).toBeTruthy()
-    expect(screen.getByText("Adjust step input")).toBeTruthy()
-    expect(screen.queryByText("Step input")).toBeNull()
-
-    await user.click(screen.getByRole("button", { name: /adjust step input/i }))
+    expect(
+      screen.queryByRole("button", { name: /adjust step input/i }),
+    ).toBeNull()
     expect(screen.getByText("Step input")).toBeTruthy()
   })
 

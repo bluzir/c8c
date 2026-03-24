@@ -388,6 +388,7 @@ export function useOutputPanelDerivedState({
         label: `branch: ${id.split("::").pop()}`,
         type: "skill" as const,
         indent: true,
+        parentSplitterId: undefined as string | undefined,
       }
     }
 
@@ -405,6 +406,7 @@ export function useOutputPanelDerivedState({
       label: `branch: ${getRuntimeBranchLabel(meta.subtaskKey)} (${meta.branchIndex + 1}/${meta.totalBranches}) · ${templateSuffix}`,
       type: "skill" as const,
       indent: true,
+      parentSplitterId: meta.splitterId as string | undefined,
     }
   })
 
@@ -955,6 +957,7 @@ export function useOutputPanelDerivedState({
       (hasResult ||
         runStatus === "error" ||
         effectiveRunOutcome === "cancelled" ||
+        effectiveRunOutcome === "interrupted" ||
         (runStatus === "done" && effectiveRunOutcome !== "blocked"))
   const failedNodeErrors = Object.entries(displayNodeStates).filter(
     ([, state]) => state.status === "failed" && state.error,

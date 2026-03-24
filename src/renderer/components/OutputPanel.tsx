@@ -207,6 +207,7 @@ export function OutputPanel({
     setSurfaceNotice,
     runId,
     evalOverrideNodeIds,
+    resumeNodeId,
   } = useOutputPanel()
   const [improvementRecommendations, setImprovementRecommendations] = useState<
     FlowImprovementRecommendation[]
@@ -747,6 +748,12 @@ export function OutputPanel({
                 failedNodeErrors.length > 0 ? failureRecovery.hint : null
               }
               retryStepLabel={retryStepLabel}
+              resumeNodeId={resumeNodeId}
+              onResumeFromNode={
+                resumeNodeId && onRerunFrom && rerunWorkspace
+                  ? (nodeId: string) => handleRerunFrom(nodeId)
+                  : null
+              }
               canUseInNewFlow={Boolean(onUseInNewFlow) && !reviewingRunHistory}
               onUseInNewFlow={onUseInNewFlow}
               onOpenArtifact={handleOpenArtifact}

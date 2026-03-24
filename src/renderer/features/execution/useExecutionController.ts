@@ -13,6 +13,8 @@ import type {
   ExecutionSurfaceNotice,
   WorkflowExecutionState,
 } from "@/lib/workflow-execution"
+import { isRunInFlight } from "@/lib/workflow-execution"
+import type { InFlightManifestEntry } from "@shared/types"
 import type { WorkflowNode } from "@shared/types"
 import {
   hasCompletedFirstFlowAtom,
@@ -76,6 +78,7 @@ function getWorkflowNotificationAction(
   }
 }
 
+const IN_FLIGHT_MANIFEST_KEY = "c8c:in-flight-runs"
 const APPROVAL_NOTIFICATION_KEY_PREFIX = "approval-needed:"
 
 function approvalTaskId(nodeId: string): string {
@@ -194,11 +197,13 @@ export function useExecutionController({
   const setPastRunsRef = useRef(setPastRuns)
   const addNotificationRef = useRef(addNotification)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
+  const workflowExecutionStatesRef = useRef(workflowExecutionStates)
   commitExecutionStateRef.current = commitExecutionState
   updateApprovalRequestsRef.current = updateApprovalRequests
   setPastRunsRef.current = setPastRuns
   addNotificationRef.current = addNotification
   workflowTemplateContextsRef.current = workflowTemplateContexts
+  workflowExecutionStatesRef.current = workflowExecutionStates
 
   const pendingApprovalNotifications = useMemo(
     () => buildPendingApprovalNotifications(workflowExecutionStates),
@@ -396,6 +401,31 @@ export function useExecutionController({
       cancelled = true
     }
   }, [controller])
+
+  // Section 1: persist in-flight run manifest on close
+  useEffect(() => {
+    function handleBeforeUnload() {
+      const states = workflowExecutionStatesRef.current
+      const manifest: Record<string, InFlightManifestEntry> = {}
+      for (const [key, state] of Object.entries(states)) {
+        if (!isRunInFlight(state.runStatus) || !state.workspace) continue
+        manifest[key] = {
+          runId: state.runId!,
+          workspace: state.workspace,
+          workflowPath: state.runWorkflowPath,
+          workflowName: state.workflowName,
+        }
+      }
+      if (Object.keys(manifest).length > 0) {
+        localStorage.setItem(IN_FLIGHT_MANIFEST_KEY, JSON.stringify(manifest))
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+    }
+  }, [])
 
   return controller
 }

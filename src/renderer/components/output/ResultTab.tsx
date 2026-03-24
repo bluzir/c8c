@@ -96,6 +96,8 @@ export function ResultTab({
   failureCategoryLabel,
   failureHint,
   retryStepLabel,
+  resumeNodeId,
+  onResumeFromNode,
   canUseInNewFlow,
   onUseInNewFlow,
   onOpenArtifact,
@@ -152,6 +154,8 @@ export function ResultTab({
   failureCategoryLabel?: string | null
   failureHint?: string | null
   retryStepLabel?: string | null
+  resumeNodeId?: string | null
+  onResumeFromNode?: ((nodeId: string) => void) | null
   canUseInNewFlow: boolean
   onUseInNewFlow?: (() => Promise<void> | void) | null
   onOpenArtifact?: ((artifact: ArtifactRecord) => Promise<void> | void) | null
@@ -357,6 +361,50 @@ export function ResultTab({
           onClick={onEditFlow}
         >
           Edit flow
+        </Button>,
+      )
+    }
+  } else if (terminalVariant === "interrupted") {
+    if (resumeNodeId && onResumeFromNode) {
+      actionItems.push(
+        <Button
+          key="continue"
+          type="button"
+          size="sm"
+          onClick={() => onResumeFromNode(resumeNodeId)}
+        >
+          <ArrowRight size={12} />
+          Continue
+        </Button>,
+      )
+    }
+
+    if (canStartFreshRun && onStartNewRun) {
+      actionItems.push(
+        <Button
+          key="run-again"
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+          onClick={onStartNewRun}
+        >
+          Run again
+        </Button>,
+      )
+    }
+
+    if (onViewActivity) {
+      actionItems.push(
+        <Button
+          key="view-activity"
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
+          onClick={onViewActivity}
+        >
+          View summary
         </Button>,
       )
     }

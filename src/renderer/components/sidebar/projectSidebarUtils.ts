@@ -329,6 +329,20 @@ export function deriveSidebarWorkflowRowState({
     }
   }
 
+  if (executionState?.runOutcome === "interrupted") {
+    return {
+      baseState,
+      unreadNotification,
+      unreadNotificationTitle: unreadNotificationTitle(
+        unreadNotification,
+        latestRun,
+      ),
+      statusLabel: "Interrupted",
+      statusBadgeClass: "ui-status-badge-warning",
+      showStatusSpinner: false,
+    }
+  }
+
   return {
     baseState,
     unreadNotification,

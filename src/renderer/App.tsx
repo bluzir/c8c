@@ -62,8 +62,10 @@ import { isEditableKeyboardTarget } from "@/lib/keyboard-shortcuts"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import { dispatchDesktopCommand } from "@/lib/desktop-command-bus"
+import { useRecoverInterruptedRuns } from "@/hooks/useRecoverInterruptedRuns"
 
 const AppShell = memo(function AppShell() {
+  useRecoverInterruptedRuns()
   const [mainView, setMainView] = useAtom(mainViewAtom)
   const [, setChatPanelOpen] = useAtom(chatPanelOpenAtom)
   const [desktopRuntime, setDesktopRuntime] = useAtom(desktopRuntimeAtom)

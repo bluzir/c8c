@@ -164,6 +164,8 @@ export const surfaceNoticeAtom =
 export const evalOverrideNodeIdsAtom = createSelectedWorkflowExecutionFieldAtom(
   "evalOverrideNodeIds",
 )
+export const resumeNodeIdAtom =
+  createSelectedWorkflowExecutionFieldAtom("resumeNodeId")
 
 export const runsByWorkflowPathAtom = atom<Record<string, RunResult[]>>(
   (get) => {

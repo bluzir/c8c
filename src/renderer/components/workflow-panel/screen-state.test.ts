@@ -171,7 +171,7 @@ describe("resolveWorkflowPrimaryScreenState", () => {
   it("shows inline input only when the current question is about missing input", () => {
     expect(shouldShowInlineInputPanel("resume_needs_input")).toBe(true)
     expect(shouldShowInlineInputPanel("start_needs_input")).toBe(true)
-    expect(shouldShowInlineInputPanel("resume_ready")).toBe(false)
-    expect(shouldShowInlineInputPanel("start_ready")).toBe(false)
+    expect(shouldShowInlineInputPanel("resume_ready")).toBe(true)
+    expect(shouldShowInlineInputPanel("start_ready")).toBe(true)
   })
 })

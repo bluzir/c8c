@@ -8,7 +8,12 @@ import type {
   RunResult,
 } from "@shared/types"
 
-type VerdictTerminalVariant = "saved" | "completed" | "failed" | "cancelled"
+type VerdictTerminalVariant =
+  | "saved"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "interrupted"
 type VerdictTone = "neutral" | "warning" | "danger"
 type VerdictSurfaceMode = "decision" | "document"
 type VerdictVariant = "outcome" | "diagnostic" | "document"
@@ -333,19 +338,20 @@ export function deriveVerdictData({
   const metadata = resultState?.output?.metadata
   const diagnosticSummary = metadata?.diagnostic_summary || null
   const terminalVariant: VerdictTerminalVariant = reviewingRunHistory
-    ? selectedReviewRun?.status === "failed" ||
-      selectedReviewRun?.status === "interrupted"
-      ? "failed"
-      : selectedReviewRun?.status === "cancelled"
-        ? "cancelled"
-        : "saved"
-    : runStatus === "error" ||
-        runOutcome === "failed" ||
-        runOutcome === "interrupted"
-      ? "failed"
-      : runOutcome === "cancelled"
-        ? "cancelled"
-        : "completed"
+    ? selectedReviewRun?.status === "interrupted"
+      ? "interrupted"
+      : selectedReviewRun?.status === "failed"
+        ? "failed"
+        : selectedReviewRun?.status === "cancelled"
+          ? "cancelled"
+          : "saved"
+    : runOutcome === "interrupted"
+      ? "interrupted"
+      : runStatus === "error" || runOutcome === "failed"
+        ? "failed"
+        : runOutcome === "cancelled"
+          ? "cancelled"
+          : "completed"
 
   const scoreValue =
     typeof metadata?.score === "number"
@@ -411,65 +417,82 @@ export function deriveVerdictData({
         firstLine(latestEval?.reason) ||
         firstLine(failedNodeErrors[0]?.[1]?.error) ||
         `${selectedStagePresentation?.title || "Run"} failed before it could finish.`
-      : terminalVariant === "cancelled"
-        ? selectedStageIndex && workflowStepCount > 0
-          ? `Run cancelled at step ${selectedStageIndex}/${workflowStepCount}.`
-          : "The flow stopped before it finished."
-        : normalizeHeadline(diagnosticSummary?.headline) ||
-          buildCompletedHeadline({
-            resultState,
-            latestEval,
-            selectedResultPresentation,
-            reviewingRunHistory,
-            selectedReviewRun,
-            isDisplayedResultEmpty,
-          })
+      : terminalVariant === "interrupted"
+        ? completedStageCount > 0 && workflowStepCount > 0
+          ? `Flow interrupted at step ${completedStageCount}/${workflowStepCount}`
+          : "Flow interrupted before it could finish."
+        : terminalVariant === "cancelled"
+          ? selectedStageIndex && workflowStepCount > 0
+            ? `Run cancelled at step ${selectedStageIndex}/${workflowStepCount}.`
+            : "The flow stopped before it finished."
+          : normalizeHeadline(diagnosticSummary?.headline) ||
+            buildCompletedHeadline({
+              resultState,
+              latestEval,
+              selectedResultPresentation,
+              reviewingRunHistory,
+              selectedReviewRun,
+              isDisplayedResultEmpty,
+            })
 
-  const evidenceItems = executionLoopSummary
-    ? [durationLabel, costLabel]
-        .filter((value): value is string => Boolean(value))
-        .slice(0, 2)
-    : hasDiagnosticStructure
+  const evidenceItems =
+    terminalVariant === "interrupted"
       ? [
-          formatScore(scoreValue),
-          formatSeverityCount("critical", structuredSeverityCounts?.critical),
-          formatSeverityCount("high", structuredSeverityCounts?.high),
-          formatSeverityCount("medium", structuredSeverityCounts?.medium),
-          formatSeverityCount("low", structuredSeverityCounts?.low),
-          structuredCriteria.length > 0
-            ? `${structuredCriteria.length} check${structuredCriteria.length === 1 ? "" : "s"}`
-            : criticalCount > 0
-              ? `${criticalCount} failed step${criticalCount === 1 ? "" : "s"}`
-              : null,
-          failedCriteriaCount > 0
-            ? `${failedCriteriaCount} below threshold`
-            : structuredCriteria.length > 0
-              ? "0 below threshold"
-              : warningCount > 0
+          completedStageCount > 0
+            ? `${completedStageCount} step${completedStageCount === 1 ? "" : "s"} completed`
+            : null,
+          durationLabel,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .slice(0, 2)
+      : executionLoopSummary
+        ? [durationLabel, costLabel]
+            .filter((value): value is string => Boolean(value))
+            .slice(0, 2)
+        : hasDiagnosticStructure
+          ? [
+              formatScore(scoreValue),
+              formatSeverityCount(
+                "critical",
+                structuredSeverityCounts?.critical,
+              ),
+              formatSeverityCount("high", structuredSeverityCounts?.high),
+              formatSeverityCount("medium", structuredSeverityCounts?.medium),
+              formatSeverityCount("low", structuredSeverityCounts?.low),
+              structuredCriteria.length > 0
+                ? `${structuredCriteria.length} check${structuredCriteria.length === 1 ? "" : "s"}`
+                : criticalCount > 0
+                  ? `${criticalCount} failed step${criticalCount === 1 ? "" : "s"}`
+                  : null,
+              failedCriteriaCount > 0
+                ? `${failedCriteriaCount} below threshold`
+                : structuredCriteria.length > 0
+                  ? "0 below threshold"
+                  : warningCount > 0
+                    ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
+                    : null,
+              durationLabel,
+              costLabel,
+            ]
+              .filter((value): value is string => Boolean(value))
+              .slice(0, 5)
+          : [
+              formatScore(scoreValue),
+              criticalCount > 0
+                ? `${criticalCount} critical`
+                : scoreValue != null || warningCount > 0
+                  ? "0 critical"
+                  : null,
+              warningCount > 0
                 ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
-                : null,
-          durationLabel,
-          costLabel,
-        ]
-          .filter((value): value is string => Boolean(value))
-          .slice(0, 5)
-      : [
-          formatScore(scoreValue),
-          criticalCount > 0
-            ? `${criticalCount} critical`
-            : scoreValue != null || warningCount > 0
-              ? "0 critical"
-              : null,
-          warningCount > 0
-            ? `${warningCount} warning${warningCount === 1 ? "" : "s"}`
-            : scoreValue != null || criticalCount > 0
-              ? "0 warnings"
-              : null,
-          durationLabel,
-          costLabel,
-        ]
-          .filter((value): value is string => Boolean(value))
-          .slice(0, 5)
+                : scoreValue != null || criticalCount > 0
+                  ? "0 warnings"
+                  : null,
+              durationLabel,
+              costLabel,
+            ]
+              .filter((value): value is string => Boolean(value))
+              .slice(0, 5)
 
   const diagnosticEvidencePanel =
     buildDiagnosticEvidencePanel(diagnosticSummary)
@@ -482,23 +505,31 @@ export function deriveVerdictData({
           ? "Previous 1 step remains available."
           : `Previous ${completedStageCount} steps remain available.`
         : "No completed steps were preserved before the failure."
-      : terminalVariant === "cancelled"
+      : terminalVariant === "interrupted"
         ? completedStageCount > 0
           ? completedStageCount === 1
             ? "Completed work remains available from 1 step."
             : `Completed work remains available from ${completedStageCount} steps.`
           : "The run stopped before any step finished."
-        : null
+        : terminalVariant === "cancelled"
+          ? completedStageCount > 0
+            ? completedStageCount === 1
+              ? "Completed work remains available from 1 step."
+              : `Completed work remains available from ${completedStageCount} steps.`
+            : "The run stopped before any step finished."
+          : null
 
   const tone: VerdictTone =
-    diagnosticToneToVerdictTone(diagnosticSummary?.tone) ||
-    (terminalVariant === "failed" || criticalCount > 0
-      ? "danger"
-      : warningCount > 0 ||
-          executionLoopSummary?.outcome === "human decision" ||
-          executionLoopSummary?.outcome === "retry cap reached"
-        ? "warning"
-        : "neutral")
+    terminalVariant === "interrupted"
+      ? "warning"
+      : diagnosticToneToVerdictTone(diagnosticSummary?.tone) ||
+        (terminalVariant === "failed" || criticalCount > 0
+          ? "danger"
+          : warningCount > 0 ||
+              executionLoopSummary?.outcome === "human decision" ||
+              executionLoopSummary?.outcome === "retry cap reached"
+            ? "warning"
+            : "neutral")
   const variant: VerdictVariant = hasDiagnosticStructure
     ? "diagnostic"
     : !isDisplayedResultEmpty &&

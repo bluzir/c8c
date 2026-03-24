@@ -17,6 +17,7 @@ import {
 } from "../lib/workflow-runner"
 import {
   approvalTaskId,
+  findResumeNodeId,
   getWorkflowHilTask,
   listProjectImprovementRecommendations,
   listWorkflowHilTasks,
@@ -58,6 +59,7 @@ import type {
   PersistedRunSnapshot,
   RunWorkspaceCleanupResult,
   RunWorkspaceDeleteResult,
+  TerminalRunSnapshot,
   WorkflowEvent,
   Workflow,
   WorkflowInput,
@@ -1244,6 +1246,42 @@ export function registerExecutorHandlers() {
       return null
     }
   })
+
+  ipcMain.handle(
+    "executor:get-terminal-run-snapshot",
+    async (_e, workspace: string): Promise<TerminalRunSnapshot | null> => {
+      try {
+        const safeWorkspace = await assertRunWorkspacePath(workspace)
+
+        // Try run-result.json first → completed run
+        const result = await readRunResultRecord(safeWorkspace)
+        if (result) {
+          return { status: "completed", result }
+        }
+
+        // Try run-state.json → interrupted run
+        const snapshot = await loadPersistedRunSnapshot(safeWorkspace)
+        if (snapshot) {
+          const resumeNodeId = findResumeNodeId({
+            nodeStates: snapshot.nodeStates,
+            runtimeNodes: snapshot.runtimeNodes,
+            runtimeEdges: snapshot.runtimeEdges,
+            runtimeMeta: snapshot.runtimeMeta,
+            input: snapshot.input,
+          })
+          return { status: "interrupted", snapshot, resumeNodeId }
+        }
+
+        return null
+      } catch (error) {
+        logWarn("executor-ipc", "get_terminal_run_snapshot_failed", {
+          workspace,
+          error: errorMessage(error),
+        })
+        return null
+      }
+    },
+  )
 
   ipcMain.handle(
     "executor:delete-run",

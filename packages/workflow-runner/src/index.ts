@@ -49,4 +49,5 @@ export {
   listProjectImprovementRecommendations,
   persistProjectImprovementEvidence,
 } from "./lib/improvement-store.js"
+export { findResumeNodeId } from "./lib/persisted-run-state.js"
 export * from "./schema.js"

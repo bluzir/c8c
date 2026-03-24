@@ -8,6 +8,7 @@ import {
   completedAtAtom,
   evalResultsAtom,
   evalOverrideNodeIdsAtom,
+  resumeNodeIdAtom,
   finalContentAtom,
   inspectedNodeIdAtom,
   nodeStatesAtom,
@@ -47,6 +48,7 @@ export function useOutputPanel() {
   const [surfaceNotice, setSurfaceNotice] = useAtom(surfaceNoticeAtom)
   const [runId] = useAtom(runIdAtom)
   const [evalOverrideNodeIds] = useAtom(evalOverrideNodeIdsAtom)
+  const [resumeNodeId] = useAtom(resumeNodeIdAtom)
 
   return {
     runId,
@@ -74,5 +76,6 @@ export function useOutputPanel() {
     surfaceNotice,
     setSurfaceNotice,
     evalOverrideNodeIds,
+    resumeNodeId,
   }
 }

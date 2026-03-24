@@ -43,6 +43,7 @@ import type {
   SkillLibrary,
   TelemetrySettings,
   TelemetryUiEvent,
+  TerminalRunSnapshot,
   UpdateEvent,
   UpdateInfo,
   Workflow,
@@ -222,6 +223,9 @@ export interface C8cApi {
     workflowName?: string | null,
   ) => Promise<FlowImprovementRecommendation[]>
   loadRunResult: (workspace: string) => Promise<LoadedRunResult | null>
+  getTerminalRunSnapshot: (
+    workspace: string,
+  ) => Promise<TerminalRunSnapshot | null>
   deleteRun: (workspace: string) => Promise<RunWorkspaceDeleteResult>
   cleanupRuns: (projectPath: string) => Promise<RunWorkspaceCleanupResult>
   openReport: (reportPath: string) => Promise<string>

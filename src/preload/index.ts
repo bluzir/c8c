@@ -233,6 +233,11 @@ const api: C8cApi = {
     ),
   loadRunResult: (workspace: string) =>
     invokeIpc<C8cApi["loadRunResult"]>("executor:load-run-result", workspace),
+  getTerminalRunSnapshot: (workspace: string) =>
+    invokeIpc<C8cApi["getTerminalRunSnapshot"]>(
+      "executor:get-terminal-run-snapshot",
+      workspace,
+    ),
   deleteRun: (workspace: string) =>
     invokeIpc<C8cApi["deleteRun"]>("executor:delete-run", workspace),
   cleanupRuns: (projectPath: string) =>
