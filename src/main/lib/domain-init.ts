@@ -17,6 +17,6 @@ export function initDomains(): void {
   registerDomain({ ...developmentDomain, scoreTemplate: noOpScore })
   registerDomain({ ...contentDomain, scoreTemplate: noOpScore })
   registerDomain({ ...marketingDomain, scoreTemplate: noOpScore })
-  registerDomain({ ...coursesDomain, scoreTemplate: noOpScore })
+  // registerDomain({ ...coursesDomain, scoreTemplate: noOpScore })
   registerDomain({ ...researchDomain, scoreTemplate: noOpScore })
 }

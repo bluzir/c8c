@@ -34,13 +34,13 @@ describe("result-mode-config", () => {
 
   it("builds labeled config sections", () => {
     expect(
-      buildResultModeConfigSections("courses", {
-        course_outcome: "Launch a workshop",
-        audience: "Designers moving into AI",
+      buildResultModeConfigSections("marketing", {
+        content_goal: "Launch a campaign",
+        channel_and_audience: "LinkedIn for AI founders",
       }),
     ).toEqual([
-      { label: "Course goal", value: "Launch a workshop" },
-      { label: "Audience", value: "Designers moving into AI" },
+      { label: "Marketing goal", value: "Launch a campaign" },
+      { label: "Market and audience", value: "LinkedIn for AI founders" },
     ])
   })
 
@@ -71,10 +71,10 @@ describe("result-mode-config", () => {
   })
 
   it("falls back to a generic mode brief when no config is provided", () => {
-    const mode = getResultMode("courses")
+    const mode = getResultMode("marketing")
     const seed = buildResultModeSeedInput(
       mode,
-      normalizeResultModeConfig("courses"),
+      normalizeResultModeConfig("marketing"),
       "",
       {
         goal: "",
@@ -84,7 +84,9 @@ describe("result-mode-config", () => {
       },
     )
 
-    expect(seed).toContain("Build a starter flow for the Courses result mode.")
+    expect(seed).toContain(
+      "Build a starter flow for the Marketing result mode.",
+    )
     expect(seed).toContain("First useful result")
   })
 })

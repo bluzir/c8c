@@ -146,6 +146,6 @@ export function initDomains(): void {
   registerDomain({ ...developmentDomain, scoreTemplate: scoreDevelopment })
   registerDomain({ ...contentDomain, scoreTemplate: scoreContent })
   registerDomain({ ...marketingDomain, scoreTemplate: scoreMarketing })
-  registerDomain({ ...coursesDomain, scoreTemplate: scoreCourses })
+  // registerDomain({ ...coursesDomain, scoreTemplate: scoreCourses })
   registerDomain({ ...researchDomain, scoreTemplate: scoreResearch })
 }

@@ -43,7 +43,6 @@ describe("result-modes", () => {
       "development",
       "content",
       "marketing",
-      "courses",
       "research",
     ])
   })
