@@ -47,7 +47,7 @@ export function ChatMessageBubble({
       <div className="flex justify-end">
         <div
           className={cn(
-            "max-w-[75%] rounded-2xl bg-primary/10 border border-primary/20 px-3.5 py-2.5",
+            "max-w-[75%] rounded-2xl bg-surface-2/60 px-3.5 py-2.5",
             groupedWithPrevious && "rounded-tr-md",
             groupedWithNext && "rounded-br-md",
           )}
@@ -62,15 +62,18 @@ export function ChatMessageBubble({
 
   if (message.role === "assistant") {
     return (
-      <div className="group group/msg flex gap-2">
-        <div className="shrink-0 w-control-xs h-control-xs mt-0.5">
-          {!groupedWithPrevious && (
+      <div className="group group/msg space-y-1">
+        {!groupedWithPrevious && (
+          <div className="flex items-center gap-2">
             <div className="w-control-xs h-control-xs rounded-full bg-surface-3 flex items-center justify-center">
               <Bot size={13} className="text-muted-foreground" />
             </div>
-          )}
-        </div>
-        <div className="max-w-[90%] relative">
+            <span className="ui-meta-text text-muted-foreground font-medium">
+              c8c
+            </span>
+          </div>
+        )}
+        <div className="relative">
           {message.streaming && !message.content ? (
             <div className="flex items-center gap-2 ui-meta-text text-muted-foreground">
               <Loader2 size={12} className="animate-spin" />
