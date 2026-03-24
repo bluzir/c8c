@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { AtMentionDropdown } from "@/components/input/AtMentionDropdown"
 
 const MAX_RESULTS = 32
+const MAX_INPUT_LENGTH = 100_000
 
 const EMPTY_SET = new Set<string>()
 
@@ -212,6 +213,7 @@ export const TextareaWithMention = forwardRef<
         <Textarea
           ref={mergedRef}
           value={value}
+          maxLength={MAX_INPUT_LENGTH}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}

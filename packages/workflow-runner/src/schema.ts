@@ -110,6 +110,7 @@ export interface AgentRunResult {
   aborted: boolean
   durationMs: number
   pid?: number
+  error?: string | null
 }
 
 export interface AgentUsage {
@@ -462,6 +463,7 @@ export type ErrorKind =
   | "model"
   | "timeout"
   | "policy"
+  | "auth"
   | "network"
   | "unknown"
 

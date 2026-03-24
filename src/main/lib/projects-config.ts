@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import { mkdir, readFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { writeFileAtomic } from "./atomic-write"
+import { runSerialTask } from "./serial-task"
 import { logWarn } from "./structured-log"
 import { resolveAppHomeDir } from "./runtime-paths"
 
@@ -52,7 +53,10 @@ export async function loadProjectsConfig(): Promise<ProjectsConfigResult> {
         removedCount,
         path: projectsConfigPath(),
       })
-      await saveProjectsConfig({ projects, lastSelectedProject })
+      // Serialize the pruning write so concurrent loads don't clobber each other
+      void runSerialTask("projects-config", () =>
+        saveProjectsConfig({ projects, lastSelectedProject }),
+      )
     }
 
     return { projects, lastSelectedProject, removedCount }

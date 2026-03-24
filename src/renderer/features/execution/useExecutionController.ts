@@ -36,7 +36,9 @@ interface UseExecutionControllerArgs {
   selectedProject: string | null
   commitExecutionState: (
     workflowKey: string,
-    nextState: WorkflowExecutionState,
+    update:
+      | WorkflowExecutionState
+      | ((prev: WorkflowExecutionState) => WorkflowExecutionState),
   ) => void
   updateApprovalRequests: (update: UpdateValue<ApprovalRequest[]>) => void
   setPastRuns: (runs: RunResult[]) => void
@@ -212,8 +214,8 @@ export function useExecutionController({
 
   if (!controllerRef.current) {
     controllerRef.current = createWorkflowExecutionController({
-      commitExecutionState: (workflowKey, nextState) => {
-        commitExecutionStateRef.current(workflowKey, nextState)
+      commitExecutionState: (workflowKey, update) => {
+        commitExecutionStateRef.current(workflowKey, update)
       },
       updateApprovalRequests: (update) => {
         updateApprovalRequestsRef.current(update)

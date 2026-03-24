@@ -375,11 +375,23 @@ async function loadPersistedRunSnapshot(
 ): Promise<PersistedRunSnapshot | null> {
   try {
     const raw = await readFile(join(workspace, "run-state.json"), "utf-8")
-    const parsed = JSON.parse(raw) as PersistedRunSnapshot
+    const parsed = JSON.parse(raw)
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      typeof parsed.nodeStates !== "object"
+    ) {
+      logWarn("executor-ipc", "invalid_run_snapshot_schema", { workspace })
+      return null
+    }
     return await hydratePersistedRunSnapshotLogs(workspace, {
       nodeStates: parsed.nodeStates || {},
-      runtimeNodes: parsed.runtimeNodes || [],
-      runtimeEdges: parsed.runtimeEdges || [],
+      runtimeNodes: Array.isArray(parsed.runtimeNodes)
+        ? parsed.runtimeNodes
+        : [],
+      runtimeEdges: Array.isArray(parsed.runtimeEdges)
+        ? parsed.runtimeEdges
+        : [],
       runtimeMeta: parsed.runtimeMeta || {},
       input: parsed.input,
       evalResults: parsed.evalResults || {},
@@ -837,6 +849,18 @@ async function createExecutionStartBlocker(
   return null
 }
 
+const MAX_INPUT_VALUE_LENGTH = 100_000
+
+function validateInputLength(input: WorkflowInput): ExecutionStartError | null {
+  if (input.value && input.value.length > MAX_INPUT_VALUE_LENGTH) {
+    return createExecutionStartError(
+      `Input is too long (${input.value.length.toLocaleString()} chars). Maximum is ${MAX_INPUT_VALUE_LENGTH.toLocaleString()} characters.`,
+      "validation",
+    )
+  }
+  return null
+}
+
 export function registerExecutorHandlers() {
   ipcMain.handle(
     "executor:run",
@@ -859,6 +883,8 @@ export function registerExecutorHandlers() {
         resolveSafeWorkflowPayload(workflow, "executor:run")
       if (workflowError) return workflowError
       workflow = safeWorkflow!
+      const inputLengthError = validateInputLength(input)
+      if (inputLengthError) return inputLengthError
       if (hasReachedWindowExecutionCap(window.id))
         return createExecutionLimitStartError()
 
@@ -911,11 +937,15 @@ export function registerExecutorHandlers() {
         .catch((err) => {
           try {
             if (!window.isDestroyed()) {
+              const msg =
+                errorCode(err) === "ENOENT"
+                  ? "Project folder not found — it may have been moved or deleted. Re-add the project and try again."
+                  : String(err)
               sendWorkflowEvent(window, {
                 runId,
                 type: "node-error",
                 nodeId: "__global",
-                error: String(err),
+                error: msg,
               })
               sendWorkflowEvent(window, {
                 runId,

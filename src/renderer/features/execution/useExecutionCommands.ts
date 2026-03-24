@@ -301,6 +301,30 @@ export function useExecutionCommands({
         toastErrorFromCatch("Could not start run", error)
         recordExecutionError("Could not start run", errorToUserMessage(error))
         controller.rollbackExecutionStart(startHandle)
+
+        // E-2: After timeout+rollback, poll for a late-started run and cancel it
+        // so it doesn't keep running invisibly in the background.
+        try {
+          const activeExecutions = await window.api.getActiveExecutions()
+          const workflowKey = startHandle.workflowKey
+          for (const execution of activeExecutions) {
+            if (
+              execution.kind === "run" &&
+              toWorkflowExecutionKey(execution.workflowPath) === workflowKey
+            ) {
+              await stopLateStartedRun(
+                execution.runId,
+                "Cancelled late-started run after timeout",
+              )
+              break
+            }
+          }
+        } catch (pollError) {
+          console.warn(
+            "[useChainExecution] post-timeout reconciliation failed:",
+            pollError,
+          )
+        }
       } finally {
         runStartingRef.current = false
       }

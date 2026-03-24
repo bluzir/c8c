@@ -365,30 +365,8 @@ export function cancelBatch(batchId: string): boolean {
         cancelWorkflowRun(runId)
       }
     }
-    activeBatches.delete(batchId)
-    activeBatchRuns.delete(batchId)
-    const snapshot = activeBatchSnapshots.get(batchId)
-    if (snapshot) {
-      snapshot.running = 0
-      void persistBatchState(snapshot.workspace, {
-        batchId: snapshot.batchId,
-        workflowName: snapshot.workflowName,
-        workflowPath: snapshot.workflowPath,
-        projectPath: snapshot.projectPath,
-        total: snapshot.total,
-        completed: snapshot.completed,
-        running: 0,
-        concurrency: snapshot.concurrency,
-        stopOnFailure: snapshot.stopOnFailure,
-        startedAt: snapshot.startedAt,
-        updatedAt: Date.now(),
-        status: "cancelled",
-        items: snapshot.items,
-      }).catch((error) => {
-        logBatchPersistenceFailure(batchId, error)
-      })
-    }
-    activeBatchSnapshots.delete(batchId)
+    // Don't delete activeBatchSnapshots here — let runBatch's finally block
+    // persist the "cancelled" status and then clean up all maps.
     return true
   }
   return false

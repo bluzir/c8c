@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest"
 import type { ActiveWorkflowRun, RunResult, Workflow } from "@shared/types"
 import { createWorkflowExecutionController } from "./controller"
-import type { WorkflowExecutionState } from "@/lib/workflow-execution"
+import {
+  createEmptyWorkflowExecutionState,
+  type WorkflowExecutionState,
+} from "@/lib/workflow-execution"
 
 function createWorkflow(): Workflow {
   return {
@@ -109,7 +112,16 @@ function createHarness() {
 
   const deps = {
     commitExecutionState: vi.fn(
-      (workflowKey: string, nextState: WorkflowExecutionState) => {
+      (
+        workflowKey: string,
+        update:
+          | WorkflowExecutionState
+          | ((prev: WorkflowExecutionState) => WorkflowExecutionState),
+      ) => {
+        const previous =
+          executionStates[workflowKey] ?? createEmptyWorkflowExecutionState()
+        const nextState =
+          typeof update === "function" ? update(previous) : update
         executionStates = {
           ...executionStates,
           [workflowKey]: nextState,
@@ -416,10 +428,7 @@ describe("WorkflowExecutionController", () => {
     expect(getExecutionStates()[originalKey]).toBeUndefined()
     expect(deps.commitExecutionState).toHaveBeenLastCalledWith(
       renamedKey,
-      expect.objectContaining({
-        activeNodeId: "output",
-        finalContent: "Final answer",
-      }),
+      expect.any(Function),
     )
   })
 

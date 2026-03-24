@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs"
-import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { existsSync, readFileSync, statSync } from "node:fs"
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 import type { ProviderId } from "@shared/types"
@@ -23,6 +23,7 @@ interface McpConfig {
 }
 
 const mcpConfigCache = new Map<string, McpConfig>()
+const mcpConfigMtimes = new Map<string, number>()
 
 export type ClaudeSdkMcpServerConfig =
   | {
@@ -92,14 +93,27 @@ function normalizeMcpConfig(raw: unknown): McpConfig | null {
 }
 
 async function readMcpConfig(filePath: string): Promise<McpConfig | null> {
-  const cached = mcpConfigCache.get(resolve(filePath))
-  if (cached) return cached
+  const resolvedPath = resolve(filePath)
+  const cached = mcpConfigCache.get(resolvedPath)
+  if (cached) {
+    try {
+      const currentMtime = (await stat(filePath)).mtimeMs
+      if (currentMtime === mcpConfigMtimes.get(resolvedPath)) return cached
+    } catch {
+      // File may have been deleted — invalidate cache
+      mcpConfigCache.delete(resolvedPath)
+      mcpConfigMtimes.delete(resolvedPath)
+      return null
+    }
+  }
   try {
+    const currentMtime = (await stat(filePath)).mtimeMs
     const raw = await readFile(filePath, "utf-8")
     const parsed = JSON.parse(raw) as unknown
     const normalized = normalizeMcpConfig(parsed)
     if (normalized) {
-      mcpConfigCache.set(resolve(filePath), normalized)
+      mcpConfigCache.set(resolvedPath, normalized)
+      mcpConfigMtimes.set(resolvedPath, currentMtime)
     }
     return normalized
   } catch {
@@ -109,10 +123,13 @@ async function readMcpConfig(filePath: string): Promise<McpConfig | null> {
 
 export function invalidateMcpConfigCache(filePath?: string): void {
   if (filePath) {
-    mcpConfigCache.delete(resolve(filePath))
+    const resolvedPath = resolve(filePath)
+    mcpConfigCache.delete(resolvedPath)
+    mcpConfigMtimes.delete(resolvedPath)
     return
   }
   mcpConfigCache.clear()
+  mcpConfigMtimes.clear()
 }
 
 function escapeTomlString(value: string): string {
@@ -171,12 +188,23 @@ function buildCodexMcpOverrides(config: McpConfig): string[] {
 function readMcpConfigSync(filePath: string): McpConfig | null {
   const resolvedPath = resolve(filePath)
   const cached = mcpConfigCache.get(resolvedPath)
-  if (cached) return cached
+  if (cached) {
+    try {
+      const currentMtime = statSync(filePath).mtimeMs
+      if (currentMtime === mcpConfigMtimes.get(resolvedPath)) return cached
+    } catch {
+      mcpConfigCache.delete(resolvedPath)
+      mcpConfigMtimes.delete(resolvedPath)
+      return null
+    }
+  }
   try {
+    const currentMtime = statSync(filePath).mtimeMs
     const raw = readFileSync(filePath, "utf-8")
     const normalized = normalizeMcpConfig(JSON.parse(raw) as unknown)
     if (normalized) {
       mcpConfigCache.set(resolvedPath, normalized)
+      mcpConfigMtimes.set(resolvedPath, currentMtime)
     }
     return normalized
   } catch {

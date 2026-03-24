@@ -26,6 +26,16 @@ export function classifyError(err: unknown, timedOut: boolean): ErrorKind {
     return "network"
   }
 
+  // Auth errors: expired tokens, unauthorized access
+  if (
+    msg.includes("unauthorized") ||
+    msg.includes("forbidden") ||
+    msg.includes("401") ||
+    msg.includes("403")
+  ) {
+    return "auth"
+  }
+
   // Policy errors: budget, throttling, account limits
   if (
     msg.includes("budget") ||

@@ -80,8 +80,13 @@ export function ExecutionProvider({
   const setActiveExecutionProvider = useSetAtom(activeExecutionProviderAtom)
 
   const commitExecutionState = useCallback(
-    (workflowKey: string, nextState: WorkflowExecutionState) => {
-      updateWorkflowExecutionState({ key: workflowKey, update: nextState })
+    (
+      workflowKey: string,
+      update:
+        | WorkflowExecutionState
+        | ((prev: WorkflowExecutionState) => WorkflowExecutionState),
+    ) => {
+      updateWorkflowExecutionState({ key: workflowKey, update })
     },
     [updateWorkflowExecutionState],
   )

@@ -15,7 +15,7 @@ import {
   initTelemetryService,
   trackTelemetryEvent,
 } from "./lib/telemetry/service"
-import { logInfo, logWarn } from "./lib/structured-log"
+import { logError, logInfo, logWarn } from "./lib/structured-log"
 import { initUpdater, shutdownUpdater } from "./lib/updater"
 import { recoverBatchStates } from "./lib/batch-state"
 import { recoverRuntimeState } from "./lib/run-recovery"
@@ -53,6 +53,22 @@ import {
   isSafeExternalUrl,
   shouldApplyRendererCsp,
 } from "./security"
+
+// E-4: Global handlers for uncaught exceptions and unhandled rejections so they
+// are logged instead of silently crashing or corrupting state.
+process.on("uncaughtException", (error) => {
+  logError("main", "uncaught_exception", {
+    error: errorMessage(error),
+    stack: error.stack,
+  })
+})
+
+process.on("unhandledRejection", (reason) => {
+  logError("main", "unhandled_rejection", {
+    error: errorMessage(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  })
+})
 
 app.name = "c8c"
 applyRuntimePathOverrides({ app })
@@ -452,10 +468,15 @@ app.on("before-quit", (event) => {
   event.preventDefault()
   void (async () => {
     try {
-      await trackTelemetryEvent("app_quit", {
-        uptime_ms: Date.now() - processStartedAt,
-      })
-      await flushTelemetryService()
+      await Promise.race([
+        (async () => {
+          await trackTelemetryEvent("app_quit", {
+            uptime_ms: Date.now() - processStartedAt,
+          })
+          await flushTelemetryService()
+        })(),
+        new Promise((r) => setTimeout(r, 2000)),
+      ])
     } catch (error) {
       logWarn("main", "telemetry_quit_flush_failed", {
         error: errorMessage(error),

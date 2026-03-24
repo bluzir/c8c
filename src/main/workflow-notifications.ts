@@ -72,6 +72,12 @@ export function sendWorkflowEvent(
   window: BrowserWindow,
   event: WorkflowEvent,
 ): void {
-  window.webContents.send("workflow:event", event)
-  handleWorkflowNotification(window, event)
+  try {
+    if (window.isDestroyed()) return
+    window.webContents.send("workflow:event", event)
+    handleWorkflowNotification(window, event)
+  } catch {
+    // Window may have been destroyed between the check and the send (TOCTOU).
+    // Swallow — the renderer is gone anyway.
+  }
 }

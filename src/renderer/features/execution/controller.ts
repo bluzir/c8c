@@ -22,7 +22,9 @@ type UpdateValue<T> = T | ((prev: T) => T)
 interface WorkflowExecutionControllerDeps {
   commitExecutionState: (
     workflowKey: string,
-    nextState: WorkflowExecutionState,
+    update:
+      | WorkflowExecutionState
+      | ((prev: WorkflowExecutionState) => WorkflowExecutionState),
   ) => void
   updateApprovalRequests: (update: UpdateValue<ApprovalRequest[]>) => void
   setPastRuns: (runs: RunResult[]) => void
@@ -107,16 +109,19 @@ export class WorkflowExecutionController {
       | WorkflowExecutionState
       | ((previous: WorkflowExecutionState) => WorkflowExecutionState),
   ) {
-    const previousState = this.getExecutionState(workflowKey)
-    const nextState =
-      typeof update === "function" ? update(previousState) : update
-
-    this.workflowExecutionStates = {
-      ...this.workflowExecutionStates,
-      [workflowKey]: nextState,
-    }
-
-    this.deps.commitExecutionState(workflowKey, nextState)
+    // S-10: Pass updater function through to Jotai so it resolves against the
+    // latest atom value, not the potentially-stale local mirror.
+    const updater = typeof update === "function" ? update : () => update
+    this.deps.commitExecutionState(workflowKey, (prev) => {
+      const nextState = updater(prev)
+      // Keep local mirror in sync for subsequent synchronous reads within the
+      // same event loop turn (before the next sync() from useLayoutEffect).
+      this.workflowExecutionStates = {
+        ...this.workflowExecutionStates,
+        [workflowKey]: nextState,
+      }
+      return nextState
+    })
   }
 
   refreshPastRuns() {
