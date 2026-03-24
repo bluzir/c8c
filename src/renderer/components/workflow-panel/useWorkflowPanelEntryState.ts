@@ -50,7 +50,7 @@ interface UseWorkflowPanelEntryStateParams {
   packTemplates: WorkflowTemplate[]
   runStatus: ExecutionRunStatus
   webSearchBackend: WebSearchBackend
-  viewMode: "list" | "settings"
+  viewMode: "chat" | "list" | "settings"
   pendingCreateMessage: Record<string, string>
   chatStatus: string
   workflowPastRunsCount: number
@@ -105,7 +105,7 @@ export function resolveShowResumeHeader({
   showCreateDraftSkeleton,
   prepareNewRun,
 }: {
-  viewMode: "list" | "settings"
+  viewMode: "chat" | "list" | "settings"
   runStatus: ExecutionRunStatus
   activeEntryState: WorkflowEntryState | null
   resumeEntrySummary: ReturnType<typeof deriveWorkflowResumeEntrySummary>

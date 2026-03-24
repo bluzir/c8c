@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Ref,
-} from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import type { InputNodeConfig, PermissionMode, RunResult } from "@shared/types"
 import { toast } from "sonner"
@@ -41,7 +34,6 @@ import {
   workflowsAtom,
   inputValueAtom,
   skillsAtom,
-  chatPanelOpenAtom,
   desktopRuntimeAtom,
   batchDialogOpenAtom,
   workflowDirtyAtom,
@@ -90,7 +82,6 @@ export function Toolbar({
   crossFlowTitle,
   shellDetail,
   runLaunchPending = false,
-  agentToggleRef,
 }: {
   onRun: (mode?: PermissionMode) => Promise<void> | void
   onCancel: () => Promise<void> | void
@@ -99,7 +90,6 @@ export function Toolbar({
   crossFlowTitle?: string | null
   shellDetail?: string | null
   runLaunchPending?: boolean
-  agentToggleRef?: Ref<HTMLButtonElement>
 }) {
   const [workflow] = useAtom(currentWorkflowAtom)
   const [workflowPath] = useAtom(selectedWorkflowPathAtom)
@@ -117,9 +107,9 @@ export function Toolbar({
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [runStatus, setRunStatus] = useAtom(runStatusAtom)
   const [runId] = useAtom(runIdAtom)
-  const [chatOpen, setChatOpen] = useAtom(chatPanelOpenAtom)
   const [, setMainView] = useAtom(mainViewAtom)
   const [viewMode, setViewMode] = useAtom(viewModeAtom)
+  const chatOpen = viewMode === "chat"
   const [flowSurfaceMode] = useAtom(flowSurfaceModeAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
@@ -503,8 +493,8 @@ export function Toolbar({
   }, [runStatus, setViewMode, workflowReviewMode])
 
   const toggleChatPanel = useCallback(() => {
-    setChatOpen((open) => !open)
-  }, [setChatOpen])
+    setViewMode(viewMode === "chat" ? "list" : "chat")
+  }, [setViewMode, viewMode])
 
   const handleResumeRun = useCallback(async () => {
     if (!runId || runControlPending) return
@@ -641,7 +631,6 @@ export function Toolbar({
     canRedo,
     viewMode,
     flowSurfaceMode,
-    chatOpen,
     runShortcutEnabled,
     canRun,
     canBatchRun,
@@ -799,7 +788,6 @@ export function Toolbar({
               primaryShortcutLabel={primaryShortcutLabel}
               chatOpen={chatOpen}
               chatShortcutLabel={chatShortcutLabel}
-              agentToggleRef={agentToggleRef}
               actionMenuDisabled={isRunning}
               canOpenDefaults={runStatus === "idle" && !workflowReviewMode}
               flowDefaultsOpen={viewMode === "settings"}

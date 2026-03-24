@@ -10,7 +10,6 @@ import {
   inputValueAtom,
   viewModeAtom,
   flowSurfaceModeAtom,
-  chatPanelOpenAtom,
   workflowDirtyAtom,
   mainViewAtom,
   selectedWorkflowTemplateContextAtom,
@@ -22,7 +21,6 @@ import {
   workflowSavedSnapshotAtom,
   selectedWorkflowContinuationEntryStateAtom,
   selectedWorkflowSavedRunReviewRequestedAtom,
-  chatPanelWidthAtom,
   workflowReviewModeAtom,
   workflowRunBlockReasonAtom,
   workflowOpenStateAtom,
@@ -108,7 +106,6 @@ import { useWorkflowPanelOutputSurface } from "./workflow-panel/useWorkflowPanel
 import { useWorkflowPanelReviewState } from "./workflow-panel/useWorkflowPanelReviewState"
 import { useWorkflowPanelShellDerivations } from "./workflow-panel/useWorkflowPanelShellDerivations"
 import { useWorkflowStageLaunch } from "./workflow-panel/useWorkflowStageLaunch"
-import { WorkflowChatPanelShell } from "./workflow-panel/WorkflowChatPanelShell"
 import { ChatPanel } from "./chat/ChatPanel"
 import { SectionErrorBoundary } from "@/components/ui/error-boundary"
 import {
@@ -143,8 +140,6 @@ export function WorkflowPanel() {
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
   const [inputAttachments, setInputAttachments] = useAtom(inputAttachmentsAtom)
   const [viewMode, setViewMode] = useAtom(viewModeAtom)
-  const [chatOpen, setChatOpen] = useAtom(chatPanelOpenAtom)
-  const [chatPanelWidth] = useAtom(chatPanelWidthAtom)
   const [chatStatus] = useAtom(chatStatusAtom)
   const [workflowDirty] = useAtom(workflowDirtyAtom)
   const [, setWorkflows] = useAtom(workflowsAtom)
@@ -262,8 +257,6 @@ export function WorkflowPanel() {
   const {
     listScrollRegionRef,
     outputPanelRef,
-    chatPanelShellRef,
-    chatPanelToggleRef,
     inputPanelRef,
     blockedTaskPanelRef,
     lastRunInputRef,
@@ -279,7 +272,6 @@ export function WorkflowPanel() {
     runStartedAt,
     inputValue,
     viewMode,
-    chatOpen,
     selectedWorkflowPath,
     workflowEntryState,
     setWorkflowOpenState,
@@ -499,7 +491,6 @@ export function WorkflowPanel() {
     reviewedRunLoading,
     reviewedRunError,
   } = useSelectedRunReview(showAnyReviewMode)
-  const canShowAgentPanel = Boolean(selectedWorkflowPath)
   const {
     shellState,
     shellDetail,
@@ -546,15 +537,6 @@ export function WorkflowPanel() {
     workflowName: workflow.name,
     elapsed,
   })
-  // When execution is active, the chat panel becomes the main surface
-  const executionChatActive =
-    canShowAgentPanel &&
-    (shellState === "running" ||
-      shellState === "paused" ||
-      shellState === "completed" ||
-      shellState === "failed" ||
-      shellState === "cancelled" ||
-      shellState === "blocked")
   const {
     blockedInspectionVisible,
     requestOutputTab,
@@ -910,9 +892,8 @@ export function WorkflowPanel() {
         setSelectedPastRun(null)
         setPrepareNewRun(false)
         setWorkflowReviewMode(false)
-        setViewMode("list")
+        setViewMode("chat")
         setOutputTabRequest(null)
-        setChatOpen(false)
         setMainView("thread")
         setRouteAlternativesOpen(false)
       } catch (error) {
@@ -930,7 +911,6 @@ export function WorkflowPanel() {
       routeAlternativeTemplateIds,
       selectedProject,
       selectedWorkflowTemplateContext?.templateId,
-      setChatOpen,
       setInputAttachments,
       setInputValue,
       setMainView,
@@ -1072,16 +1052,15 @@ export function WorkflowPanel() {
           crossFlowTitle={crossFlowTitle}
           shellDetail={shellDetail}
           runLaunchPending={runLaunchPending}
-          agentToggleRef={chatPanelToggleRef}
         />
 
         {workflowOpenState.status === "loading" ? (
           <WorkflowOpenLoadingState
             flowLabel={workflowTitleFromPath(workflowOpenState.targetPath)}
           />
-        ) : executionChatActive ? (
+        ) : viewMode === "chat" ? (
           <SectionErrorBoundary sectionName="Flow chat">
-            <ChatPanel embedded onClose={() => setChatOpen(false)} />
+            <ChatPanel embedded onClose={() => setViewMode("list")} />
           </SectionErrorBoundary>
         ) : (
           <>
@@ -1270,15 +1249,6 @@ export function WorkflowPanel() {
           }}
         />
       </div>
-
-      {canShowAgentPanel && !executionChatActive && (
-        <WorkflowChatPanelShell
-          shellRef={chatPanelShellRef}
-          open={chatOpen}
-          width={chatPanelWidth}
-          onClose={() => setChatOpen(false)}
-        />
-      )}
     </div>
   )
 }

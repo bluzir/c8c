@@ -35,7 +35,7 @@ export function useWorkflowPanelOutputSurface({
   scrollOutputPanelIntoListViewport: (padding?: number) => boolean
   setMainView: (value: MainView) => void
   setSurfaceNotice: (value: ExecutionSurfaceNotice | null) => void
-  setViewMode: (value: "list" | "settings") => void
+  setViewMode: (value: "chat" | "list" | "settings") => void
   setOutputTabRequest: (value: OutputTabRequest) => void
 }) {
   const [blockedInspectionVisible, setBlockedInspectionVisible] =

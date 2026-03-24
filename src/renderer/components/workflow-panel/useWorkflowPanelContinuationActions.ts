@@ -109,7 +109,7 @@ export function useWorkflowPanelContinuationActions({
   setPrepareNewRun: (value: boolean) => void
   setWorkflowReviewMode: (value: boolean) => void
   setMainView: (value: MainView) => void
-  setViewMode: (value: "list" | "settings") => void
+  setViewMode: (value: "chat" | "list" | "settings") => void
   setOutputTabRequest: (value: OutputTabRequest | null) => void
   setInputAttachments: (value: InputAttachment[]) => void
 }) {
