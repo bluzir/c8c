@@ -14,6 +14,8 @@ const SECRET_PATTERNS = [
       if (!match) return false
       const value = match[1].trim().replace(/^['"]|['"]$/g, "")
       if (value.startsWith("(") || value.includes("=>")) return false
+      // Skip markdown code spans and table cells (backtick-formatted values are never secrets)
+      if (value.startsWith("`")) return false
       if (
         /^(?:process|import)\.env\b/i.test(value) ||
         /^Promise</.test(value)
@@ -22,7 +24,7 @@ const SECRET_PATTERNS = [
       }
       if (value.length < 12) return false
       if (
-        /^(?:example|placeholder|changeme|your[_-]?value|your[_-]?key|replace[_-]?me|<.+>|x+|\*+)$/i.test(
+        /^(?:example|placeholder|changeme|your[_-]?value|your[_-]?key|replace[_-]?me|user[_-]?provides[_-]?this|<.+>|x+|\*+)$/i.test(
           value,
         )
       ) {

@@ -4,7 +4,7 @@
 
 Single source of truth for c8c product decisions. All specs, plans, and implementation work must conform to it. If something is not covered here, the strategy specs (listed in Section 13) apply. If those conflict with each other, raise it here.
 
-**[Current focus] Content expansion.** Dev guided experience is shipped and stable. Content is the next domain to receive the full guided treatment (routing, intents, spine, continuation). Marketing and Courses remain library-only. The underlying patterns (flows, steps, checks, approvals, typed results) are domain-agnostic by design. See `docs/superpowers/specs/2026-03-23-content-guided-experience-design.md` for the Content design spec.
+**[Current focus] R2.5 Eval Data Layer + Iteration Loop.** Dev and Content guided experiences are shipped. Marketing and Courses remain library-only. The underlying patterns (flows, steps, checks, approvals, typed results) are domain-agnostic by design. Content design spec: `docs/superpowers/specs/2026-03-23-content-guided-experience-design.md`.
 
 ---
 
@@ -16,24 +16,112 @@ Single source of truth for c8c product decisions. All specs, plans, and implemen
 ### 0.1 Where we are now (facts)
 
 **Done:**
+
 - Dev guided experience — full (routing, intents, spine, continuation, quality loops, approval surfaces, reopen bookmarks, MCP integration registry)
+- Content guided experience — full (routing, intents, domain context, router destination registry, spine, continuation)
 - 3 domain modes (dev/content/courses) with template libraries
 - Runtime shell with resume, blocked, running, completed states
 - All 16 NSM moves completed (archived: `docs/specs/historical/2026-03-23-nsm-moves-archive.md`)
 
-**In progress:**
-- Content guided experience — routing agent, intents, domain context, router destination registry
-- QA audit remediation (Wave 1) — 3 P1 + 2 critical P2 bugs. Registry: `docs/superpowers/specs/2026-03-24-qa-audit-findings.md`
+**Done (2026-03-24):**
 
-**Next: R2.5 — Eval Data Layer + Iteration Loop** (validated by Karpathy thesis analysis: `docs/research/KARPATHY-THESIS-ANALYSIS.md`)
-- OS notifications (desktop-level) — enables async operator model
-- Eval persistence + pass-rate surfacing — user sees WHERE skill bottleneck is (direct NSM lever)
-- Skill edit-and-rerun from failed check — closes instruction-improvement loop inside product (retention lever)
-- Evaluator confidence calibration — near-threshold escalation to human instead of auto-binary
-- New metrics: `evaluator_save_rate`, `gate_pass@1`
-- Crash recovery — seamless resume after app close. Design spec: `docs/superpowers/specs/2026-03-24-crash-recovery-design.md`
+- Crash recovery — seamless resume after app close (persist manifest, startup scan, interrupted UI)
+- QA audit Wave 1 (5 P1/critical P2) + Wave 2 (10 P2) — fixed. Registry: `docs/superpowers/specs/2026-03-24-qa-audit-findings.md`
+- Intent context — user's original request flows through all nodes via `WorkflowInput.context`
+- Prompt priority — node prompt is "YOUR TASK", skill is "methodology reference"
+- Deep research v2 — dual researcher (web/reddit), source evaluation, topic-scout pre-split
+- Template design guide — `docs/conventions/TEMPLATE-DESIGN-GUIDE.md`
+- All 5 Canon ship blockers (Section 8) verified SHIPPED
+
+**In progress:**
+
+- Content guided experience — routing agent, intents, domain context
+
+**Roadmap** (validated by Karpathy + Huang thesis analyses, grounded against JTBD scenarios and segments)
+
+All waves framed through user experience, not internal engineering. Everything under the surface is hidden orchestration. User sees: input → result, with smart behavior in between.
+
+---
+
+**Wave 1: "Flow стал умнее и сам чинится"** — **90% shipped**
+
+Already done:
+
+- ✅ Eval persistence across runs (`improvement-store.ts`, evidence.jsonl, per-run scores/thresholds)
+- ✅ Pass-rate surfacing + improvement recommendations (`HistoryTab.tsx`, per-variant success rates)
+- ✅ macOS notifications on approval/completion/human-task (`workflow-notifications.ts`, dock bounce, window flash)
+- ✅ Evaluator auto-retry with fix_instructions injection (workflow-runner, `maxRetries` + `retryFrom`)
+- ✅ Evaluator override button (step log, `EvalResultsSection`)
+- ✅ `evaluator_save_rate` / `gate_pass@1` metrics derivable from persisted evidence
+
+Remaining:
+
+- **Promote eval exhaustion to first-class blocked state.** Currently eval override is a button buried in the step log tab. Approval nodes get: modal dialog, queue sidebar, toast, macOS notification, keyboard shortcut. Eval exhaustion should get the same treatment — it IS the "system tried everything and needs you" moment. Route eval-exhausted through the same notification/badge/queue pipeline as approvals. Effort: S-M.
+- **"Close call" badge** on near-threshold scores (optional, S effort — informational badge, flow doesn't pause)
+
+JTBD: HiL audit confirmed design is correct — 0-1 human decisions per average flow (sparse, strategic). The one gap is eval exhaustion visibility.
+
+---
+
+**Wave 2: "Flow можно сохранить, отдать, найти готовый"** — R2.5, ~2 weeks (parallel with Wave 1)
+
+What the user sees change:
+
+- Export flow → file. Colleague: Import → flow works
+- App closed during run → reopened → "Flow was at step 3/5 — [Continue]"
+- ClawHub: browse and install community flows with one click
+- "I need a skill that reviews TypeScript for security" → generated and attached
+- Project has `.claude/commands/` → c8c auto-discovers and offers them
+- Before Run: "This flow will use ~X tokens." After Run: token count in summary
+
+Under the hood: YAML format stability contract (v1 backward-compatible forever), `c8c-format: 1` header for measurability, crash recovery (persist manifest, startup scan, interrupted UI with "Continue"), MCP server manifest, freeze `human` node from creation UI, companion metric `workflows_in_wild`.
+
+JTBD coverage: E4 (share flow), F4 (import template), S1-S3 (crash/close/resume), E5 (install from ClawHub), M6 (token anxiety). Serves segments 1-4. New scenarios: Git-Native Flow Distribution, Import Flow from Shared File, First-Time ClawHub Publication.
+
+Progressive autonomy presets — flow-level trust config (conservative / balanced / autonomous) controlling default gate behavior. Suggest improvement after run — system proposes concrete changes based on eval metrics, user approves with one click.
+
+---
+
+**Wave 3: "c8c учится из моего опыта"** — R3 Early, ~1-2 months
+
+What the user sees change:
+
+- "This skill passes 90% of the time — reliable" (per-skill health visible)
+- "This skill fails often on TypeScript — consider adjusting" (actionable insight)
+- Per-project quality defaults: "production = strict, prototype = relaxed"
+- Community gallery: curated flows to browse and import
+- Harness users: `.claude/commands/` auto-converted to c8c flows with quality gates
+
+Under the hood: eval history as first-class object, quality profile per project, community gallery (curated, read-only), harness import bridge (gstack first), capability taxonomy (2-of-3 security, design-time warnings), consolidate `human` into `approval` with form mode.
+
+JTBD coverage: M12 (debuggability over time), M13 (A/B compare configs), E6 (harness migration). Serves segments 1-3. New scenarios: Gallery Browse, Project Quality Calibration.
+
+---
+
+**Wave 4: "c8c работает даже когда я не смотрю"** — R3 Late, ~2-3 months
+
+What the user sees change:
+
+- 3 flows running, 2 need decisions → single queue: "Review findings: approve? Audit severity: override?" → cleared in 30 seconds
+- "Prompt B works 20% better than A — promote?" (variant comparison)
+- OpenClaw: flows run on schedule, results arrive via Telegram
+
+Under the hood: operator control plane (decision queue, approval routing, idle detection), self-improving harness (observe: variant comparison, run evidence), OpenClaw Telegram bridge.
+
+JTBD coverage: O1 (what's running), O3 (parallel runs), Manual Flow Chaining (#12). Starts serving segment 4+ (Developer-Consultant with multiple clients). New scenarios: Decision Queue, Judgment Carry-Forward.
+
+---
+
+**Vision: R4+** — track, don't act
+
+- "Describe what you want, c8c handles everything" (zero-graph, point-B auto-composes)
+- Per-node model tier optimization (cheap tokens for drafting, premium for eval)
+- Node type reduction (simplify architecture, user never notices)
+- "Operator → Architect" — product identity evolution
+- 1B market entry (web, zero-install) — after 30M proven
 
 **Not working / incomplete:**
+
 - Marketing remains library-only
 - Courses remain library-only
 
@@ -43,17 +131,19 @@ Single source of truth for c8c product decisions. All specs, plans, and implemen
 
 16 moves completed across 4 phases (primary path → surface clarity → durable memory → async). Full archive: `docs/specs/historical/2026-03-23-nsm-moves-archive.md`.
 
-**Current focus:** extend the guided experience to Content domain. Design spec: `docs/superpowers/specs/2026-03-23-content-guided-experience-design.md`.
+**Current focus:** Wave 1 remaining (eval exhaustion promotion) → Wave 2.
+
+**HiL audit finding (2026-03-24):** Human-in-the-loop design is correct. 0-1 human decisions per average flow. Evaluator auto-retries with fix_instructions are the feedback loop — human needed only on strategic approvals and eval exhaustion (last resort). One gap: eval exhaustion notification parity with approval nodes.
 
 ### 0.3 What we're NOT doing (and why)
 
-| Skip | Why it doesn't improve NSM now |
-|------|-------------------------------|
-| Factory as primary UX | Single point-B → result first. Factory = scale story after path works |
-| Operator dashboard / control plane | Single-path clarity first. Parallel ops after async runtime (R4) |
-| Auto-mutating flows | Self-observing first (R3), self-improving with approval later (R4) |
-| Generic integrations / "become n8n" | Repo-adjacent first (PR, issues, docs). Generic = scope death |
-| Multi-user collaboration | Single operator. Team features = R5+ if ever |
+| Skip                                | Why it doesn't improve NSM now                                                                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Factory as primary UX               | Single point-B → result first. Factory = scale story after path works                                                                                                                                             |
+| Operator dashboard / control plane  | Single-path clarity first. Parallel ops after async runtime (R4)                                                                                                                                                  |
+| Auto-mutating flows                 | Self-observing first (R3), self-improving with approval later (R4). **Boundary:** "suggest improvement after run" (R2.5) is NOT auto-mutation — system proposes, human decides. Only _silent_ mutation is banned. |
+| Generic integrations / "become n8n" | Repo-adjacent first (PR, issues, docs). Generic = scope death                                                                                                                                                     |
+| Multi-user collaboration            | Single operator. Team features = R5+ if ever                                                                                                                                                                      |
 
 ### 0.4 Known tensions and their resolution
 
@@ -83,6 +173,22 @@ Surfaced by cross-doc audit 2026-03-23. Status tracked here.
    - `recommendedNext` arrays + contract satisfaction check in `deriveWorkflowCreateContinuations()` are now backed by normalized built-in template metadata.
    - No agent needed — template graph is pre-authored and the data gap is closed.
 
+6. **Human-in-loop speed vs safety** | Status: **resolved — progressive autonomy**
+   - Tension: approval gates = quality guarantee, but also = latency bottleneck. Trend pressure ("get humans out ASAP") means competitors offering full-auto mode will attract speed-seeking users. Source: Diamandis thesis analysis #12 (Salem's organizational singularity).
+   - Resolution: progressive autonomy presets (conservative/balanced/autonomous). User controls the tradeoff, not the product. Default = balanced. This is NOT auto-mutation — it's gate behavior configuration.
+   - The human role remains "sparse strategic correction" (CANON 2.1.1), not watchman/babysitter. The presets shift WHERE on the spectrum the user sits, not whether human judgment matters.
+
+7. **Moat durability** | Status: **acknowledged — template ecosystem is the answer**
+   - Tension: evaluator nodes, splitter/merger, YAML portability — all mechanically simple, copyable in weeks. Cursor/Windsurf with 10M users adds "workflow mode" and c8c loses on distribution. Source: Diamandis thesis analysis #14.
+   - Resolution: runtime mechanics are not the moat. The moat is the **domain-authored knowledge layer**: calibrated templates with contractOut/recommendedNext, 36+ typed result kinds (KnownArtifactKind), 4 domain-specific router prompts, and evaluator criteria tuned per domain. Each new domain with quality templates increases this moat nonlinearly. Community template sharing (R3) compounds it.
+   - Companion metric: `evaluator_save_rate` — quantifies trust ("c8c caught X% bad outputs"). Defensible data, not defensible code.
+
+8. **Platform risk — Anthropic as competitor** | Status: **acknowledged — insurance in R3**
+   - Tension: c8c is software layer on top of Anthropic software layer. Pattern: community validates demand → Anthropic ships native (happened with Agent Teams Feb 2026). If Anthropic ships native workflow orchestration, c8c is redundant.
+   - Mitigation (R3): partial cross-model support as insurance (e.g. OpenAI for skill nodes, Claude for eval). Not full portability — just enough that provider switch is cheap if needed.
+   - Mitigation (now): make c8c valuable _to_ Anthropic — demonstrate that Claude CLI + orchestration = measurable productivity gain. Showcasing, not competing.
+   - Counterargument: Anthropic benefits from third-party orchestration (increases compute consumption). AWS didn't kill Terraform. Platform providers rarely build opinionated tooling.
+
 ### 0.5 NSM reminder
 
 **Primary:** share of point-B requests that reach a named result without graph literacy.
@@ -97,37 +203,37 @@ Every proposed change must reduce a specific drop-off in the point-B → result 
 
 These are the ONLY product terms a user should encounter in the interface:
 
-| UI Term | Meaning | Where it appears |
-|---------|---------|-----------------|
-| **flow** | An executable chain of steps the user can see and follow | Sidebar, headers, runtime shell, command palette |
-| **step** | One unit of work inside a flow | Runtime shell, progress indicators, continuation |
-| **starting point** | A curated job entry in the create surface | Create surface, library |
-| **skill** | A reusable capability attached to a step | Step detail panels, customization (secondary context only — not in primary create flow or default runtime view) |
-| **check** | An automated decision point (system decided) | Runtime shell, step status |
-| **approval** | A human decision point (user must decide) | Approval cards, runtime shell |
-| **flow rules** | User-readable policy governing a flow | Pre-launch preview, settings |
-| **run** | One execution of a flow | Status indicators, history, sidebar |
-| **result** (with type) | The output of a completed step — always with type name in specific contexts | Result surface, continuation cards. Generic: "result". Specific: "Review findings", "Codebase map" |
+| UI Term                | Meaning                                                                     | Where it appears                                                                                                |
+| ---------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **flow**               | An executable chain of steps the user can see and follow                    | Sidebar, headers, runtime shell, command palette                                                                |
+| **step**               | One unit of work inside a flow                                              | Runtime shell, progress indicators, continuation                                                                |
+| **starting point**     | A curated job entry in the create surface                                   | Create surface, library                                                                                         |
+| **skill**              | A reusable capability attached to a step                                    | Step detail panels, customization (secondary context only — not in primary create flow or default runtime view) |
+| **check**              | An automated decision point (system decided)                                | Runtime shell, step status                                                                                      |
+| **approval**           | A human decision point (user must decide)                                   | Approval cards, runtime shell                                                                                   |
+| **flow rules**         | User-readable policy governing a flow                                       | Pre-launch preview, settings                                                                                    |
+| **run**                | One execution of a flow                                                     | Status indicators, history, sidebar                                                                             |
+| **result** (with type) | The output of a completed step — always with type name in specific contexts | Result surface, continuation cards. Generic: "result". Specific: "Review findings", "Codebase map"              |
 
 ### 1.2 Code / internal terms
 
 These exist in code, specs, and developer conversations. They must not appear in shipped UI:
 
-| Internal Term | What It Maps To | Notes |
-|---------------|----------------|-------|
-| workflow | flow | Graph definition (nodes + edges) |
-| stage / phase | step | Delivery spine segment |
-| template | starting point | Predefined workflow YAML |
-| process | flow (holistic) | Full delivery spine run from entry to exit |
-| factory | (no UI equivalent) | Backing model for flow lifecycle; behind feature flag; unproven |
-| case | (no UI equivalent) | Persistent state of one flow run; behind feature flag |
-| chain | (no UI equivalent) | Legacy name, fully retired |
-| capability | skill | Never shipped; use "skill" |
-| gate | check or approval | Depends on outcome type (see Section 1.1) |
-| evaluator | check | The node type that performs automated quality decisions |
-| artifact | result (with type) | Results carry visible type info: "Review findings", "Verification report" — never the word "artifact" |
-| policy | flow rules | Preset rule sets governing automation and approval |
-| `auto` (helpModeHint) | (no UI label) | Internal enum value meaning "no mode selected"; UI shows no-selection state, not the word "Auto" |
+| Internal Term         | What It Maps To    | Notes                                                                                                 |
+| --------------------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| workflow              | flow               | Graph definition (nodes + edges)                                                                      |
+| stage / phase         | step               | Delivery spine segment                                                                                |
+| template              | starting point     | Predefined workflow YAML                                                                              |
+| process               | flow (holistic)    | Full delivery spine run from entry to exit                                                            |
+| factory               | (no UI equivalent) | Backing model for flow lifecycle; behind feature flag; unproven                                       |
+| case                  | (no UI equivalent) | Persistent state of one flow run; behind feature flag                                                 |
+| chain                 | (no UI equivalent) | Legacy name, fully retired                                                                            |
+| capability            | skill              | Never shipped; use "skill"                                                                            |
+| gate                  | check or approval  | Depends on outcome type (see Section 1.1)                                                             |
+| evaluator             | check              | The node type that performs automated quality decisions                                               |
+| artifact              | result (with type) | Results carry visible type info: "Review findings", "Verification report" — never the word "artifact" |
+| policy                | flow rules         | Preset rule sets governing automation and approval                                                    |
+| `auto` (helpModeHint) | (no UI label)      | Internal enum value meaning "no mode selected"; UI shows no-selection state, not the word "Auto"      |
 
 ### 1.3 Banned in UI
 
@@ -140,6 +246,7 @@ The following terms must not appear in any user-facing surface (labels, headers,
 Banning "artifact" does not mean losing type information. Results carry visible type names in the UI. Result types are domain-specific — each domain defines its own type vocabulary.
 
 Development examples:
+
 - "Review findings" (not "artifact" or just "result")
 - "Verification report"
 - "Implementation patch"
@@ -215,7 +322,8 @@ These follow from the north star but apply to later release layers (R3+). They a
 
 - **Operator throughput is a secondary goal, not the primary one.** The primary metric is point-B-to-result completion. Parallel runs, concurrent approvals, and idle detection are R4+ concerns that must never compete with the single-path clarity of R2.
 - **The product must help the user formulate a good point B.** Routing a weak ask well is not enough. The composer should surface missing context, constraints, and quality bar expectations before the run starts — compact chips and short forks, not a form or a prompt-engineering school. "Make a good run easier than a bad run."
-- **Self-improving flows require self-observing flows first.** Before the system can recommend recipe/policy/prompt improvements (R4+), it must persist run evidence: check outcomes, retries, chosen paths, human edits, continuation success (R3). Promotion of a variant is always an explicit human action, never silent mutation.
+- **Self-improving flows require self-observing flows first.** Before the system can recommend recipe/policy/prompt improvements (R4+), it must persist run evidence: check outcomes, retries, chosen paths, human edits, continuation success (R3). Promotion of a variant is always an explicit human action, never silent mutation. **Exception (R2.5):** "suggest improvement after run" is allowed — propose concrete changes based on eval metrics, user approves with one click. This is recommendation, not mutation.
+- **Autonomy is a spectrum, not a binary.** The product must not force "always human" or "always auto." Progressive autonomy presets (conservative/balanced/autonomous) let the user choose their comfort level. The human role stays "sparse strategic correction" regardless of preset — the presets control WHERE checks require human attention, not WHETHER human judgment matters.
 - **Expansion beyond repo-local work starts with repo-adjacent digital operations.** The first external systems are PRs, issues, docs, browser QA, research sources, and messaging-based approvals/delivery. This product must not drift into generic automation mesh or n8n-style integration sprawl.
 - **Execution detail must stay secondary to the current decision surface.** Verbose streaming logs and step-level chatter must not drive whole-shell renderer churn or displace the current result/status/action grammar. Future implementation work is tracked in `docs/specs/active/2026-03-24-renderer-execution-event-batching-spec.md`.
 
@@ -223,13 +331,14 @@ These follow from the north star but apply to later release layers (R3+). They a
 
 Do / Plan / Review are **first-class user intents**, not router hints:
 
-| Intent | Meaning | Router constraint |
-|--------|---------|-------------------|
-| **Do it** | Execute the change | Router must prefer execution-oriented steps. Must not route to plan-only paths. |
-| **Plan it** | Prepare a plan without executing | Router must prefer planning steps. Must not silently proceed to implementation. Plan is a full first-class mode, not diminished Do. |
-| **Review it** | Critique/verify existing work | Router must prefer review-oriented steps. Only valid when review context exists. |
+| Intent        | Meaning                          | Router constraint                                                                                                                   |
+| ------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Do it**     | Execute the change               | Router must prefer execution-oriented steps. Must not route to plan-only paths.                                                     |
+| **Plan it**   | Prepare a plan without executing | Router must prefer planning steps. Must not silently proceed to implementation. Plan is a full first-class mode, not diminished Do. |
+| **Review it** | Critique/verify existing work    | Router must prefer review-oriented steps. Only valid when review context exists.                                                    |
 
 **Rules:**
+
 - When user selects an intent, it is a **hard constraint** the router must honor, not a soft bias.
 - The same point B with different intents must produce different paths and different output promises.
 - The intent layer is visible on the create surface as a compact selector (segmented control), not explained with long text.
@@ -262,6 +371,7 @@ The router returns: one recommended starting point + up to 2 alternates + reason
 All routing decisions are made by a bounded LLM agent call. There is no regex/keyword heuristic layer and no post-agent guard layer that overrides agent decisions.
 
 The only programmatic (non-agent) signals allowed are **structural facts** about the project that the agent receives as context:
+
 - Project exists vs. empty directory (no code at all)
 - Has git history vs. fresh init
 - Project kind detection (frontend, backend, monorepo, etc.)
@@ -278,34 +388,34 @@ Each domain maintains its own registry of router destinations.
 
 #### Development registry
 
-| Job entry | Internal template | When router selects it |
-|-----------|-------------------|----------------------|
-| Explore this project | `delivery-map-codebase` | Existing repo, orientation needed |
-| Build from brief | `delivery-shape-project` | Greenfield or brief-first |
-| Plan the change | `delivery-plan-phase` | User wants plan before execution, or Plan intent selected |
-| Review before ship | `delivery-review-phase` | Review-ready context exists, or Review intent selected |
-| Code audit | `full-stack-code-audit` | Security/quality review request |
-| UI polish | `impeccable-ui-pipeline` | UI review-and-polish request |
-| UX audit | `ux-ui-polish-audit` | Repo-wide UX/UI audit |
-| Visual test | `playwright-visual-audit` | Browser-based visual regression |
-| Fix a bug | `delivery-investigate-bug` | User reports something broken, incident, crash |
+| Job entry            | Internal template          | When router selects it                                    |
+| -------------------- | -------------------------- | --------------------------------------------------------- |
+| Explore this project | `delivery-map-codebase`    | Existing repo, orientation needed                         |
+| Build from brief     | `delivery-shape-project`   | Greenfield or brief-first                                 |
+| Plan the change      | `delivery-plan-phase`      | User wants plan before execution, or Plan intent selected |
+| Review before ship   | `delivery-review-phase`    | Review-ready context exists, or Review intent selected    |
+| Code audit           | `full-stack-code-audit`    | Security/quality review request                           |
+| UI polish            | `impeccable-ui-pipeline`   | UI review-and-polish request                              |
+| UX audit             | `ux-ui-polish-audit`       | Repo-wide UX/UI audit                                     |
+| Visual test          | `playwright-visual-audit`  | Browser-based visual regression                           |
+| Fix a bug            | `delivery-investigate-bug` | User reports something broken, incident, crash            |
 
-**`delivery-implement-phase`**: Reachable only via continuation from Plan, not as a direct create entry. The user says "Change the app" → router picks the best *first* step (often Map or Shape), which then continues into implementation.
+**`delivery-implement-phase`**: Reachable only via continuation from Plan, not as a direct create entry. The user says "Change the app" → router picks the best _first_ step (often Map or Shape), which then continues into implementation.
 
-**Critical rule:** A job entry is NOT a stage alias. "Change the app" may route through Map → Plan → Implement internally. The router picks the best *first* step, not the only step.
+**Critical rule:** A job entry is NOT a stage alias. "Change the app" may route through Map → Plan → Implement internally. The router picks the best _first_ step, not the only step.
 
 #### Content registry
 
-| Job entry | Internal template | When router selects it |
-|-----------|-------------------|----------------------|
-| Watch trends | `content-trend-watch` | Needs evidence base before planning |
-| Plan content calendar | `content-post-calendar` | Has trends/context, needs a publishing plan |
-| Draft a post | `content-draft-post` | Has a specific topic or calendar slot, needs a draft |
-| Review content quality | `content-qa-review` | Has a draft, needs quality/tone/slop check |
-| Build content strategy | `content-pipeline` | Needs full strategy from product brief → marketing outputs |
-| Repurpose content | `content-repurposing-factory` | Has existing material, needs it in different formats |
-| Generate text | `predictable-text-factory` | Needs structured text output (copy, descriptions, sequences) |
-| Check copy quality | `copy-quality-pipeline` | Has text, needs quality/clarity/tone evaluation |
+| Job entry              | Internal template             | When router selects it                                       |
+| ---------------------- | ----------------------------- | ------------------------------------------------------------ |
+| Watch trends           | `content-trend-watch`         | Needs evidence base before planning                          |
+| Plan content calendar  | `content-post-calendar`       | Has trends/context, needs a publishing plan                  |
+| Draft a post           | `content-draft-post`          | Has a specific topic or calendar slot, needs a draft         |
+| Review content quality | `content-qa-review`           | Has a draft, needs quality/tone/slop check                   |
+| Build content strategy | `content-pipeline`            | Needs full strategy from product brief → marketing outputs   |
+| Repurpose content      | `content-repurposing-factory` | Has existing material, needs it in different formats         |
+| Generate text          | `predictable-text-factory`    | Needs structured text output (copy, descriptions, sequences) |
+| Check copy quality     | `copy-quality-pipeline`       | Has text, needs quality/clarity/tone evaluation              |
 
 ### 2.6 Banned as direct entry
 
@@ -321,6 +431,7 @@ Each domain defines its own ban list. The principle is universal: router routes 
 - **Any internal approval sub-step**
 
 **Banned template IDs:**
+
 - `delivery-implement-phase` — reachable only via continuation
 - `delivery-verify-phase` — reachable only as part of review/verify loop (Note: `delivery-review-phase` is NOT banned — it is a valid direct entry when review context exists)
 
@@ -359,6 +470,7 @@ The command palette (`Cmd+K`) follows the same vocabulary and routing rules:
 > Hide structure, show state.
 
 The runtime answers four questions at glance:
+
 1. What is happening right now?
 2. What do I need to do?
 3. What happens after this?
@@ -390,6 +502,7 @@ Loops (Review → Fix → Re-Review, Verify → Fail → Fix → Verify) are fir
 - **Escalation**: when loop cap is reached, the system escalates to human decision with a clear explanation of what was tried
 
 Development defines two distinct loop types that must remain distinguishable in the UI:
+
 - **Review loop**: critique and polish (quality findings)
 - **Verify loop**: validation against contracts (test results, acceptance criteria)
 
@@ -404,6 +517,7 @@ When a step completes and the flow continues, the continuation surface must:
 - Provide a clear primary action: "Continue to [next step]" or "Review result first"
 
 Continuation labels use job language. The canonical CTA pattern is **"Continue to [job description]"**:
+
 - "Continue to Check completion" (not "Continue: Verify" or "Next")
 - "Continue to Apply approved changes" (not "Continue: Implement")
 - "Review before shipping" (not "Review Phase")
@@ -414,12 +528,12 @@ The button label is always "Continue to..." not "Next" — "Continue" communicat
 
 These keyboard interactions are part of shipped UX, not footnotes:
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+Enter` | Submit / Run / Approve (contextual primary action) |
-| `Cmd+K` | Open command palette |
-| `Cmd+N` | New flow |
-| `Cmd+1..5` | Switch between recent/open flows (keyboard shortcut, no dedicated rail required) |
+| Shortcut    | Action                                                                           |
+| ----------- | -------------------------------------------------------------------------------- |
+| `Cmd+Enter` | Submit / Run / Approve (contextual primary action)                               |
+| `Cmd+K`     | Open command palette                                                             |
+| `Cmd+N`     | New flow                                                                         |
+| `Cmd+1..5`  | Switch between recent/open flows (keyboard shortcut, no dedicated rail required) |
 
 All primary frequent actions must be accessible from keyboard. Mouse-only interactions are ship blockers.
 
@@ -429,16 +543,17 @@ All primary frequent actions must be accessible from keyboard. Mouse-only intera
 
 ### 4.1 Two decision point types
 
-| UI term | Internal term | What it means | When shown |
-|---------|--------------|---------------|------------|
-| **check** | gate (auto-pass / auto-return) | System made an automated decision | After the fact — compact status token with reason |
-| **approval** | gate (human decision) | User must decide | Blocking card requiring action |
+| UI term      | Internal term                  | What it means                     | When shown                                        |
+| ------------ | ------------------------------ | --------------------------------- | ------------------------------------------------- |
+| **check**    | gate (auto-pass / auto-return) | System made an automated decision | After the fact — compact status token with reason |
+| **approval** | gate (human decision)          | User must decide                  | Blocking card requiring action                    |
 
 A check says: "The system decided X because Y." An approval says: "You need to decide X. Here's the context."
 
 ### 4.2 Approval card (human decisions)
 
 Self-sufficient approval card:
+
 - Flow name and step name (user must know WHICH flow they're approving)
 - What step is about to run (name + brief description in job language)
 - What input it will use (preview of actual content)
@@ -452,6 +567,7 @@ Same component for pre-run confirmation and runtime approval gates.
 ### 4.3 Check record (automated decisions)
 
 Compact after-the-fact explanation:
+
 - Status token: `Passed`, `Returned to [step]`, `Escalated`
 - One-line reason: "0 critical findings" or "3 test failures, returning to fix"
 - Expandable detail (secondary)
@@ -508,11 +624,11 @@ We support the **format**, not a fixed list of domains. Shipped domains prove th
 
 The create surface includes a compact domain selector:
 
-| Domain | Guided experience | Templates available | Notes |
-|--------|---------------------|--------------------|----|
-| **Development** | Full (routing, intents, spine, continuation) | ~20 | Shipped and stable |
-| **Content** | Full (routing, intents, spine, continuation) | ~12 | In progress — see design spec |
-| **Marketing** | Library only (browse and pick) | ~17 | Templates functional, guided routing not yet built |
+| Domain          | Guided experience                            | Templates available | Notes                                              |
+| --------------- | -------------------------------------------- | ------------------- | -------------------------------------------------- |
+| **Development** | Full (routing, intents, spine, continuation) | ~20                 | Shipped and stable                                 |
+| **Content**     | Full (routing, intents, spine, continuation) | ~12                 | Shipped guided domain                              |
+| **Marketing**   | Library only (browse and pick)               | ~17                 | Templates functional, guided routing not yet built |
 
 - Compact segmented control, not cards. One line, instant switching.
 - Switching domain changes: placeholder text, available starting points, available intents, and template filter.
@@ -537,6 +653,7 @@ When these execution specs use vocabulary that conflicts with CANON (e.g., "stag
 ### 6.2 What Canon adds to execution
 
 Canon adds constraints that execution specs must also follow:
+
 - Intent layer (Do/Plan/Review) is first-class, not a router hint
 - Starting points are router destinations, not UI catalogs
 - Two decision point types (check + approval), not one
@@ -552,32 +669,32 @@ Canon adds constraints that execution specs must also follow:
 
 These specs are authoritative. They define the system model. When they conflict with CANON on vocabulary, entry model, or control model vocabulary, CANON wins. On everything else, they apply:
 
-| Document | Role | Notes |
-|----------|------|-------|
-| R2-VIBECODING-COMPOSER-NORTH-STAR-SPEC | Product thesis | Simple composer, hidden orchestration |
-| R2-EXECUTION-PLAN | Operational roadmap | Workstreams, milestones, ship blockers — all apply additively |
-| R2-JOB-FIRST-PACKAGING-SPEC | Packaging philosophy | Point B + intent + hidden spine |
-| R2-CREATE-SURFACE-REDESIGN-SPEC | Historical create UX baseline | Superseded by the March 21 main/templates hierarchy redesign; still useful for composer-first rationale |
-| R2-DEV-PROCESS-MAP-SPEC | Internal spine | Step families as hidden backbone |
-| R2-QUALITY-LOOPS-AND-POLICY-SPEC | Control model | Visible loops, readable policy, three gate outcomes |
-| R2-SKILL-DISCOVERY-AND-IMPORT-SPEC | Skill intake | Subordinate to flow-first UX |
+| Document                               | Role                          | Notes                                                                                                   |
+| -------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| R2-VIBECODING-COMPOSER-NORTH-STAR-SPEC | Product thesis                | Simple composer, hidden orchestration                                                                   |
+| R2-EXECUTION-PLAN                      | Operational roadmap           | Workstreams, milestones, ship blockers — all apply additively                                           |
+| R2-JOB-FIRST-PACKAGING-SPEC            | Packaging philosophy          | Point B + intent + hidden spine                                                                         |
+| R2-CREATE-SURFACE-REDESIGN-SPEC        | Historical create UX baseline | Superseded by the March 21 main/templates hierarchy redesign; still useful for composer-first rationale |
+| R2-DEV-PROCESS-MAP-SPEC                | Internal spine                | Step families as hidden backbone                                                                        |
+| R2-QUALITY-LOOPS-AND-POLICY-SPEC       | Control model                 | Visible loops, readable policy, three gate outcomes                                                     |
+| R2-SKILL-DISCOVERY-AND-IMPORT-SPEC     | Skill intake                  | Subordinate to flow-first UX                                                                            |
 
 ### 7.2 Canon (operational plans)
 
-| Document | Role | Notes |
-|----------|------|-------|
-| 2026-03-18 agentic-entry-routing-spec | Routing model | Bounded router, coarse job entries |
+| Document                                       | Role              | Notes                                             |
+| ---------------------------------------------- | ----------------- | ------------------------------------------------- |
+| 2026-03-18 agentic-entry-routing-spec          | Routing model     | Bounded router, coarse job entries                |
 | 2026-03-19 design-philosophy-audit-remediation | Audit + execution | 9 workstreams closing philosophy gaps — all apply |
 
 ### 7.3 Subordinate (useful detail, must defer to canon)
 
 These contain valid implementation detail but use pre-canon vocabulary and models. Use for context, not as source of truth for product decisions:
 
-| Document | Why subordinate |
-|----------|----------------|
-| 2026-03-18 run-first-process-entry-spec | R1 predecessor; vocabulary pre-lock ("workflow", "stage") |
+| Document                                     | Why subordinate                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------- |
+| 2026-03-18 run-first-process-entry-spec      | R1 predecessor; vocabulary pre-lock ("workflow", "stage")           |
 | 2026-03-15 workflow-chat-first-creation-spec | R1 creation UX; chat-first is now secondary path, not primary model |
-| 2026-03-16 flow-first-run-monitor-jtbd-spec | Long-term runtime vision; factory model is substrate not UX in R2 |
+| 2026-03-16 flow-first-run-monitor-jtbd-spec  | Long-term runtime vision; factory model is substrate not UX in R2   |
 
 ### 7.4 Not R2
 
@@ -596,11 +713,11 @@ These concepts are explicitly out of R2 scope:
 
 These are canon-specific ship blockers **in addition to** the R2-EXECUTION-PLAN blockers and design audit workstreams (see Section 6.1):
 
-1. **Vocabulary alignment** — P0 strings migrated, CI gate active for banned terms in new code
-2. **Intent layer shipped** — Do/Plan/Review visible as compact selector on create surface, honored as hard constraints by router
-3. **Two decision point types** — checks (automated) and approvals (human) are distinct in UI, not collapsed into one pattern
-4. **Continuation in job language** — continuation labels read as next jobs, not stage names
-5. **Starting points are not a catalog** — create surface does not display a browsable grid of all starting points
+1. **Vocabulary alignment** — ~~P0 strings migrated, CI gate active for banned terms in new code~~ **SHIPPED.** AST-based `canon:check` blocks 11 banned terms in renderer JSX; integrated into pre-release builds.
+2. **Intent layer shipped** — ~~Do/Plan/Review visible as compact selector on create surface, honored as hard constraints by router~~ **SHIPPED.** Dropdown selector with toggle; router enforces intent as hard constraint via `filterOptionsForIntent()`.
+3. **Two decision point types** — ~~checks (automated) and approvals (human) are distinct in UI, not collapsed into one pattern~~ **SHIPPED.** `ApprovalDialog` for human decisions, `ExecutionLoopCard` for automated checks. Visually distinct icons, badges, outcomes.
+4. **Continuation in job language** — ~~continuation labels read as next jobs, not stage names~~ **SHIPPED.** "Continue to [job label]" pattern; `getRuntimeNodeLabel()` returns job descriptions, never stage names.
+5. **Starting points are not a catalog** — ~~create surface does not display a browsable grid of all starting points~~ **SHIPPED.** Composer-first; suggestions are contextual; "Browse starting points" is secondary overflow action.
 
 ---
 
@@ -616,12 +733,12 @@ Five hard rules. Every renderer change must pass all five. Source: DESIGN-PHILOS
 
 ### 9.1 Surface weight ladder
 
-| Level | What | When |
-|-------|------|------|
-| 0 — Flat | No border, no bg, no elevation | Default for all components |
-| 1 — Tint | bg tint only, no border | Grouping, hover states, selected rows |
-| 2 — Well | bg + subtle border or inset shadow | Inset panels, input areas |
-| 3 — Figure | border + bg + elevation | ONE per state — the primary object |
+| Level      | What                               | When                                  |
+| ---------- | ---------------------------------- | ------------------------------------- |
+| 0 — Flat   | No border, no bg, no elevation     | Default for all components            |
+| 1 — Tint   | bg tint only, no border            | Grouping, hover states, selected rows |
+| 2 — Well   | bg + subtle border or inset shadow | Inset panels, input areas             |
+| 3 — Figure | border + bg + elevation            | ONE per state — the primary object    |
 
 ### 9.2 Technical detail = secondary by default
 
@@ -632,10 +749,12 @@ Evaluator metrics (score, threshold, attempt, criteria breakdown), flow rules, l
 Two scopes, both apply:
 
 **Per component:**
+
 - ≤1 bordered container per component
 - ≤5 clickable elements per component
 
 **Per screen state (across all components):**
+
 - ≤3 bordered containers total
 - ≤5 visible actions total
 - 0 duplicate status signals
@@ -645,6 +764,7 @@ Two scopes, both apply:
 ### 9.4 Before rendering any component
 
 Three questions, all must pass:
+
 1. Does it have content?
 2. Does the user need it NOW?
 3. Does it duplicate something already visible?
@@ -678,11 +798,11 @@ Chrome → Context → Verdict (card) → Evidence Panel → Input → Depth
 
 ### 10.3 Three verdict variants
 
-| Variant | Example | Headline style |
-|---------|---------|---------------|
-| **Outcome** | Pass/fail, completed/blocked | "Passed" / "2 findings need attention" |
-| **Diagnostic** | Root cause, findings | "Memory leak in auth service" |
-| **Document** | Conclusion + reading surface | "Feature Spec: OAuth integration" |
+| Variant        | Example                      | Headline style                         |
+| -------------- | ---------------------------- | -------------------------------------- |
+| **Outcome**    | Pass/fail, completed/blocked | "Passed" / "2 findings need attention" |
+| **Diagnostic** | Root cause, findings         | "Memory leak in auth service"          |
+| **Document**   | Conclusion + reading surface | "Feature Spec: OAuth integration"      |
 
 ---
 
@@ -693,6 +813,7 @@ Source: NEW-ENTITY-CHECKLIST.md (condensed here, full trace kept as reference).
 Before shipping a new surface, component, or runtime state — trace through both directions:
 
 **Top-down (Job → Pixel):**
+
 1. WHO is this for? (segment)
 2. WHAT job does it close? (JTBD scenario)
 3. WHY now? (prioritization)
@@ -703,6 +824,7 @@ Before shipping a new surface, component, or runtime state — trace through bot
 8. WHAT to ship? (spec, state, compliance)
 
 **Bottom-up (Pixel → Job):**
+
 - Can you trace from this component → to its question → to the job it closes?
 - If any layer has no answer → don't ship it.
 
@@ -735,28 +857,30 @@ Share of point-B requests that reach a named result without requiring graph lite
 
 NSM is meaningless without observability. These events must exist:
 
-| Event | What it proves |
-|-------|---------------|
-| `point_b_entered` | User typed in composer and submitted |
-| `routing_completed` | Agent picked a starting point (+ which one) |
-| `routing_alternative_selected` | User rejected agent choice, picked alternative |
-| `flow_started` | Run began |
-| `step_completed` | One step finished (+ step type, duration, token count) |
-| `check_passed` / `check_returned` / `check_escalated` | Quality gate outcome |
-| `approval_presented` / `approval_resolved` | Human decision point (+ latency) |
-| `flow_completed` | Named result reached |
-| `graph_editor_opened` | User opened ChainBuilder (should be rare — if high, NSM is failing) |
-| `template_chained_manually` | User manually browsed library for next flow (should be rare — if high, auto-chaining is failing) |
-| `flow_resumed` | User returned to bookmarked flow |
-| `continuation_followed` | User clicked "Continue to [next flow]" |
+| Event                                                 | What it proves                                                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `point_b_entered`                                     | User typed in composer and submitted                                                             |
+| `routing_completed`                                   | Agent picked a starting point (+ which one)                                                      |
+| `routing_alternative_selected`                        | User rejected agent choice, picked alternative                                                   |
+| `flow_started`                                        | Run began                                                                                        |
+| `step_completed`                                      | One step finished (+ step type, duration, token count)                                           |
+| `check_passed` / `check_returned` / `check_escalated` | Quality gate outcome                                                                             |
+| `approval_presented` / `approval_resolved`            | Human decision point (+ latency)                                                                 |
+| `flow_completed`                                      | Named result reached                                                                             |
+| `graph_editor_opened`                                 | User opened ChainBuilder (should be rare — if high, NSM is failing)                              |
+| `template_chained_manually`                           | User manually browsed library for next flow (should be rare — if high, auto-chaining is failing) |
+| `flow_resumed`                                        | User returned to bookmarked flow                                                                 |
+| `continuation_followed`                               | User clicked "Continue to [next flow]"                                                           |
 
 **Derived metrics:**
+
 - `completion_rate` = `flow_completed` / `point_b_entered`
 - `graph_escape_rate` = `graph_editor_opened` / `flow_started` (target: <10%)
 - `manual_chain_rate` = `template_chained_manually` / `continuation_followed` (target: <20%)
 - `approval_latency` = time between `approval_presented` and `approval_resolved`
 
 **Gate reliability metrics (future, R3+):**
+
 - `gate_pass@1` = first-attempt pass rate per evaluator template
 - `gate_pass@3` = pass rate within 3 retries (measures retry effectiveness)
 - `gate_pass^3` = all 3 attempts pass (measures consistency — catches intermittent failures)
@@ -768,17 +892,17 @@ NSM is meaningless without observability. These events must exist:
 
 Enumerated failure modes with user-facing contract. If a failure mode is not listed here, it is unsupported in current release — show generic error toast.
 
-| Failure | User sees | Recovery path |
-|---------|----------|---------------|
-| **Router timeout** (>20s) | "Couldn't choose a starting point. Try again." + preserved point-B text | Retry button (same text), or "Browse starting points" fallback |
-| **Router wrong choice** | Normal routed result + "Show alternatives" button | User picks from 2-3 alternatives without re-typing |
-| **Network drop mid-run** | Step shows "Connection lost" status | Auto-retry when connection restores. If step was mid-stream, restart step (not whole flow) |
-| **Provider unavailable** | Pre-run check: "Claude/Codex not reachable. Check connection." | Block run start, don't fail mid-execution |
-| **Template not found** | "This starting point is no longer available." | Redirect to composer with preserved point-B |
-| **MCP server crash** | Step shows "Tool unavailable" + continues without that tool | Result may be degraded. User informed via step status |
-| **Skill execution error** | Step shows "Step failed" + error summary (not stack trace) | "Retry step" button. If retry fails, escalate to user |
-| **App crash mid-run** | On reopen: resume header with "Flow was interrupted" + last known state | "Resume" restarts from last completed step, not from scratch |
-| **Evaluator disagreement** (multi-eval) | Not supported in current release | Document as unsupported. Single evaluator per gate |
+| Failure                                 | User sees                                                               | Recovery path                                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Router timeout** (>20s)               | "Couldn't choose a starting point. Try again." + preserved point-B text | Retry button (same text), or "Browse starting points" fallback                             |
+| **Router wrong choice**                 | Normal routed result + "Show alternatives" button                       | User picks from 2-3 alternatives without re-typing                                         |
+| **Network drop mid-run**                | Step shows "Connection lost" status                                     | Auto-retry when connection restores. If step was mid-stream, restart step (not whole flow) |
+| **Provider unavailable**                | Pre-run check: "Claude/Codex not reachable. Check connection."          | Block run start, don't fail mid-execution                                                  |
+| **Template not found**                  | "This starting point is no longer available."                           | Redirect to composer with preserved point-B                                                |
+| **MCP server crash**                    | Step shows "Tool unavailable" + continues without that tool             | Result may be degraded. User informed via step status                                      |
+| **Skill execution error**               | Step shows "Step failed" + error summary (not stack trace)              | "Retry step" button. If retry fails, escalate to user                                      |
+| **App crash mid-run**                   | On reopen: resume header with "Flow was interrupted" + last known state | "Resume" restarts from last completed step, not from scratch                               |
+| **Evaluator disagreement** (multi-eval) | Not supported in current release                                        | Document as unsupported. Single evaluator per gate                                         |
 
 ---
 
@@ -788,42 +912,42 @@ This section replaces the old Spec Status Registry and serves as the single inde
 
 ### 13.1 Tier 1 — Single source of truth
 
-| Document | Governs |
-|----------|---------|
+| Document              | Governs                                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **This file (CANON)** | Vocabulary, entry model, runtime shell, control model, visual hierarchy, screen composition, NSM, spec hierarchy |
-| **CLAUDE.md** | Repo-level guardrails, path aliases, commands, design tokens |
-| **AGENTS.md** | Agent-only decision architecture, no-heuristics rule |
+| **CLAUDE.md**         | Repo-level guardrails, path aliases, commands, design tokens                                                     |
+| **AGENTS.md**         | Agent-only decision architecture, no-heuristics rule                                                             |
 
 ### 13.2 Tier 2 — Living reference (detail behind CANON rules)
 
-| Document | Role | Absorbed into CANON? |
-|----------|------|---------------------|
-| DESIGN-PHILOSOPHY.md | Full design system + anti-patterns + copy rules + token reference | §8 hard rules → CANON §9. Rest = reference |
-| SCREEN-COMPOSITION-GUIDE.md | Full composition methodology + verdict patterns + field routing | Core principle → CANON §10. Full guide = reference |
-| COMPONENT-AUDIT-PLAN.md | Per-component audit template + component registry | Thresholds → CANON §9.3. Audit template = reference |
-| NEW-ENTITY-CHECKLIST.md | Bidirectional 8-layer trace | Condensed → CANON §11. Full trace = reference |
-| DAY-30-OPERATOR-CONTRACT.md | Daily-driver UX expectations for mature product | Key principles already in CANON §3. Document = reference |
-| UX-SCENARIOS.md | 9 scenarios → 4 meta-patterns (pattern library) | Reference only |
-| HUB-WRITING-GUIDE.md | Template card copy formula | Reference only |
+| Document                    | Role                                                              | Absorbed into CANON?                                     |
+| --------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
+| DESIGN-PHILOSOPHY.md        | Full design system + anti-patterns + copy rules + token reference | §8 hard rules → CANON §9. Rest = reference               |
+| SCREEN-COMPOSITION-GUIDE.md | Full composition methodology + verdict patterns + field routing   | Core principle → CANON §10. Full guide = reference       |
+| COMPONENT-AUDIT-PLAN.md     | Per-component audit template + component registry                 | Thresholds → CANON §9.3. Audit template = reference      |
+| NEW-ENTITY-CHECKLIST.md     | Bidirectional 8-layer trace                                       | Condensed → CANON §11. Full trace = reference            |
+| DAY-30-OPERATOR-CONTRACT.md | Daily-driver UX expectations for mature product                   | Key principles already in CANON §3. Document = reference |
+| UX-SCENARIOS.md             | 9 scenarios → 4 meta-patterns (pattern library)                   | Reference only                                           |
+| HUB-WRITING-GUIDE.md        | Template card copy formula                                        | Reference only                                           |
 
 ### 13.3 Tier 3 — R2 strategy specs (authoritative, additive to CANON)
 
-| Document | Role | Status |
-|----------|------|--------|
-| R2-VIBECODING-COMPOSER-NORTH-STAR-SPEC | Product thesis | Active |
-| R2-JOB-FIRST-PACKAGING-SPEC | Packaging philosophy | Active |
-| R2-DEV-PROCESS-MAP-SPEC | Internal spine | Active |
-| R2-QUALITY-LOOPS-AND-POLICY-SPEC | Control model detail | Active |
-| R2-SKILL-DISCOVERY-AND-IMPORT-SPEC | Skill intake (**subordinate to flow-first UX — skills are secondary context**) | Active |
+| Document                               | Role                                                                           | Status |
+| -------------------------------------- | ------------------------------------------------------------------------------ | ------ |
+| R2-VIBECODING-COMPOSER-NORTH-STAR-SPEC | Product thesis                                                                 | Active |
+| R2-JOB-FIRST-PACKAGING-SPEC            | Packaging philosophy                                                           | Active |
+| R2-DEV-PROCESS-MAP-SPEC                | Internal spine                                                                 | Active |
+| R2-QUALITY-LOOPS-AND-POLICY-SPEC       | Control model detail                                                           | Active |
+| R2-SKILL-DISCOVERY-AND-IMPORT-SPEC     | Skill intake (**subordinate to flow-first UX — skills are secondary context**) | Active |
 
 ### 13.4 Tier 4 — Operational plans (tactical, living docs)
 
-| Document | Role |
-|----------|------|
-| R2-EXECUTION-PLAN.md | 11 ship blockers + 6 workstreams + 5 milestones |
-| R3-EXECUTION-PLAN.md | R3 tactical roadmap |
-| RELEASE-ITERATIONS.md | Release sequencing (R0→R5) |
-| RELEASE-DETAILS.md | Per-release 8-section taxonomy |
+| Document              | Role                                            |
+| --------------------- | ----------------------------------------------- |
+| R2-EXECUTION-PLAN.md  | 11 ship blockers + 6 workstreams + 5 milestones |
+| R3-EXECUTION-PLAN.md  | R3 tactical roadmap                             |
+| RELEASE-ITERATIONS.md | Release sequencing (R0→R5)                      |
+| RELEASE-DETAILS.md    | Per-release 8-section taxonomy                  |
 
 ### 13.5 Tier 5 — Implementation specs (audited 2026-03-23)
 
@@ -831,46 +955,46 @@ Each spec must conform to CANON on vocabulary and visual hierarchy.
 
 **Done (move to `docs/specs/implemented/` when convenient):**
 
-| Spec | What | Status |
-|------|------|--------|
-| 2026-03-21-audit-follow-up-remediation-spec | Provider settings, Codex subprocess, files IPC, infra tests | DONE |
-| 2026-03-21-workflow-page-hierarchy-redesign | Runtime shell hierarchy (phases 1-3) | DONE |
-| 2026-03-23-headless-execution-verification | Headless runner, OpenClaw compat, CLI — 79% match | DONE |
-| 2026-03-21-component-audit-findings | Workflow shell, sidebar, history cleanup | DONE |
-| 2026-03-21-entry-state-contracts | 4 shared decision contracts | DONE |
-| 2026-03-21-execution-boundary-hardening-spec | Path validation, window ownership, CSP, MCP | DONE |
-| 2026-03-21-main-and-templates-hierarchy-redesign | Start surface + library hierarchy | DONE |
-| 2026-03-21-onboarding-and-sidebar-hierarchy-redesign | Onboarding + sidebar flattened | DONE |
-| 2026-03-21-ux-ui-polish-remediation-plan | Renderer remediation steps 1-5 | DONE |
+| Spec                                                 | What                                                        | Status |
+| ---------------------------------------------------- | ----------------------------------------------------------- | ------ |
+| 2026-03-21-audit-follow-up-remediation-spec          | Provider settings, Codex subprocess, files IPC, infra tests | DONE   |
+| 2026-03-21-workflow-page-hierarchy-redesign          | Runtime shell hierarchy (phases 1-3)                        | DONE   |
+| 2026-03-23-headless-execution-verification           | Headless runner, OpenClaw compat, CLI — 79% match           | DONE   |
+| 2026-03-21-component-audit-findings                  | Workflow shell, sidebar, history cleanup                    | DONE   |
+| 2026-03-21-entry-state-contracts                     | 4 shared decision contracts                                 | DONE   |
+| 2026-03-21-execution-boundary-hardening-spec         | Path validation, window ownership, CSP, MCP                 | DONE   |
+| 2026-03-21-main-and-templates-hierarchy-redesign     | Start surface + library hierarchy                           | DONE   |
+| 2026-03-21-onboarding-and-sidebar-hierarchy-redesign | Onboarding + sidebar flattened                              | DONE   |
+| 2026-03-21-ux-ui-polish-remediation-plan             | Renderer remediation steps 1-5                              | DONE   |
 
 **Partial (infrastructure exists, completion unverified):**
 
-| Spec | What | Gap |
-|------|------|-----|
-| 2026-03-22-architecture-reliability-dx-audit | Arch audit + reliability findings | YAML validation done; rate-limit backoff, double-run race, CSP unaddressed |
-| 2026-03-22-cross-flow-handoff-and-fresh-start-contract | Cross-flow vs fresh-start isolation | Continuation infra exists; fresh-start pollution unclear |
-| 2026-03-22-jtbd-audit-follow-up-remediation-spec | JTBD audit: transition states, approval context | Fixes coded; full validation needed |
-| 2026-03-22-outputpanel-settings-lab-composition | OutputPanel/Settings/Lab composition | Components exist; composition audit incomplete |
-| 2026-03-23-template-normalization-audit | Map 61 templates to stage families | Type system ready; template assignment completeness unknown |
-| R2-QUALITY-LOOPS-AND-POLICY-SPEC | Loops, gates, policy as visible UI | Gates/loops infra exists; full visibility unverified |
-| R2-SKILL-DISCOVERY-AND-IMPORT-SPEC | Skill discovery/attachment | Sourcing/picker exist; discovery ranking unverified |
-| R2-VIBECODING-COMPOSER-NORTH-STAR-SPEC | Simple composer, hidden orchestration | Composer-first evident; stage-name leakage unverified |
-| R3-ARTIFACT-AND-CASE-MODEL-SPEC | Durable artifacts, case identity | Stores exist; "product memory" claim unvalidated |
-| R3-CONTINUATION-AND-READINESS-SPEC | Continuation survives time | Ready logic coded; full lifecycle untested |
-| R3-DURABLE-GATE-STATE-SPEC | Gate outcomes durable + audit trail | Gate persistence coded; audit trail completeness unclear |
+| Spec                                                   | What                                            | Gap                                                                        |
+| ------------------------------------------------------ | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| 2026-03-22-architecture-reliability-dx-audit           | Arch audit + reliability findings               | YAML validation done; rate-limit backoff, double-run race, CSP unaddressed |
+| 2026-03-22-cross-flow-handoff-and-fresh-start-contract | Cross-flow vs fresh-start isolation             | Continuation infra exists; fresh-start pollution unclear                   |
+| 2026-03-22-jtbd-audit-follow-up-remediation-spec       | JTBD audit: transition states, approval context | Fixes coded; full validation needed                                        |
+| 2026-03-22-outputpanel-settings-lab-composition        | OutputPanel/Settings/Lab composition            | Components exist; composition audit incomplete                             |
+| 2026-03-23-template-normalization-audit                | Map 61 templates to stage families              | Type system ready; template assignment completeness unknown                |
+| R2-QUALITY-LOOPS-AND-POLICY-SPEC                       | Loops, gates, policy as visible UI              | Gates/loops infra exists; full visibility unverified                       |
+| R2-SKILL-DISCOVERY-AND-IMPORT-SPEC                     | Skill discovery/attachment                      | Sourcing/picker exist; discovery ranking unverified                        |
+| R2-VIBECODING-COMPOSER-NORTH-STAR-SPEC                 | Simple composer, hidden orchestration           | Composer-first evident; stage-name leakage unverified                      |
+| R3-ARTIFACT-AND-CASE-MODEL-SPEC                        | Durable artifacts, case identity                | Stores exist; "product memory" claim unvalidated                           |
+| R3-CONTINUATION-AND-READINESS-SPEC                     | Continuation survives time                      | Ready logic coded; full lifecycle untested                                 |
+| R3-DURABLE-GATE-STATE-SPEC                             | Gate outcomes durable + audit trail             | Gate persistence coded; audit trail completeness unclear                   |
 
 **Active (goals defined, implementation pending):**
 
-| Spec | What |
-|------|------|
-| R2-DEV-PROCESS-MAP-SPEC | 6 universal stage families in UI/routing |
-| R2-JOB-FIRST-PACKAGING-SPEC | Point-B language over internal stage names |
-| 2026-03-23-skill-metadata-schema | stageFit/keywords in skill frontmatter |
+| Spec                             | What                                       |
+| -------------------------------- | ------------------------------------------ |
+| R2-DEV-PROCESS-MAP-SPEC          | 6 universal stage families in UI/routing   |
+| R2-JOB-FIRST-PACKAGING-SPEC      | Point-B language over internal stage names |
+| 2026-03-23-skill-metadata-schema | stageFit/keywords in skill frontmatter     |
 
 **Stale (archive):**
 
-| Spec | Why |
-|------|-----|
+| Spec                        | Why                                                           |
+| --------------------------- | ------------------------------------------------------------- |
 | 2026-03-22-cto-priority-map | Status snapshot, not implementation spec — move to historical |
 
 ### 13.6 Tier 6 — Research & reference
@@ -885,6 +1009,7 @@ Each spec must conform to CANON on vocabulary and visual hierarchy.
 ### 13.8 Resolution rule
 
 When any two documents conflict:
+
 1. CANON wins on vocabulary, entry model, control model, visual hierarchy, NSM
 2. R2-EXECUTION-PLAN wins on operational sequencing and ship blockers
 3. Dated implementation specs win on surface-specific detail
@@ -894,31 +1019,31 @@ When any two documents conflict:
 
 ## 14. Decision Log
 
-| Date | Decision | Context |
-|------|----------|---------|
-| 2026-03-19 | `flow` over `process` in shipped UI | Closer to n8n mental model, lighter, less enterprise |
-| 2026-03-19 | `step` over `stage` in shipped UI | Simpler, more natural |
-| 2026-03-19 | No "Auto" label in UI | Default = no mode selected, system decides |
-| 2026-03-19 | Factory = substrate, not UX | Unproven model, behind flag, took what we could |
-| 2026-03-19 | Chat-first = secondary path | "Create with agent" in overflow, not primary IA |
-| 2026-03-19 | Coarse job entries only | Router never routes to internal loop steps |
-| 2026-03-19 | One approval primitive | Same component for pre-run and runtime gates |
-| 2026-03-19 | Do/Plan/Review = first-class intent, not router bias | Hard constraint when selected, not soft suggestion |
-| 2026-03-19 | `check` + `approval` as two distinct UI concepts | Automated decisions and human decisions need different surfaces |
-| 2026-03-19 | Section 2.5 is router registry, not UI catalog | Users never see all starting points as a grid |
-| 2026-03-19 | Canon is additive to execution specs | Canon does not replace Execution Plan blockers or audit workstreams |
-| 2026-03-19 | Implement banned as direct entry | Reachable only via continuation from Plan/Shape |
-| 2026-03-19 | `skill` is secondary context only | Not in primary create flow or default runtime view |
-| 2026-03-19 | Typed results preserve contract semantics | "Review findings", not just "result" |
-| 2026-03-19 | Dev = R2 proving ground, not the only domain | Architecture domain-parameterized; Marketing/Content templates available but guided experience ships for Dev first |
-| 2026-03-19 | All domain-specific specs labeled as such | Spine, routing registry, ban list, loop types, flow rule application points — all scoped per domain, not universal |
-| 2026-03-23 | R2-CANON → CANON | Product-level source of truth, not release-specific. Release-specific scope marked as `[Current focus]` |
-| 2026-03-23 | Design rules absorbed into CANON §9-§11 | Visual hierarchy, screen composition, thresholds, pre-ship checklist consolidated from 4 convention docs |
-| 2026-03-23 | NSM absorbed into CANON §12 | Primary metric, secondary by release, anti-metrics — from PRODUCT-FIT-AUDIT |
-| 2026-03-23 | §0 Current Focus added | Living section: where we are, next moves, why each move matters for NSM |
-| 2026-03-23 | Full spec audit + Document Index §13 | Every spec classified: DONE/PARTIAL/ACTIVE/STALE with gaps listed |
-| 2026-03-23 | docs/ fully in .gitignore | No docs in git until localized to English |
-| 2026-03-23 | MCP Integration Registry decision | §15 — universal registry, no hardcoded providers in renderer |
+| Date       | Decision                                             | Context                                                                                                            |
+| ---------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 2026-03-19 | `flow` over `process` in shipped UI                  | Closer to n8n mental model, lighter, less enterprise                                                               |
+| 2026-03-19 | `step` over `stage` in shipped UI                    | Simpler, more natural                                                                                              |
+| 2026-03-19 | No "Auto" label in UI                                | Default = no mode selected, system decides                                                                         |
+| 2026-03-19 | Factory = substrate, not UX                          | Unproven model, behind flag, took what we could                                                                    |
+| 2026-03-19 | Chat-first = secondary path                          | "Create with agent" in overflow, not primary IA                                                                    |
+| 2026-03-19 | Coarse job entries only                              | Router never routes to internal loop steps                                                                         |
+| 2026-03-19 | One approval primitive                               | Same component for pre-run and runtime gates                                                                       |
+| 2026-03-19 | Do/Plan/Review = first-class intent, not router bias | Hard constraint when selected, not soft suggestion                                                                 |
+| 2026-03-19 | `check` + `approval` as two distinct UI concepts     | Automated decisions and human decisions need different surfaces                                                    |
+| 2026-03-19 | Section 2.5 is router registry, not UI catalog       | Users never see all starting points as a grid                                                                      |
+| 2026-03-19 | Canon is additive to execution specs                 | Canon does not replace Execution Plan blockers or audit workstreams                                                |
+| 2026-03-19 | Implement banned as direct entry                     | Reachable only via continuation from Plan/Shape                                                                    |
+| 2026-03-19 | `skill` is secondary context only                    | Not in primary create flow or default runtime view                                                                 |
+| 2026-03-19 | Typed results preserve contract semantics            | "Review findings", not just "result"                                                                               |
+| 2026-03-19 | Dev = R2 proving ground, not the only domain         | Architecture domain-parameterized; Marketing/Content templates available but guided experience ships for Dev first |
+| 2026-03-19 | All domain-specific specs labeled as such            | Spine, routing registry, ban list, loop types, flow rule application points — all scoped per domain, not universal |
+| 2026-03-23 | R2-CANON → CANON                                     | Product-level source of truth, not release-specific. Release-specific scope marked as `[Current focus]`            |
+| 2026-03-23 | Design rules absorbed into CANON §9-§11              | Visual hierarchy, screen composition, thresholds, pre-ship checklist consolidated from 4 convention docs           |
+| 2026-03-23 | NSM absorbed into CANON §12                          | Primary metric, secondary by release, anti-metrics — from PRODUCT-FIT-AUDIT                                        |
+| 2026-03-23 | §0 Current Focus added                               | Living section: where we are, next moves, why each move matters for NSM                                            |
+| 2026-03-23 | Full spec audit + Document Index §13                 | Every spec classified: DONE/PARTIAL/ACTIVE/STALE with gaps listed                                                  |
+| 2026-03-23 | docs/ fully in .gitignore                            | No docs in git until localized to English                                                                          |
+| 2026-03-23 | MCP Integration Registry decision                    | §15 — universal registry, no hardcoded providers in renderer                                                       |
 
 ## 15. MCP Integration Model
 
@@ -983,3 +1108,18 @@ Settings → MCP Servers shows entries from `.mcp.json`. Edit/remove/test. No "a
 - Remove hardcoded `exaKeyConfigured`, `exaKeyringPath`, `toolingSetupApiKey` state from renderer
 - Remove `data/config/mcp-keyring.json` pattern (migrate to `.mcp.json` env vars or `~/.c8c/keyring.json`)
 - Pre-run check should read `.mcp.json` servers, not a custom keyring
+
+---
+
+## 16. YAML Format Stability Contract
+
+### 16.1 Version 1 backward-compatibility guarantee
+
+Version 1 of the workflow YAML format is backward-compatible forever:
+
+- All future parsers MUST load version 1 YAMLs without error.
+- New fields are always additive (optional properties). Never rename or remove existing fields.
+- If a breaking change is ever necessary, it ships as version 2 with a migration function in the codebase.
+- Exported YAMLs include a `# c8c-format: 1` header comment for discoverability.
+
+This contract is the foundation of install base — every YAML committed to a git repo is a switching cost that accumulates.
