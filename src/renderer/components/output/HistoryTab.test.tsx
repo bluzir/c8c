@@ -151,6 +151,8 @@ describe("HistoryTab", () => {
             metrics: {
               candidateSuccessRate: 0.8,
               comparisonSuccessRate: 0.6,
+              candidateGatePassAt1: 0.8,
+              comparisonGatePassAt1: 0.5,
             },
           }),
         ]}
@@ -167,9 +169,10 @@ describe("HistoryTab", () => {
       ),
     ).toBeTruthy()
     expect(within(card).getByText("Better variant")).toBeTruthy()
+    expect(within(card).getByText("Pass@1 80% vs 50%")).toBeTruthy()
   })
 
-  it("formats stabilize_step verdict with metrics", () => {
+  it("formats stabilize_step gate metrics and highlights", () => {
     render(
       <HistoryTab
         pastRuns={[BASE_RUN]}
@@ -180,7 +183,12 @@ describe("HistoryTab", () => {
             nodeLabel: "QA",
             supportingRunCount: 5,
             confidence: "medium",
-            metrics: { candidateSuccessRate: 0.4 },
+            metrics: {
+              candidateGatePassAt1: 0.4,
+              candidateGatePassAt3: 0.8,
+              candidateGatePassConsistency: 0.2,
+              candidateEvaluatorSaveRate: 0.4,
+            },
           }),
         ]}
         runStatus="idle"
@@ -192,11 +200,15 @@ describe("HistoryTab", () => {
     const card = screen.getByTestId("recommendation-item")
     expect(
       within(card).getByText(
-        /QA needs attention.*40% success rate across 5 runs/,
+        /QA needs attention.*passes 40% on first try, 80% within 3 attempts/,
       ),
     ).toBeTruthy()
     expect(within(card).getByText("Needs attention")).toBeTruthy()
     expect(within(card).getByText("Medium confidence")).toBeTruthy()
+    expect(within(card).getByText("Pass@1 40%")).toBeTruthy()
+    expect(within(card).getByText("Pass@3 80%")).toBeTruthy()
+    expect(within(card).getByText("Stable 20%")).toBeTruthy()
+    expect(within(card).getByText("Saved 40%")).toBeTruthy()
   })
 
   it("formats reduce_manual_edits verdict with metrics", () => {

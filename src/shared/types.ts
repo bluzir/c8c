@@ -1247,6 +1247,14 @@ export interface FlowImprovementRecommendationMetrics {
   comparisonAverageRetries?: number
   candidateEvaluatorPassRate?: number
   comparisonEvaluatorPassRate?: number
+  candidateGatePassAt1?: number
+  comparisonGatePassAt1?: number
+  candidateGatePassAt3?: number
+  comparisonGatePassAt3?: number
+  candidateGatePassConsistency?: number
+  comparisonGatePassConsistency?: number
+  candidateEvaluatorSaveRate?: number
+  comparisonEvaluatorSaveRate?: number
   editRate?: number
 }
 

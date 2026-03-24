@@ -11,6 +11,7 @@ import type {
   RunStatus,
   WorkflowNode,
 } from "../schema.js"
+import type { PersistedEvaluationResult } from "./persisted-run-state.js"
 import { readApprovalDecision } from "./run-interrupts.js"
 import { readJsonFile } from "./run-state-store.js"
 import { runSerialTask } from "./serial-task.js"
@@ -35,6 +36,9 @@ interface RunNodeEvidenceRecord {
   threshold?: number
   passed?: boolean
   overridden?: boolean
+  gatePassAt1?: boolean
+  gatePassAt3?: boolean
+  evaluatorSaved?: boolean
   durationMs?: number
   errorKind?: ErrorKind
 }
@@ -76,6 +80,7 @@ interface PersistImprovementEvidenceInput {
   durationMs: number
   runtimeNodes: WorkflowNode[]
   nodeStates: Record<string, NodeState>
+  evalResults?: Record<string, PersistedEvaluationResult[]>
 }
 
 interface VariantAggregate {
@@ -93,6 +98,10 @@ interface VariantAggregate {
   evaluatorCount: number
   evaluatorPassCount: number
   evaluatorOverrideCount: number
+  gateMetricRuns: number
+  gatePassAt1Count: number
+  gatePassAt3Count: number
+  evaluatorSavedCount: number
   lastSeenAt: number
 }
 
@@ -102,6 +111,11 @@ interface ApprovalAggregate {
   rejectedRuns: number
   timedOutRuns: number
   lastSeenAt: number
+}
+
+interface GateSequenceEntry {
+  completedAt: number
+  passed: boolean
 }
 
 function improvementsDir(projectPath: string): string {
@@ -157,8 +171,13 @@ function flowKeyForEvidence(record: {
   return workflowPath ? `path:${workflowPath}` : `name:${record.workflowName}`
 }
 
-function variantKey(record: RunNodeEvidenceRecord): string | null {
-  if (!record.modelId || !record.promptHash) return null
+function variantKey(record: {
+  nodeId?: string
+  modelId?: string
+  promptHash?: string
+  skillRef?: string
+}): string | null {
+  if (!record.nodeId || !record.modelId || !record.promptHash) return null
   return [
     record.nodeId,
     record.modelId,
@@ -221,12 +240,60 @@ async function readApprovalSummary(
   }
 }
 
+function summarizeEvalAttempts(
+  evalAttempts?: PersistedEvaluationResult[],
+): Pick<
+  RunNodeEvidenceRecord,
+  "gatePassAt1" | "gatePassAt3" | "evaluatorSaved" | "passed"
+> {
+  if (!Array.isArray(evalAttempts) || evalAttempts.length === 0) {
+    return {}
+  }
+  const attempts = evalAttempts.slice(0, 3)
+  const firstAttempt = attempts[0]
+  const finalAttempt = evalAttempts[evalAttempts.length - 1]
+  const gatePassAt1 =
+    typeof firstAttempt?.passed === "boolean" ? firstAttempt.passed : undefined
+  const gatePassAt3 = attempts.some((attempt) => attempt.passed)
+  const evaluatorSaved =
+    gatePassAt1 === false && attempts.slice(1).some((attempt) => attempt.passed)
+
+  return {
+    ...(typeof gatePassAt1 === "boolean" ? { gatePassAt1 } : {}),
+    gatePassAt3,
+    ...(evaluatorSaved ? { evaluatorSaved } : {}),
+    ...(typeof finalAttempt?.passed === "boolean"
+      ? { passed: finalAttempt.passed }
+      : {}),
+  }
+}
+
+function computeGatePassConsistency(
+  entries: GateSequenceEntry[],
+): number | undefined {
+  if (entries.length < 3) return undefined
+  const ordered = [...entries].sort(
+    (left, right) => left.completedAt - right.completedAt,
+  )
+  let windows = 0
+  let allPassedWindows = 0
+  for (let index = 0; index <= ordered.length - 3; index += 1) {
+    windows += 1
+    if (ordered.slice(index, index + 3).every((entry) => entry.passed)) {
+      allPassedWindows += 1
+    }
+  }
+  return windows > 0 ? allPassedWindows / windows : undefined
+}
+
 function buildRunNodeEvidence(
   node: WorkflowNode,
   state: NodeState | undefined,
+  evalAttempts?: PersistedEvaluationResult[],
 ): RunNodeEvidenceRecord | null {
   if (!state) return null
 
+  const evalAttemptSummary = summarizeEvalAttempts(evalAttempts)
   const score =
     typeof state.output?.metadata?.score === "number"
       ? state.output.metadata.score
@@ -247,7 +314,7 @@ function buildRunNodeEvidence(
   const passed =
     typeof score === "number" && typeof threshold === "number"
       ? score >= threshold
-      : undefined
+      : evalAttemptSummary.passed
 
   return {
     nodeId: node.id,
@@ -263,6 +330,13 @@ function buildRunNodeEvidence(
     ...(typeof threshold === "number" ? { threshold } : {}),
     ...(typeof passed === "boolean" ? { passed } : {}),
     ...(state.output?.metadata?.overridden ? { overridden: true } : {}),
+    ...(typeof evalAttemptSummary.gatePassAt1 === "boolean"
+      ? { gatePassAt1: evalAttemptSummary.gatePassAt1 }
+      : {}),
+    ...(typeof evalAttemptSummary.gatePassAt3 === "boolean"
+      ? { gatePassAt3: evalAttemptSummary.gatePassAt3 }
+      : {}),
+    ...(evalAttemptSummary.evaluatorSaved ? { evaluatorSaved: true } : {}),
     ...(typeof durationMs === "number" ? { durationMs } : {}),
     ...(state.errorKind ? { errorKind: state.errorKind } : {}),
   }
@@ -276,7 +350,13 @@ async function buildImprovementEvidenceRecord(
   input: PersistImprovementEvidenceInput,
 ): Promise<ProjectRunImprovementEvidence> {
   const nodeSummaries = input.runtimeNodes
-    .map((node) => buildRunNodeEvidence(node, input.nodeStates[node.id]))
+    .map((node) =>
+      buildRunNodeEvidence(
+        node,
+        input.nodeStates[node.id],
+        input.evalResults?.[node.id],
+      ),
+    )
     .filter((entry): entry is RunNodeEvidenceRecord => entry !== null)
 
   const executedNodeIds = nodeSummaries
@@ -346,6 +426,10 @@ function variantDisplayLabel(record: {
   ])
 }
 
+function rateFromCounts(total: number, passed: number): number | undefined {
+  return total > 0 ? passed / total : undefined
+}
+
 function compareRecommendationPriority(
   left: FlowImprovementRecommendation,
   right: FlowImprovementRecommendation,
@@ -367,6 +451,10 @@ function derivePreferVariantRecommendation(
   workflowPath: string | undefined,
   baseline: VariantAggregate,
   candidate: VariantAggregate,
+  options: {
+    candidateConsistency?: number
+    baselineConsistency?: number
+  } = {},
 ): FlowImprovementRecommendation | null {
   if (
     !candidate.nodeId ||
@@ -391,12 +479,50 @@ function derivePreferVariantRecommendation(
       : baselineSuccessRate
   const candidateRetryAverage = candidate.retryTotal / candidate.runs
   const baselineRetryAverage = baseline.retryTotal / baseline.runs
+  const candidateGatePassAt1 = rateFromCounts(
+    candidate.gateMetricRuns,
+    candidate.gatePassAt1Count,
+  )
+  const baselineGatePassAt1 = rateFromCounts(
+    baseline.gateMetricRuns,
+    baseline.gatePassAt1Count,
+  )
+  const candidateGatePassAt3 = rateFromCounts(
+    candidate.gateMetricRuns,
+    candidate.gatePassAt3Count,
+  )
+  const baselineGatePassAt3 = rateFromCounts(
+    baseline.gateMetricRuns,
+    baseline.gatePassAt3Count,
+  )
+  const candidateEvaluatorSaveRate = rateFromCounts(
+    candidate.gateMetricRuns,
+    candidate.evaluatorSavedCount,
+  )
+  const baselineEvaluatorSaveRate = rateFromCounts(
+    baseline.gateMetricRuns,
+    baseline.evaluatorSavedCount,
+  )
 
   const winsOnSuccess = candidateSuccessRate - baselineSuccessRate >= 0.15
   const winsOnChecks = candidatePassRate - baselinePassRate >= 0.2
   const winsOnRetries = baselineRetryAverage - candidateRetryAverage >= 1
+  const winsOnGatePassAt1 =
+    candidateGatePassAt1 != null &&
+    baselineGatePassAt1 != null &&
+    candidateGatePassAt1 - baselineGatePassAt1 >= 0.2
+  const winsOnGatePassAt3 =
+    candidateGatePassAt3 != null &&
+    baselineGatePassAt3 != null &&
+    candidateGatePassAt3 - baselineGatePassAt3 >= 0.15
 
-  if (!winsOnSuccess && !winsOnChecks && !winsOnRetries) {
+  if (
+    !winsOnSuccess &&
+    !winsOnChecks &&
+    !winsOnRetries &&
+    !winsOnGatePassAt1 &&
+    !winsOnGatePassAt3
+  ) {
     return null
   }
 
@@ -416,6 +542,12 @@ function derivePreferVariantRecommendation(
     evidence: compactJoin([
       `${candidate.runs} runs`,
       `${toPercent(candidateSuccessRate)}% clear vs ${toPercent(baselineSuccessRate)}%`,
+      candidateGatePassAt1 != null && baselineGatePassAt1 != null
+        ? `pass@1 ${toPercent(candidateGatePassAt1)}% vs ${toPercent(baselineGatePassAt1)}%`
+        : null,
+      candidateGatePassAt3 != null && baselineGatePassAt3 != null
+        ? `pass@3 ${toPercent(candidateGatePassAt3)}% vs ${toPercent(baselineGatePassAt3)}%`
+        : null,
       `${toFixed(candidateRetryAverage)} retries vs ${toFixed(baselineRetryAverage)}`,
       candidateLabel ? `${candidateLabel} over ${baselineLabel}` : null,
     ]),
@@ -440,6 +572,14 @@ function derivePreferVariantRecommendation(
       comparisonAverageRetries: baselineRetryAverage,
       candidateEvaluatorPassRate: candidatePassRate,
       comparisonEvaluatorPassRate: baselinePassRate,
+      candidateGatePassAt1,
+      comparisonGatePassAt1: baselineGatePassAt1,
+      candidateGatePassAt3,
+      comparisonGatePassAt3: baselineGatePassAt3,
+      candidateGatePassConsistency: options.candidateConsistency,
+      comparisonGatePassConsistency: options.baselineConsistency,
+      candidateEvaluatorSaveRate,
+      comparisonEvaluatorSaveRate: baselineEvaluatorSaveRate,
     },
   }
 }
@@ -449,6 +589,7 @@ function deriveStabilizeStepRecommendation(
   workflowName: string,
   workflowPath: string | undefined,
   aggregate: VariantAggregate,
+  options: { gatePassConsistency?: number } = {},
 ): FlowImprovementRecommendation | null {
   if (!aggregate.nodeId || !aggregate.nodeLabel) return null
   if (aggregate.runs < 3) return null
@@ -463,12 +604,32 @@ function deriveStabilizeStepRecommendation(
     aggregate.evaluatorCount > 0
       ? aggregate.evaluatorOverrideCount / aggregate.evaluatorCount
       : 0
+  const gatePassAt1 = rateFromCounts(
+    aggregate.gateMetricRuns,
+    aggregate.gatePassAt1Count,
+  )
+  const gatePassAt3 = rateFromCounts(
+    aggregate.gateMetricRuns,
+    aggregate.gatePassAt3Count,
+  )
+  const evaluatorSaveRate = rateFromCounts(
+    aggregate.gateMetricRuns,
+    aggregate.evaluatorSavedCount,
+  )
+  const gatePassConsistency = options.gatePassConsistency
+  const lowFirstPass = gatePassAt1 != null && gatePassAt1 <= 0.5
+  const weakRetryCeiling = gatePassAt3 != null && gatePassAt3 <= 0.75
+  const lowConsistency =
+    gatePassConsistency != null && gatePassConsistency <= 0.5
 
   const unstable =
     successRate <= 0.6 ||
     retryAverage >= 1.25 ||
     passRate <= 0.5 ||
-    overrideRate >= 0.3
+    overrideRate >= 0.3 ||
+    lowFirstPass ||
+    weakRetryCeiling ||
+    lowConsistency
   if (!unstable) return null
 
   return {
@@ -482,6 +643,14 @@ function deriveStabilizeStepRecommendation(
     evidence: compactJoin([
       `${aggregate.runs} runs`,
       `${toPercent(successRate)}% clear`,
+      gatePassAt1 != null ? `pass@1 ${toPercent(gatePassAt1)}%` : null,
+      gatePassAt3 != null ? `pass@3 ${toPercent(gatePassAt3)}%` : null,
+      gatePassConsistency != null
+        ? `consistent across 3 ${toPercent(gatePassConsistency)}%`
+        : null,
+      evaluatorSaveRate != null && evaluatorSaveRate > 0
+        ? `saved ${toPercent(evaluatorSaveRate)}% after first fail`
+        : null,
       `${toFixed(retryAverage)} retries per run`,
       aggregate.evaluatorCount > 0
         ? `${toPercent(passRate)}% check pass`
@@ -491,7 +660,11 @@ function deriveStabilizeStepRecommendation(
         : null,
     ]),
     confidence:
-      aggregate.runs >= 4 && (aggregate.failedRuns >= 2 || retryAverage >= 1.5)
+      aggregate.runs >= 4 &&
+      (aggregate.failedRuns >= 2 ||
+        retryAverage >= 1.5 ||
+        lowFirstPass ||
+        lowConsistency)
         ? "high"
         : "medium",
     supportingRunCount: aggregate.runs,
@@ -500,6 +673,10 @@ function deriveStabilizeStepRecommendation(
       candidateSuccessRate: successRate,
       candidateAverageRetries: retryAverage,
       candidateEvaluatorPassRate: passRate,
+      candidateGatePassAt1: gatePassAt1,
+      candidateGatePassAt3: gatePassAt3,
+      candidateGatePassConsistency: gatePassConsistency,
+      candidateEvaluatorSaveRate: evaluatorSaveRate,
       editRate: overrideRate,
     },
   }
@@ -564,6 +741,8 @@ export function deriveProjectImprovementRecommendations(
     const workflowName = latestFlowRecord?.workflowName || "Flow"
     const variantsByNode = new Map<string, Map<string, VariantAggregate>>()
     const aggregateByNode = new Map<string, VariantAggregate>()
+    const gateSequencesByNode = new Map<string, GateSequenceEntry[]>()
+    const gateSequencesByVariant = new Map<string, GateSequenceEntry[]>()
     const approvalAggregate: ApprovalAggregate = {
       runs: 0,
       editedRuns: 0,
@@ -602,6 +781,10 @@ export function deriveProjectImprovementRecommendations(
             evaluatorCount: 0,
             evaluatorPassCount: 0,
             evaluatorOverrideCount: 0,
+            gateMetricRuns: 0,
+            gatePassAt1Count: 0,
+            gatePassAt3Count: 0,
+            evaluatorSavedCount: 0,
             lastSeenAt: 0,
           } satisfies VariantAggregate)
         nodeAggregate.runs += 1
@@ -611,8 +794,20 @@ export function deriveProjectImprovementRecommendations(
         if (typeof node.passed === "boolean") {
           nodeAggregate.evaluatorCount += 1
           if (node.passed) nodeAggregate.evaluatorPassCount += 1
+          const gateSequence = gateSequencesByNode.get(aggregateKey) || []
+          gateSequence.push({
+            completedAt: record.completedAt,
+            passed: node.passed,
+          })
+          gateSequencesByNode.set(aggregateKey, gateSequence)
         }
         if (node.overridden) nodeAggregate.evaluatorOverrideCount += 1
+        if (typeof node.gatePassAt1 === "boolean") {
+          nodeAggregate.gateMetricRuns += 1
+          if (node.gatePassAt1) nodeAggregate.gatePassAt1Count += 1
+          if (node.gatePassAt3) nodeAggregate.gatePassAt3Count += 1
+          if (node.evaluatorSaved) nodeAggregate.evaluatorSavedCount += 1
+        }
         nodeAggregate.lastSeenAt = Math.max(
           nodeAggregate.lastSeenAt,
           record.completedAt,
@@ -639,6 +834,10 @@ export function deriveProjectImprovementRecommendations(
             evaluatorCount: 0,
             evaluatorPassCount: 0,
             evaluatorOverrideCount: 0,
+            gateMetricRuns: 0,
+            gatePassAt1Count: 0,
+            gatePassAt3Count: 0,
+            evaluatorSavedCount: 0,
             lastSeenAt: 0,
           } satisfies VariantAggregate)
         variant.runs += 1
@@ -648,8 +847,20 @@ export function deriveProjectImprovementRecommendations(
         if (typeof node.passed === "boolean") {
           variant.evaluatorCount += 1
           if (node.passed) variant.evaluatorPassCount += 1
+          const gateSequence = gateSequencesByVariant.get(key) || []
+          gateSequence.push({
+            completedAt: record.completedAt,
+            passed: node.passed,
+          })
+          gateSequencesByVariant.set(key, gateSequence)
         }
         if (node.overridden) variant.evaluatorOverrideCount += 1
+        if (typeof node.gatePassAt1 === "boolean") {
+          variant.gateMetricRuns += 1
+          if (node.gatePassAt1) variant.gatePassAt1Count += 1
+          if (node.gatePassAt3) variant.gatePassAt3Count += 1
+          if (node.evaluatorSaved) variant.evaluatorSavedCount += 1
+        }
         variant.lastSeenAt = Math.max(variant.lastSeenAt, record.completedAt)
         nodeVariants.set(key, variant)
         variantsByNode.set(node.nodeId, nodeVariants)
@@ -686,6 +897,8 @@ export function deriveProjectImprovementRecommendations(
       })[0]
       const candidate = ranked[0]
       if (!baseline || candidate === baseline) continue
+      const candidateKey = variantKey(candidate)
+      const baselineKey = variantKey(baseline)
 
       const recommendation = derivePreferVariantRecommendation(
         flowKey,
@@ -693,6 +906,18 @@ export function deriveProjectImprovementRecommendations(
         workflowPath,
         baseline,
         candidate,
+        {
+          candidateConsistency: candidateKey
+            ? computeGatePassConsistency(
+                gateSequencesByVariant.get(candidateKey) || [],
+              )
+            : undefined,
+          baselineConsistency: baselineKey
+            ? computeGatePassConsistency(
+                gateSequencesByVariant.get(baselineKey) || [],
+              )
+            : undefined,
+        },
       )
       if (recommendation) recommendations.push(recommendation)
     }
@@ -703,6 +928,11 @@ export function deriveProjectImprovementRecommendations(
         workflowName,
         workflowPath,
         aggregate,
+        {
+          gatePassConsistency: computeGatePassConsistency(
+            gateSequencesByNode.get(aggregate.nodeId || "") || [],
+          ),
+        },
       )
       if (!recommendation) continue
       const alreadyCovered = recommendations.some(

@@ -1092,6 +1092,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             durationMs,
             runtimeNodes: runtimeWorkflow.nodes,
             nodeStates,
+            evalResults,
           })
         } catch (error) {
           logger.warn(
