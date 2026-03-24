@@ -1,4 +1,4 @@
-import { rename, unlink, writeFile } from "node:fs/promises"
+import { open, rename, unlink } from "node:fs/promises"
 import { basename, dirname, join } from "node:path"
 
 function makeTempFilePath(filePath: string): string {
@@ -15,10 +15,13 @@ export async function writeFileAtomic(
 ): Promise<void> {
   const tempFilePath = makeTempFilePath(filePath)
   try {
-    await writeFile(tempFilePath, content, {
-      encoding: "utf-8",
-      mode: options?.mode,
-    })
+    const handle = await open(tempFilePath, "w", options?.mode)
+    try {
+      await handle.writeFile(content, { encoding: "utf-8" })
+      await handle.datasync()
+    } finally {
+      await handle.close()
+    }
     await rename(tempFilePath, filePath)
   } finally {
     await unlink(tempFilePath).catch(() => undefined)
