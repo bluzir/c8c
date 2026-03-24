@@ -3,15 +3,7 @@ import type { EvalCriterion, EvaluationResult } from "@/lib/store"
 import type { LogEntry, NodeState, WorkflowNode } from "@shared/types"
 import { cn } from "@/lib/cn"
 import { mergeLogEntriesForDisplay } from "@/lib/log-display"
-import {
-  Check,
-  Loader2,
-  AlertCircle,
-  Clock,
-  Search,
-  X,
-  ShieldCheck,
-} from "lucide-react"
+import { Check, Loader2, AlertCircle, Clock, Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { CursorMenu } from "@/components/ui/cursor-menu"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
@@ -337,28 +329,12 @@ export function NodesTab({
 function EvalResultsSection({
   selectedNodeId,
   evalResults,
-  runId,
   isWaitingForOverride,
 }: {
   selectedNodeId: string
   evalResults: Record<string, EvaluationResult[]>
-  runId?: string | null
   isWaitingForOverride: boolean
 }) {
-  const [overriding, setOverriding] = useState(false)
-  const [overridden, setOverridden] = useState(false)
-
-  const handleOverride = async () => {
-    if (!runId || overriding) return
-    setOverriding(true)
-    try {
-      await window.api.overrideEvaluator(runId, selectedNodeId)
-      setOverridden(true)
-    } finally {
-      setOverriding(false)
-    }
-  }
-
   return (
     <div className="border-t border-hairline pt-2 mt-2 space-y-2">
       <span className="ui-meta-label text-muted-foreground">Evaluations</span>
@@ -415,32 +391,11 @@ function EvalResultsSection({
           )}
         </div>
       ))}
-      {isWaitingForOverride && !overridden && (
+      {isWaitingForOverride && (
         <div className="border-l-2 border-status-warning/35 pl-3 py-0.5 space-y-2">
           <div className="ui-meta-text text-status-warning">
-            Check failed after all retries. The flow is paused waiting for your
-            decision.
+            Check failed after all retries. Waiting for your decision.
           </div>
-          <button
-            type="button"
-            disabled={overriding}
-            onClick={handleOverride}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border border-status-warning/35 bg-transparent px-3 py-1.5",
-              "text-body-sm font-medium text-status-warning",
-              "hover:bg-status-warning/10 ui-pressable",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-            )}
-          >
-            <ShieldCheck size={14} />
-            {overriding ? "Overriding..." : "Override — accept result anyway"}
-          </button>
-        </div>
-      )}
-      {overridden && (
-        <div className="border-l-2 border-status-warning/35 pl-3 py-0.5 ui-meta-text text-status-warning flex items-center gap-1.5">
-          <ShieldCheck size={14} />
-          Overridden by user
         </div>
       )}
     </div>
@@ -714,7 +669,6 @@ export function LogTab({
           <EvalResultsSection
             selectedNodeId={selectedNodeId}
             evalResults={evalResults}
-            runId={runId}
             isWaitingForOverride={
               evalOverrideNodeIds?.has(selectedNodeId) ?? false
             }

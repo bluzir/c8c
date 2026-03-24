@@ -192,14 +192,18 @@ export function ApprovalDialog() {
         stagePresentation?.outcomeText ||
         "Review this exact step before the flow continues.",
       expectedResult: stagePresentation?.artifactLabel || "Reviewable result",
-      approveConsequence: nextStageLabel
-        ? `Continues to ${nextStageLabel}`
-        : workflow
-          ? "Completes this flow run"
-          : "Continues this flow run",
+      approveConsequence: isEvalOverride
+        ? nextStageLabel
+          ? `Accepts current result and continues to ${nextStageLabel}`
+          : "Accepts current result and completes this flow run"
+        : nextStageLabel
+          ? `Continues to ${nextStageLabel}`
+          : workflow
+            ? "Completes this flow run"
+            : "Continues this flow run",
       rejectConsequence: "Stops this flow run",
     }
-  }, [request, requestExecutionState])
+  }, [request, requestExecutionState, isEvalOverride])
   const flowRules = useMemo(
     () => deriveExecutionLoopFlowRules(evaluatorSummary),
     [evaluatorSummary],
@@ -365,7 +369,9 @@ export function ApprovalDialog() {
         removeRequestByKey(targetKey)
         return
       }
-      toast.success("Step rejected — flow stopped.")
+      toast.success(
+        isEvalOverride ? "Run cancelled." : "Step rejected — flow stopped.",
+      )
       removeRequestByKey(targetKey)
     } catch (err) {
       console.error("[ApprovalDialog] reject failed:", err)
