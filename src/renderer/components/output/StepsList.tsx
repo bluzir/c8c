@@ -90,6 +90,7 @@ export function StepsList({
   const [expandedStepId, setExpandedStepId] = useState<string | null>(
     activeNodeId ?? null,
   )
+  const [expandedBranchId, setExpandedBranchId] = useState<string | null>(null)
 
   // Auto-expand the active (running) node when it changes
   useEffect(() => {
@@ -119,18 +120,49 @@ export function StepsList({
 
   function renderStepRow(node: (typeof nodes)[0], indent = false) {
     const nodeState = nodeStates[node.id]
-    const status = deriveStepStatus(nodeState)
+    let status = deriveStepStatus(nodeState)
     const duration = deriveDuration(nodeState)
     const cost = deriveCost(nodeState)
     const branches = branchesByParent[node.id]
-    const fanOutProgress = branches
-      ? `${branches.filter((b) => deriveStepStatus(nodeStates[b.id]) === "done").length}/${branches.length}`
-      : undefined
-    const expanded = expandedStepId === node.id
-    const label =
+
+    // For splitter nodes: derive status from branches, not from splitter itself
+    let fanOutProgress: string | undefined
+    if (branches && branches.length > 0) {
+      const doneCount = branches.filter(
+        (b) => deriveStepStatus(nodeStates[b.id]) === "done",
+      ).length
+      const failedCount = branches.filter(
+        (b) => deriveStepStatus(nodeStates[b.id]) === "failed",
+      ).length
+      fanOutProgress = `${doneCount}/${branches.length}`
+      if (doneCount === branches.length) {
+        status = "done"
+      } else if (
+        failedCount > 0 &&
+        doneCount + failedCount === branches.length
+      ) {
+        status = "failed"
+      } else if (
+        doneCount > 0 ||
+        branches.some((b) => deriveStepStatus(nodeStates[b.id]) === "running")
+      ) {
+        status = "running"
+      }
+    }
+
+    const expanded = indent
+      ? expandedBranchId === node.id
+      : expandedStepId === node.id
+    let label =
       "config" in node && node.config
         ? getRuntimeNodeLabel(node as WorkflowNode, { fallbackId: node.id })
         : (node as { label?: string }).label || node.id
+    // Clean up verbose branch labels: "branch: Startup Time (1/10) · Researcher · branch 1" → "Startup Time"
+    if (indent && label.startsWith("branch: ")) {
+      label = label
+        .replace(/^branch:\s*/u, "")
+        .replace(/\s*\(\d+\/\d+\).*$/u, "")
+    }
 
     return (
       <StepRow
@@ -141,7 +173,13 @@ export function StepsList({
         duration={duration}
         cost={cost}
         expanded={expanded}
-        onToggle={() => handleToggle(node.id)}
+        onToggle={() => {
+          if (indent) {
+            setExpandedBranchId((prev) => (prev === node.id ? null : node.id))
+          } else {
+            handleToggle(node.id)
+          }
+        }}
         fanOutProgress={fanOutProgress}
       >
         {/* Branch children inside splitter accordion */}

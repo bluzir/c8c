@@ -172,7 +172,7 @@ export function getRuntimeStagePresentation(
     return {
       kind: "Cluster",
       group: "Parallel work",
-      title: "Fan out",
+      title: "Decompose",
       outcomeLabel: "Creates",
       outcomeText: buildArtifactOutcomeText(
         artifactRole || "intermediate",
