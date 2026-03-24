@@ -31,7 +31,12 @@ import {
   type WorkflowExecutionState,
 } from "@/features/execution"
 import type { PreflightWarning } from "@/features/execution/preflight"
-import type { RunResult, Workflow } from "@shared/types"
+import type {
+  EvaluationResult,
+  NodeState,
+  RunResult,
+  Workflow,
+} from "@shared/types"
 
 interface ExecutionActionsContextValue {
   run: (executionMode?: "plan" | "edit") => Promise<void>
@@ -48,8 +53,45 @@ interface ExecutionActionsContextValue {
   ) => Promise<boolean>
 }
 
+export interface ChainExecutionState extends ExecutionActionsContextValue {
+  runStatus: string
+  nodeStates: Record<string, NodeState>
+  activeNodeId: string | null
+  evalResults: Record<string, EvaluationResult[]>
+  workspace: string | null
+  hasExecutionProvider: boolean
+}
+
 const ExecutionActionsContext =
   createContext<ExecutionActionsContextValue | null>(null)
+let missingExecutionProviderLogged = false
+
+function logMissingExecutionProvider(): void {
+  if (missingExecutionProviderLogged) return
+  missingExecutionProviderLogged = true
+  console.error(
+    "useChainExecution rendered without ExecutionProvider; falling back to read-only execution state.",
+  )
+}
+
+const fallbackExecutionActions: ExecutionActionsContextValue = {
+  run: async () => {
+    logMissingExecutionProvider()
+  },
+  cancel: async () => {
+    logMissingExecutionProvider()
+  },
+  rerunFrom: async () => {
+    logMissingExecutionProvider()
+  },
+  continueRun: async () => {
+    logMissingExecutionProvider()
+  },
+  continueWithWorkflow: async () => {
+    logMissingExecutionProvider()
+    return false
+  },
+}
 
 interface ExecutionProviderProps {
   children: ReactNode
@@ -124,17 +166,14 @@ export function ExecutionProvider({
   )
 }
 
-export function useChainExecution() {
+export function useChainExecution(): ChainExecutionState {
   const actions = useContext(ExecutionActionsContext)
-  if (!actions) {
-    throw new Error("useChainExecution must be used within ExecutionProvider")
-  }
-
   const [runStatus] = useAtom(runStatusAtom)
   const [nodeStates] = useAtom(nodeStatesAtom)
   const [activeNodeId] = useAtom(activeNodeIdAtom)
   const [evalResults] = useAtom(evalResultsAtom)
   const [workspace] = useAtom(workspaceAtom)
+  const resolvedActions = actions || fallbackExecutionActions
 
   return {
     runStatus,
@@ -142,6 +181,7 @@ export function useChainExecution() {
     activeNodeId,
     evalResults,
     workspace,
-    ...actions,
+    hasExecutionProvider: actions !== null,
+    ...resolvedActions,
   }
 }

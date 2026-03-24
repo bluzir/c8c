@@ -81,11 +81,35 @@ describe("run-state-store", () => {
         runtimeMeta: {},
       },
       { type: "text", value: "Audit this repo" },
+      {
+        review: [
+          {
+            attempt: 1,
+            score: 0.42,
+            reason: "Needs more evidence",
+            passed: false,
+            fix_instructions: "Add concrete examples.",
+            criteria: [{ id: "evidence", score: 0.42, weight: 1 }],
+          },
+        ],
+      },
     )
 
     const snapshot = await readWorkflowRunSnapshot(workspace)
     expect(snapshot.state?.nodeStates.input?.log).toEqual([])
     expect(snapshot.state?.nodeStates.review?.log).toEqual([])
+    expect(snapshot.state?.evalResults).toEqual({
+      review: [
+        {
+          attempt: 1,
+          score: 0.42,
+          reason: "Needs more evidence",
+          passed: false,
+          fix_instructions: "Add concrete examples.",
+          criteria: [{ id: "evidence", score: 0.42, weight: 1 }],
+        },
+      ],
+    })
     expect(snapshot.state?.humanTasks?.review).toEqual({
       taskId: "approval-1",
       status: "open",

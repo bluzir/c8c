@@ -1,5 +1,9 @@
 import { createInitialNodeStates } from "./graph-engine.js"
 import {
+  clonePersistedEvalResults,
+  type PersistedEvaluationResult,
+} from "./persisted-run-state.js"
+import {
   prepareResumeExecution,
   resolveResumeNodeIdOrThrow,
 } from "./run-resume.js"
@@ -17,6 +21,7 @@ export interface WorkflowExecutionSession {
   persistedInput: WorkflowInput
   workspace: string
   nodeStates: Record<string, NodeState>
+  evalResults: Record<string, PersistedEvaluationResult[]>
   runtimeWorkflow: RuntimeWorkflow
   activatedEdges: Set<string>
   projectPath?: string
@@ -73,6 +78,7 @@ export function createStartExecutionSession(
     persistedInput: { ...params.input },
     workspace: params.workspace,
     nodeStates: createInitialNodeStates(params.workflow),
+    evalResults: {},
     runtimeWorkflow: createFreshRuntimeWorkflow(params.workflow),
     activatedEdges: new Set<string>(),
     projectPath: params.projectPath,
@@ -122,6 +128,7 @@ export async function createRerunExecutionSession(
     persistedInput: preparedResume.persistedInput,
     workspace: params.workspace,
     nodeStates: preparedResume.nodeStates,
+    evalResults: clonePersistedEvalResults(savedState.evalResults),
     runtimeWorkflow: preparedResume.runtimeWorkflow,
     activatedEdges: preparedResume.activatedEdges,
     projectPath: params.projectPath,

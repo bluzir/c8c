@@ -67,6 +67,7 @@ describe("run-session", () => {
     expect(session.runtimeWorkflow.nodes).not.toBe(workflow.nodes)
     expect(session.runtimeWorkflow.edges).not.toBe(workflow.edges)
     expect(session.nodeStates.input.status).toBe("pending")
+    expect(session.evalResults).toEqual({})
     expect(session.activatedEdges.size).toBe(0)
   })
 
@@ -88,6 +89,16 @@ describe("run-session", () => {
         runtimeMeta: {},
       },
       { type: "text", value: "Resume this flow" },
+      {
+        audit: [
+          {
+            attempt: 1,
+            score: 0.4,
+            reason: "Need stronger draft",
+            passed: false,
+          },
+        ],
+      },
     )
 
     const session = await createResumeExecutionSession({
@@ -103,6 +114,16 @@ describe("run-session", () => {
     expect(session.persistedInput).toEqual({
       type: "text",
       value: "Resume this flow",
+    })
+    expect(session.evalResults).toEqual({
+      audit: [
+        {
+          attempt: 1,
+          score: 0.4,
+          reason: "Need stronger draft",
+          passed: false,
+        },
+      ],
     })
     expect(session.nodeStates.input.status).toBe("completed")
     expect(session.nodeStates.audit.status).toBe("pending")
@@ -191,6 +212,16 @@ describe("run-session", () => {
         },
       },
       { type: "text", value: "Audit this repo" },
+      {
+        merge: [
+          {
+            attempt: 1,
+            score: 0.9,
+            reason: "Strong summary",
+            passed: true,
+          },
+        ],
+      },
     )
 
     const session = await createRerunExecutionSession({
@@ -201,6 +232,16 @@ describe("run-session", () => {
     })
 
     expect(session.mode).toBe("rerun")
+    expect(session.evalResults).toEqual({
+      merge: [
+        {
+          attempt: 1,
+          score: 0.9,
+          reason: "Strong summary",
+          passed: true,
+        },
+      ],
+    })
     expect(session.nodeStates["audit::security"].status).toBe("completed")
     expect(session.nodeStates["audit::quality"].status).toBe("pending")
     expect(session.nodeStates.merge.status).toBe("pending")

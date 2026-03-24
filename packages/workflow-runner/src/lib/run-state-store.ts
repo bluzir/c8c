@@ -86,6 +86,24 @@ export function serializeHumanTasks(
   return humanTasks
 }
 
+export function serializeEvalResults(
+  evalResults?: PersistedRunState["evalResults"],
+): PersistedRunState["evalResults"] {
+  const serialized: Record<
+    string,
+    NonNullable<PersistedRunState["evalResults"]>[string]
+  > = {}
+  for (const [nodeId, attempts] of Object.entries(evalResults || {})) {
+    serialized[nodeId] = Array.isArray(attempts)
+      ? attempts.map((attempt) => ({
+          ...attempt,
+          criteria: attempt.criteria?.map((criterion) => ({ ...criterion })),
+        }))
+      : []
+  }
+  return serialized
+}
+
 function workspacePersistenceSerialKey(workspace: string): string {
   return `workflow-runner:persistence:${workspace}`
 }
@@ -128,6 +146,7 @@ export async function persistRunState(
   nodeStates: Record<string, NodeState>,
   runtimeWorkflow: RuntimeWorkflow,
   input: WorkflowInput,
+  evalResults: PersistedRunState["evalResults"] = {},
 ): Promise<void> {
   await runSerialTask(workspacePersistenceSerialKey(workspace), async () => {
     await writeFileAtomic(
@@ -139,6 +158,7 @@ export async function persistRunState(
           runtimeEdges: runtimeWorkflow.edges,
           runtimeMeta: runtimeWorkflow.runtimeMeta,
           input,
+          evalResults: serializeEvalResults(evalResults),
           humanTasks: serializeHumanTasks(nodeStates),
         },
         null,

@@ -31,6 +31,10 @@ import {
   appendEventLog,
 } from "./lib/run-state-store.js"
 import {
+  appendPersistedEvalResult,
+  clonePersistedEvalResults,
+} from "./lib/persisted-run-state.js"
+import {
   createResumeExecutionSession,
   createRerunExecutionSession,
   createStartExecutionSession,
@@ -592,9 +596,20 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
     const workflowProviderId = await resolveWorkflowProviderId(workflow)
     const startedAt = Date.now()
     const inputContent = sanitizeInvalidUnicode(session.persistedInput.value)
+    const evalResults = clonePersistedEvalResults(session.evalResults)
     const persistedInput = {
       ...session.persistedInput,
       value: inputContent,
+    }
+    const emitRuntimeEvent = async (event: WorkflowEvent): Promise<void> => {
+      if (event.type === "eval-result") {
+        appendPersistedEvalResult(evalResults, event)
+      }
+      await runtime.emitEvent(event)
+    }
+    const runtimeContext: WorkflowRuntimeContext = {
+      ...runtime,
+      emitEvent: emitRuntimeEvent,
     }
 
     await mkdir(join(workspace, "reports"), { recursive: true })
@@ -659,6 +674,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
       nodeStates,
       runtimeWorkflow,
       persistedInput,
+      evalResults,
     )
     await initRunPidManifest(workspace, runId, mode)
 
@@ -706,7 +722,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
           state.status = "running"
           state.startedAt = Date.now()
           state.attempts++
-          await runtime.emitEvent({
+          await runtimeContext.emitEvent({
             type: "node-start",
             runId,
             nodeId: node.id,
@@ -721,7 +737,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             state.completedAt = Date.now()
             state.errorKind = "policy"
             state.error = `Budget exceeded: $${getAccumulatedCost().toFixed(4)} >= $${budgetCost}`
-            await runtime.emitEvent({
+            await runtimeContext.emitEvent({
               type: "node-error",
               runId,
               nodeId: node.id,
@@ -734,7 +750,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             state.completedAt = Date.now()
             state.errorKind = "policy"
             state.error = `Token budget exceeded: ${getAccumulatedTokens()} >= ${budgetTokens}`
-            await runtime.emitEvent({
+            await runtimeContext.emitEvent({
               type: "node-error",
               runId,
               nodeId: node.id,
@@ -779,7 +795,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             approvalBehavior,
             mcpConfigPath,
             logger,
-            runtime,
+            runtime: runtimeContext,
             beginNodeExecution,
             persistCheckpoint: () =>
               persistRunState(
@@ -787,6 +803,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 nodeStates,
                 runtimeWorkflow,
                 persistedInput,
+                evalResults,
               ),
             resolveNodeProviderId,
             resolveSkillContext,
@@ -858,7 +875,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             }
           }
 
-          await runtime.emitEvent({
+          await runtimeContext.emitEvent({
             type: "node-done",
             runId,
             nodeId: node.id,
@@ -878,7 +895,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
                 kind: hw.kind,
                 message: hw.message,
               })
-              await runtime.emitEvent({
+              await runtimeContext.emitEvent({
                 type: "node-warning",
                 runId,
                 nodeId: node.id,
@@ -905,7 +922,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
             error,
             recoverOutputOnError: recoverOutputOnFailure,
             logger,
-            emitEvent: runtime.emitEvent,
+            emitEvent: runtimeContext.emitEvent,
             retryNode: processNode,
             sleep,
             workspace,
@@ -917,6 +934,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
               nodeStates,
               runtimeWorkflow,
               persistedInput,
+              evalResults,
             )
           } catch (error) {
             logger.warn(
@@ -937,7 +955,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         (workflow.defaults?.timeout_minutes || 30) * 60 * 1000 + 60_000
       const lifecycle = await runExecutionLoop({
         runId,
-        controller: runtime.controller,
+        controller: runtimeContext.controller,
         nodeStates,
         getRuntimeWorkflow: () => runtimeWorkflow,
         activatedEdges,
@@ -945,7 +963,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         stallTimeoutMs,
         waitIfPaused,
         processNode,
-        emitEvent: runtime.emitEvent,
+        emitEvent: runtimeContext.emitEvent,
         buildSkippedOutput: (nodeId) => {
           const runtimeNode = runtimeWorkflow.nodes.find(
             (candidate) => candidate.id === nodeId,
@@ -975,7 +993,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
           runId,
           nodeStates,
           runtimeWorkflow,
-          runtime.emitEvent,
+          runtimeContext.emitEvent,
           (nodeId) => {
             const runtimeNode = runtimeWorkflow.nodes.find(
               (candidate) => candidate.id === nodeId,
@@ -1049,6 +1067,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         nodeStates,
         runtimeWorkflow,
         persistedInput,
+        evalResults,
       )
       await writeManifest(workspace, {
         ...manifestBase,
@@ -1087,7 +1106,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
         }
       }
 
-      await runtime.emitEvent({
+      await runtimeContext.emitEvent({
         type: "run-done",
         runId,
         status: finalStatus,

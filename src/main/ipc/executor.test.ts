@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Workflow, WorkflowInput } from "@shared/types"
 import type { ExecutionStartResult } from "@shared/c8c-api"
@@ -126,6 +129,7 @@ vi.mock("../lib/workflow-runner", () => ({
 
 vi.mock("@c8c/workflow-runner", () => ({
   approvalTaskId: (nodeId: string) => `approval-${nodeId}`,
+  findResumeNodeId: vi.fn(() => "output"),
   getWorkflowHilTask: (...args: unknown[]) => getWorkflowHilTaskMock(...args),
   listProjectImprovementRecommendations: (...args: unknown[]) =>
     listProjectImprovementRecommendationsMock(...args),
@@ -875,6 +879,188 @@ describe("executor IPC", () => {
       "Active runs cannot be deleted",
     )
     expect(deleteRunWorkspaceMock).not.toHaveBeenCalled()
+  })
+
+  it("uses persisted evalResults from run-state without reading legacy event fallback", async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "executor-eval-state-"))
+    try {
+      allowedReportRootsMock.mockResolvedValue([workspace])
+      assertWithinRootsMock.mockImplementation(
+        (candidatePath: string) => candidatePath,
+      )
+      readRunResultRecordMock.mockResolvedValue(null)
+
+      await writeFile(
+        join(workspace, "run-state.json"),
+        JSON.stringify(
+          {
+            nodeStates: {
+              review: { status: "completed", attempts: 1, log: [] },
+              output: { status: "pending", attempts: 0, log: [] },
+            },
+            runtimeNodes: [
+              {
+                id: "review",
+                type: "evaluator",
+                position: { x: 0, y: 0 },
+                config: {},
+              },
+              {
+                id: "output",
+                type: "output",
+                position: { x: 120, y: 0 },
+                config: {},
+              },
+            ],
+            runtimeEdges: [
+              {
+                id: "edge-1",
+                source: "review",
+                target: "output",
+                type: "default",
+              },
+            ],
+            runtimeMeta: {},
+            evalResults: {
+              review: [
+                {
+                  attempt: 1,
+                  score: 0.72,
+                  reason: "Good enough",
+                  passed: true,
+                },
+              ],
+            },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      )
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+      const handler = getHandler<
+        (event: unknown, workspace: string) => Promise<unknown>
+      >("executor:get-terminal-run-snapshot")
+
+      const result = await handler({} as never, workspace)
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: "interrupted",
+          resumeNodeId: "output",
+          snapshot: expect.objectContaining({
+            evalResults: {
+              review: [
+                {
+                  attempt: 1,
+                  score: 0.72,
+                  reason: "Good enough",
+                  passed: true,
+                },
+              ],
+            },
+          }),
+        }),
+      )
+      expect(readPersistedEventsTailMock).not.toHaveBeenCalled()
+    } finally {
+      await rm(workspace, { recursive: true, force: true })
+    }
+  })
+
+  it("falls back to legacy eval-result events when run-state predates evalResults persistence", async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "executor-eval-legacy-"))
+    try {
+      allowedReportRootsMock.mockResolvedValue([workspace])
+      assertWithinRootsMock.mockImplementation(
+        (candidatePath: string) => candidatePath,
+      )
+      readRunResultRecordMock.mockResolvedValue(null)
+      readPersistedEventsTailMock.mockResolvedValue({
+        raw: `${JSON.stringify({
+          type: "eval-result",
+          runId: "run-1",
+          nodeId: "review",
+          score: 0.18,
+          reason: "Still failing",
+          passed: false,
+          attempt: 2,
+          fix_instructions: "Add specific evidence.",
+        })}\n`,
+        truncated: false,
+      })
+
+      await writeFile(
+        join(workspace, "run-state.json"),
+        JSON.stringify(
+          {
+            nodeStates: {
+              review: { status: "completed", attempts: 2, log: [] },
+              output: { status: "pending", attempts: 0, log: [] },
+            },
+            runtimeNodes: [
+              {
+                id: "review",
+                type: "evaluator",
+                position: { x: 0, y: 0 },
+                config: {},
+              },
+              {
+                id: "output",
+                type: "output",
+                position: { x: 120, y: 0 },
+                config: {},
+              },
+            ],
+            runtimeEdges: [
+              {
+                id: "edge-1",
+                source: "review",
+                target: "output",
+                type: "default",
+              },
+            ],
+            runtimeMeta: {},
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      )
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+      const handler = getHandler<
+        (event: unknown, workspace: string) => Promise<unknown>
+      >("executor:get-terminal-run-snapshot")
+
+      const result = await handler({} as never, workspace)
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: "interrupted",
+          snapshot: expect.objectContaining({
+            evalResults: {
+              review: [
+                {
+                  attempt: 2,
+                  score: 0.18,
+                  reason: "Still failing",
+                  passed: false,
+                  fix_instructions: "Add specific evidence.",
+                  criteria: undefined,
+                },
+              ],
+            },
+          }),
+        }),
+      )
+      expect(readPersistedEventsTailMock).toHaveBeenCalledWith(workspace)
+    } finally {
+      await rm(workspace, { recursive: true, force: true })
+    }
   })
 
   it("cleans up project runs after validating the project path", async () => {

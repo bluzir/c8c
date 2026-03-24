@@ -384,7 +384,11 @@ async function loadPersistedRunSnapshot(
       logWarn("executor-ipc", "invalid_run_snapshot_schema", { workspace })
       return null
     }
-    return await hydratePersistedRunSnapshotLogs(workspace, {
+    const hasPersistedEvalResults = Object.prototype.hasOwnProperty.call(
+      parsed,
+      "evalResults",
+    )
+    const snapshot = await hydratePersistedRunSnapshotLogs(workspace, {
       nodeStates: parsed.nodeStates || {},
       runtimeNodes: Array.isArray(parsed.runtimeNodes)
         ? parsed.runtimeNodes
@@ -394,9 +398,15 @@ async function loadPersistedRunSnapshot(
         : [],
       runtimeMeta: parsed.runtimeMeta || {},
       input: parsed.input,
-      evalResults: parsed.evalResults || {},
+      evalResults: hasPersistedEvalResults
+        ? parsed.evalResults || {}
+        : undefined,
       humanTasks: sanitizeHumanTasks(parsed.humanTasks),
     })
+    if (!hasPersistedEvalResults) {
+      snapshot.evalResults = await loadPersistedEvalResults(workspace)
+    }
+    return snapshot
   } catch (error) {
     if (errorCode(error) !== "ENOENT") {
       logWarn("executor-ipc", "load_run_snapshot_failed", {
@@ -1260,10 +1270,7 @@ export function registerExecutorHandlers() {
       const snapshot =
         (await loadPersistedRunSnapshot(safeWorkspace)) ||
         createEmptyRunSnapshot()
-      if (
-        !snapshot.evalResults ||
-        Object.keys(snapshot.evalResults).length === 0
-      ) {
+      if (snapshot.evalResults == null) {
         snapshot.evalResults = await loadPersistedEvalResults(safeWorkspace)
       }
       const loadedResult: LoadedRunResult = { ...meta, reportContent, snapshot }
