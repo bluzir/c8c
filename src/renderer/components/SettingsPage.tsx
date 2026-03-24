@@ -2,6 +2,7 @@ import { useAtom } from "jotai"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
 import { cn } from "@/lib/cn"
 import { toastErrorFromCatch } from "@/lib/toast-error"
 import {
@@ -75,6 +76,9 @@ export function SettingsPage() {
   const [execDefaultsSaveFlash, setExecDefaultsSaveFlash] = useState<
     "idle" | "saved"
   >("idle")
+  const [dangerousConfirmOpen, setDangerousConfirmOpen] = useState(false)
+  const [pendingProviderSettingsPatch, setPendingProviderSettingsPatch] =
+    useState<Partial<typeof providerSettings> | null>(null)
   const hasMountedExecDefaultsRef = useRef(false)
 
   const telemetryApi = window.api as typeof window.api & {
@@ -102,13 +106,34 @@ export function SettingsPage() {
     }
   }, [applyProviderDiagnostics])
 
-  const persistProviderSettings = useCallback(
+  const persistProviderSettingsNow = useCallback(
     async (patch: Partial<typeof providerSettings>) => {
       const nextSettings = await window.api.updateProviderSettings(patch)
       setProviderSettings(nextSettings)
     },
     [setProviderSettings],
   )
+
+  const persistProviderSettings = useCallback(
+    async (patch: Partial<typeof providerSettings>) => {
+      if (
+        patch.safetyProfile === "dangerous" &&
+        providerSettings.safetyProfile !== "dangerous"
+      ) {
+        setPendingProviderSettingsPatch(patch)
+        setDangerousConfirmOpen(true)
+        return
+      }
+      await persistProviderSettingsNow(patch)
+    },
+    [persistProviderSettingsNow, providerSettings.safetyProfile],
+  )
+
+  const confirmDangerousSafetyProfile = useCallback(() => {
+    if (!pendingProviderSettingsPatch) return
+    void persistProviderSettingsNow(pendingProviderSettingsPatch)
+    setPendingProviderSettingsPatch(null)
+  }, [pendingProviderSettingsPatch, persistProviderSettingsNow])
 
   const refreshTelemetrySettings = useCallback(async () => {
     if (typeof telemetryApi.getTelemetrySettings !== "function") {
@@ -503,6 +528,23 @@ export function SettingsPage() {
           )}
         </SettingsChapterShell>
       </div>
+
+      <SingleDecisionDialog
+        open={dangerousConfirmOpen}
+        onOpenChange={(open) => {
+          setDangerousConfirmOpen(open)
+          if (!open) {
+            setPendingProviderSettingsPatch(null)
+          }
+        }}
+        title="Enable dangerous mode?"
+        description="This safety profile can bypass approvals and sandboxing for future runs."
+        note="Use this only when you explicitly want unconfined agent execution."
+        noteTone="danger"
+        confirmLabel="Enable dangerous mode"
+        confirmVariant="destructive"
+        onConfirm={confirmDangerousSafetyProfile}
+      />
     </PageShell>
   )
 }

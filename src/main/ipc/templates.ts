@@ -27,6 +27,7 @@ import { mkdir } from "node:fs/promises"
 import { saveChain } from "../lib/chain-io"
 import { toWorkflowFileStem } from "@shared/workflow-name"
 import { getDefaultModelForProvider } from "@shared/provider-metadata"
+import { parseWorkflowPayload } from "@shared/workflow-payload"
 import { logError, logInfo, logWarn } from "../lib/structured-log"
 import { withExecutionSlot } from "../lib/execution-pool"
 import { prepareTemporaryMcpConfig } from "../lib/mcp-config"
@@ -133,7 +134,11 @@ export function registerTemplateHandlers() {
       await mkdir(dir, { recursive: true })
       const stem = toWorkflowFileStem(name) || "template"
       const filePath = join(dir, `${stem}.chain`)
-      await saveChain(filePath, { ...workflow, name })
+      const safeWorkflow = parseWorkflowPayload(
+        workflow,
+        "Workflow template payload",
+      )
+      await saveChain(filePath, { ...safeWorkflow, name })
       logInfo("templates-ipc", "user_template_saved", { name, filePath })
       return filePath
     },

@@ -46,6 +46,20 @@ describe("deep-links", () => {
         "c8c://install?url=https://c8c.app/hub/deep-research",
       ),
     ).toBeNull()
+    expect(
+      parseTemplateDeepLink(
+        "c8c://install?url=https://raw.githubusercontent.com/c8c-app/templates/main/deep-research.yaml",
+      ),
+    ).toEqual({
+      templateId: "deep-research",
+      templateUrl:
+        "https://raw.githubusercontent.com/c8c-app/templates/main/deep-research.yaml",
+    })
+    expect(
+      parseTemplateDeepLink(
+        "c8c://install?url=https://attacker.example/deep-research.yaml",
+      ),
+    ).toBeNull()
     expect(parseTemplateDeepLink("https://hub/template-123")).toBeNull()
     expect(parseTemplateDeepLink("c8c://hub/not allowed")).toBeNull()
   })

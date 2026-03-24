@@ -135,4 +135,29 @@ describe("case-store", () => {
       },
     })
   })
+
+  it("skips invalid case state records during list reads", async () => {
+    await mkdir(join(projectDir, ".c8c", "case-state"), { recursive: true })
+    await writeFile(
+      join(projectDir, ".c8c", "case-state", "invalid.json"),
+      JSON.stringify(
+        {
+          version: 1,
+          caseId: "case:invalid",
+          projectPath: "/wrong/project",
+          workLabel: "Broken record",
+          continuationStatus: "made_up_status",
+          artifactIds: ["artifact-1"],
+          lastGate: null,
+          createdAt: 10,
+          updatedAt: 20,
+        },
+        null,
+        2,
+      ),
+    )
+
+    const listed = await listProjectCaseStates(projectDir)
+    expect(listed).toEqual([])
+  })
 })

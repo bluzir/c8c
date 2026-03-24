@@ -3,14 +3,21 @@ import { cn } from "@/lib/cn"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DisclosurePanel } from "@/components/ui/disclosure-panel"
-import { Copy, Lightbulb } from "lucide-react"
+import { SingleDecisionDialog } from "@/components/ui/single-decision-dialog"
+import { Copy, Lightbulb, Trash2 } from "lucide-react"
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { CursorMenu } from "@/components/ui/cursor-menu"
-import type { FlowImprovementRecommendation, RunResult } from "@shared/types"
+import { toast } from "sonner"
+import type {
+  FlowImprovementRecommendation,
+  RunResult,
+  RunWorkspaceCleanupResult,
+  RunWorkspaceDeleteResult,
+} from "@shared/types"
 import { toastErrorFromCatch } from "@/lib/toast-error"
 
 function formatDurationMs(durationMs: number): string {
@@ -96,6 +103,12 @@ function joinMeta(parts: Array<string | null | undefined>) {
 
 function formatRunIdShort(runId: string): string {
   return runId.length > 10 ? `${runId.slice(0, 8)}…` : runId
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1_024) return `${bytes} B`
+  if (bytes < 1_024 * 1_024) return `${(bytes / 1_024).toFixed(1)} KB`
+  return `${(bytes / (1_024 * 1_024)).toFixed(1)} MB`
 }
 
 // ── Improvement recommendation formatting ──────────────
@@ -204,6 +217,12 @@ export interface HistoryTabProps {
   fillHeight?: boolean
   onOpenReport: (path: string) => Promise<void> | void
   onContinueRun?: (run: RunResult) => Promise<void> | void
+  onDeleteRun?: (
+    run: RunResult,
+  ) => Promise<RunWorkspaceDeleteResult> | RunWorkspaceDeleteResult
+  onCleanupRuns?: () =>
+    | Promise<RunWorkspaceCleanupResult>
+    | RunWorkspaceCleanupResult
   selectedRunId?: string | null
   onSelectRun?: (run: RunResult) => void
 }
@@ -215,11 +234,18 @@ export function HistoryTab({
   fillHeight = false,
   onOpenReport,
   onContinueRun,
+  onDeleteRun,
+  onCleanupRuns,
   selectedRunId,
   onSelectRun,
 }: HistoryTabProps) {
   const [selectedHistoryRunId, setSelectedHistoryRunId] = useState<
     string | null
+  >(null)
+  const [deleteRunDialogOpen, setDeleteRunDialogOpen] = useState(false)
+  const [cleanupDialogOpen, setCleanupDialogOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<
+    "delete" | "cleanup" | null
   >(null)
   const [contextMenu, setContextMenu] = useState<{
     x: number
@@ -234,6 +260,12 @@ export function HistoryTab({
   const contextHistoryRun = contextMenu
     ? pastRuns.find((run) => run.runId === contextMenu.runId) || null
     : null
+  const selectedRunCanDelete = Boolean(
+    selectedHistoryRun &&
+    onDeleteRun &&
+    selectedHistoryRun.status !== "running",
+  )
+  const canCleanupRuns = Boolean(onCleanupRuns && pastRuns.length > 0)
 
   const handleOpenReport = useCallback(
     async (path: string) => {
@@ -255,6 +287,50 @@ export function HistoryTab({
       toastErrorFromCatch("Could not copy run ID", error)
     }
   }, [])
+
+  const handleDeleteRun = useCallback(async () => {
+    if (!selectedHistoryRun || !onDeleteRun) return
+    setPendingAction("delete")
+    try {
+      const result = await Promise.resolve(onDeleteRun(selectedHistoryRun))
+      if (result.deleted) {
+        toast.success("Run deleted", {
+          description: `Removed ${result.runId} and reclaimed ${formatBytes(result.reclaimedBytes)}.`,
+        })
+      } else {
+        toast("Run already removed", {
+          description: `${result.runId} was not present on disk anymore.`,
+        })
+      }
+    } catch (error) {
+      console.error("[HistoryTab] delete run failed:", error)
+      toastErrorFromCatch("Could not delete run", error)
+    } finally {
+      setPendingAction(null)
+    }
+  }, [onDeleteRun, selectedHistoryRun])
+
+  const handleCleanupRuns = useCallback(async () => {
+    if (!onCleanupRuns) return
+    setPendingAction("cleanup")
+    try {
+      const result = await Promise.resolve(onCleanupRuns())
+      if (result.deletedRuns > 0) {
+        toast.success("Old runs cleaned up", {
+          description: `Removed ${result.deletedRuns} run workspace${result.deletedRuns === 1 ? "" : "s"} and reclaimed ${formatBytes(result.reclaimedBytes)}.`,
+        })
+      } else {
+        toast("No stale runs to clean up", {
+          description: "Recent and in-progress run workspaces were kept.",
+        })
+      }
+    } catch (error) {
+      console.error("[HistoryTab] cleanup runs failed:", error)
+      toastErrorFromCatch("Could not clean up old runs", error)
+    } finally {
+      setPendingAction(null)
+    }
+  }, [onCleanupRuns])
 
   useEffect(() => {
     if (selectedRunId && pastRuns.some((run) => run.runId === selectedRunId)) {
@@ -393,7 +469,29 @@ export function HistoryTab({
               >
                 Open file
               </Button>
+              {selectedRunCanDelete && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDeleteRunDialogOpen(true)}
+                >
+                  <Trash2 size={14} aria-hidden="true" />
+                  Delete
+                </Button>
+              )}
             </div>
+            {canCleanupRuns && (
+              <div className="mt-3 border-t border-hairline pt-3">
+                <button
+                  type="button"
+                  className="ui-meta-text text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => setCleanupDialogOpen(true)}
+                >
+                  Clean up old runs
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -567,9 +665,67 @@ export function HistoryTab({
             >
               Open report file
             </DropdownMenuItem>
+            {onDeleteRun && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={contextHistoryRun.status === "running"}
+                  onSelect={() => {
+                    setSelectedHistoryRunId(contextHistoryRun.runId)
+                    setDeleteRunDialogOpen(true)
+                    setContextMenu(null)
+                  }}
+                >
+                  Delete run
+                </DropdownMenuItem>
+              </>
+            )}
+            {canCleanupRuns && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  setCleanupDialogOpen(true)
+                  setContextMenu(null)
+                }}
+              >
+                Clean up old runs
+              </DropdownMenuItem>
+            )}
           </>
         )}
       </CursorMenu>
+
+      <SingleDecisionDialog
+        open={deleteRunDialogOpen}
+        onOpenChange={setDeleteRunDialogOpen}
+        title="Delete stored run?"
+        description="This removes the selected run workspace from local disk."
+        note={
+          selectedHistoryRun && isRunContinuable(selectedHistoryRun)
+            ? "This run can still be continued. Deleting it also removes that continuation state."
+            : "Reports and persisted step history inside this workspace will be removed."
+        }
+        noteTone="danger"
+        confirmLabel="Delete run"
+        confirmVariant="destructive"
+        confirmDisabled={!selectedRunCanDelete || pendingAction !== null}
+        preventOutsideDismiss
+        onConfirm={() => {
+          void handleDeleteRun()
+        }}
+      />
+
+      <SingleDecisionDialog
+        open={cleanupDialogOpen}
+        onOpenChange={setCleanupDialogOpen}
+        title="Clean up old run workspaces?"
+        description="This keeps recent history and removes stale completed, failed, cancelled, and interrupted run workspaces."
+        note="Paused or actively running workspaces are kept."
+        confirmLabel="Clean up old runs"
+        confirmDisabled={!canCleanupRuns || pendingAction !== null}
+        onConfirm={() => {
+          void handleCleanupRuns()
+        }}
+      />
     </>
   )
 }

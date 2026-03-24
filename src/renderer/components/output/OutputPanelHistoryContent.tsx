@@ -1,7 +1,12 @@
 import { HistoryTab } from "@/components/output/HistoryTab"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
-import type { FlowImprovementRecommendation, RunResult } from "@shared/types"
+import type {
+  FlowImprovementRecommendation,
+  RunResult,
+  RunWorkspaceCleanupResult,
+  RunWorkspaceDeleteResult,
+} from "@shared/types"
 
 export function OutputPanelHistoryContent({
   fillHeight,
@@ -14,6 +19,8 @@ export function OutputPanelHistoryContent({
   runStatus,
   onOpenReport,
   onContinueRun,
+  onDeleteRun,
+  onCleanupRuns,
   selectedRunId,
   improvementRecommendations,
   onSelectRun,
@@ -28,6 +35,12 @@ export function OutputPanelHistoryContent({
   runStatus: string
   onOpenReport: (path: string) => Promise<void> | void
   onContinueRun?: (run: RunResult) => Promise<void> | void
+  onDeleteRun?: (
+    run: RunResult,
+  ) => Promise<RunWorkspaceDeleteResult> | RunWorkspaceDeleteResult
+  onCleanupRuns?: () =>
+    | Promise<RunWorkspaceCleanupResult>
+    | RunWorkspaceCleanupResult
   selectedRunId?: string | null
   improvementRecommendations: FlowImprovementRecommendation[]
   onSelectRun: (run: RunResult) => void
@@ -69,6 +82,8 @@ export function OutputPanelHistoryContent({
         fillHeight={fillHeight}
         onOpenReport={onOpenReport}
         onContinueRun={onContinueRun}
+        onDeleteRun={onDeleteRun}
+        onCleanupRuns={onCleanupRuns}
         selectedRunId={selectedRunId}
         improvementRecommendations={improvementRecommendations}
         onSelectRun={onSelectRun}

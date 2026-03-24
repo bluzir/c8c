@@ -36,6 +36,12 @@ export interface NodeRuntimeConfig {
 }
 
 export type PermissionMode = "plan" | "edit"
+export type AgentPermissionMode =
+  | PermissionMode
+  | "default"
+  | "acceptEdits"
+  | "dontAsk"
+  | "bypassPermissions"
 export type ProviderId = "claude" | "codex"
 export type AgentExecutionBackend =
   | "claude_sdk"
@@ -76,7 +82,7 @@ export interface AgentRunOptions {
   maxTurns?: number
   persistSession?: boolean
   resumeSessionId?: string
-  permissionMode?: string
+  permissionMode?: AgentPermissionMode
   executionMode?: PermissionMode
   safetyProfile?: SafetyProfile
   systemPrompts?: string[]
@@ -165,6 +171,7 @@ export interface AgentProvider {
 
 export interface SkillNodeConfig {
   skillRef?: string
+  skillRefs?: string[]
   prompt: string
   outputMode?: "auto" | "stdout" | "content_file"
   maxTurns?: number
@@ -190,8 +197,14 @@ export interface SplitterNodeConfig {
   runtime?: NodeRuntimeConfig
 }
 
+export type MergerStrategy =
+  | "concatenate"
+  | "summarize"
+  | "select_best"
+  | "json_array"
+
 export interface MergerNodeConfig {
-  strategy: "concatenate" | "summarize" | "select_best"
+  strategy: MergerStrategy
   prompt?: string
   runtime?: NodeRuntimeConfig
 }
@@ -568,9 +581,9 @@ export type WorkflowEvent =
     }
 
 export type WorkflowInput =
-  | { type: "text"; value: string }
-  | { type: "url"; value: string }
-  | { type: "directory"; value: string }
+  | { type: "text"; value: string; context?: string }
+  | { type: "url"; value: string; context?: string }
+  | { type: "directory"; value: string; context?: string }
 
 export interface RunResult {
   runId: string

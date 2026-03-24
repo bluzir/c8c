@@ -14,7 +14,7 @@ const MERGER_STRATEGIES = new Set([
   "concatenate",
   "summarize",
   "select_best",
-  "assemble",
+  "json_array",
 ])
 const OUTPUT_FORMATS = new Set(["markdown", "text"])
 const TIMEOUT_ACTIONS = new Set(["auto_approve", "auto_reject", "skip"])
@@ -334,7 +334,7 @@ export function validateWorkflowNodeConfig(
           issues,
           node.id,
           "config.strategy",
-          "strategy must be concatenate, summarize, or select_best.",
+          "strategy must be concatenate, summarize, select_best, or json_array.",
         )
       }
       validateOptionalString(config, node.id, "prompt", issues)

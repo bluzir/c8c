@@ -2,6 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { WorkflowTemplate } from "@shared/types"
 
 const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>()
+const { parseWorkflowPayloadMock, saveChainMock } = vi.hoisted(() => ({
+  parseWorkflowPayloadMock: vi.fn(
+    (workflow: unknown, _label?: string) => workflow,
+  ),
+  saveChainMock: vi.fn(),
+}))
 
 const listTemplatesMock = vi.fn()
 const refreshHubCatalogMock = vi.fn()
@@ -80,7 +86,12 @@ vi.mock("../lib/security-paths", () => ({
 }))
 
 vi.mock("../lib/chain-io", () => ({
-  saveChain: vi.fn(),
+  saveChain: (...args: unknown[]) => saveChainMock(...args),
+}))
+
+vi.mock("@shared/workflow-payload", () => ({
+  parseWorkflowPayload: (workflow: unknown, label?: string) =>
+    parseWorkflowPayloadMock(workflow, label),
 }))
 
 vi.mock("@shared/provider-metadata", () => ({
@@ -221,5 +232,45 @@ describe("templates IPC", () => {
 
     await expect(handler!(undefined, "hub-template")).resolves.toEqual(cached)
     expect(getHubTemplateMock).toHaveBeenCalledWith("hub-template")
+  })
+
+  it("validates user templates before saving them", async () => {
+    const safeWorkflow = {
+      version: 1,
+      name: "Validated",
+      nodes: [],
+      edges: [],
+    }
+    parseWorkflowPayloadMock.mockReturnValue(safeWorkflow)
+
+    const { registerTemplateHandlers } = await import("./templates")
+    registerTemplateHandlers()
+
+    const handler = ipcHandlers.get("templates:save-user") as
+      | ((event: unknown, name: string, workflow: unknown) => Promise<string>)
+      | undefined
+    expect(handler).toBeDefined()
+
+    const inputWorkflow = {
+      version: 1,
+      name: "Draft",
+      nodes: [],
+      edges: [],
+    }
+
+    await expect(
+      handler!(undefined, "Saved Template", inputWorkflow),
+    ).resolves.toBe("/tmp/.c8c/user-templates/saved-template.chain")
+    expect(parseWorkflowPayloadMock).toHaveBeenCalledWith(
+      inputWorkflow,
+      "Workflow template payload",
+    )
+    expect(saveChainMock).toHaveBeenCalledWith(
+      "/tmp/.c8c/user-templates/saved-template.chain",
+      {
+        ...safeWorkflow,
+        name: "Saved Template",
+      },
+    )
   })
 })

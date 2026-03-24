@@ -5,10 +5,10 @@ import type {
   ArtifactRecord,
   PersistArtifactsFromRunRequest,
   PersistArtifactsFromRunResult,
-  RunResult,
 } from "@shared/types"
 import { writeFileAtomic } from "./atomic-write"
 import { upsertCaseState } from "./case-store"
+import { readRunResultRecord } from "./run-workspace-store"
 import { isWithinRoot } from "./security-paths"
 import { logWarn } from "./structured-log"
 
@@ -95,16 +95,12 @@ function buildArtifactMarkdown(
   return `${headerLines.join("\n")}\n\n---\n\n${body}\n`
 }
 
-async function readRunResultMetadata(workspace: string): Promise<RunResult> {
-  const raw = await readFile(join(workspace, "run-result.json"), "utf-8")
-  return JSON.parse(raw) as RunResult
-}
-
 async function readRunReportContent(
   projectPath: string,
   workspace: string,
-  runResult: RunResult,
+  runResult: Awaited<ReturnType<typeof readRunResultRecord>>,
 ): Promise<string> {
+  if (!runResult) return ""
   const fallbackPath = join(workspace, "report.md")
   const candidatePaths = [
     runResult.reportPath &&
@@ -164,7 +160,10 @@ export async function persistArtifactsFromRun(
   const artifactsDir = resolveArtifactsDir(projectPath)
   await mkdir(artifactsDir, { recursive: true })
 
-  const runResult = await readRunResultMetadata(workspace)
+  const runResult = await readRunResultRecord(workspace)
+  if (!runResult) {
+    throw new Error("Run result metadata is missing or invalid")
+  }
   const reportContent = await readRunReportContent(
     projectPath,
     workspace,

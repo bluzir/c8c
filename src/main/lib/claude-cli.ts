@@ -27,7 +27,9 @@ export function buildExtendedPath(existingPath: string | undefined): string {
   return [...new Set(merged.filter(Boolean))].join(delimiter)
 }
 
-export function buildClaudeEnv(): NodeJS.ProcessEnv {
+export function buildClaudeEnv(
+  extraEnv?: Record<string, string>,
+): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {}
   const passthroughKeys = [
     "HOME",
@@ -55,6 +57,9 @@ export function buildClaudeEnv(): NodeJS.ProcessEnv {
   }
 
   env.PATH = buildExtendedPath(process.env.PATH)
+  if (extraEnv) {
+    Object.assign(env, extraEnv)
+  }
   return env
 }
 

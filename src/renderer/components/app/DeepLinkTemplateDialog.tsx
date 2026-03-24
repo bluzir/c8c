@@ -50,6 +50,8 @@ export function DeepLinkTemplateDialog({
   onReplaceCurrent,
 }: DeepLinkTemplateDialogProps) {
   const nodeCount = template?.workflow.nodes.length ?? 0
+  const sourceBadgeLabel =
+    template?.source === "hub" ? "From c8c Hub" : "Remote template"
   const disciplineLabels = template
     ? deriveTemplateExecutionDisciplineLabels(template)
     : []
@@ -95,11 +97,28 @@ export function DeepLinkTemplateDialog({
               </p>
             )}
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline">From c8c Hub</Badge>
+              <Badge
+                variant={template?.source === "hub" ? "outline" : "warning"}
+              >
+                {sourceBadgeLabel}
+              </Badge>
               <span className="ui-meta-text text-muted-foreground">
                 {nodeCount} step{nodeCount === 1 ? "" : "s"} ready
               </span>
             </div>
+            {template.templatePath ? (
+              <div className="rounded-lg border border-hairline px-3 py-3">
+                <p className="ui-meta-text text-muted-foreground">Source URL</p>
+                <p className="mt-1 break-all text-body-sm text-foreground">
+                  {template.templatePath}
+                </p>
+                {template.source !== "hub" ? (
+                  <p className="mt-2 text-body-sm text-status-warning">
+                    Review the remote source before continuing.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <PendingTemplateDetails
               intentLabel={routingPreview?.helpModeLabel || null}
               startStageLabel={routingPreview?.stageLabel || null}

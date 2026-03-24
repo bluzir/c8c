@@ -36,7 +36,7 @@ import {
   persistArtifactsFromRun,
 } from "../lib/artifact-store"
 import { listProjectCaseStates, upsertCaseState } from "../lib/case-store"
-import { readdir, readFile } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import type {
   ActiveBatchRun,
@@ -56,6 +56,8 @@ import type {
   PersistArtifactsFromRunRequest,
   PersistArtifactsFromRunResult,
   PersistedRunSnapshot,
+  RunWorkspaceCleanupResult,
+  RunWorkspaceDeleteResult,
   WorkflowEvent,
   Workflow,
   WorkflowInput,
@@ -85,6 +87,12 @@ import {
 } from "./run-snapshot"
 import { parseWorkflowPayload } from "@shared/workflow-payload"
 import { errorMessage } from "../lib/error-utils"
+import {
+  cleanupProjectRunWorkspaces,
+  deleteRunWorkspace,
+  listProjectRunResults,
+  readRunResultRecord,
+} from "../lib/run-workspace-store"
 
 let runCounter = 0
 let batchCounter = 0
@@ -1163,45 +1171,7 @@ export function registerExecutorHandlers() {
     "executor:list-runs",
     async (_e, projectPath: string): Promise<RunResult[]> => {
       const safeProjectPath = await assertProjectPath(projectPath)
-      const runsDir = join(safeProjectPath, ".c8c", "runs")
-      try {
-        const entries = await readdir(runsDir, { withFileTypes: true })
-        const results: RunResult[] = []
-        for (const entry of entries) {
-          if (!entry.isDirectory()) continue
-          try {
-            const resultPath = join(runsDir, entry.name, "run-result.json")
-            const raw = await readFile(resultPath, "utf-8")
-            const result: RunResult = JSON.parse(raw)
-            // If status is still "running" on disk, the run was interrupted
-            if (result.status === "running") {
-              result.status = "interrupted"
-            }
-            results.push(result)
-          } catch (error) {
-            if (errorCode(error) !== "ENOENT") {
-              logWarn("executor-ipc", "list_runs_entry_failed", {
-                projectPath: safeProjectPath,
-                runDirectory: entry.name,
-                error: errorMessage(error),
-              })
-            }
-          }
-        }
-        return results.sort(
-          (a, b) =>
-            (b.completedAt || b.startedAt) - (a.completedAt || a.startedAt),
-        )
-      } catch (error) {
-        if (errorCode(error) !== "ENOENT") {
-          logWarn("executor-ipc", "list_runs_failed", {
-            projectPath: safeProjectPath,
-            runsDir,
-            error: errorMessage(error),
-          })
-        }
-        return []
-      }
+      return listProjectRunResults(safeProjectPath)
     },
   )
 
@@ -1238,11 +1208,8 @@ export function registerExecutorHandlers() {
   ipcMain.handle("executor:load-run-result", async (_e, workspace: string) => {
     try {
       const safeWorkspace = await assertRunWorkspacePath(workspace)
-      const metaRaw = await readFile(
-        join(safeWorkspace, "run-result.json"),
-        "utf-8",
-      )
-      const meta: RunResult = JSON.parse(metaRaw)
+      const meta = await readRunResultRecord(safeWorkspace)
+      if (!meta) return null
       let reportContent = ""
       if (meta.reportPath) {
         try {
@@ -1277,6 +1244,29 @@ export function registerExecutorHandlers() {
       return null
     }
   })
+
+  ipcMain.handle(
+    "executor:delete-run",
+    async (_e, workspace: string): Promise<RunWorkspaceDeleteResult> => {
+      const safeWorkspace = await assertRunWorkspacePath(workspace)
+      const run = await readRunResultRecord(safeWorkspace)
+      if (run?.runId) {
+        const snapshot = await getWorkflowRunSnapshot(run.runId)
+        if (snapshot?.workspace === safeWorkspace) {
+          throw new Error("Active runs cannot be deleted")
+        }
+      }
+      return deleteRunWorkspace(safeWorkspace)
+    },
+  )
+
+  ipcMain.handle(
+    "executor:cleanup-runs",
+    async (_e, projectPath: string): Promise<RunWorkspaceCleanupResult> => {
+      const safeProjectPath = await assertProjectPath(projectPath)
+      return cleanupProjectRunWorkspaces(safeProjectPath)
+    },
+  )
 
   ipcMain.handle("executor:open-report", async (_e, reportPath: string) => {
     const safeReportPath = await assertReportPath(reportPath)

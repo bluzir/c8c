@@ -38,7 +38,10 @@ async function fetchTemplateFromUrl(
   }
 
   try {
-    return parseTemplate(body)
+    return parseTemplate(body, {
+      source: url.startsWith(HUB_BASE_URL) ? "hub" : "user",
+      templatePath: url,
+    })
   } catch {
     throw new Error("Invalid library flow format")
   }

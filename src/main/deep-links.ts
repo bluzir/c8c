@@ -8,6 +8,11 @@ import {
 
 const TEMPLATE_ID_RE = /^\/([a-zA-Z0-9_-]+)$/
 const TEMPLATE_FILE_RE = /\.ya?ml$/i
+const TRUSTED_TEMPLATE_INSTALL_HOSTS = new Set([
+  "c8c.app",
+  "www.c8c.app",
+  "raw.githubusercontent.com",
+])
 
 interface ParsedTemplateDeepLink {
   templateId: string
@@ -70,6 +75,7 @@ function parseInstallDeepLink(parsed: URL): ParsedTemplateDeepLink | null {
 
   if (
     templateUrl.protocol !== "https:" ||
+    !TRUSTED_TEMPLATE_INSTALL_HOSTS.has(templateUrl.hostname.toLowerCase()) ||
     !TEMPLATE_FILE_RE.test(templateUrl.pathname)
   ) {
     return null

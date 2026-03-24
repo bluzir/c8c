@@ -31,6 +31,33 @@ jobs:
             echo "channel=stable" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate signing prerequisites
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=0
+          for key in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!key}" ]; then
+              echo "::error::$key is required for signed and notarized macOS releases"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Validate release quality
+        run: |
+          npm run canon:check
+          npm run lint
+          npm run typecheck
+          npm run test:coverage
+          npm run codex:download
+
       - name: Build release
         env:
           C8C_BUILD_FLAVOR: release
@@ -42,12 +69,15 @@ jobs:
           if [ -z "$C8C_POSTHOG_HOST" ] || [ -z "$C8C_POSTHOG_KEY" ]; then
             echo "::warning::C8C_POSTHOG_HOST or C8C_POSTHOG_KEY is empty — telemetry will be disabled in this build"
           fi
-          npm run build:shared
           npm run build
 
-      - name: Package (macOS arm64, unsigned)
+      - name: Package (macOS arm64)
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npx electron-builder --mac --arm64 --publish never
 
       - name: Generate checksums

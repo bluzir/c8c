@@ -4,12 +4,37 @@ import { join, resolve } from "node:path"
 import type {
   CaseStateRecord,
   ContinuationStatus,
+  DurableGateFamily,
+  DurableGateOutcome,
   DurableGateRecord,
 } from "@shared/types"
 import { writeFileAtomic } from "./atomic-write"
 import { logWarn } from "./structured-log"
 
 const CASE_STATE_DIR_SEGMENTS = [".c8c", "case-state"] as const
+const CONTINUATION_STATUSES = new Set<ContinuationStatus>([
+  "ready",
+  "missing_result",
+  "blocked_by_check",
+  "awaiting_approval",
+  "superseded",
+  "paused",
+  "completed",
+])
+const DURABLE_GATE_FAMILIES = new Set<DurableGateFamily>([
+  "approval",
+  "input",
+  "review_check",
+  "verification_check",
+  "ship_decision",
+])
+const DURABLE_GATE_OUTCOMES = new Set<DurableGateOutcome>([
+  "passed",
+  "returned",
+  "awaiting_human",
+  "rejected",
+  "blocked",
+])
 
 export interface UpsertCaseStateInput {
   projectPath: string
@@ -61,6 +86,10 @@ function normalizeLabel(value: string | null | undefined) {
   return normalized || undefined
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value)
+}
+
 function dedupeArtifactIds(input: string[] | undefined, existing: string[]) {
   const seen = new Set<string>()
   const next: string[] = []
@@ -72,77 +101,118 @@ function dedupeArtifactIds(input: string[] | undefined, existing: string[]) {
   return next
 }
 
+function parseLastGate(value: unknown): DurableGateRecord | null {
+  if (value == null) return null
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const parsed = value as Record<string, unknown>
+  if (
+    typeof parsed.family !== "string" ||
+    !DURABLE_GATE_FAMILIES.has(parsed.family as DurableGateFamily) ||
+    typeof parsed.outcome !== "string" ||
+    !DURABLE_GATE_OUTCOMES.has(parsed.outcome as DurableGateOutcome) ||
+    typeof parsed.summaryText !== "string" ||
+    !isFiniteNumber(parsed.happenedAt)
+  ) {
+    return null
+  }
+
+  if (
+    (parsed.reasonText !== undefined &&
+      typeof parsed.reasonText !== "string") ||
+    (parsed.stepLabel !== undefined && typeof parsed.stepLabel !== "string")
+  ) {
+    return null
+  }
+
+  return {
+    family: parsed.family as DurableGateFamily,
+    outcome: parsed.outcome as DurableGateOutcome,
+    summaryText: parsed.summaryText,
+    reasonText:
+      typeof parsed.reasonText === "string" ? parsed.reasonText : undefined,
+    stepLabel:
+      typeof parsed.stepLabel === "string" ? parsed.stepLabel : undefined,
+    happenedAt: parsed.happenedAt,
+  }
+}
+
+function parseCaseStateRecord(
+  value: unknown,
+  projectPath: string,
+): CaseStateRecord | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const parsed = value as Record<string, unknown>
+  if (
+    parsed.version !== 1 ||
+    typeof parsed.caseId !== "string" ||
+    typeof parsed.workLabel !== "string" ||
+    typeof parsed.continuationStatus !== "string" ||
+    !CONTINUATION_STATUSES.has(
+      parsed.continuationStatus as ContinuationStatus,
+    ) ||
+    !Array.isArray(parsed.artifactIds) ||
+    parsed.artifactIds.some((entry) => typeof entry !== "string") ||
+    !isFiniteNumber(parsed.createdAt) ||
+    !isFiniteNumber(parsed.updatedAt)
+  ) {
+    return null
+  }
+
+  if (
+    (parsed.projectPath !== undefined &&
+      typeof parsed.projectPath !== "string") ||
+    (parsed.caseLabel !== undefined && typeof parsed.caseLabel !== "string") ||
+    (parsed.factoryId !== undefined && typeof parsed.factoryId !== "string") ||
+    (parsed.factoryLabel !== undefined &&
+      typeof parsed.factoryLabel !== "string") ||
+    (parsed.workflowPath !== undefined &&
+      typeof parsed.workflowPath !== "string") ||
+    (parsed.workflowName !== undefined &&
+      typeof parsed.workflowName !== "string") ||
+    (parsed.nextStepLabel !== undefined &&
+      typeof parsed.nextStepLabel !== "string")
+  ) {
+    return null
+  }
+
+  if (parsed.lastGate !== null && parseLastGate(parsed.lastGate) === null) {
+    return null
+  }
+
+  return {
+    version: 1,
+    caseId: parsed.caseId,
+    projectPath,
+    workLabel: parsed.workLabel,
+    caseLabel:
+      typeof parsed.caseLabel === "string" ? parsed.caseLabel : undefined,
+    factoryId:
+      typeof parsed.factoryId === "string" ? parsed.factoryId : undefined,
+    factoryLabel:
+      typeof parsed.factoryLabel === "string" ? parsed.factoryLabel : undefined,
+    workflowPath:
+      typeof parsed.workflowPath === "string" ? parsed.workflowPath : undefined,
+    workflowName:
+      typeof parsed.workflowName === "string" ? parsed.workflowName : undefined,
+    continuationStatus: parsed.continuationStatus as ContinuationStatus,
+    nextStepLabel:
+      typeof parsed.nextStepLabel === "string"
+        ? parsed.nextStepLabel
+        : undefined,
+    artifactIds: parsed.artifactIds,
+    lastGate: parseLastGate(parsed.lastGate),
+    createdAt: parsed.createdAt,
+    updatedAt: parsed.updatedAt,
+  }
+}
+
 async function readCaseState(
   projectPath: string,
   caseId: string,
 ): Promise<CaseStateRecord | null> {
   try {
     const raw = await readFile(caseStatePath(projectPath, caseId), "utf-8")
-    const parsed = JSON.parse(raw) as Partial<CaseStateRecord>
-    if (
-      parsed.version !== 1 ||
-      typeof parsed.caseId !== "string" ||
-      typeof parsed.projectPath !== "string" ||
-      typeof parsed.workLabel !== "string" ||
-      typeof parsed.continuationStatus !== "string" ||
-      !Array.isArray(parsed.artifactIds) ||
-      typeof parsed.createdAt !== "number" ||
-      typeof parsed.updatedAt !== "number"
-    ) {
-      return null
-    }
-    return {
-      version: 1,
-      caseId: parsed.caseId,
-      projectPath: parsed.projectPath,
-      workLabel: parsed.workLabel,
-      caseLabel:
-        typeof parsed.caseLabel === "string" ? parsed.caseLabel : undefined,
-      factoryId:
-        typeof parsed.factoryId === "string" ? parsed.factoryId : undefined,
-      factoryLabel:
-        typeof parsed.factoryLabel === "string"
-          ? parsed.factoryLabel
-          : undefined,
-      workflowPath:
-        typeof parsed.workflowPath === "string"
-          ? parsed.workflowPath
-          : undefined,
-      workflowName:
-        typeof parsed.workflowName === "string"
-          ? parsed.workflowName
-          : undefined,
-      continuationStatus: parsed.continuationStatus as ContinuationStatus,
-      nextStepLabel:
-        typeof parsed.nextStepLabel === "string"
-          ? parsed.nextStepLabel
-          : undefined,
-      artifactIds: parsed.artifactIds.filter(
-        (value): value is string => typeof value === "string",
-      ),
-      lastGate:
-        parsed.lastGate && typeof parsed.lastGate === "object"
-          ? {
-              family: parsed.lastGate.family as DurableGateRecord["family"],
-              outcome: parsed.lastGate.outcome as DurableGateRecord["outcome"],
-              summaryText: String(parsed.lastGate.summaryText || ""),
-              reasonText:
-                typeof parsed.lastGate.reasonText === "string"
-                  ? parsed.lastGate.reasonText
-                  : undefined,
-              stepLabel:
-                typeof parsed.lastGate.stepLabel === "string"
-                  ? parsed.lastGate.stepLabel
-                  : undefined,
-              happenedAt:
-                typeof parsed.lastGate.happenedAt === "number"
-                  ? parsed.lastGate.happenedAt
-                  : parsed.updatedAt,
-            }
-          : null,
-      createdAt: parsed.createdAt,
-      updatedAt: parsed.updatedAt,
-    }
+    return parseCaseStateRecord(JSON.parse(raw), projectPath)
   } catch (error) {
     if (errorCode(error) !== "ENOENT") {
       logWarn("case-store", "read_case_state_failed", {
@@ -218,11 +288,7 @@ export async function listProjectCaseStates(
           const fullPath = join(caseStateDir(safeProjectPath), entry.name)
           try {
             const raw = await readFile(fullPath, "utf-8")
-            const parsed = JSON.parse(raw) as CaseStateRecord
-            if (parsed.version !== 1 || typeof parsed.caseId !== "string") {
-              return null
-            }
-            return parsed
+            return parseCaseStateRecord(JSON.parse(raw), safeProjectPath)
           } catch (error) {
             logWarn("case-store", "list_case_state_entry_failed", {
               projectPath: safeProjectPath,

@@ -17,6 +17,7 @@ export type TelemetryEventName =
   | "update_check_result"
   | "runtime_recovery_completed"
   | "batch_recovery_completed"
+  | "run_workspace_retention_completed"
 
 export type TelemetryPropertyValue = string | number | boolean | null
 

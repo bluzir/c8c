@@ -35,6 +35,8 @@ import type {
   ProviderId,
   ProviderSettings,
   RunResult,
+  RunWorkspaceCleanupResult,
+  RunWorkspaceDeleteResult,
   SaveProjectFactoryBlueprintInput,
   SpawnFactoryCasesFromArtifactInput,
   SpawnFactoryCasesFromArtifactResult,
@@ -220,6 +222,8 @@ export interface C8cApi {
     workflowName?: string | null,
   ) => Promise<FlowImprovementRecommendation[]>
   loadRunResult: (workspace: string) => Promise<LoadedRunResult | null>
+  deleteRun: (workspace: string) => Promise<RunWorkspaceDeleteResult>
+  cleanupRuns: (projectPath: string) => Promise<RunWorkspaceCleanupResult>
   openReport: (reportPath: string) => Promise<string>
   getActiveExecutions: () => Promise<ActiveExecutionSnapshot[]>
   persistArtifactsFromRun: (

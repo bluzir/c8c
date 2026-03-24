@@ -1,2 +1,3 @@
 #!/bin/sh
-npm exec lint-staged
+npm exec lint-staged || exit 1
+node scripts/check-staged-secrets.mjs

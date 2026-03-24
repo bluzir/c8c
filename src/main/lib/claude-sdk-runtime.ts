@@ -11,7 +11,7 @@ import type {
   SDKResultMessage,
   SettingSource,
 } from "@anthropic-ai/claude-agent-sdk"
-import { findClaudeExecutable } from "./claude-cli"
+import { buildClaudeEnv, findClaudeExecutable } from "./claude-cli"
 import { errorMessage } from "./error-utils"
 import { LogParser, type UsageStats } from "./log-parser"
 import { buildClaudeSdkMcpServers } from "./mcp-config"
@@ -430,8 +430,7 @@ export async function createClaudeSdkExecutionHandle(
         abortController: sdkAbortController,
         cwd: options.workdir,
         env: {
-          ...process.env,
-          ...options.extraEnv,
+          ...buildClaudeEnv(options.extraEnv),
           CLAUDE_AGENT_SDK_CLIENT_APP:
             process.env.CLAUDE_AGENT_SDK_CLIENT_APP || "c8c",
         },

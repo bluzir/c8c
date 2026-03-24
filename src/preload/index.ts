@@ -233,6 +233,10 @@ const api: C8cApi = {
     ),
   loadRunResult: (workspace: string) =>
     invokeIpc<C8cApi["loadRunResult"]>("executor:load-run-result", workspace),
+  deleteRun: (workspace: string) =>
+    invokeIpc<C8cApi["deleteRun"]>("executor:delete-run", workspace),
+  cleanupRuns: (projectPath: string) =>
+    invokeIpc<C8cApi["cleanupRuns"]>("executor:cleanup-runs", projectPath),
   openReport: (reportPath: string) =>
     invokeIpc<C8cApi["openReport"]>("executor:open-report", reportPath),
   getActiveExecutions: () =>

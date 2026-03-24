@@ -83,6 +83,46 @@ describe("batch-state", () => {
     await expect(readBatchState(workspace)).resolves.toEqual(state)
   })
 
+  it("uses runtime home overrides for global batch workspaces", async () => {
+    const overrideHome = await mkdtemp(join(tmpdir(), "batch-state-override-"))
+    process.env.C8C_TEST_HOME_DIR = overrideHome
+
+    try {
+      const workspace = await ensureBatchWorkspace("global-batch")
+      expect(workspace).toBe(
+        join(overrideHome, ".c8c", "batches", "global-batch"),
+      )
+    } finally {
+      delete process.env.C8C_TEST_HOME_DIR
+      await rm(overrideHome, { recursive: true, force: true })
+    }
+  })
+
+  it("fails closed on invalid persisted batch state payloads", async () => {
+    const workspace = await ensureBatchWorkspace("batch-invalid", projectDir)
+    await import("node:fs/promises").then(({ writeFile }) =>
+      writeFile(
+        join(workspace, "batch-state.json"),
+        JSON.stringify({
+          batchId: "batch-invalid",
+          workflowName: "Broken",
+          total: 1,
+          completed: 0,
+          running: 1,
+          concurrency: 1,
+          stopOnFailure: false,
+          startedAt: 10,
+          updatedAt: 20,
+          status: "running",
+          items: [{ input_index: "nope" }],
+        }),
+        "utf8",
+      ),
+    )
+
+    await expect(readBatchState(workspace)).resolves.toBeNull()
+  })
+
   it("recovers running batch states across global and project roots", async () => {
     const globalWorkspace = await ensureBatchWorkspace("global-batch")
     const projectWorkspace = await ensureBatchWorkspace(

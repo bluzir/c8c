@@ -26,14 +26,17 @@ jobs:
       - name: Canon vocabulary
         run: npm run canon:check
 
+      - name: Lint
+        run: npm run lint
+
       - name: Build shared packages
         run: npm run build:shared
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
-      - name: Test
-        run: npm test
+      - name: Test with coverage
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build

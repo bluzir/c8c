@@ -357,8 +357,12 @@ async function executeSkillNode(
     )
   }
 
+  const allSkillRefs = [
+    ...(skillRef ? [skillRef] : []),
+    ...(config.skillRefs || []),
+  ]
   const skillContext = await context.resolveSkillContext({
-    skillRefs: skillRef ? [skillRef] : undefined,
+    skillRefs: allSkillRefs.length > 0 ? allSkillRefs : undefined,
     skillPaths: config.skillPaths,
   })
   const additionalSkillDirs = [
@@ -369,12 +373,16 @@ async function executeSkillNode(
     ),
   ]
 
+  const intentContext = context.persistedInput.context?.trim()
   const prompt = context.helpers.sanitizeInvalidUnicode(
     [
       `Today: ${new Date().toISOString().slice(0, 10)}`,
       `Workspace: ${context.workspace}`,
       `Content file: ${contentFile}`,
       "",
+      ...(intentContext
+        ? ["User's goal for this flow:", intentContext, ""]
+        : []),
       ...(effectiveInput.trim()
         ? [
             "User request (PRIORITY — follow this exactly):",
@@ -655,12 +663,18 @@ async function executeEvaluatorNode(
     skillRefs: evalConfig.skillRefs,
   })
   const evalProviderId = context.workflowProviderId
+  const evalIntentContext = context.persistedInput.context?.trim()
   const evalPrompt = context.helpers.sanitizeInvalidUnicode(
-    buildEvaluatorPrompt(
-      evalConfig.criteria,
-      context.incomingContent,
-      evalSkillContext.text,
-    ),
+    [
+      ...(evalIntentContext
+        ? [`User's goal for this flow:\n${evalIntentContext}\n`]
+        : []),
+      buildEvaluatorPrompt(
+        evalConfig.criteria,
+        context.incomingContent,
+        evalSkillContext.text,
+      ),
+    ].join("\n"),
   )
   const evalAdditionalDirs = [
     ...new Set(
@@ -1106,9 +1120,13 @@ async function executeSplitterNode(
   }
 
   let subtasks: Subtask[]
+  const splitterIntentContext = context.persistedInput.context?.trim()
+  const splitterInputContent = splitterIntentContext
+    ? `User's goal for this flow:\n${splitterIntentContext}\n\n---\n\n${context.incomingContent}`
+    : context.incomingContent
   const splitterPrompt = buildSplitterPrompt(
     splitterConfig.strategy,
-    context.incomingContent,
+    splitterInputContent,
     maxBranches,
   )
   let splitterRawOutput = await runSplitterAttempt(splitterPrompt)
@@ -1125,7 +1143,7 @@ async function executeSplitterNode(
   ) {
     const recoveryPrompt = buildSplitterRecoveryPrompt(
       splitterConfig.strategy,
-      context.incomingContent,
+      splitterInputContent,
       maxBranches,
     )
     splitterRawOutput = await runSplitterAttempt(recoveryPrompt)
@@ -1149,20 +1167,12 @@ async function executeSplitterNode(
     })
   }
 
-  const shouldFallbackToHeuristic =
-    subtasks.length === 0 ||
-    (maxBranches > 1 &&
-      shouldRetrySplitter(
-        subtasks,
-        splitterRawOutput,
-        context.incomingContent,
-        maxBranches,
-      ))
-  if (shouldFallbackToHeuristic) {
+  // Heuristic fallback only when LLM produced nothing at all
+  if (subtasks.length === 0) {
     subtasks = heuristicSplitInput(context.incomingContent, maxBranches)
     const entry = {
       type: "text" as const,
-      content: `[splitter] ai split was invalid, falling back to heuristic split (${subtasks.length} subtasks)\n`,
+      content: `[splitter] ai produced no subtasks, falling back to heuristic split (${subtasks.length} subtasks)\n`,
       timestamp: Date.now(),
     }
     state.log.push(entry)
@@ -1320,7 +1330,10 @@ async function executeMergerNode(
     })
   }
 
-  if (mergerConfig.strategy === "concatenate") {
+  if (
+    mergerConfig.strategy === "concatenate" ||
+    mergerConfig.strategy === "json_array"
+  ) {
     await context.beginNodeExecution()
     const mergerModel =
       context.workflow.defaults?.model ||
@@ -1332,23 +1345,29 @@ async function executeMergerNode(
       latency_ms: Date.now() - state.startedAt!,
     }
     state.meta = context.helpers.buildNodeMeta(
-      "[merger concatenate]",
+      `[merger ${mergerConfig.strategy}]`,
       mergerModel,
     )
     return {
       output: context.helpers.createNodeOutput(
         node,
-        mergeResults(branchOutputs, "concatenate"),
+        mergeResults(branchOutputs, mergerConfig.strategy),
       ),
     }
   }
 
+  const mergerIntentContext = context.persistedInput.context?.trim()
   const mergePrompt = context.helpers.sanitizeInvalidUnicode(
-    buildMergerPrompt(
-      branchOutputs,
-      mergerConfig.strategy,
-      mergerConfig.prompt,
-    ),
+    [
+      ...(mergerIntentContext
+        ? [`User's goal for this flow:\n${mergerIntentContext}\n`]
+        : []),
+      buildMergerPrompt(
+        branchOutputs,
+        mergerConfig.strategy,
+        mergerConfig.prompt,
+      ),
+    ].join("\n"),
   )
   const logParser = new LogParser()
   let mergerStderr = ""

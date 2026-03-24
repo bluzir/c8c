@@ -243,4 +243,64 @@ describe("HistoryTab", () => {
     const card = screen.getByTestId("recommendation-item")
     expect(within(card).getByText("7 runs analyzed")).toBeTruthy()
   })
+
+  it("confirms deleting a stored run before calling the action", async () => {
+    const user = userEvent.setup()
+    const onDeleteRun = vi.fn().mockResolvedValue({
+      runId: "run-1",
+      deleted: true,
+      reclaimedBytes: 1024,
+    })
+
+    render(
+      <HistoryTab
+        pastRuns={[BASE_RUN]}
+        improvementRecommendations={[]}
+        runStatus="idle"
+        onOpenReport={vi.fn()}
+        onDeleteRun={onDeleteRun}
+        onSelectRun={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Delete" }))
+    expect(screen.getByText("Delete stored run?")).toBeTruthy()
+
+    await user.click(screen.getByRole("button", { name: "Delete run" }))
+
+    expect(onDeleteRun).toHaveBeenCalledWith(BASE_RUN)
+  })
+
+  it("offers cleanup for old runs", async () => {
+    const user = userEvent.setup()
+    const onCleanupRuns = vi.fn().mockResolvedValue({
+      deletedRuns: 2,
+      reclaimedBytes: 2048,
+      retainedRuns: 1,
+      deletedRunIds: ["run-1", "run-2"],
+    })
+
+    render(
+      <HistoryTab
+        pastRuns={[BASE_RUN]}
+        improvementRecommendations={[]}
+        runStatus="idle"
+        onOpenReport={vi.fn()}
+        onCleanupRuns={onCleanupRuns}
+        onSelectRun={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getAllByRole("button", { name: "Clean up old runs" })[0],
+    )
+    expect(screen.getByText("Clean up old run workspaces?")).toBeTruthy()
+    const dialog = screen.getByRole("dialog")
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Clean up old runs" }),
+    )
+
+    expect(onCleanupRuns).toHaveBeenCalledTimes(1)
+  })
 })

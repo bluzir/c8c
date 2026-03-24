@@ -25,6 +25,10 @@ const {
   persistArtifactsFromRunMock,
   listProjectCaseStatesMock,
   upsertCaseStateMock,
+  cleanupProjectRunWorkspacesMock,
+  deleteRunWorkspaceMock,
+  listProjectRunResultsMock,
+  readRunResultRecordMock,
   allowedProjectRootsMock,
   allowedReportRootsMock,
   assertWithinRootsMock,
@@ -66,6 +70,10 @@ const {
   persistArtifactsFromRunMock: vi.fn(),
   listProjectCaseStatesMock: vi.fn(),
   upsertCaseStateMock: vi.fn(),
+  cleanupProjectRunWorkspacesMock: vi.fn(),
+  deleteRunWorkspaceMock: vi.fn(),
+  listProjectRunResultsMock: vi.fn(),
+  readRunResultRecordMock: vi.fn(),
   allowedProjectRootsMock: vi.fn(),
   allowedReportRootsMock: vi.fn(),
   assertWithinRootsMock: vi.fn(),
@@ -167,6 +175,15 @@ vi.mock("../lib/case-store", () => ({
   listProjectCaseStates: (...args: unknown[]) =>
     listProjectCaseStatesMock(...args),
   upsertCaseState: (...args: unknown[]) => upsertCaseStateMock(...args),
+}))
+
+vi.mock("../lib/run-workspace-store", () => ({
+  cleanupProjectRunWorkspaces: (...args: unknown[]) =>
+    cleanupProjectRunWorkspacesMock(...args),
+  deleteRunWorkspace: (...args: unknown[]) => deleteRunWorkspaceMock(...args),
+  listProjectRunResults: (...args: unknown[]) =>
+    listProjectRunResultsMock(...args),
+  readRunResultRecord: (...args: unknown[]) => readRunResultRecordMock(...args),
 }))
 
 vi.mock("../lib/security-paths", () => ({
@@ -306,6 +323,19 @@ describe("executor IPC", () => {
     persistArtifactsFromRunMock.mockResolvedValue({ artifacts: [], cases: [] })
     listProjectCaseStatesMock.mockResolvedValue([])
     upsertCaseStateMock.mockResolvedValue(undefined)
+    cleanupProjectRunWorkspacesMock.mockResolvedValue({
+      deletedRuns: 0,
+      reclaimedBytes: 0,
+      retainedRuns: 0,
+      deletedRunIds: [],
+    })
+    deleteRunWorkspaceMock.mockResolvedValue({
+      runId: "run-1",
+      deleted: true,
+      reclaimedBytes: 12,
+    })
+    listProjectRunResultsMock.mockResolvedValue([])
+    readRunResultRecordMock.mockResolvedValue(null)
     allowedProjectRootsMock.mockResolvedValue(["/safe"])
     allowedReportRootsMock.mockResolvedValue(["/reports"])
     assertWithinRootsMock.mockImplementation(
@@ -784,5 +814,101 @@ describe("executor IPC", () => {
 
     batchDeferred.resolve()
     await Promise.resolve()
+  })
+
+  it("deletes a stored run workspace after validating the workspace path", async () => {
+    readRunResultRecordMock.mockResolvedValue({
+      runId: "run-1",
+      status: "completed",
+      workflowName: "Executor test",
+      startedAt: 10,
+      completedAt: 20,
+      reportPath: "/reports/run-1/report.md",
+      workspace: "/reports/run-1",
+    })
+
+    const { registerExecutorHandlers } = await import("./executor")
+    registerExecutorHandlers()
+    const handler = getHandler<
+      (
+        event: unknown,
+        workspace: string,
+      ) => Promise<{
+        runId: string
+        deleted: boolean
+        reclaimedBytes: number
+      }>
+    >("executor:delete-run")
+
+    const result = await handler({} as never, "/reports/run-1")
+
+    expect(readRunResultRecordMock).toHaveBeenCalledWith("/reports/run-1")
+    expect(deleteRunWorkspaceMock).toHaveBeenCalledWith("/reports/run-1")
+    expect(result).toEqual({
+      runId: "run-1",
+      deleted: true,
+      reclaimedBytes: 12,
+    })
+  })
+
+  it("rejects deleting an active run workspace", async () => {
+    readRunResultRecordMock.mockResolvedValue({
+      runId: "run-1",
+      status: "completed",
+      workflowName: "Executor test",
+      startedAt: 10,
+      completedAt: 20,
+      reportPath: "/reports/run-1/report.md",
+      workspace: "/reports/run-1",
+    })
+    getWorkflowRunSnapshotMock.mockResolvedValue({
+      workspace: "/reports/run-1",
+    })
+
+    const { registerExecutorHandlers } = await import("./executor")
+    registerExecutorHandlers()
+    const handler = getHandler<
+      (event: unknown, workspace: string) => Promise<unknown>
+    >("executor:delete-run")
+
+    await expect(handler({} as never, "/reports/run-1")).rejects.toThrow(
+      "Active runs cannot be deleted",
+    )
+    expect(deleteRunWorkspaceMock).not.toHaveBeenCalled()
+  })
+
+  it("cleans up project runs after validating the project path", async () => {
+    cleanupProjectRunWorkspacesMock.mockResolvedValue({
+      deletedRuns: 2,
+      reclaimedBytes: 2048,
+      retainedRuns: 18,
+      deletedRunIds: ["run-1", "run-2"],
+    })
+
+    const { registerExecutorHandlers } = await import("./executor")
+    registerExecutorHandlers()
+    const handler = getHandler<
+      (
+        event: unknown,
+        projectPath: string,
+      ) => Promise<{
+        deletedRuns: number
+        reclaimedBytes: number
+        retainedRuns: number
+        deletedRunIds: string[]
+      }>
+    >("executor:cleanup-runs")
+
+    const result = await handler({} as never, "/safe/project")
+
+    expect(cleanupProjectRunWorkspacesMock).toHaveBeenCalledWith(
+      "/safe/project",
+    )
+    expect(result).toEqual({
+      deletedRuns: 2,
+      reclaimedBytes: 2048,
+      retainedRuns: 18,
+      deletedRunIds: ["run-1", "run-2"],
+    })
   })
 })

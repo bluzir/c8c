@@ -108,9 +108,7 @@ describe("WorkflowResumeHeader", () => {
     expect(
       screen.getByText("Approval is still required before Ship can continue."),
     ).toBeTruthy()
-    expect(
-      screen.getByText("Previous: Previous: Verification Report"),
-    ).toBeTruthy()
+    expect(screen.getByText("Previous: Verification Report")).toBeTruthy()
     expect(screen.getByText("Status: Legal review required.")).toBeTruthy()
   })
 

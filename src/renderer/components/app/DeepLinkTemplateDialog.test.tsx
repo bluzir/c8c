@@ -48,4 +48,50 @@ describe("DeepLinkTemplateDialog", () => {
       screen.getByRole("button", { name: "Execution details" }),
     ).toBeTruthy()
   })
+
+  it("shows the source URL for remote templates", () => {
+    render(
+      <DeepLinkTemplateDialog
+        template={{
+          id: "remote-review",
+          name: "Remote Review",
+          description: "Review a remote template before applying it.",
+          stage: "operations",
+          emoji: "R",
+          headline: "Review remote template",
+          how: "Check the source and then decide how to apply it.",
+          input: "Current work",
+          output: "Review report",
+          steps: [],
+          source: "user",
+          templatePath:
+            "https://raw.githubusercontent.com/c8c-app/templates/main/remote-review.yaml",
+          workflow: {
+            version: 1,
+            name: "Remote Review",
+            nodes: [],
+            edges: [],
+          },
+        }}
+        open
+        onOpenChange={vi.fn()}
+        projects={["/tmp/project"]}
+        targetProject="/tmp/project"
+        onTargetProjectChange={vi.fn()}
+        onCreateInProject={vi.fn()}
+        onReplaceCurrent={vi.fn()}
+      />,
+    )
+
+    expect(screen.getAllByText("Remote template").length).toBeGreaterThan(0)
+    expect(screen.getByText("Source URL")).toBeTruthy()
+    expect(
+      screen.getByText(
+        "https://raw.githubusercontent.com/c8c-app/templates/main/remote-review.yaml",
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText("Review the remote source before continuing."),
+    ).toBeTruthy()
+  })
 })

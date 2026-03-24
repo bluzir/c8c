@@ -183,6 +183,80 @@ describe("createClaudeSdkExecutionHandle", () => {
     })
   })
 
+  it("allowlists Claude SDK env and preserves explicit overrides", async () => {
+    vi.stubEnv("HOME", "/Users/tester")
+    vi.stubEnv("PATH", "/usr/bin")
+    vi.stubEnv("GITHUB_TOKEN", "ghp_secret_should_not_leak")
+    vi.stubEnv("DATABASE_URL", "postgres://secret")
+
+    try {
+      queryMock.mockReturnValue(
+        createMockQuery([
+          {
+            type: "system",
+            subtype: "init",
+            apiKeySource: "user",
+            claude_code_version: "2.1.45",
+            cwd: "/tmp/project",
+            tools: [],
+            mcp_servers: [],
+            model: "claude-sonnet-4-6",
+            permissionMode: "acceptEdits",
+            slash_commands: [],
+            output_style: "default",
+            skills: [],
+            plugins: [],
+            uuid: "00000000-0000-0000-0000-000000000031",
+            session_id: "session-env",
+          },
+          {
+            type: "result",
+            subtype: "success",
+            duration_ms: 8,
+            duration_api_ms: 8,
+            is_error: false,
+            num_turns: 1,
+            result: "",
+            stop_reason: "end_turn",
+            total_cost_usd: 0,
+            usage: {
+              input_tokens: 1,
+              output_tokens: 1,
+            },
+            modelUsage: {},
+            permission_denials: [],
+            uuid: "00000000-0000-0000-0000-000000000032",
+            session_id: "session-env",
+          },
+        ]),
+      )
+
+      const handle = await createClaudeSdkExecutionHandle({
+        workdir: "/tmp/project",
+        prompt: "Check env handling",
+        extraEnv: {
+          CUSTOM_FLAG: "enabled",
+        },
+      })
+
+      await drainExecutionHandle(handle)
+
+      const env = queryMock.mock.calls[0]?.[0]?.options?.env as
+        | Record<string, string>
+        | undefined
+      expect(env).toMatchObject({
+        HOME: "/Users/tester",
+        CUSTOM_FLAG: "enabled",
+        CLAUDE_AGENT_SDK_CLIENT_APP: "c8c",
+      })
+      expect(env?.PATH).toContain("/usr/bin")
+      expect(env?.GITHUB_TOKEN).toBeUndefined()
+      expect(env?.DATABASE_URL).toBeUndefined()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it("requests persisted Claude sessions and resumes a prior session when provided", async () => {
     queryMock.mockReturnValue(
       createMockQuery([
