@@ -47,7 +47,7 @@ export function ChatMessageBubble({
       <div className="flex justify-end">
         <div
           className={cn(
-            "max-w-[85%] rounded-lg bg-primary/10 border border-primary/20 px-3 py-2",
+            "max-w-[75%] rounded-2xl bg-primary/10 border border-primary/20 px-3.5 py-2.5",
             groupedWithPrevious && "rounded-tr-md",
             groupedWithNext && "rounded-br-md",
           )}

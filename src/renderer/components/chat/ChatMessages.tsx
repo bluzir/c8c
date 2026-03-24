@@ -201,7 +201,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       workflow?.description || templateContext?.useWhen || null
 
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="ui-empty-state-box max-w-md text-center space-y-3">
           <p className="text-body-md font-medium text-foreground">{flowName}</p>
           {description && (
@@ -226,112 +226,130 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     <div className="relative flex-1 min-h-0">
       <div
         ref={containerRef}
-        className="h-full overflow-y-auto ui-scroll-region px-3 py-3 space-y-0"
+        className="h-full overflow-y-auto ui-scroll-region"
       >
-        {timeline.map((entry, index) => {
-          if (entry.kind === "flow") {
-            const flowMsg = entry.message
-            if (flowMsg.content.type === "start") {
-              return (
-                <div
-                  key={flowMsg.id}
-                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
-                >
-                  <FlowStartMessage
-                    flowName={flowMsg.flowName}
-                    data={flowMsg.content.data}
-                  />
-                </div>
-              )
+        <div className="max-w-3xl mx-auto w-full px-4 py-4 space-y-0">
+          {timeline.map((entry, index) => {
+            if (entry.kind === "flow") {
+              const flowMsg = entry.message
+              if (flowMsg.content.type === "start") {
+                return (
+                  <div
+                    key={flowMsg.id}
+                    className={cn(
+                      "ui-fade-slide-in pt-4",
+                      index === 0 && "pt-0",
+                    )}
+                  >
+                    <FlowStartMessage
+                      flowName={flowMsg.flowName}
+                      data={flowMsg.content.data}
+                    />
+                  </div>
+                )
+              }
+              if (flowMsg.content.type === "progress") {
+                return (
+                  <div
+                    key={flowMsg.id}
+                    className={cn(
+                      "ui-fade-slide-in pt-4",
+                      index === 0 && "pt-0",
+                    )}
+                  >
+                    <FlowProgressMessage data={flowMsg.content.data} />
+                  </div>
+                )
+              }
+              if (flowMsg.content.type === "complete") {
+                return (
+                  <div
+                    key={flowMsg.id}
+                    className={cn(
+                      "ui-fade-slide-in pt-4",
+                      index === 0 && "pt-0",
+                    )}
+                  >
+                    <FlowCompleteMessage
+                      flowName={flowMsg.flowName}
+                      data={flowMsg.content.data}
+                      onFollowUp={handleFollowUp}
+                      onOpenReport={(path) => window.api.openPath(path)}
+                    />
+                  </div>
+                )
+              }
+              if (flowMsg.content.type === "error") {
+                return (
+                  <div
+                    key={flowMsg.id}
+                    className={cn(
+                      "ui-fade-slide-in pt-4",
+                      index === 0 && "pt-0",
+                    )}
+                  >
+                    <FlowErrorMessage
+                      flowName={flowMsg.flowName}
+                      data={flowMsg.content.data}
+                    />
+                  </div>
+                )
+              }
+              if (flowMsg.content.type === "decision") {
+                return (
+                  <div
+                    key={flowMsg.id}
+                    className={cn(
+                      "ui-fade-slide-in pt-4",
+                      index === 0 && "pt-0",
+                    )}
+                  >
+                    <FlowDecisionMessage
+                      flowName={flowMsg.flowName}
+                      data={flowMsg.content.data}
+                      resolved={resolvedIds.has(flowMsg.id)}
+                      onResolved={() => resolveDecision(flowMsg.id)}
+                    />
+                  </div>
+                )
+              }
+              return null
             }
-            if (flowMsg.content.type === "progress") {
-              return (
-                <div
-                  key={flowMsg.id}
-                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
-                >
-                  <FlowProgressMessage data={flowMsg.content.data} />
-                </div>
-              )
-            }
-            if (flowMsg.content.type === "complete") {
-              return (
-                <div
-                  key={flowMsg.id}
-                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
-                >
-                  <FlowCompleteMessage
-                    flowName={flowMsg.flowName}
-                    data={flowMsg.content.data}
-                    onFollowUp={handleFollowUp}
-                    onOpenReport={(path) => window.api.openPath(path)}
-                  />
-                </div>
-              )
-            }
-            if (flowMsg.content.type === "error") {
-              return (
-                <div
-                  key={flowMsg.id}
-                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
-                >
-                  <FlowErrorMessage
-                    flowName={flowMsg.flowName}
-                    data={flowMsg.content.data}
-                  />
-                </div>
-              )
-            }
-            if (flowMsg.content.type === "decision") {
-              return (
-                <div
-                  key={flowMsg.id}
-                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
-                >
-                  <FlowDecisionMessage
-                    flowName={flowMsg.flowName}
-                    data={flowMsg.content.data}
-                    resolved={resolvedIds.has(flowMsg.id)}
-                    onResolved={() => resolveDecision(flowMsg.id)}
-                  />
-                </div>
-              )
-            }
-            return null
-          }
 
-          const msg = entry.message
-          const prevEntry = timeline[index - 1]
-          const nextEntry = timeline[index + 1]
-          const prev =
-            prevEntry?.kind === "chat" ? prevEntry.message : undefined
-          const next =
-            nextEntry?.kind === "chat" ? nextEntry.message : undefined
-          const isTurnMessage = msg.role === "user" || msg.role === "assistant"
-          const groupedWithPrevious = Boolean(
-            isTurnMessage && prev && prev.role === msg.role,
-          )
-          const groupedWithNext = Boolean(
-            isTurnMessage && next && next.role === msg.role,
-          )
+            const msg = entry.message
+            const prevEntry = timeline[index - 1]
+            const nextEntry = timeline[index + 1]
+            const prev =
+              prevEntry?.kind === "chat" ? prevEntry.message : undefined
+            const next =
+              nextEntry?.kind === "chat" ? nextEntry.message : undefined
+            const isTurnMessage =
+              msg.role === "user" || msg.role === "assistant"
+            const groupedWithPrevious = Boolean(
+              isTurnMessage && prev && prev.role === msg.role,
+            )
+            const groupedWithNext = Boolean(
+              isTurnMessage && next && next.role === msg.role,
+            )
 
-          return (
-            <div
-              key={msg.id}
-              className={cn(
-                "ui-fade-slide-in",
-                groupedWithPrevious ? "pt-1" : "pt-3",
-                index === 0 && "pt-0",
-              )}
-            >
-              <ChatMessageBubble
-                message={msg}
-                groupedWithPrevious={groupedWithPrevious}
-                groupedWithNext={groupedWithNext}
-              />
-            </div>
-          )
-        })}
+            return (
+              <div
+                key={msg.id}
+                className={cn(
+                  "ui-fade-slide-in",
+                  groupedWithPrevious ? "pt-1" : "pt-4",
+                  index === 0 && "pt-0",
+                )}
+              >
+                <ChatMessageBubble
+                  message={msg}
+                  groupedWithPrevious={groupedWithPrevious}
+                  groupedWithNext={groupedWithNext}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
       <div
         data-visible={showScrollIndicator ? "true" : "false"}

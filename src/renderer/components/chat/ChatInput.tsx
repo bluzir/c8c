@@ -149,7 +149,7 @@ export function ChatInput({
   }
 
   return (
-    <div className="border-t border-hairline p-3 bg-background">
+    <div className="max-w-3xl mx-auto w-full px-4 pb-4 pt-2">
       <PromptComposer
         ref={textareaRef}
         id="chat-input"
