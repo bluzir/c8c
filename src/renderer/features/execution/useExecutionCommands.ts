@@ -122,7 +122,7 @@ export function useExecutionCommands({
         const cancelled = await withIpcTimeout(
           window.api.cancelRun(startedRunId),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-          "Late-started run cancel timed out. Check the main flow and try again.",
+          "A late-started run could not be stopped. Try again, or restart the app if the problem continues.",
         )
         if (cancelled) return
       } catch (error) {
@@ -258,7 +258,7 @@ export function useExecutionCommands({
             webSearchBackend,
           ),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-          "Run start timed out. Check the main flow and try again.",
+          "Run start timed out. Try again, or restart the app if the problem continues.",
         )
 
         const { startedRunId, errorMessage, validationIssues } =
@@ -342,7 +342,7 @@ export function useExecutionCommands({
       const cancelled = await withIpcTimeout(
         window.api.cancelRun(currentRunId),
         DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Run cancel timed out. Check the main flow and try again.",
+        "Run cancel timed out. Try again, or restart the app if the problem continues.",
       )
       if (!cancelled) {
         toastError("Could not cancel run")
@@ -416,7 +416,7 @@ export function useExecutionCommands({
             webSearchBackend,
           ),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-          "Restart timed out. Check the main flow and try again.",
+          "Restart timed out. Try again, or restart the app if the problem continues.",
         )
 
         const { startedRunId, errorMessage, validationIssues } =
@@ -538,7 +538,7 @@ export function useExecutionCommands({
             webSearchBackend,
           ),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-          "Continue run timed out. Check the main flow and try again.",
+          "Continue timed out. Try again, or restart the app if the problem continues.",
         )
 
         const { startedRunId, errorMessage, validationIssues } =

@@ -291,7 +291,7 @@ export function useExecutionController({
             contracts: templateContext.contractOut,
           }),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-          "Result saving timed out. Check the main flow and try again.",
+          "Result saving timed out. Try again, or restart the app if the problem continues.",
         )
           .then((result) => {
             controllerRef.current?.updateExecutionForKey(

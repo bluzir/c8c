@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Check, X } from "lucide-react"
+import { toast } from "sonner"
 import { toastError } from "@/lib/toast-error"
 import {
   DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
@@ -255,13 +256,14 @@ export function ApprovalDialog() {
       const ok = await withIpcTimeout(
         window.api.approveNode(request.runId, request.nodeId, content),
         DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Approval timed out. Check the main flow and try again.",
+        "Approval timed out. Try again, or restart the app if the problem continues.",
       )
       if (!ok) {
         toastError("Could not approve step: this flow is no longer active")
         shiftQueue()
         return
       }
+      toast.success("Step approved — flow continuing.")
       shiftQueue()
     } catch (err) {
       console.error("[ApprovalDialog] approve failed:", err)
@@ -280,13 +282,14 @@ export function ApprovalDialog() {
       const ok = await withIpcTimeout(
         window.api.rejectNode(request.runId, request.nodeId),
         DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
-        "Stopping the flow timed out. Check the main flow and try again.",
+        "Stopping the flow timed out. Try again, or restart the app if the problem continues.",
       )
       if (!ok) {
         toastError("Could not stop flow: it is no longer active")
         shiftQueue()
         return
       }
+      toast.success("Step rejected — flow stopped.")
       shiftQueue()
     } catch (err) {
       console.error("[ApprovalDialog] reject failed:", err)
@@ -419,8 +422,8 @@ export function ApprovalDialog() {
               ) : null}
             </div>
             <p className="ui-meta-text text-muted-foreground">
-              Closing this dialog keeps the flow paused and moves it to the
-              dashboard.
+              Closing this dialog keeps the flow paused and moves it to the Runs
+              panel.
             </p>
           </div>
           <Button
