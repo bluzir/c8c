@@ -217,6 +217,39 @@ function createWindow() {
         window.maximize()
       }
 
+      window.webContents.on("before-input-event", (event, input) => {
+        if (input.type !== "keyDown") return
+        const mod = isMac ? input.meta : input.control
+        if (!mod) return
+        const wc = window.webContents
+        switch (input.key.toLowerCase()) {
+          case "c":
+            wc.copy()
+            event.preventDefault()
+            break
+          case "x":
+            wc.cut()
+            event.preventDefault()
+            break
+          case "v":
+            wc.paste()
+            event.preventDefault()
+            break
+          case "a":
+            wc.selectAll()
+            event.preventDefault()
+            break
+          case "z":
+            if (input.shift) {
+              wc.redo()
+            } else {
+              wc.undo()
+            }
+            event.preventDefault()
+            break
+        }
+      })
+
       window.webContents.setWindowOpenHandler(({ url }) => {
         if (isSafeExternalUrl(url)) {
           void shell.openExternal(url)
