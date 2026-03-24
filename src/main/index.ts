@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  Menu,
   screen,
   session,
   shell,
@@ -18,6 +19,7 @@ import { logInfo, logWarn } from "./lib/structured-log"
 import { initUpdater, shutdownUpdater } from "./lib/updater"
 import { recoverBatchStates } from "./lib/batch-state"
 import { recoverRuntimeState } from "./lib/run-recovery"
+import { enforceRunWorkspaceRetention } from "./lib/run-workspace-store"
 import {
   configureDeepLinkProtocol,
   extractDeepLinkUrl,
@@ -279,6 +281,39 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  const isMac = process.platform === "darwin"
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: "appMenu" as const }] : []),
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { role: "togglefullscreen" },
+      ],
+    },
+    {
+      role: "windowMenu",
+    },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
   installRendererContentSecurityPolicy()
   const useHiddenSmokeWindow = Boolean(
     resolveElectronSmokeScenario() && !shouldShowElectronSmokeWindow(),
@@ -319,6 +354,21 @@ app.whenReady().then(async () => {
       })
     } catch (error) {
       logWarn("main", "runtime_recovery_failed", {
+        error: errorMessage(error),
+      })
+    }
+
+    try {
+      const retention = await enforceRunWorkspaceRetention()
+      await trackTelemetryEvent("run_workspace_retention_completed", {
+        roots: retention.roots,
+        scanned_runs: retention.scannedRuns,
+        deleted_runs: retention.deletedRuns,
+        reclaimed_bytes: retention.reclaimedBytes,
+        retained_runs: retention.retainedRuns,
+      })
+    } catch (error) {
+      logWarn("main", "run_workspace_retention_failed", {
         error: errorMessage(error),
       })
     }
