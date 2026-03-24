@@ -16,6 +16,8 @@ import type {
   WorkflowEvent,
   WorkflowNode,
 } from "@shared/types"
+import type { FlowChatMessage } from "@/lib/flow-chat-types"
+import { buildDecisionMessage } from "@/lib/flow-chat-transformer"
 
 type UpdateValue<T> = T | ((prev: T) => T)
 
@@ -39,6 +41,10 @@ interface WorkflowExecutionControllerDeps {
     state: WorkflowExecutionState
   }) => void
   onError: (scope: string, error: unknown) => void
+  onFlowChatMessage?: (args: {
+    workflowKey: string
+    message: FlowChatMessage
+  }) => void
 }
 
 interface SyncExecutionControllerArgs {
@@ -348,6 +354,38 @@ export class WorkflowExecutionController {
         next[existingIndex] = nextRequest
         return next
       })
+
+      // Approval → Decision message
+      if (event.type === "approval-requested") {
+        const msg = buildDecisionMessage({
+          type: "approval",
+          runId: event.runId,
+          nodeId: event.nodeId,
+          flowName: transition.nextState.workflowName,
+          content: event.content,
+          message: event.message,
+        })
+        this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+      }
+    }
+
+    // Eval exhausted → Decision message
+    if (event.type === "eval-exhausted") {
+      const evalResults = transition.nextState.evalResults[event.nodeId] ?? []
+      const lastResult = evalResults[evalResults.length - 1]
+      const msg = buildDecisionMessage({
+        type: "eval-exhausted",
+        runId: event.runId,
+        nodeId: event.nodeId,
+        flowName: transition.nextState.workflowName,
+        score: event.score,
+        threshold: event.threshold,
+        attempt: event.attempt,
+        reason: lastResult?.reason,
+        fixInstructions: lastResult?.fix_instructions,
+        criteria: lastResult?.criteria,
+      })
+      this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
     }
 
     this.reconcileApprovalRequests()

@@ -20,7 +20,10 @@ import {
   providerSettingsAtom,
   selectedWorkflowPathAtom,
 } from "@/lib/store"
-import { matchesPrimaryShortcut } from "@/lib/keyboard-shortcuts"
+import {
+  isShortcutConsumed,
+  matchesPrimaryShortcut,
+} from "@/lib/keyboard-shortcuts"
 import { ProviderSelect } from "@/components/provider-controls"
 import {
   applyWorkflowDetailBudget,
@@ -111,6 +114,7 @@ export function ChatInput({
   }, [isStreaming, onSend, selectedWorkflowPath, setChatDraftByWorkflow, value])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isShortcutConsumed(e.nativeEvent)) return
     if (
       matchesPrimaryShortcut(e, {
         key: "Enter",

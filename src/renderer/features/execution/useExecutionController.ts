@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { useAtomValue, useSetAtom } from "jotai"
+import { addFlowChatMessageAtom } from "./flow-chat-state"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError } from "@/lib/toast-error"
@@ -194,16 +195,19 @@ export function useExecutionController({
   const inboxNotifications = useAtomValue(inboxNotificationsAtom)
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
   const setHasCompletedFirstFlow = useSetAtom(hasCompletedFirstFlowAtom)
+  const addFlowChatMessage = useSetAtom(addFlowChatMessageAtom)
   const commitExecutionStateRef = useRef(commitExecutionState)
   const updateApprovalRequestsRef = useRef(updateApprovalRequests)
   const setPastRunsRef = useRef(setPastRuns)
   const addNotificationRef = useRef(addNotification)
+  const addFlowChatMessageRef = useRef(addFlowChatMessage)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
   const workflowExecutionStatesRef = useRef(workflowExecutionStates)
   commitExecutionStateRef.current = commitExecutionState
   updateApprovalRequestsRef.current = updateApprovalRequests
   setPastRunsRef.current = setPastRuns
   addNotificationRef.current = addNotification
+  addFlowChatMessageRef.current = addFlowChatMessage
   workflowTemplateContextsRef.current = workflowTemplateContexts
   workflowExecutionStatesRef.current = workflowExecutionStates
 
@@ -328,6 +332,9 @@ export function useExecutionController({
               source: "workflow",
             })
           })
+      },
+      onFlowChatMessage: ({ workflowKey, message }) => {
+        addFlowChatMessageRef.current({ workflowKey, message })
       },
       onError: (scope, error) => {
         console.error(`[useChainExecution] ${scope} failed:`, error)

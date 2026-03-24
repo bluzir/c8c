@@ -4,7 +4,12 @@ import {
   approvalRequestsAtom,
   workflowExecutionStatesAtom,
 } from "@/features/execution"
-import { desktopRuntimeAtom, multiRunDashboardOpenAtom } from "@/lib/store"
+import {
+  chatPanelOpenAtom,
+  desktopRuntimeAtom,
+  multiRunDashboardOpenAtom,
+} from "@/lib/store"
+import { flowChatMessagesAtom } from "@/features/execution/flow-chat-state"
 import {
   Dialog,
   DialogContent,
@@ -67,6 +72,8 @@ export function ApprovalDialog() {
   const [requests, setRequests] = useAtom(approvalRequestsAtom)
   const executionStates = useAtomValue(workflowExecutionStatesAtom)
   const desktopRuntime = useAtomValue(desktopRuntimeAtom)
+  const chatOpen = useAtomValue(chatPanelOpenAtom)
+  const allFlowMessages = useAtomValue(flowChatMessagesAtom)
   const multiRunDashboardOpen = useAtomValue(multiRunDashboardOpenAtom)
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
   const [editedContent, setEditedContent] = useState("")
@@ -287,6 +294,18 @@ export function ApprovalDialog() {
   }, [desktopRuntime.primaryModifierKey, pendingAction, request, editedContent])
 
   if (!request) return null
+
+  const hasFlowDecision =
+    chatOpen &&
+    Object.values(allFlowMessages).some((msgs) =>
+      msgs.some(
+        (m) =>
+          m.content.type === "decision" &&
+          m.content.data.runId === request.runId &&
+          m.content.data.nodeId === request.nodeId,
+      ),
+    )
+  if (hasFlowDecision) return null
 
   const removeRequestByKey = (targetKey: string) => {
     setRequests((prev) =>
