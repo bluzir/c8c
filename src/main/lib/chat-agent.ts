@@ -46,6 +46,10 @@ import { saveChain } from "./chain-io"
 const activeSessions = new Map<string, AbortController>()
 const activeWorkflowSessions = new Map<string, string>()
 
+// Window → active session IDs for lifecycle cleanup
+const windowChatSessions = new Map<number, Set<string>>()
+const chatLifecycleBindings = new Set<number>()
+
 let sessionCounter = 0
 let chatMessageCounter = 0
 
@@ -63,6 +67,29 @@ function sendChatEvent(window: BrowserWindow | null, event: ChatEvent) {
   } catch {
     /* window destroyed between check and send */
   }
+}
+
+function cancelActiveWindowChatSessions(windowId: number): void {
+  const sessionIds = windowChatSessions.get(windowId)
+  if (!sessionIds) return
+  for (const sessionId of sessionIds) {
+    const controller = activeSessions.get(sessionId)
+    if (controller) {
+      controller.abort()
+      activeSessions.delete(sessionId)
+    }
+  }
+  windowChatSessions.delete(windowId)
+}
+
+export function bindChatLifecycle(window: BrowserWindow): void {
+  const windowId = window.id
+  if (chatLifecycleBindings.has(windowId)) return
+  chatLifecycleBindings.add(windowId)
+  window.once("closed", () => {
+    chatLifecycleBindings.delete(windowId)
+    cancelActiveWindowChatSessions(windowId)
+  })
 }
 
 async function persistWorkflowMutation(
@@ -442,6 +469,15 @@ export async function handleChatMessage(
   const abortController = new AbortController()
   activeSessions.set(sessionId, abortController)
   activeWorkflowSessions.set(workflowPath, sessionId)
+  if (window && !window.isDestroyed()) {
+    const windowId = window.id
+    let sessions = windowChatSessions.get(windowId)
+    if (!sessions) {
+      sessions = new Set()
+      windowChatSessions.set(windowId, sessions)
+    }
+    sessions.add(sessionId)
+  }
   console.log(
     "[chat-agent] window found:",
     !!window,
@@ -696,6 +732,13 @@ export async function handleChatMessage(
     activeSessions.delete(sessionId)
     if (activeWorkflowSessions.get(workflowPath) === sessionId) {
       activeWorkflowSessions.delete(workflowPath)
+    }
+    if (window && !window.isDestroyed()) {
+      const sessions = windowChatSessions.get(window.id)
+      if (sessions) {
+        sessions.delete(sessionId)
+        if (sessions.size === 0) windowChatSessions.delete(window.id)
+      }
     }
     clearActiveChatSession(sessionId)
   }

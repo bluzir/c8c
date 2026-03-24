@@ -210,7 +210,10 @@ export function spawnClaude(
 
     const timer = setTimeout(() => {
       killed = true
-      child.kill("SIGKILL")
+      child.kill("SIGTERM")
+      setTimeout(() => {
+        if (!child.killed) child.kill("SIGKILL")
+      }, 5_000).unref()
     }, timeout)
 
     const onAbort = () => {

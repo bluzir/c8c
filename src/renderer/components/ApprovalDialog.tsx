@@ -274,8 +274,12 @@ export function ApprovalDialog() {
 
   if (!request) return null
 
-  const removeCurrentRequest = () => {
-    setRequests((prev) => prev.filter((_, i) => i !== clampedIndex))
+  const removeRequestByKey = (targetKey: string) => {
+    setRequests((prev) =>
+      prev.filter(
+        (r) => `${r.workflowKey}::${r.runId}::${r.nodeId}` !== targetKey,
+      ),
+    )
     setSelectedIndex((prev) =>
       prev >= requests.length - 1 ? Math.max(0, prev - 1) : prev,
     )
@@ -289,6 +293,8 @@ export function ApprovalDialog() {
 
   const handleApprove = async () => {
     if (pendingAction !== null) return
+    const targetKey = requestKey
+    if (!targetKey) return
     const content = request.allowEdit ? editedContent : undefined
     setPendingAction("approve")
     try {
@@ -299,11 +305,11 @@ export function ApprovalDialog() {
       )
       if (!ok) {
         toastError("Could not approve step: this flow is no longer active")
-        removeCurrentRequest()
+        removeRequestByKey(targetKey)
         return
       }
       toast.success("Step approved — flow continuing.")
-      removeCurrentRequest()
+      removeRequestByKey(targetKey)
     } catch (err) {
       console.error("[ApprovalDialog] approve failed:", err)
       toastError("Could not approve step")
@@ -316,6 +322,8 @@ export function ApprovalDialog() {
 
   const handleReject = async () => {
     if (pendingAction !== null) return
+    const targetKey = requestKey
+    if (!targetKey) return
     setPendingAction("reject")
     try {
       const ok = await withIpcTimeout(
@@ -325,11 +333,11 @@ export function ApprovalDialog() {
       )
       if (!ok) {
         toastError("Could not stop flow: it is no longer active")
-        removeCurrentRequest()
+        removeRequestByKey(targetKey)
         return
       }
       toast.success("Step rejected — flow stopped.")
-      removeCurrentRequest()
+      removeRequestByKey(targetKey)
     } catch (err) {
       console.error("[ApprovalDialog] reject failed:", err)
       toastError("Could not stop flow")

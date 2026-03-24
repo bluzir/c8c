@@ -3,6 +3,7 @@ import {
   handleChatMessage,
   cancelChatSession,
   getActiveChatSession,
+  bindChatLifecycle,
 } from "../lib/chat-agent"
 import { loadChatHistory, clearChatHistory } from "../lib/chat-storage"
 import type {
@@ -56,6 +57,9 @@ export function registerChatHandlers() {
       })
       try {
         const window = BrowserWindow.fromWebContents(event.sender)
+        if (window && !window.isDestroyed()) {
+          bindChatLifecycle(window)
+        }
         const sessionId = await handleChatMessage(
           safeWorkflowPath,
           message,

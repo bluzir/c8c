@@ -7,6 +7,11 @@ import { writeFileAtomic } from "./atomic-write"
  * my-workflow.chain → my-workflow.chat.json
  */
 function chatPathFor(workflowPath: string): string {
+  if (!/\.(chain|yaml|yml)$/i.test(workflowPath)) {
+    throw new Error(
+      `chatPathFor: unsupported extension in "${workflowPath}". Expected .chain, .yaml, or .yml`,
+    )
+  }
   return workflowPath.replace(/\.(chain|yaml|yml)$/i, ".chat.json")
 }
 

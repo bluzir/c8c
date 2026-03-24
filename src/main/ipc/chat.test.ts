@@ -37,6 +37,7 @@ vi.mock("../lib/chat-agent", () => ({
   cancelChatSession: (...args: unknown[]) => cancelChatSessionMock(...args),
   getActiveChatSession: (...args: unknown[]) =>
     getActiveChatSessionMock(...args),
+  bindChatLifecycle: vi.fn(),
 }))
 
 vi.mock("../lib/chat-storage", () => ({
