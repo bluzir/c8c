@@ -60,7 +60,7 @@ describe("template-filters", () => {
 
   it("keeps segment research discoverable in marketing", () => {
     const template = createTemplate({
-      id: "segment-research-gate",
+      id: "segment-research-jtbd",
       stage: "research",
       name: "Segment Research with Quality Gate",
       description:

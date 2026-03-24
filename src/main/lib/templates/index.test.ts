@@ -27,7 +27,7 @@ describe("builtin template metadata", () => {
       "lead-research-machine",
       "new-vertical-to-live-campaign",
       "seed-account-map-pipeline",
-      "segment-research-gate",
+      "segment-research-jtbd",
       "vertical-pain-to-target-list",
     ])
   })
