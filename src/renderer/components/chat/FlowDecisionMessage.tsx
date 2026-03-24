@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/cn"
 import { toastError } from "@/lib/toast-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -148,14 +147,7 @@ export function FlowDecisionMessage({
     data.resultFacts.length > 0 || data.issues.length > 0
 
   return (
-    <div
-      className={cn(
-        "rounded-lg border-l-[3px] bg-surface-1/60 px-3.5 py-3 space-y-2.5",
-        data.tone === "eval-exhausted"
-          ? "border-l-status-warning"
-          : "border-l-status-info",
-      )}
-    >
+    <div className="space-y-2.5">
       {/* Header: flow name + tone badge */}
       <div className="flex items-center gap-2">
         <span className="ui-meta-text text-muted-foreground truncate">

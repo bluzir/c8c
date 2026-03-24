@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import { FlowResultCard, AllFilesButton } from "./FlowResultCard"
 import { FlowFollowUpList } from "./FlowFollowUpList"
 import type { CompleteContent, FlowFollowUp } from "@/lib/flow-chat-types"
@@ -17,13 +16,9 @@ export function FlowCompleteMessage({
   onOpenReport,
 }: FlowCompleteMessageProps) {
   return (
-    <div className="rounded-lg border-l-[3px] border-status-success bg-surface-1/60 px-4 py-3 space-y-3">
-      {/* Header — flow name only, no "Completed" badge (status shown once in metrics line) */}
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" size="compact">
-          {flowName}
-        </Badge>
-      </div>
+    <div className="space-y-3">
+      {/* Header — flow name as meta label */}
+      <p className="ui-meta-label text-muted-foreground">{flowName}</p>
 
       {/* Summary */}
       <p className="text-body-sm text-foreground">{data.summary}</p>
@@ -42,9 +37,9 @@ export function FlowCompleteMessage({
         </div>
       )}
 
-      {/* Limitations — flat surface, NO bordered container (no cards inside cards) */}
+      {/* Limitations — colored label, no background box */}
       {data.limitations.length > 0 && (
-        <div className="surface-warning-soft px-3 py-2">
+        <div>
           <p className="ui-meta-label text-status-warning">Important</p>
           {data.limitations.map((limit, i) => (
             <p key={i} className="mt-1 text-body-sm text-foreground">

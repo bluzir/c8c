@@ -79,7 +79,7 @@ export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
 
   if (data.collapsed && data.collapsedLabel) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border-l-[3px] border-l-status-success bg-surface-1/60 px-3.5 py-2">
+      <div className="flex items-center gap-2">
         <span className="text-status-success text-[13px]">&#10003;</span>
         <span className="ui-meta-text text-muted-foreground">
           {data.collapsedLabel}
@@ -104,7 +104,7 @@ export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
   }
 
   return (
-    <div className="rounded-lg border-l-[3px] border-l-status-success bg-surface-1/60 px-3.5 py-3 space-y-2">
+    <div className="space-y-2">
       {/* Step checklist */}
       <ul className="space-y-1.5">
         {data.steps.map((step) => {

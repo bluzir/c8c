@@ -1,4 +1,3 @@
-import { cn } from "@/lib/cn"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { FlowAction, ErrorContent } from "@/lib/flow-chat-types"
@@ -35,16 +34,7 @@ const variantBadge: Record<ErrorContent["variant"], React.ReactNode> = {
 
 export function FlowErrorMessage({ flowName, data }: FlowErrorMessageProps) {
   return (
-    <div
-      className={cn(
-        "rounded-lg border-l-[3px] bg-surface-1/60 px-3.5 py-3 space-y-2.5",
-        data.variant === "error"
-          ? "border-l-status-danger"
-          : data.variant === "interrupted"
-            ? "border-l-status-warning"
-            : "border-l-border",
-      )}
-    >
+    <div className="space-y-2.5">
       {/* Header: flow name + variant badge */}
       <div className="flex items-center gap-2">
         <span className="ui-meta-text text-muted-foreground truncate">
