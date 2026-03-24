@@ -675,7 +675,7 @@ describe("workflow-runner evaluator loop", () => {
       mockWindow,
     )
 
-    expect(prompts[0]).toContain("Skill instructions:")
+    expect(prompts[0]).toContain("Skill context (methodology reference")
     expect(prompts[0]).toContain("Skill root directory: /tmp/gstack/review")
     expect(prompts[0]).toContain(
       "Sibling gstack skill pack directory: /tmp/gstack",

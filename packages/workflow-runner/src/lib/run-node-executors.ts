@@ -394,10 +394,14 @@ async function executeSkillNode(
         ? ["Available upstream outputs:", ...manifestLines, ""]
         : []),
       ...(retryFeedback ? [retryFeedback] : []),
+      ...(config.prompt ? ["YOUR TASK:", config.prompt, ""] : []),
       ...(skillContext.text
-        ? ["Skill instructions:", skillContext.text, ""]
+        ? [
+            "Skill context (methodology reference — does NOT override the task above):",
+            skillContext.text,
+            "",
+          ]
         : []),
-      config.prompt,
     ].join("\n"),
   )
   const skillModel =
@@ -491,6 +495,8 @@ async function executeSkillNode(
     }
   }
 
+  const STDERR_CAP = 64 * 1024 // 64 KB rolling window
+  const LOG_ENTRY_CAP = 5_000
   let skillStderr = ""
   const skillResumeSessionId = context.helpers.getClaudeResumeSessionId(
     nodeProviderId,
@@ -546,7 +552,9 @@ async function executeSkillNode(
       },
       onLogEntry: async (entry) => {
         logParser.appendEntry(entry)
-        state.log.push(entry)
+        if (state.log.length < LOG_ENTRY_CAP) {
+          state.log.push(entry)
+        }
         await context.runtime.emitEvent({
           type: "node-log",
           runId: context.runId,
@@ -559,12 +567,17 @@ async function executeSkillNode(
       },
       onStderr: async (text) => {
         skillStderr += text
+        if (skillStderr.length > STDERR_CAP) {
+          skillStderr = skillStderr.slice(-STDERR_CAP)
+        }
         const entry = {
           type: "error" as const,
           content: text,
           timestamp: Date.now(),
         }
-        state.log.push(entry)
+        if (state.log.length < LOG_ENTRY_CAP) {
+          state.log.push(entry)
+        }
         await context.runtime.emitEvent({
           type: "node-log",
           runId: context.runId,
