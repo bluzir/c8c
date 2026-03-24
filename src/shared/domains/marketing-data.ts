@@ -27,7 +27,7 @@ export const marketingDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       "What would make the strategy or assets clearly useful, grounded, and worth shipping?",
   },
   guidedPath: ["Understand", "Plan", "Build", "Check", "Ship"],
-  startTemplateId: "segment-research-gate",
+  startTemplateId: "segment-research-jtbd",
   startActionLabel: "Start from request",
   runtimeLine: "Approves angle and sample quality before scaling.",
 
@@ -40,7 +40,7 @@ export const marketingDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   templateIds: new Set([
     "competitor-ad-intelligence",
     "lead-research-machine",
-    "segment-research-gate",
+    "segment-research-jtbd",
     "seed-account-map-pipeline",
     "vertical-pain-to-target-list",
     "raw-list-to-verified-contacts",
@@ -77,9 +77,9 @@ export const marketingDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   stagePreferences: ["research", "strategy", "outreach"],
   quickStarts: [
     {
-      templateId: "segment-research-gate",
-      label: "Research a segment",
-      summary: "Validate a market segment with research gates.",
+      templateId: "segment-research-jtbd",
+      label: "Research segments",
+      summary: "Grounded segment research with signal collection and scoring.",
       intentLabel: "Do it",
     },
     {

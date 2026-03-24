@@ -39,7 +39,7 @@ export const researchDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   templateIds: new Set([
     "deep-research",
     "content-trend-watch",
-    "segment-research-gate",
+    "segment-research-jtbd",
     "lead-research-machine",
     "competitor-ad-intelligence",
     "vertical-pain-to-target-list",
@@ -78,9 +78,10 @@ export const researchDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       intentLabel: "Plan it",
     },
     {
-      templateId: "segment-research-gate",
-      label: "Research a segment",
-      summary: "Analyze a market segment with validation gates.",
+      templateId: "segment-research-jtbd",
+      label: "Research segments",
+      summary:
+        "Collect signals by type, match to segments, score with fatal flaw detection.",
       intentLabel: "Do it",
     },
     {
@@ -95,7 +96,7 @@ export const researchDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   templateStageOverrides: {
     "deep-research": "shape_map",
     "content-trend-watch": "shape_map",
-    "segment-research-gate": "shape_map",
+    "segment-research-jtbd": "shape_map",
     "lead-research-machine": "plan",
     "competitor-ad-intelligence": "shape_map",
     "vertical-pain-to-target-list": "plan",

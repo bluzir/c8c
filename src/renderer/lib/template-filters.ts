@@ -39,7 +39,7 @@ const MARKETING_TEMPLATE_IDS = new Set([
   "new-vertical-to-live-campaign",
   "landing-page-generator",
   "landing-audit-loop",
-  "segment-research-gate",
+  "segment-research-jtbd",
   "indispensable-jtbd-pipeline",
   "irresistible-resonance-pipeline",
   "ux-ui-polish-audit",
@@ -75,7 +75,7 @@ const CONTENT_TEXT_RE =
 const RESEARCH_TEMPLATE_IDS = new Set([
   "deep-research",
   "content-trend-watch",
-  "segment-research-gate",
+  "segment-research-jtbd",
   "lead-research-machine",
   "competitor-ad-intelligence",
   "vertical-pain-to-target-list",
