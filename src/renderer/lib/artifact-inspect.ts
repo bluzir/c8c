@@ -63,7 +63,7 @@ export function deriveArtifactInspectSummary({
     statusText:
       readyNextLabels.length > 0
         ? `Ready for ${readyNextLabels[0]}${readyNextLabels.length > 1 ? ` and ${readyNextLabels.length - 1} more step${readyNextLabels.length === 2 ? "" : "s"}` : ""}.`
-        : "Saved artifact. No next step is ready from this artifact alone yet.",
+        : "Saved result. No next step is ready from this result alone yet.",
     savedFromText:
       artifact.templateName ||
       artifact.workflowName ||
@@ -71,11 +71,11 @@ export function deriveArtifactInspectSummary({
     sourceText:
       sourceText.length > 0
         ? sourceText.join(" · ")
-        : "No upstream artifacts were recorded for this saved artifact.",
+        : "No upstream results were recorded for this saved result.",
     readyNextText:
       readyNextLabels.length > 0
         ? formatCompactList(readyNextLabels) || ""
-        : "No next step is ready from this artifact alone yet.",
+        : "No next step is ready from this result alone yet.",
     readyNextLabels,
     latestCheckText: caseState?.lastGate?.summaryText || null,
   }
