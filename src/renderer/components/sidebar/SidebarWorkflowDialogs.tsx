@@ -1,7 +1,10 @@
+import { useAtomValue } from "jotai"
 import type { WorkflowFile } from "@shared/types"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { FlowRenameDialog } from "@/components/FlowRenameDialog"
 import { CursorMenu } from "@/components/ui/cursor-menu"
+import { workflowExecutionStatesAtom } from "@/features/execution/state"
+import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { SidebarConfirmDialog } from "./SidebarConfirmDialog"
 import { projectFolderName } from "./projectSidebarUtils"
 
@@ -88,6 +91,17 @@ export function SidebarWorkflowDialogs({
   commitRemoveProject,
   openProjectFlow,
 }: SidebarWorkflowDialogsProps) {
+  const executionStates = useAtomValue(workflowExecutionStatesAtom)
+  const contextWorkflowPath =
+    sidebarContextMenu?.scope === "workflow" ||
+    sidebarContextMenu?.scope === "global_workflow"
+      ? sidebarContextMenu.workflow.path
+      : null
+  const contextRunFolder = contextWorkflowPath
+    ? (executionStates[toWorkflowExecutionKey(contextWorkflowPath)]
+        ?.workspace ?? null)
+    : null
+
   return (
     <>
       <CursorMenu
@@ -132,6 +146,16 @@ export function SidebarWorkflowDialogs({
             >
               Duplicate flow
             </DropdownMenuItem>
+            {contextRunFolder && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  void window.api.showInFinder(contextRunFolder)
+                  setSidebarContextMenu(null)
+                }}
+              >
+                Open run folder
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-status-danger focus:text-status-danger"
               onSelect={() => {
@@ -188,6 +212,16 @@ export function SidebarWorkflowDialogs({
             >
               Duplicate flow
             </DropdownMenuItem>
+            {contextRunFolder && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  void window.api.showInFinder(contextRunFolder)
+                  setSidebarContextMenu(null)
+                }}
+              >
+                Open run folder
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="text-status-danger focus:text-status-danger"
               onSelect={() => {
