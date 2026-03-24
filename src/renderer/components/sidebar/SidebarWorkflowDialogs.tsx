@@ -133,6 +133,7 @@ export function SidebarWorkflowDialogs({
               Duplicate flow
             </DropdownMenuItem>
             <DropdownMenuItem
+              className="text-status-danger focus:text-status-danger"
               onSelect={() => {
                 if (!sidebarContextMenu) return
                 requestDeleteWorkflow(sidebarContextMenu.workflow)
@@ -152,7 +153,7 @@ export function SidebarWorkflowDialogs({
                 setSidebarContextMenu(null)
               }}
             >
-              Open global flow
+              Open flow
             </DropdownMenuItem>
             {selectedProject ? (
               <DropdownMenuItem
@@ -175,7 +176,7 @@ export function SidebarWorkflowDialogs({
                 setSidebarContextMenu(null)
               }}
             >
-              Rename global flow
+              Rename flow
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
@@ -185,7 +186,7 @@ export function SidebarWorkflowDialogs({
                 void duplicateWorkflow(workflow)
               }}
             >
-              Duplicate global flow
+              Duplicate flow
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-status-danger focus:text-status-danger"
