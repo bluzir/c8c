@@ -32,10 +32,12 @@
     "LICENSE"
   ],
   "bin": {
-    "c8c-workflow": "./dist/index.js"
+    "c8c-workflow": "./dist/index.js",
+    "lobster": "./dist/lobster"
   },
   "scripts": {
     "build": "node ./scripts/build.mjs",
+    "prepack": "node ./scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

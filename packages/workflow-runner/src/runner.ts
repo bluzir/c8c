@@ -485,6 +485,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
   >()
   const interrupts = createRunInterruptRegistry()
   const runWorkspaces = new Map<string, string>()
+  const completedRunWorkspaces = new Map<string, string>()
   const workspaceStore =
     deps.workspaceStore ||
     createFilesystemWorkspaceStore(() => new Set(runWorkspaces.values()))
@@ -1148,6 +1149,10 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
       interrupts.resolvePendingEvalOverridesForRun(runId)
       activeRuns.delete(runId)
       pausedRuns.delete(runId)
+      const completedWorkspace = runWorkspaces.get(runId)
+      if (completedWorkspace) {
+        completedRunWorkspaces.set(runId, completedWorkspace)
+      }
       runWorkspaces.delete(runId)
     }
   }
@@ -1332,7 +1337,8 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
     },
 
     async getSnapshot(runId: string): Promise<WorkflowRunSnapshot | null> {
-      const workspace = runWorkspaces.get(runId)
+      const workspace =
+        runWorkspaces.get(runId) || completedRunWorkspaces.get(runId)
       if (!workspace) return null
       return readWorkflowRunSnapshot(workspace)
     },
