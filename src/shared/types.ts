@@ -335,6 +335,8 @@ export interface WorkflowEdge {
 
 // ── Workflow Definition ─────────────────────────────────
 
+export type ExecutionAutonomyPreset = "conservative" | "balanced" | "autonomous"
+
 export interface WorkflowDefaults {
   provider?: ProviderId
   model?: string
@@ -348,6 +350,7 @@ export interface WorkflowDefaults {
   budget_tokens?: number
   budget_cost_usd?: number
   stop_on?: Array<"budget_exceeded" | "mandatory_node_failed">
+  autonomyPreset?: ExecutionAutonomyPreset
 }
 
 export interface Workflow {

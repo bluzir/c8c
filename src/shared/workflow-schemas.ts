@@ -280,6 +280,12 @@ const workflowEdgeSchema = z
   })
   .passthrough()
 
+const executionAutonomyPresetSchema = z.enum([
+  "conservative",
+  "balanced",
+  "autonomous",
+])
+
 const workflowDefaultsSchema = z
   .object({
     provider: providerIdSchema.optional(),
@@ -296,6 +302,7 @@ const workflowDefaultsSchema = z
     stop_on: z
       .array(z.enum(["budget_exceeded", "mandatory_node_failed"]))
       .optional(),
+    autonomyPreset: executionAutonomyPresetSchema.optional(),
   })
   .passthrough()
 

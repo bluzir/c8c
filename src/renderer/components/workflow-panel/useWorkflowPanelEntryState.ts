@@ -307,8 +307,15 @@ export function useWorkflowPanelEntryState({
   const startApprovalRequired = useMemo(
     () =>
       runStatus === "idle" &&
-      contextRequiresStartApproval(selectedWorkflowTemplateContext),
-    [runStatus, selectedWorkflowTemplateContext],
+      contextRequiresStartApproval(
+        selectedWorkflowTemplateContext,
+        workflow.defaults?.autonomyPreset,
+      ),
+    [
+      runStatus,
+      selectedWorkflowTemplateContext,
+      workflow.defaults?.autonomyPreset,
+    ],
   )
   const entryNextStepLabel = useMemo(
     () => deriveEntryNextStepLabel({ readyToRun, nextStageTemplate }),

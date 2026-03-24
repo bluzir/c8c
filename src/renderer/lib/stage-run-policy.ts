@@ -1,4 +1,5 @@
 import type {
+  ExecutionAutonomyPreset,
   ExecutionPolicyTag,
   WorkflowExecutionPolicyProfile,
   WorkflowTemplate,
@@ -14,14 +15,20 @@ function profileHasTag(
 
 export function contextRequiresStartApproval(
   context: WorkflowTemplateRunContext | null | undefined,
+  autonomyPreset?: ExecutionAutonomyPreset | null,
 ) {
+  if (autonomyPreset === "conservative") return true
+  if (autonomyPreset === "autonomous") return false
   return profileHasTag(context?.executionPolicy, "human_gate_required")
 }
 
 export function contextAutoRunsOnContinue(
   context: WorkflowTemplateRunContext | null | undefined,
+  autonomyPreset?: ExecutionAutonomyPreset | null,
 ) {
-  return Boolean(context) && !contextRequiresStartApproval(context)
+  return (
+    Boolean(context) && !contextRequiresStartApproval(context, autonomyPreset)
+  )
 }
 
 export function templateRequiresStartApproval(

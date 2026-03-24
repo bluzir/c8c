@@ -151,6 +151,7 @@ export function useWorkflowPanelContinuationActions({
       setInputAttachments(launch.artifactAttachments)
       const nextStageNeedsApproval = contextRequiresStartApproval(
         launch.templateContext,
+        launch.loadedWorkflow.defaults?.autonomyPreset,
       )
       queuePreparedStageAutoRun({
         filePath: launch.filePath,

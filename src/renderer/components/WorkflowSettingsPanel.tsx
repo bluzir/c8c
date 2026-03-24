@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useAtom, useAtomValue } from "jotai"
-import type { WorkflowDefaults } from "@shared/types"
+import type { ExecutionAutonomyPreset, WorkflowDefaults } from "@shared/types"
 import {
   currentWorkflowAtom,
   globalExecutionDefaultsAtom,
@@ -109,6 +109,74 @@ export function WorkflowSettingsPanel() {
         <Button variant="ghost" size="sm" onClick={() => setViewMode("list")}>
           Back to flow
         </Button>
+      </div>
+
+      <div className={SETTINGS_GROUP_CLASS}>
+        <div className="space-y-1">
+          <h3 className="section-kicker">Flow rules</h3>
+          <p className="ui-meta-text text-muted-foreground">
+            Controls when c8c pauses for human review.
+          </p>
+        </div>
+        <div className="space-y-2">
+          {(
+            [
+              {
+                value: "conservative",
+                label: "Review every step",
+                description:
+                  "Requires approval at each gate. Checks always escalate on failure.",
+              },
+              {
+                value: "balanced",
+                label: "Normal (default)",
+                description:
+                  "Gates and checks work as configured. No extra review unless required.",
+              },
+              {
+                value: "autonomous",
+                label: "Run to completion",
+                description:
+                  "Skips pre-run approval. Checks auto-override on exhaustion.",
+              },
+            ] satisfies Array<{
+              value: ExecutionAutonomyPreset
+              label: string
+              description: string
+            }>
+          ).map(({ value, label, description }) => {
+            const currentPreset = defaults.autonomyPreset ?? "balanced"
+            const isSelected = currentPreset === value
+            return (
+              <label
+                key={value}
+                className="flex items-start gap-2.5 cursor-pointer rounded-md px-2 py-2 hover:bg-surface-2 ui-transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="autonomy-preset"
+                  value={value}
+                  checked={isSelected}
+                  onChange={() => {
+                    updateDefaultField(
+                      "autonomyPreset",
+                      value === "balanced" ? undefined : value,
+                    )
+                  }}
+                  className="mt-0.5 accent-primary shrink-0"
+                />
+                <span className="space-y-0.5">
+                  <span className="block text-body-sm text-foreground">
+                    {label}
+                  </span>
+                  <span className="block ui-meta-text text-muted-foreground">
+                    {description}
+                  </span>
+                </span>
+              </label>
+            )
+          })}
+        </div>
       </div>
 
       <div className={SETTINGS_GROUP_CLASS}>

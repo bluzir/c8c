@@ -535,6 +535,28 @@ export function reduceWorkflowExecutionEvent(
     case "eval-exhausted": {
       const nextOverrideIds = new Set(previousState.evalOverrideNodeIds)
       nextOverrideIds.add(event.nodeId)
+      const autonomyPreset =
+        previousState.workflowSnapshot?.defaults?.autonomyPreset
+
+      // Autonomous preset: auto-override without requiring human decision
+      if (autonomyPreset === "autonomous") {
+        return {
+          nextState: {
+            ...previousState,
+            evalOverrideNodeIds: nextOverrideIds,
+            nodeStates: {
+              ...previousState.nodeStates,
+              [event.nodeId]: {
+                ...getNodeState(previousState, event.nodeId),
+                status: "running",
+              },
+            },
+          },
+          effects: {},
+        }
+      }
+
+      // Conservative and balanced both escalate (current behavior)
       return {
         nextState: {
           ...previousState,
