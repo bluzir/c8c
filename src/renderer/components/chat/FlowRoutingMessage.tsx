@@ -1,5 +1,6 @@
 import { cn } from "@/lib/cn"
 import type { RoutingContent } from "@/lib/flow-chat-types"
+import { CheckCircle2, Circle, Loader2 } from "lucide-react"
 
 interface FlowRoutingMessageProps {
   data: RoutingContent
@@ -7,30 +8,17 @@ interface FlowRoutingMessageProps {
 
 function StepIcon({ status }: { status: "pending" | "running" | "done" }) {
   if (status === "done") {
-    return (
-      <span
-        className="text-status-success text-[13px] leading-none"
-        aria-label="Done"
-      >
-        &#10003;
-      </span>
-    )
+    return <CheckCircle2 size={16} className="shrink-0 text-status-success" />
   }
   if (status === "running") {
     return (
-      <span
-        className="inline-block h-2.5 w-2.5 rounded-full bg-status-info animate-pulse"
-        aria-label="Running"
+      <Loader2
+        size={16}
+        className="shrink-0 text-muted-foreground animate-spin"
       />
     )
   }
-  // pending
-  return (
-    <span
-      className="inline-block h-2.5 w-2.5 rounded-full border border-muted-foreground/40"
-      aria-label="Pending"
-    />
-  )
+  return <Circle size={14} className="shrink-0 text-muted-foreground/30" />
 }
 
 export function FlowRoutingMessage({ data }: FlowRoutingMessageProps) {
@@ -38,45 +26,38 @@ export function FlowRoutingMessage({ data }: FlowRoutingMessageProps) {
   const template = data.selectedTemplate
 
   return (
-    <div className="rounded-lg border-l-[3px] border-l-[hsl(270_60%_60%)] bg-surface-1/60 px-3.5 py-3 space-y-2">
-      {/* Header */}
-      <p
-        className={cn(
-          "text-body-sm font-medium",
-          allDone ? "text-foreground-subtle" : "text-foreground",
-        )}
-      >
+    <div className="space-y-3">
+      {/* Header — flat text, no bubble */}
+      <p className="ui-meta-label text-muted-foreground">
         {allDone
           ? "Starting point selected"
           : "Choosing the best starting point\u2026"}
       </p>
 
-      {/* Step checklist */}
-      <ul className="space-y-1.5">
+      {/* Step checklist — flat, no container */}
+      <div className="space-y-2">
         {data.steps.map((step) => (
-          <li key={step.label} className="flex items-center gap-2">
-            <span className="flex-shrink-0 w-3.5 flex items-center justify-center">
-              <StepIcon status={step.status} />
-            </span>
+          <div key={step.label} className="flex items-center gap-2.5">
+            <StepIcon status={step.status} />
             <span
               className={cn(
                 "text-body-sm",
                 step.status === "done"
-                  ? "text-foreground-subtle"
+                  ? "text-muted-foreground"
                   : step.status === "running"
-                    ? "text-foreground"
-                    : "text-muted-foreground",
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground/60",
               )}
             >
               {step.label}
             </span>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
 
-      {/* Selected template card */}
+      {/* Selected template — flat text, not a card */}
       {template && (
-        <div className="mt-2 rounded-md bg-surface-2/50 px-3 py-2.5 space-y-1">
+        <div className="space-y-1">
           <p className="text-body-sm font-medium text-foreground">
             {template.name}
           </p>
@@ -87,7 +68,7 @@ export function FlowRoutingMessage({ data }: FlowRoutingMessageProps) {
           )}
           {template.estimatedCost && (
             <p className="ui-meta-text text-muted-foreground">
-              Estimated cost: {template.estimatedCost}
+              {template.estimatedCost}
             </p>
           )}
         </div>
