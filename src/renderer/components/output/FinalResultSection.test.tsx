@@ -167,7 +167,7 @@ describe("FinalResultSection", () => {
         })}
       />,
     )
-    expect(screen.getByText("Use in new flow")).toBeTruthy()
+    expect(screen.getByText("Start next flow")).toBeTruthy()
   })
 
   it("shows 'Run again' button when onStartNewRun is provided with continuation", () => {

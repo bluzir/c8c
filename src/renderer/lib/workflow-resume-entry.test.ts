@@ -83,10 +83,11 @@ describe("workflow-resume-entry", () => {
     expect(summary).toMatchObject({
       workLabel: "Seller photo upload",
       currentStepLabel: "Plan",
-      readyBecauseText: "Ready because Feature Spec from Understand is saved.",
+      readyBecauseText:
+        "Ready because Feature Spec from Build from brief is saved.",
       checksText: "No blocking checks or approvals.",
       attachText: "Feature Spec",
-      latestResultText: "Latest result: Feature Spec from Understand.",
+      latestResultText: "Latest result: Feature Spec from Build from brief.",
       continueLabel: "Continue to Plan",
     })
   })
