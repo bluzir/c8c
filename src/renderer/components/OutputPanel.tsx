@@ -620,9 +620,9 @@ export function OutputPanel({
           selectedReviewStatus={selectedReviewRun?.status || null}
           tabOptions={tabOptions}
           onExitReview={
-            reviewingRunHistory
+            reviewingRunHistory && onStartNewRun
               ? () => {
-                  setSelectedPastRun(null)
+                  onStartNewRun()
                 }
               : null
           }
