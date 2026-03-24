@@ -48,7 +48,6 @@ nodes:
       y: 200
     config:
       skillRef: researcher
-      maxTurns: 3
       prompt:
         "Create a QUICK decomposition plan — do NOT research yet, only plan. Return ONLY a JSON array (no markdown, no
         explanation) where each aspect has: name, lens, key_question, why_it_matters, priority (high|medium), and
