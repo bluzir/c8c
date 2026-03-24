@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Check, X } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/cn"
 import { toastError } from "@/lib/toast-error"
 import {
   DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
@@ -75,9 +76,11 @@ export function ApprovalDialog() {
   const [dismissedRequestKey, setDismissedRequestKey] = useState<string | null>(
     null,
   )
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const mountedRef = useRef(true)
 
-  const request = requests[0] ?? null
+  const clampedIndex = Math.min(selectedIndex, Math.max(0, requests.length - 1))
+  const request = requests[clampedIndex] ?? null
   const queueCount = requests.length
   const requestKey = request
     ? `${request.workflowKey}::${request.runId}::${request.nodeId}`
@@ -114,6 +117,32 @@ export function ApprovalDialog() {
     })
   }, [request, requestExecutionState])
   const primaryShortcutLabel = `${desktopRuntime.primaryModifierLabel}↵`
+  const queueLabels = useMemo(() => {
+    return requests.map((req) => {
+      const execState =
+        executionStates[req.workflowKey] ||
+        Object.values(executionStates).find(
+          (state) => state.runId === req.runId,
+        ) ||
+        null
+      const workflow = execState?.workflowSnapshot
+      const stageNode =
+        workflow?.nodes.find((node) => node.id === req.nodeId) || null
+      const stepLabel = stageNode
+        ? getRuntimeNodeLabel(stageNode, { fallbackId: stageNode.id })
+        : labelFromPathLike(req.nodeId, "Step")
+      const flowLabel =
+        execState?.workflowName.trim() ||
+        labelFromPathLike(
+          execState?.runWorkflowPath,
+          labelFromPathLike(req.workflowKey, "Flow"),
+        )
+      return { stepLabel, flowLabel }
+    })
+  }, [requests, executionStates])
+  const hasMultipleFlows =
+    queueLabels.length > 1 &&
+    new Set(queueLabels.map((l) => l.flowLabel)).size > 1
   const requestContext = useMemo(() => {
     if (!request) return null
 
@@ -208,6 +237,13 @@ export function ApprovalDialog() {
     setDismissedRequestKey(null)
   }, [multiRunDashboardOpen])
 
+  // Clamp selectedIndex when queue shrinks externally
+  useEffect(() => {
+    if (selectedIndex >= requests.length && requests.length > 0) {
+      setSelectedIndex(requests.length - 1)
+    }
+  }, [requests.length, selectedIndex])
+
   useEffect(() => {
     if (!request) return
 
@@ -238,8 +274,11 @@ export function ApprovalDialog() {
 
   if (!request) return null
 
-  const shiftQueue = () => {
-    setRequests((prev) => prev.slice(1))
+  const removeCurrentRequest = () => {
+    setRequests((prev) => prev.filter((_, i) => i !== clampedIndex))
+    setSelectedIndex((prev) =>
+      prev >= requests.length - 1 ? Math.max(0, prev - 1) : prev,
+    )
   }
 
   const handleDismiss = () => {
@@ -260,11 +299,11 @@ export function ApprovalDialog() {
       )
       if (!ok) {
         toastError("Could not approve step: this flow is no longer active")
-        shiftQueue()
+        removeCurrentRequest()
         return
       }
       toast.success("Step approved — flow continuing.")
-      shiftQueue()
+      removeCurrentRequest()
     } catch (err) {
       console.error("[ApprovalDialog] approve failed:", err)
       toastError("Could not approve step")
@@ -286,11 +325,11 @@ export function ApprovalDialog() {
       )
       if (!ok) {
         toastError("Could not stop flow: it is no longer active")
-        shiftQueue()
+        removeCurrentRequest()
         return
       }
       toast.success("Step rejected — flow stopped.")
-      shiftQueue()
+      removeCurrentRequest()
     } catch (err) {
       console.error("[ApprovalDialog] reject failed:", err)
       toastError("Could not stop flow")
@@ -309,144 +348,174 @@ export function ApprovalDialog() {
       }}
     >
       <DialogContent
-        className="max-w-2xl max-h-[80vh] overflow-y-auto ui-scroll-region"
+        className={cn(
+          "max-h-[80vh] overflow-hidden",
+          queueCount > 1 ? "max-w-4xl" : "max-w-2xl",
+        )}
         data-approval-dialog="true"
       >
-        <DialogHeader>
-          <DialogTitle>{gateTitle}</DialogTitle>
-          <DialogDescription>{gateDescription}</DialogDescription>
-        </DialogHeader>
-
-        {requestContext && (
-          <ExecutionApprovalSummary
-            flowName={requestContext.workflowName}
-            stepName={requestContext.stageLabel}
-            stepKind={requestContext.stageKind}
-            stepDescription={requestContext.stepDescription}
-            expectedResult={requestContext.expectedResult}
-            inputPreview={request.content}
-            approveConsequence={requestContext.approveConsequence}
-            rejectConsequence={requestContext.rejectConsequence}
-            topBadges={
-              queueCount > 1 ? (
-                <Badge variant="secondary" size="compact">
-                  {queueCount - 1} more pending
-                </Badge>
-              ) : null
-            }
-          />
-        )}
-
-        {hasDecisionDetails ? (
-          <DisclosurePanel
-            summary="Decision details"
-            surface="plain"
-            className="ui-section-divider"
-            summaryClassName="px-0 py-1.5"
-            contentClassName="space-y-3 pt-2"
-            unmountWhenClosed
-          >
-            <FlowRulesPreview
-              rules={flowRules}
-              collapsible
-              defaultOpen={false}
-            />
-
-            {evaluatorSummary ? (
-              <ExecutionLoopCard
-                summary={evaluatorSummary}
-                compact
-                detailSummary="Technical details"
-                surface="flat"
-                showTechnicalBadges={false}
-              />
-            ) : null}
-          </DisclosurePanel>
-        ) : null}
-
-        {request.content &&
-          (request.allowEdit ? (
-            <DisclosurePanel
-              summary={
-                <span className="flex items-center gap-2">
-                  <span>Review and edit input</span>
-                  <Badge variant="outline" size="compact">
-                    Editable
-                  </Badge>
-                </span>
-              }
-              surface="plain"
-              className="ui-section-divider"
-              summaryClassName="px-0 py-1.5"
-              contentClassName="space-y-2 pt-2"
-              unmountWhenClosed
-            >
-              <Textarea
-                value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
-                rows={12}
-                aria-label="Edit step output before continuing"
-                className="font-mono text-body-sm"
-                autoFocus
-              />
-              <p className="ui-meta-text text-muted-foreground">
-                Your edits will be used as the step output when approved.
-              </p>
-            </DisclosurePanel>
-          ) : (
-            <DisclosurePanel
-              summary="Show full input"
-              surface="plain"
-              className="ui-section-divider"
-              summaryClassName="px-0 py-1.5"
-              contentClassName="pt-2"
-              unmountWhenClosed
-            >
-              <div className="max-h-64 overflow-y-auto border-l border-hairline pl-3 ui-scroll-region">
-                <pre className="text-body-sm text-foreground-subtle whitespace-pre-wrap">
-                  {request.content}
-                </pre>
-              </div>
-            </DisclosurePanel>
-          ))}
-
-        <DialogFooter className="ui-section-divider">
-          <div className="mr-auto min-w-0 space-y-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-2 ui-meta-text text-muted-foreground">
-              <span>Press {primaryShortcutLabel} to approve</span>
-              {queueCount > 1 ? (
-                <span>
-                  {queueCount - 1} more approval
-                  {queueCount - 1 === 1 ? "" : "s"} waiting
-                </span>
-              ) : null}
+        <div
+          className={cn(
+            queueCount > 1
+              ? "grid grid-cols-[200px_minmax(0,1fr)] gap-0"
+              : undefined,
+          )}
+        >
+          {queueCount > 1 && (
+            <div className="ui-slab border-r border-hairline overflow-y-auto ui-scroll-region max-h-[calc(80vh-2rem)]">
+              {requests.map((req, index) => {
+                const label = queueLabels[index]
+                return (
+                  <button
+                    key={`${req.workflowKey}::${req.runId}::${req.nodeId}`}
+                    type="button"
+                    onClick={() => setSelectedIndex(index)}
+                    className={cn(
+                      "w-full border-b border-hairline px-3 py-2.5 text-left ui-motion-fast last:border-b-0",
+                      index === clampedIndex
+                        ? "ui-selected-row-tint"
+                        : "bg-transparent hover:bg-surface-2/25",
+                    )}
+                  >
+                    <p className="truncate text-body-sm font-medium text-foreground">
+                      {label?.stepLabel || "Step"}
+                    </p>
+                    {hasMultipleFlows && label?.flowLabel && (
+                      <p className="mt-0.5 truncate ui-meta-text text-muted-foreground">
+                        {label.flowLabel}
+                      </p>
+                    )}
+                  </button>
+                )
+              })}
             </div>
-            <p className="ui-meta-text text-muted-foreground">
-              Closing this dialog keeps the flow paused and moves it to the Runs
-              panel.
-            </p>
+          )}
+          <div className="overflow-y-auto ui-scroll-region max-h-[calc(80vh-2rem)] px-6 py-6 space-y-4">
+            <DialogHeader className="p-0">
+              <DialogTitle>{gateTitle}</DialogTitle>
+              <DialogDescription>{gateDescription}</DialogDescription>
+            </DialogHeader>
+
+            {requestContext && (
+              <ExecutionApprovalSummary
+                flowName={requestContext.workflowName}
+                stepName={requestContext.stageLabel}
+                stepKind={requestContext.stageKind}
+                stepDescription={requestContext.stepDescription}
+                expectedResult={requestContext.expectedResult}
+                inputPreview={request.content}
+                approveConsequence={requestContext.approveConsequence}
+                rejectConsequence={requestContext.rejectConsequence}
+                topBadges={
+                  queueCount > 1 ? (
+                    <Badge variant="secondary" size="compact">
+                      {clampedIndex + 1}/{queueCount}
+                    </Badge>
+                  ) : null
+                }
+              />
+            )}
+
+            {hasDecisionDetails ? (
+              <DisclosurePanel
+                summary="Decision details"
+                surface="plain"
+                className="ui-section-divider"
+                summaryClassName="px-0 py-1.5"
+                contentClassName="space-y-3 pt-2"
+                unmountWhenClosed
+              >
+                <FlowRulesPreview
+                  rules={flowRules}
+                  collapsible
+                  defaultOpen={false}
+                />
+
+                {evaluatorSummary ? (
+                  <ExecutionLoopCard
+                    summary={evaluatorSummary}
+                    compact
+                    detailSummary="Technical details"
+                    surface="flat"
+                    showTechnicalBadges={false}
+                  />
+                ) : null}
+              </DisclosurePanel>
+            ) : null}
+
+            {request.content &&
+              (request.allowEdit ? (
+                <DisclosurePanel
+                  summary={
+                    <span className="flex items-center gap-2">
+                      <span>Review and edit input</span>
+                      <Badge variant="outline" size="compact">
+                        Editable
+                      </Badge>
+                    </span>
+                  }
+                  surface="plain"
+                  className="ui-section-divider"
+                  summaryClassName="px-0 py-1.5"
+                  contentClassName="space-y-2 pt-2"
+                  unmountWhenClosed
+                >
+                  <Textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    rows={12}
+                    aria-label="Edit step output before continuing"
+                    className="font-mono text-body-sm"
+                    autoFocus
+                  />
+                  <p className="ui-meta-text text-muted-foreground">
+                    Your edits will be used as the step output when approved.
+                  </p>
+                </DisclosurePanel>
+              ) : (
+                <DisclosurePanel
+                  summary="Show full input"
+                  surface="plain"
+                  className="ui-section-divider"
+                  summaryClassName="px-0 py-1.5"
+                  contentClassName="pt-2"
+                  unmountWhenClosed
+                >
+                  <div className="max-h-64 overflow-y-auto border-l border-hairline pl-3 ui-scroll-region">
+                    <pre className="text-body-sm text-foreground-subtle whitespace-pre-wrap">
+                      {request.content}
+                    </pre>
+                  </div>
+                </DisclosurePanel>
+              ))}
+
+            <DialogFooter className="ui-section-divider">
+              <span className="mr-auto ui-meta-text text-muted-foreground">
+                {primaryShortcutLabel} approve
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleReject}
+                isLoading={pendingAction === "reject"}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction !== "reject" && <X size={14} />}
+                Reject & stop
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleApprove}
+                disabled={pendingAction !== null}
+                isLoading={pendingAction === "approve"}
+                autoFocus
+              >
+                {pendingAction !== "approve" && <Check size={14} />}
+                Approve & continue
+              </Button>
+            </DialogFooter>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleReject}
-            isLoading={pendingAction === "reject"}
-            disabled={pendingAction !== null}
-          >
-            {pendingAction !== "reject" && <X size={14} />}
-            Reject & stop
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleApprove}
-            disabled={pendingAction !== null}
-            isLoading={pendingAction === "approve"}
-            autoFocus
-          >
-            {pendingAction !== "approve" && <Check size={14} />}
-            Approve & continue
-          </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )
