@@ -3,7 +3,7 @@ import {
   buildDecisionMessage,
   buildCompleteMessage,
 } from "./flow-chat-transformer"
-import type { DecisionContent } from "./flow-chat-types"
+import type { DecisionContent, CompleteContent } from "./flow-chat-types"
 
 describe("buildDecisionMessage", () => {
   it("creates approval-tone message from approval input", () => {
@@ -78,10 +78,11 @@ describe("buildCompleteMessage", () => {
     })
 
     expect(msg.content.type).toBe("complete")
-    expect(msg.content.data.artifacts).toHaveLength(1)
-    expect(msg.content.data.followUps).toHaveLength(1)
-    expect(msg.content.data.metrics.duration).toBe("4 min")
-    expect(msg.content.data.metrics.cost).toBe("$0.08")
+    const data = msg.content.data as CompleteContent
+    expect(data.artifacts).toHaveLength(1)
+    expect(data.followUps).toHaveLength(1)
+    expect(data.metrics.duration).toBe("4 min")
+    expect(data.metrics.cost).toBe("$0.08")
   })
 
   it("caps follow-ups at 3", () => {
@@ -103,9 +104,10 @@ describe("buildCompleteMessage", () => {
       costUsd: 0.01,
     })
 
-    expect(msg.content.data.followUps).toHaveLength(3)
+    const data = msg.content.data as CompleteContent
+    expect(data.followUps).toHaveLength(3)
     // Contextual first, then recommended_next
-    expect(msg.content.data.followUps[0].source).toBe("contextual")
+    expect(data.followUps[0].source).toBe("contextual")
   })
 
   it("caps artifacts at 3", () => {
@@ -125,6 +127,7 @@ describe("buildCompleteMessage", () => {
       costUsd: 0.01,
     })
 
-    expect(msg.content.data.artifacts).toHaveLength(3)
+    const data = msg.content.data as CompleteContent
+    expect(data.artifacts).toHaveLength(3)
   })
 })

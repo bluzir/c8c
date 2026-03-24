@@ -3,6 +3,7 @@ import { useAtom } from "jotai"
 import { useAtomValue, useSetAtom } from "jotai"
 import { ChatMessageBubble } from "./ChatMessageBubble"
 import { FlowDecisionMessage } from "./FlowDecisionMessage"
+import { FlowCompleteMessage } from "./FlowCompleteMessage"
 import { cn } from "@/lib/cn"
 import { ArrowDown } from "lucide-react"
 import {
@@ -146,6 +147,19 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
         {timeline.map((entry, index) => {
           if (entry.kind === "flow") {
             const flowMsg = entry.message
+            if (flowMsg.content.type === "complete") {
+              return (
+                <div
+                  key={flowMsg.id}
+                  className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
+                >
+                  <FlowCompleteMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                  />
+                </div>
+              )
+            }
             return (
               <div
                 key={flowMsg.id}

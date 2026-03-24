@@ -17,7 +17,10 @@ import type {
   WorkflowNode,
 } from "@shared/types"
 import type { FlowChatMessage } from "@/lib/flow-chat-types"
-import { buildDecisionMessage } from "@/lib/flow-chat-transformer"
+import {
+  buildDecisionMessage,
+  buildCompleteMessage,
+} from "@/lib/flow-chat-transformer"
 
 type UpdateValue<T> = T | ((prev: T) => T)
 
@@ -399,6 +402,40 @@ export class WorkflowExecutionController {
     }
 
     if (transition.effects.runFinished) {
+      // Emit Complete message for successful runs before cleanup
+      if (event.type === "run-done") {
+        const finishedState = transition.nextState
+        const startedAt = finishedState.runStartedAt ?? Date.now()
+        const durationMs = Date.now() - startedAt
+        const costUsd = Object.values(finishedState.nodeStates).reduce(
+          (sum, ns) => sum + (ns.metrics?.cost_usd ?? 0),
+          0,
+        )
+
+        if (finishedState.runOutcome === "completed") {
+          const msg = buildCompleteMessage({
+            runId: event.runId,
+            flowName: finishedState.workflowName,
+            summary: "Flow completed.",
+            findings: [],
+            limitations: [],
+            artifacts: event.reportPath
+              ? [
+                  {
+                    name: "report.md",
+                    path: event.reportPath,
+                    kind: "report",
+                  },
+                ]
+              : [],
+            followUps: [],
+            durationMs,
+            costUsd,
+          })
+          this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+        }
+      }
+
       this.deps.onRunFinished?.({ workflowKey, state: transition.nextState })
       this.pendingStarts.delete(workflowKey)
       this.clearRunTracking(event.runId)
