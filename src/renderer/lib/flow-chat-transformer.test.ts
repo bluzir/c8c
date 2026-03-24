@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest"
-import { buildDecisionMessage, buildCompleteMessage } from "./flow-chat-transformer"
+import {
+  buildDecisionMessage,
+  buildCompleteMessage,
+} from "./flow-chat-transformer"
 import type { DecisionContent } from "./flow-chat-types"
 
 describe("buildDecisionMessage", () => {
@@ -56,10 +59,19 @@ describe("buildCompleteMessage", () => {
       findings: ["Best segment: freelance designers (score 8.2)"],
       limitations: ["Studios <5 people: only 2 price signals"],
       artifacts: [
-        { name: "segment-report.md", path: "/workspace/segment-report.md", kind: "research_pack" },
+        {
+          name: "segment-report.md",
+          path: "/workspace/segment-report.md",
+          kind: "research_pack",
+        },
       ],
       followUps: [
-        { label: "Build JTBD positioning", emoji: "💎", source: "recommended_next" as const, templateId: "indispensable-jtbd-pipeline" },
+        {
+          label: "Build JTBD positioning",
+          emoji: "💎",
+          source: "recommended_next" as const,
+          templateId: "indispensable-jtbd-pipeline",
+        },
       ],
       durationMs: 240000,
       costUsd: 0.08,
@@ -104,7 +116,9 @@ describe("buildCompleteMessage", () => {
       findings: [],
       limitations: [],
       artifacts: Array.from({ length: 8 }, (_, i) => ({
-        name: `file-${i}.md`, path: `/workspace/file-${i}.md`, kind: "report",
+        name: `file-${i}.md`,
+        path: `/workspace/file-${i}.md`,
+        kind: "report",
       })),
       followUps: [],
       durationMs: 10000,
