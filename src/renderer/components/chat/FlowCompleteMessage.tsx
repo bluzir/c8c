@@ -1,0 +1,85 @@
+import { Badge } from "@/components/ui/badge"
+import { FlowResultCard, AllFilesButton } from "./FlowResultCard"
+import { FlowFollowUpList } from "./FlowFollowUpList"
+import type { CompleteContent, FlowFollowUp } from "@/lib/flow-chat-types"
+
+interface FlowCompleteMessageProps {
+  flowName: string
+  data: CompleteContent
+  onFollowUp?: (followUp: FlowFollowUp) => void
+  onOpenReport?: (path: string) => void
+}
+
+export function FlowCompleteMessage({
+  flowName,
+  data,
+  onFollowUp,
+  onOpenReport,
+}: FlowCompleteMessageProps) {
+  return (
+    <div className="rounded-lg border-l-[3px] border-status-success bg-surface-1/60 px-4 py-3 space-y-3">
+      {/* Header — flow name only, no "Completed" badge (status shown once in metrics line) */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" size="compact">
+          {flowName}
+        </Badge>
+      </div>
+
+      {/* Summary */}
+      <p className="text-body-sm text-foreground">{data.summary}</p>
+
+      {/* Findings */}
+      {data.findings.length > 0 && (
+        <div>
+          <p className="ui-meta-label text-muted-foreground">What's inside</p>
+          <ul className="mt-1 space-y-0.5">
+            {data.findings.map((finding, i) => (
+              <li key={i} className="text-body-sm text-foreground">
+                • {finding}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Limitations — flat surface, NO bordered container (no cards inside cards) */}
+      {data.limitations.length > 0 && (
+        <div className="surface-warning-soft px-3 py-2">
+          <p className="ui-meta-label text-status-warning">Important</p>
+          {data.limitations.map((limit, i) => (
+            <p key={i} className="mt-1 text-body-sm text-foreground">
+              {limit}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* Artifacts */}
+      {data.artifacts.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {data.artifacts.map((artifact, i) => (
+            <FlowResultCard
+              key={i}
+              name={artifact.name}
+              kind={artifact.kind}
+              sizeLabel={artifact.sizeLabel}
+              onClick={() => onOpenReport?.(artifact.path)}
+            />
+          ))}
+          <AllFilesButton />
+        </div>
+      )}
+
+      {/* Metrics — single status signal for completion */}
+      <div className="flex items-center gap-2 ui-section-divider pt-2">
+        <span className="text-status-success">✓</span>
+        <span className="ui-meta-text text-muted-foreground">
+          Completed · {data.metrics.duration} · {data.metrics.cost}
+        </span>
+      </div>
+
+      {/* Follow-ups */}
+      <FlowFollowUpList followUps={data.followUps} onSelect={onFollowUp} />
+    </div>
+  )
+}
