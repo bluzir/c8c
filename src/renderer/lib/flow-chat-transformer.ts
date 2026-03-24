@@ -1,8 +1,38 @@
 import type {
   FlowChatMessage,
   FlowAction,
+  FlowFollowUp,
+  FlowResultFile,
   DecisionContent,
+  CompleteContent,
 } from "./flow-chat-types"
+
+const MAX_FOLLOW_UPS = 3
+const MAX_ARTIFACTS = 3
+
+function formatDuration(ms: number): string {
+  const seconds = Math.round(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.round(seconds / 60)
+  return `${minutes} min`
+}
+
+function formatCost(usd: number): string {
+  if (usd < 0.01) return "<$0.01"
+  return `$${usd.toFixed(2)}`
+}
+
+interface CompleteInput {
+  runId: string
+  flowName: string
+  summary: string
+  findings: string[]
+  limitations: string[]
+  artifacts: FlowResultFile[]
+  followUps: FlowFollowUp[]
+  durationMs: number
+  costUsd: number
+}
 
 interface ApprovalDecisionInput {
   type: "approval"
@@ -110,5 +140,37 @@ export function buildDecisionMessage(input: DecisionInput): FlowChatMessage {
     flowName,
     timestamp: Date.now(),
     content: { type: "decision", data },
+  }
+}
+
+export function buildCompleteMessage(input: CompleteInput): FlowChatMessage {
+  // Prioritize: contextual first (up to 1), then recommended_next
+  const contextual = input.followUps.filter((f) => f.source === "contextual")
+  const template = input.followUps.filter(
+    (f) => f.source === "recommended_next",
+  )
+  const cappedFollowUps = [
+    ...contextual.slice(0, 1),
+    ...template.slice(0, MAX_FOLLOW_UPS - Math.min(contextual.length, 1)),
+  ].slice(0, MAX_FOLLOW_UPS)
+
+  const data: CompleteContent = {
+    summary: input.summary,
+    findings: input.findings,
+    limitations: input.limitations,
+    artifacts: input.artifacts.slice(0, MAX_ARTIFACTS),
+    followUps: cappedFollowUps,
+    metrics: {
+      duration: formatDuration(input.durationMs),
+      cost: formatCost(input.costUsd),
+    },
+    runId: input.runId,
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    flowName: input.flowName,
+    timestamp: Date.now(),
+    content: { type: "complete", data },
   }
 }

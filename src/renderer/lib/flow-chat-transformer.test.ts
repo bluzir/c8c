@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { buildDecisionMessage } from "./flow-chat-transformer"
+import { buildDecisionMessage, buildCompleteMessage } from "./flow-chat-transformer"
 import type { DecisionContent } from "./flow-chat-types"
 
 describe("buildDecisionMessage", () => {
@@ -44,5 +44,73 @@ describe("buildDecisionMessage", () => {
     expect(data.issues.length).toBeGreaterThan(0)
     expect(data.question).toContain("accept")
     expect(data.actions.some((a) => a.label === "Stop & restart")).toBe(true)
+  })
+})
+
+describe("buildCompleteMessage", () => {
+  it("creates complete message with artifacts and follow-ups", () => {
+    const msg = buildCompleteMessage({
+      runId: "run-1",
+      flowName: "Segment Research JTBD",
+      summary: "Researched 8 segments for AI design tools.",
+      findings: ["Best segment: freelance designers (score 8.2)"],
+      limitations: ["Studios <5 people: only 2 price signals"],
+      artifacts: [
+        { name: "segment-report.md", path: "/workspace/segment-report.md", kind: "research_pack" },
+      ],
+      followUps: [
+        { label: "Build JTBD positioning", emoji: "💎", source: "recommended_next" as const, templateId: "indispensable-jtbd-pipeline" },
+      ],
+      durationMs: 240000,
+      costUsd: 0.08,
+    })
+
+    expect(msg.content.type).toBe("complete")
+    expect(msg.content.data.artifacts).toHaveLength(1)
+    expect(msg.content.data.followUps).toHaveLength(1)
+    expect(msg.content.data.metrics.duration).toBe("4 min")
+    expect(msg.content.data.metrics.cost).toBe("$0.08")
+  })
+
+  it("caps follow-ups at 3", () => {
+    const msg = buildCompleteMessage({
+      runId: "run-1",
+      flowName: "Test",
+      summary: "Done",
+      findings: [],
+      limitations: [],
+      artifacts: [],
+      followUps: [
+        { label: "A", emoji: "1", source: "contextual" as const },
+        { label: "B", emoji: "2", source: "recommended_next" as const },
+        { label: "C", emoji: "3", source: "recommended_next" as const },
+        { label: "D", emoji: "4", source: "recommended_next" as const },
+        { label: "E", emoji: "5", source: "recommended_next" as const },
+      ],
+      durationMs: 60000,
+      costUsd: 0.01,
+    })
+
+    expect(msg.content.data.followUps).toHaveLength(3)
+    // Contextual first, then recommended_next
+    expect(msg.content.data.followUps[0].source).toBe("contextual")
+  })
+
+  it("caps artifacts at 3", () => {
+    const msg = buildCompleteMessage({
+      runId: "run-1",
+      flowName: "Test",
+      summary: "Done",
+      findings: [],
+      limitations: [],
+      artifacts: Array.from({ length: 8 }, (_, i) => ({
+        name: `file-${i}.md`, path: `/workspace/file-${i}.md`, kind: "report",
+      })),
+      followUps: [],
+      durationMs: 10000,
+      costUsd: 0.01,
+    })
+
+    expect(msg.content.data.artifacts).toHaveLength(3)
   })
 })
