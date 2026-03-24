@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { useAtom } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import { ChatMessageBubble } from "./ChatMessageBubble"
+import { FlowDecisionMessage } from "./FlowDecisionMessage"
 import { cn } from "@/lib/cn"
 import { ArrowDown } from "lucide-react"
 import {
@@ -8,6 +10,16 @@ import {
   selectedWorkflowPathAtom,
   type ChatMessageDisplay,
 } from "@/lib/store"
+import {
+  currentFlowChatMessagesAtom,
+  resolvedDecisionIdsAtom,
+  resolveFlowChatDecisionAtom,
+} from "@/features/execution/flow-chat-state"
+import type { FlowChatMessage } from "@/lib/flow-chat-types"
+
+type TimelineEntry =
+  | { kind: "chat"; message: ChatMessageDisplay }
+  | { kind: "flow"; message: FlowChatMessage }
 
 interface ChatMessagesProps {
   messages: ChatMessageDisplay[]
@@ -22,6 +34,25 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const [chatScrollTopByWorkflow, setChatScrollTopByWorkflow] = useAtom(
     chatScrollTopByWorkflowAtom,
   )
+  const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
+  const resolvedIds = useAtomValue(resolvedDecisionIdsAtom)
+  const resolveDecision = useSetAtom(resolveFlowChatDecisionAtom)
+
+  const timeline = useMemo<TimelineEntry[]>(() => {
+    const chatEntries: TimelineEntry[] = messages.map((m) => ({
+      kind: "chat",
+      message: m,
+    }))
+    const flowEntries: TimelineEntry[] = flowMessages.map((m) => ({
+      kind: "flow",
+      message: m,
+    }))
+    return [...chatEntries, ...flowEntries].sort((a, b) => {
+      const tsA = a.kind === "chat" ? a.message.timestamp : a.message.timestamp
+      const tsB = b.kind === "chat" ? b.message.timestamp : b.message.timestamp
+      return tsA - tsB
+    })
+  }, [messages, flowMessages])
 
   useEffect(() => {
     const el = containerRef.current
@@ -73,12 +104,18 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
           [selectedWorkflowPath]: el.scrollTop,
         }))
       }
-    } else if (messages.length > 0) {
+    } else if (messages.length > 0 || flowMessages.length > 0) {
       setShowScrollIndicator(true)
     }
-  }, [messages, selectedWorkflowPath, setChatScrollTopByWorkflow, status])
+  }, [
+    messages,
+    flowMessages,
+    selectedWorkflowPath,
+    setChatScrollTopByWorkflow,
+    status,
+  ])
 
-  if (messages.length === 0) {
+  if (timeline.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center p-6 text-center">
         <div className="ui-empty-state rounded-lg px-8 text-muted-foreground">
@@ -106,9 +143,35 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
         ref={containerRef}
         className="h-full overflow-y-auto ui-scroll-region px-3 py-3 space-y-0"
       >
-        {messages.map((msg, index) => {
-          const prev = messages[index - 1]
-          const next = messages[index + 1]
+        {timeline.map((entry, index) => {
+          if (entry.kind === "flow") {
+            const flowMsg = entry.message
+            return (
+              <div
+                key={flowMsg.id}
+                className={cn("ui-fade-slide-in pt-3", index === 0 && "pt-0")}
+              >
+                <FlowDecisionMessage
+                  flowName={flowMsg.flowName}
+                  data={
+                    flowMsg.content.type === "decision"
+                      ? flowMsg.content.data
+                      : (undefined as never)
+                  }
+                  resolved={resolvedIds.has(flowMsg.id)}
+                  onResolved={() => resolveDecision(flowMsg.id)}
+                />
+              </div>
+            )
+          }
+
+          const msg = entry.message
+          const prevEntry = timeline[index - 1]
+          const nextEntry = timeline[index + 1]
+          const prev =
+            prevEntry?.kind === "chat" ? prevEntry.message : undefined
+          const next =
+            nextEntry?.kind === "chat" ? nextEntry.message : undefined
           const isTurnMessage = msg.role === "user" || msg.role === "assistant"
           const groupedWithPrevious = Boolean(
             isTurnMessage && prev && prev.role === msg.role,
