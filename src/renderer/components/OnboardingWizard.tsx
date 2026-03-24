@@ -356,7 +356,7 @@ function StepCheckCli() {
                       ? authenticated
                         ? "Authenticated"
                         : verdict.badgeLabel === "Check sign-in"
-                          ? "Authentication could not be verified automatically"
+                          ? "Sign-in could not be verified — try running the CLI manually"
                           : "Not authenticated"
                       : "Authentication unavailable until the CLI is installed"}
                   </span>
@@ -395,7 +395,7 @@ function StepCheckCli() {
             <p className="text-body-sm text-status-success font-medium">
               {hasMultipleAvailableProviders
                 ? "Multiple providers are available. You can switch between them later in Settings."
-                : "A provider is ready to go."}
+                : `${PROVIDER_LABELS[readyProviders[0]]} is ready.`}
             </p>
           ) : (
             <p className="ui-meta-text text-muted-foreground">
@@ -404,9 +404,6 @@ function StepCheckCli() {
             </p>
           )}
 
-          <p className="ui-meta-text text-muted-foreground">
-            No custom skills needed to start.
-          </p>
           <div className="pt-1">
             <Button
               type="button"
@@ -476,7 +473,7 @@ function StepOpenProject({
           </div>
           <p className="truncate text-body-sm text-foreground">{projectPath}</p>
           <p className="ui-meta-text text-muted-foreground">
-            Continue to start your first real flow.
+            Continue to start your first flow.
           </p>
         </div>
       ) : (
@@ -522,7 +519,7 @@ function StepUnderstandWorkflow({
     "Build a flow that reviews this codebase for risky files, then summarizes what to fix first."
   const flowSteps = [
     "Describe the result you want in plain language.",
-    "The system picks the best starting path and runs the first steps.",
+    "c8c picks the best starting point and runs the first steps.",
     "Review the first result, then refine if needed.",
   ]
 
@@ -563,9 +560,6 @@ function StepUnderstandWorkflow({
             Browse starting points
           </Button>
         </div>
-        <p className="ui-meta-text text-muted-foreground">
-          No custom skills needed to start.
-        </p>
         <p className="ui-meta-text text-muted-foreground">
           Tip: write the goal first. You can browse starting points if you want
           a curated way to begin.
