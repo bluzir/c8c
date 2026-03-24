@@ -25,6 +25,14 @@ Single source of truth for c8c product decisions. All specs, plans, and implemen
 - Content guided experience — routing agent, intents, domain context, router destination registry
 - QA audit remediation (Wave 1) — 3 P1 + 2 critical P2 bugs. Registry: `docs/superpowers/specs/2026-03-24-qa-audit-findings.md`
 
+**Next: R2.5 — Eval Data Layer + Iteration Loop** (validated by Karpathy thesis analysis: `docs/research/KARPATHY-THESIS-ANALYSIS.md`)
+- OS notifications (desktop-level) — enables async operator model
+- Eval persistence + pass-rate surfacing — user sees WHERE skill bottleneck is (direct NSM lever)
+- Skill edit-and-rerun from failed check — closes instruction-improvement loop inside product (retention lever)
+- Evaluator confidence calibration — near-threshold escalation to human instead of auto-binary
+- New metrics: `evaluator_save_rate`, `gate_pass@1`
+- Crash recovery — seamless resume after app close. Design spec: `docs/superpowers/specs/2026-03-24-crash-recovery-design.md`
+
 **Not working / incomplete:**
 - Marketing remains library-only
 - Courses remain library-only

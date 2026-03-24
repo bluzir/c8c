@@ -201,36 +201,51 @@
 
 ## Сводка: что нужно скорректировать
 
-### Pull forward (R2 → R2.5)
+### Скоринг по сегментам, JTBD, NSM, CANON, STRATEGY
 
-| # | Действие | Тезис-источник | Impact |
-|---|----------|----------------|--------|
-| 1 | OS notifications (desktop-level) | Parallelization | Enables async operator model — smallest change, biggest unlock |
-| 2 | Eval persistence + pass-rate surfacing | Skill issue | User sees WHERE skill issue is — direct NSM lever |
-| 3 | Lightweight skill edit-and-rerun from failed eval gate | Skill issue | Closes iteration loop inside product — retention lever |
-| 4 | Evaluator confidence calibration | Jaggedness | Near-threshold → human escalation instead of auto-binary |
+Каждый item оценён через призму top-3 сегментов (Skill Author 9.5, Solo Indie 9.0, Technical Founder 9.0), coverage JTBD сценариев, прямого влияния на NSM, и alignment с CANON/STRATEGY.
 
-### Design now, ship R3
+| # | Item | Verdict | Effort | NSM | Top segment | Dependency |
+|---|------|---------|--------|-----|-------------|------------|
+| 1 | OS notifications | **NOW** | S | Indirect — prevents approval abandonment | All 3 | None |
+| 2 | Eval persistence + pass-rate surfacing | **NOW** | M | **Direct** — reveals bottleneck blocking result | Skill Author (primary) | None (foundational) |
+| 3 | Skill edit-and-rerun from failed gate | **NOW** | M | **Direct** — closes identified churn loop | Skill Author (primary) | Item 2 |
+| 4 | Evaluator confidence calibration | **NOW** | S-M | **Direct** — catches false passes at threshold | All 3 | None |
+| 10 | `evaluator_save_rate` metric | **NOW** | S | Direct — proves evaluator value, ROI story | All 3 | Item 2 |
+| 11 | `gate_pass@1` metric | **NOW** | S | Direct — reveals skill reliability | Skill Author (primary) | Item 2 |
+| 8 | Domain evaluator presets | **SOON** | M | Indirect — lowers check authoring bar | All 3 (Consultant most) | Base evaluator stable |
+| 5 | Cross-project multi-run data model | **SOON** | L | None for R2 — operator-scale concern | Skill Author, Founder | R3 architecture |
+| 6 | R3 memory (claw use case) | **SOON** | L | Indirect — improves future runs | Skill Author, Founder | R3 architecture |
+| 9 | OpenClaw Releases 4-7 | **NOW** | M-L | Indirect — distribution/reach | Solo Indie, Founder | External project |
+| 7 | Experiment abstraction | **LATER** | L | None for R2 — conflicts CANON 0.3 | Skill Author (niche) | R3+, Factory model |
 
-| # | Действие | Тезис-источник |
-|---|----------|----------------|
-| 5 | Cross-project multi-run data model | Parallelization |
-| 6 | R3 memory with claw use case (accumulated context, не log) | Claw |
-| 7 | Experiment abstraction (flow × parameter variations) | Auto-research |
-| 8 | Domain-specific evaluator presets | Jaggedness |
+### Ключевые findings
 
-### Accelerate external
+**1. Items 2+10+11 = один workstream "eval data layer".** Persistence — фундамент, метрики вычисляются из тех же данных. Ship together. Highest-leverage R2.5 investment: serves #1 segment (Skill Author), directly improves NSM, builds data foundation для R3 self-observing layer.
 
-| # | Действие | Тезис-источник |
-|---|----------|----------------|
-| 9 | OpenClaw Releases 4-7 (Telegram, ClawHub, setup) | Claw |
+**2. Item 3 — retention-critical.** Единственный item закрывающий идентифицированную churn loop: user sees failed gate → leaves c8c to edit in VS Code → after 5 iterations gives up → returns to raw Claude Code with tuned CLAUDE.md. c8c lost the user not because runtime was wrong, but because instruction-improvement loop was too slow.
 
-### New metric
+**3. Item 4 — hardens the moat.** Binary pass/fail = v1 evaluator. Confidence-calibrated escalation = v2 that competitors cannot easily replicate. STRATEGY identifies evaluator as THE defensible asset with 6-12 month window. Small effort, high strategic value.
 
-| Metric | What it measures | Тезис |
-|--------|-----------------|-------|
-| `evaluator_save_rate` | How often eval catches bad output that retry fixes | Jaggedness |
-| `gate_pass@1` | First-attempt evaluator pass rate per skill | Skill issue + Auto-research |
+**4. Item 7 correctly deferred.** Conflicts CANON 0.3 ("skip Factory as primary UX"), does not improve NSM, requires R3 self-observing layer. Karpathy analysis itself says "don't pivot R2 focus."
+
+### R2.5 Implementation sequencing
+
+```
+Wave 1 (week 1, parallel):
+  OS notifications (item 1)     ─── S effort, no dependencies
+  Eval persistence schema (item 2 foundation) ─── M effort, foundational
+
+Wave 2 (week 2):
+  Pass-rate UI surface (item 2 completion)
+  Derived metrics: evaluator_save_rate (item 10) + gate_pass@1 (item 11)
+  Evaluator confidence calibration (item 4)
+
+Wave 3 (weeks 3-4):
+  Skill edit-and-rerun (item 3) ─── depends on wave 2 eval history context
+```
+
+Total: ~3-4 weeks for all 6 NOW items. Each wave builds on the prior. SOON/LATER items positioned for R3 design phase.
 
 ---
 
