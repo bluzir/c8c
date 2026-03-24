@@ -72,7 +72,7 @@ function DependencyWarningDialog({
                 checked={acknowledgeBrokenRefs}
                 onCheckedChange={onAcknowledgeBrokenRefsChange}
               />
-              I understand this may break `skillRef` in the current flow.
+              I understand this may break skill steps in the current flow.
             </Label>
           </div>
         )}

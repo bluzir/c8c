@@ -144,8 +144,7 @@ export function PluginCard({
           ))}
         </div>
         <p className="text-body-sm text-muted-foreground line-clamp-2">
-          {plugin.description ||
-            "Plugin bundle for executable pipeline assets."}
+          {plugin.description || "Skill pack — no description provided."}
         </p>
         <p className="ui-meta-text text-muted-foreground mt-0.5">
           {plugin.marketplaceName}

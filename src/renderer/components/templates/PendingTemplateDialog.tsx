@@ -69,7 +69,7 @@ export function PendingTemplateDialog({
                   deriveTemplateJobLabel(pendingTemplate) ||
                   getWorkflowTemplateDisplayName(pendingTemplate)
                 }`
-              : "Start this starting point"}
+              : "Start this flow"}
           </DialogTitle>
           <DialogDescription>
             &ldquo;
@@ -155,7 +155,7 @@ export function PendingTemplateDialog({
                 }`}
               >
                 <p className="text-body-sm font-medium text-foreground">
-                  Replace current draft
+                  Replace current flow
                 </p>
                 <p className="mt-1 text-body-sm text-muted-foreground">
                   Swap the current draft for this starting point.
