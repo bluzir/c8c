@@ -109,6 +109,8 @@ import { useWorkflowPanelReviewState } from "./workflow-panel/useWorkflowPanelRe
 import { useWorkflowPanelShellDerivations } from "./workflow-panel/useWorkflowPanelShellDerivations"
 import { useWorkflowStageLaunch } from "./workflow-panel/useWorkflowStageLaunch"
 import { WorkflowChatPanelShell } from "./workflow-panel/WorkflowChatPanelShell"
+import { ChatPanel } from "./chat/ChatPanel"
+import { SectionErrorBoundary } from "@/components/ui/error-boundary"
 import {
   resolveSavedRunReviewRequested,
   resolveWorkflowReviewModes,
@@ -544,6 +546,15 @@ export function WorkflowPanel() {
     workflowName: workflow.name,
     elapsed,
   })
+  // When execution is active, the chat panel becomes the main surface
+  const executionChatActive =
+    canShowAgentPanel &&
+    (shellState === "running" ||
+      shellState === "paused" ||
+      shellState === "completed" ||
+      shellState === "failed" ||
+      shellState === "cancelled" ||
+      shellState === "blocked")
   const {
     blockedInspectionVisible,
     requestOutputTab,
@@ -1068,6 +1079,10 @@ export function WorkflowPanel() {
           <WorkflowOpenLoadingState
             flowLabel={workflowTitleFromPath(workflowOpenState.targetPath)}
           />
+        ) : executionChatActive ? (
+          <SectionErrorBoundary sectionName="Flow chat">
+            <ChatPanel embedded onClose={() => setChatOpen(false)} />
+          </SectionErrorBoundary>
         ) : (
           <>
             {workflowOpenState.status === "error" && (
@@ -1256,7 +1271,7 @@ export function WorkflowPanel() {
         />
       </div>
 
-      {canShowAgentPanel && (
+      {canShowAgentPanel && !executionChatActive && (
         <WorkflowChatPanelShell
           shellRef={chatPanelShellRef}
           open={chatOpen}

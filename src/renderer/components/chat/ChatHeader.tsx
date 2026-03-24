@@ -17,6 +17,7 @@ interface ChatHeaderProps {
   status: "idle" | "thinking" | "streaming" | "error"
   activeToolName: string | null
   title?: string
+  showClose?: boolean
 }
 
 export function ChatHeader({
@@ -28,6 +29,7 @@ export function ChatHeader({
   status,
   activeToolName,
   title = "Agent",
+  showClose = true,
 }: ChatHeaderProps) {
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
   const canUndoAction = canUndo && status === "idle"
@@ -111,19 +113,21 @@ export function ChatHeader({
         <TooltipContent>Clear Agent history</TooltipContent>
       </Tooltip>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close Agent panel"
-            className="ui-icon-button"
-          >
-            <PanelRightClose size={13} />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>Close Agent panel</TooltipContent>
-      </Tooltip>
+      {showClose && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close Agent panel"
+              className="ui-icon-button"
+            >
+              <PanelRightClose size={13} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Close Agent panel</TooltipContent>
+        </Tooltip>
+      )}
 
       <SingleDecisionDialog
         open={confirmClearOpen}

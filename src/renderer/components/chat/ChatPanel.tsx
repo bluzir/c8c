@@ -15,6 +15,8 @@ interface ChatPanelProps {
   onClose: () => void
   minWidth?: number
   maxWidth?: number
+  /** When true, fills parent container instead of using fixed width. Hides resize handle and close button. */
+  embedded?: boolean
 }
 
 export function ChatPanel({
@@ -22,6 +24,7 @@ export function ChatPanel({
   onClose,
   minWidth = MIN_PANEL_WIDTH,
   maxWidth = MAX_PANEL_WIDTH,
+  embedded = false,
 }: ChatPanelProps) {
   const [panelWidth, setPanelWidth] = useAtom(chatPanelWidthAtom)
   const [resizing, setResizing] = useState(false)
@@ -92,28 +95,33 @@ export function ChatPanel({
   return (
     <div
       className={cn(
-        "relative flex h-full flex-col border-l border-hairline bg-background shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
-        collapsed && "translate-x-4 opacity-0 pointer-events-none",
+        "relative flex h-full flex-col bg-background",
+        embedded
+          ? "flex-1 min-w-0"
+          : "border-l border-hairline shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
+        !embedded && collapsed && "translate-x-4 opacity-0 pointer-events-none",
       )}
-      style={{ width: panelWidth }}
+      style={embedded ? undefined : { width: panelWidth }}
     >
-      {/* Left resize handle */}
-      <div
-        role="slider"
-        aria-orientation="horizontal"
-        aria-label="Resize Agent panel"
-        aria-valuenow={panelWidth}
-        aria-valuemin={minWidth}
-        aria-valuemax={maxPanelWidth}
-        tabIndex={0}
-        onPointerDown={startResize}
-        onKeyDown={handleResizeKeyDown}
-        className={cn(
-          "absolute left-0 top-0 h-full z-10 ui-resize-handle",
-          collapsed && "pointer-events-none",
-        )}
-        data-resizing={resizing}
-      />
+      {/* Left resize handle — side-panel mode only */}
+      {!embedded && (
+        <div
+          role="slider"
+          aria-orientation="horizontal"
+          aria-label="Resize Agent panel"
+          aria-valuenow={panelWidth}
+          aria-valuemin={minWidth}
+          aria-valuemax={maxPanelWidth}
+          tabIndex={0}
+          onPointerDown={startResize}
+          onKeyDown={handleResizeKeyDown}
+          className={cn(
+            "absolute left-0 top-0 h-full z-10 ui-resize-handle",
+            collapsed && "pointer-events-none",
+          )}
+          data-resizing={resizing}
+        />
+      )}
 
       <ChatHeader
         onClose={onClose}
@@ -126,6 +134,7 @@ export function ChatPanel({
         }
         status={status}
         activeToolName={activeToolName}
+        showClose={!embedded}
       />
 
       <ChatMessages messages={messages} status={status} />
