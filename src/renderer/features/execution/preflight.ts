@@ -135,6 +135,28 @@ export function isProviderNetworkError(
   return NETWORK_ERROR_PATTERNS.some((pattern) => lower.includes(pattern))
 }
 
+const RATE_LIMIT_ERROR_PATTERNS = [
+  "rate limit",
+  "rate_limit",
+  "429",
+  "too many requests",
+  "overloaded",
+  "throttl",
+  "capacity",
+]
+
+/**
+ * Returns true when the error message indicates an API rate limit or
+ * overload condition (429, "overloaded", throttling, etc.).
+ */
+export function isRateLimitError(
+  errorMessage: string | null | undefined,
+): boolean {
+  if (!errorMessage) return false
+  const lower = errorMessage.toLowerCase()
+  return RATE_LIMIT_ERROR_PATTERNS.some((pattern) => lower.includes(pattern))
+}
+
 function unavailableMessage(
   provider: ProviderId,
   cliStatus: ClaudeCodeSubscriptionStatus | null,

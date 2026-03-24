@@ -61,12 +61,16 @@ function deriveFailureRecovery(
 
   if (
     normalized.includes("rate limit") ||
+    normalized.includes("rate_limit") ||
     normalized.includes("too many requests") ||
-    normalized.includes("429")
+    normalized.includes("429") ||
+    normalized.includes("overloaded") ||
+    normalized.includes("throttl") ||
+    normalized.includes("capacity")
   ) {
     return {
       categoryLabel: "Rate limit",
-      hint: "Wait a moment, then retry the failing step.",
+      hint: "The API is temporarily limiting requests. Wait a few minutes, then retry the failing step.",
     }
   }
 

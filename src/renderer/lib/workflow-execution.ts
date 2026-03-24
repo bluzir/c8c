@@ -13,6 +13,7 @@ import type {
   WorkflowRuntimeMeta,
 } from "@shared/types"
 import { resolveWorkflowRunDisplayState } from "@/lib/workflow-run-display-state"
+import { isRateLimitError } from "@/features/execution/preflight"
 
 export type { EvalCriterion, EvaluationResult } from "@shared/types"
 
@@ -219,6 +220,17 @@ export function buildExecutionSurfaceNotice(
   }
 
   if (runDisplayState.state === "failed") {
+    if (isRateLimitError(state.lastError)) {
+      return {
+        level: "warning" as const,
+        title: "Rate limit reached",
+        description:
+          "The API is temporarily limiting requests. Wait a few minutes and run again.",
+        actionLabel: "Open summary",
+        actionTarget: "activity" as const,
+      }
+    }
+
     return {
       level: "error",
       title: "Run failed",
