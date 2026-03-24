@@ -152,6 +152,14 @@ export function AppStatusBar() {
     },
     0,
   )
+  const blockedFlowCount = Object.entries(workflowExecutionStates).reduce(
+    (count, [workflowKey, state]) => {
+      if (workflowKey === selectedWorkflowKey) return count
+      if (state.runOutcome !== "blocked") return count
+      return count + 1
+    },
+    0,
+  )
   const runSummary = useMemo(
     () =>
       buildRunProgressSummary({
@@ -317,6 +325,12 @@ export function AppStatusBar() {
               <span className="ui-status-badge ui-status-badge-info h-control-xs px-2">
                 {backgroundRunCount} run{backgroundRunCount === 1 ? "" : "s"} in
                 background
+              </span>
+            )}
+            {blockedFlowCount > 0 && (
+              <span className="ui-status-badge ui-status-badge-warning h-control-xs px-2">
+                {blockedFlowCount} flow{blockedFlowCount === 1 ? "" : "s"} need
+                {blockedFlowCount === 1 ? "s" : ""} attention
               </span>
             )}
             {isBatchRunning && (
