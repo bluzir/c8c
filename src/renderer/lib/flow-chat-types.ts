@@ -75,12 +75,22 @@ export interface ProgressContent {
   collapsedLabel?: string
 }
 
+export interface RoutingContent {
+  steps: Array<{ label: string; status: "pending" | "running" | "done" }>
+  selectedTemplate?: {
+    name: string
+    description: string
+    estimatedCost?: string
+  }
+}
+
 export type FlowChatMessageContent =
   | { type: "start"; data: StartContent }
   | { type: "progress"; data: ProgressContent }
   | { type: "decision"; data: DecisionContent }
   | { type: "complete"; data: CompleteContent }
   | { type: "error"; data: ErrorContent }
+  | { type: "routing"; data: RoutingContent }
 
 export interface FlowChatMessage {
   id: string

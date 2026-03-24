@@ -7,6 +7,7 @@ import { FlowCompleteMessage } from "./FlowCompleteMessage"
 import { FlowErrorMessage } from "./FlowErrorMessage"
 import { FlowStartMessage } from "./FlowStartMessage"
 import { FlowProgressMessage } from "./FlowProgressMessage"
+import { FlowRoutingMessage } from "./FlowRoutingMessage"
 import { cn } from "@/lib/cn"
 import { ArrowDown } from "lucide-react"
 import {
@@ -18,6 +19,7 @@ import {
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
   templateLibraryContextAtom,
+  workflowEntryStateAtom,
   type ChatMessageDisplay,
 } from "@/lib/store"
 import {
@@ -54,6 +56,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const resolveDecision = useSetAtom(resolveFlowChatDecisionAtom)
   const workflow = useAtomValue(currentWorkflowAtom)
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
+  const entryState = useAtomValue(workflowEntryStateAtom)
   const executionState = useAtomValue(selectedWorkflowExecutionAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
   const setQueuedFollowUpTemplateId = useSetAtom(queuedFollowUpTemplateIdAtom)
@@ -153,14 +156,64 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
 
   const syntheticMessage = syntheticCompleteMessage ?? latestPastRunMessage
 
+  // Synthesize a routing message from workflowEntryState when template was
+  // routed. This surfaces the routing decision (selected starting point) as a
+  // native chat message so the user sees it in the timeline instead of only on
+  // the full-page entry state card.
+  const syntheticRoutingMessage = useMemo<FlowChatMessage | null>(() => {
+    if (!entryState) return null
+    // Only show for entry states tied to the currently selected workflow
+    if (
+      entryState.workflowPath &&
+      entryState.workflowPath !== selectedWorkflowPath
+    )
+      return null
+
+    const routingSteps: Array<{
+      label: string
+      status: "pending" | "running" | "done"
+    }> = [
+      { label: "Read your goal", status: "done" },
+      { label: "Inspect project context", status: "done" },
+      { label: `Open ${entryState.title || "starting point"}`, status: "done" },
+    ]
+
+    // Place the routing message just before the earliest flow message so it
+    // appears first in the timeline.
+    const firstFlowTs =
+      flowMessages.length > 0 ? flowMessages[0].timestamp : Date.now()
+    const routingTs = firstFlowTs - 1
+
+    return {
+      id: `routing-${entryState.workflowPath || "entry"}`,
+      flowName: entryState.workflowName || workflow?.name || "Flow",
+      timestamp: routingTs,
+      content: {
+        type: "routing" as const,
+        data: {
+          steps: routingSteps,
+          selectedTemplate: {
+            name: entryState.title,
+            description: entryState.summary,
+            estimatedCost: entryState.contractLabel || undefined,
+          },
+        },
+      },
+    }
+  }, [entryState, selectedWorkflowPath, flowMessages, workflow?.name])
+
   const timeline = useMemo<TimelineEntry[]>(() => {
     const chatEntries: TimelineEntry[] = messages.map((m) => ({
       kind: "chat",
       message: m,
     }))
-    const allFlowMessages = syntheticMessage
-      ? [...flowMessages, syntheticMessage]
-      : flowMessages
+    const extraFlowMessages: FlowChatMessage[] = []
+    if (syntheticRoutingMessage) extraFlowMessages.push(syntheticRoutingMessage)
+    if (syntheticMessage) extraFlowMessages.push(syntheticMessage)
+    const allFlowMessages =
+      extraFlowMessages.length > 0
+        ? [...flowMessages, ...extraFlowMessages]
+        : flowMessages
     const flowEntries: TimelineEntry[] = allFlowMessages.map((m) => ({
       kind: "flow",
       message: m,
@@ -170,7 +223,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       const tsB = b.kind === "chat" ? b.message.timestamp : b.message.timestamp
       return tsA - tsB
     })
-  }, [messages, flowMessages, syntheticMessage])
+  }, [messages, flowMessages, syntheticRoutingMessage, syntheticMessage])
 
   useEffect(() => {
     const el = containerRef.current
@@ -351,6 +404,19 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                       resolved={resolvedIds.has(flowMsg.id)}
                       onResolved={() => resolveDecision(flowMsg.id)}
                     />
+                  </div>
+                )
+              }
+              if (flowMsg.content.type === "routing") {
+                return (
+                  <div
+                    key={flowMsg.id}
+                    className={cn(
+                      "ui-fade-slide-in pt-4",
+                      index === 0 && "pt-0",
+                    )}
+                  >
+                    <FlowRoutingMessage data={flowMsg.content.data} />
                   </div>
                 )
               }

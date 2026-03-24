@@ -564,7 +564,9 @@ export function WorkflowCreatePage() {
     setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
     setSelectedPastRun(null)
     setSelectedInboxTaskKey(null)
-    setViewMode(options?.pendingMessage ? "chat" : "list")
+    setViewMode(
+      options?.pendingMessage || options?.entryState ? "chat" : "list",
+    )
     if (typeof options?.initialInputValue === "string") {
       setInputValue(options.initialInputValue)
     }
