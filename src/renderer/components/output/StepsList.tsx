@@ -102,56 +102,78 @@ export function StepsList({
     setExpandedStepId((prev) => (prev === nodeId ? null : nodeId))
   }
 
+  // Separate branch nodes from main nodes
+  const branchesByParent: Record<string, typeof nodes> = {}
+  const mainNodes: typeof nodes = []
+
+  for (const node of nodes) {
+    const meta = runtimeMeta?.[node.id]
+    if (meta?.splitterId) {
+      const parentId = meta.splitterId
+      if (!branchesByParent[parentId]) branchesByParent[parentId] = []
+      branchesByParent[parentId].push(node)
+    } else {
+      mainNodes.push(node)
+    }
+  }
+
+  function renderStepRow(node: (typeof nodes)[0], indent = false) {
+    const nodeState = nodeStates[node.id]
+    const status = deriveStepStatus(nodeState)
+    const duration = deriveDuration(nodeState)
+    const cost = deriveCost(nodeState)
+    const branches = branchesByParent[node.id]
+    const fanOutProgress = branches
+      ? `${branches.filter((b) => deriveStepStatus(nodeStates[b.id]) === "done").length}/${branches.length}`
+      : undefined
+    const expanded = expandedStepId === node.id
+    const label =
+      "config" in node && node.config
+        ? getRuntimeNodeLabel(node as WorkflowNode, { fallbackId: node.id })
+        : (node as { label?: string }).label || node.id
+
+    return (
+      <StepRow
+        key={node.id}
+        name={indent ? label : label}
+        status={status}
+        nodeType={node.type === "human" ? "approval" : node.type}
+        duration={duration}
+        cost={cost}
+        expanded={expanded}
+        onToggle={() => handleToggle(node.id)}
+        fanOutProgress={fanOutProgress}
+      >
+        {/* Branch children inside splitter accordion */}
+        {branches && branches.length > 0 && (
+          <div className="border-l-2 border-hairline ml-4">
+            {branches.map((branch) => renderStepRow(branch, true))}
+          </div>
+        )}
+        {/* Step expanded content (log/result) — only if no branches or if this is a branch itself */}
+        {(!branches || branches.length === 0) && (
+          <StepExpandedContent
+            nodeId={node.id}
+            status={status}
+            nodeState={nodeState}
+            nodeStates={nodeStates}
+            evalResults={evalResults}
+            workflowNode={
+              "config" in node && node.config
+                ? (node as WorkflowNode)
+                : undefined
+            }
+            runId={runId}
+            evalOverrideNodeIds={evalOverrideNodeIds}
+          />
+        )}
+      </StepRow>
+    )
+  }
+
   return (
     <div data-testid="steps-list">
-      {nodes.map((node) => {
-        const nodeState = nodeStates[node.id]
-        const status = deriveStepStatus(nodeState)
-        const duration = deriveDuration(nodeState)
-        const cost = deriveCost(nodeState)
-        const fanOutProgress =
-          "config" in node && node.config
-            ? deriveFanOutProgress(
-                node as WorkflowNode,
-                nodeStates,
-                runtimeMeta,
-              )
-            : undefined
-        const expanded = expandedStepId === node.id
-        const label =
-          "config" in node && node.config
-            ? getRuntimeNodeLabel(node as WorkflowNode, { fallbackId: node.id })
-            : (node as { label?: string }).label || node.id
-
-        return (
-          <StepRow
-            key={node.id}
-            name={label}
-            status={status}
-            nodeType={node.type === "human" ? "approval" : node.type}
-            duration={duration}
-            cost={cost}
-            expanded={expanded}
-            onToggle={() => handleToggle(node.id)}
-            fanOutProgress={fanOutProgress}
-          >
-            <StepExpandedContent
-              nodeId={node.id}
-              status={status}
-              nodeState={nodeState}
-              nodeStates={nodeStates}
-              evalResults={evalResults}
-              workflowNode={
-                "config" in node && node.config
-                  ? (node as WorkflowNode)
-                  : undefined
-              }
-              runId={runId}
-              evalOverrideNodeIds={evalOverrideNodeIds}
-            />
-          </StepRow>
-        )
-      })}
+      {mainNodes.map((node) => renderStepRow(node))}
     </div>
   )
 }
