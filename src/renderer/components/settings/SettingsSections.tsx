@@ -329,7 +329,7 @@ export function SettingsExecutionDefaultsSection({
                 }}
               />
               <p className="ui-meta-text text-muted-foreground">
-                Maximum agentic turns per step.
+                How many times the AI can act before a step completes.
               </p>
             </div>
 
@@ -380,7 +380,7 @@ export function SettingsExecutionDefaultsSection({
                 }}
               />
               <p className="ui-meta-text text-muted-foreground">
-                Max parallel branches per fan-out step.
+                Maximum steps that can run at the same time when work is split.
               </p>
             </div>
           </div>
@@ -591,6 +591,18 @@ export function SettingsProvidersSection({
             <p className="ui-meta-text text-muted-foreground">
               Mapped to provider-specific sandbox and approval flags at runtime.
             </p>
+            {providerSettings.safetyProfile === "dangerous" ? (
+              <div className="rounded-lg surface-danger-soft px-3 py-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="warning" size="compact">
+                    Dangerous mode
+                  </Badge>
+                </div>
+                <p className="mt-2 text-body-sm text-status-danger">
+                  Future runs can bypass approvals and sandbox protections.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
 

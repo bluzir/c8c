@@ -1018,6 +1018,10 @@ export function McpServersSection({
           </div>
         }
       />
+      <p className="ui-meta-text text-muted-foreground">
+        MCP servers extend flows with external tools — file systems, APIs,
+        databases.
+      </p>
 
       <article className="space-y-4 ui-section-divider">
         {provider === "codex" && (

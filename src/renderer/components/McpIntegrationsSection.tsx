@@ -198,8 +198,9 @@ export function McpIntegrationsSection() {
                 Curated MCP Integrations
               </h3>
               <p className="text-body-sm text-muted-foreground">
-                Connect commonly used MCP-backed services here. Discovery still
-                happens from flows at pre-run; this section is for management.
+                Connect commonly used MCP-backed services here. Flows check for
+                required connections before running; this section is for
+                management.
               </p>
             </div>
 
