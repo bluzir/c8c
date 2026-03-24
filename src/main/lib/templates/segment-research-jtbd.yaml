@@ -21,6 +21,7 @@ steps:
   - Build unified signal bank with coverage analysis
   - Match signals to segments, score with fatal flaw detection
 suggested_tools:
+  - web_search
   - exa
   - serper
 contract_out:
