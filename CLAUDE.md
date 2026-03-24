@@ -101,6 +101,8 @@ Key configs per node type:
 
 Runtime expands the base graph — splitter nodes create parallel branches tracked via `runtimeNodesAtom`/`runtimeEdgesAtom`/`runtimeMetaAtom`.
 
+**Template design rules** live in `docs/conventions/TEMPLATE-DESIGN-GUIDE.md`. Key constraints: skill must not contradict node prompt (skill = HOW, prompt = WHAT); pre-split nodes use scout/mapper skills, never worker skills; splitter decomposes existing structure, never generates new content; `maxTurns` is a hard kill, only use at workflow level; `strategy: concatenate` on merger ignores the prompt (no LLM call).
+
 ### State Management
 
 Jotai atoms in `src/renderer/lib/store.ts`. Key patterns:
