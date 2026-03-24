@@ -50,11 +50,12 @@ Single source of truth for c8c product decisions. All specs, plans, and implemen
 
 Surfaced by cross-doc audit 2026-03-23. Status tracked here.
 
-1. **Continuation scope** | Status: **decision made — minimal persistence in R2**
+1. **Continuation scope** | Status: **design spec ready — implementation next**
    - Job: "I left the cafe, came home, want to finish what I started."
    - R2 must persist: last result + current position + next step suggestion. Not full R3 case model — a "bookmark."
    - Cross-session resume = R2 requirement, not deferred to R3.
    - Full durable case model (artifacts survive as product memory) remains R3.
+   - **Design spec:** `docs/superpowers/specs/2026-03-24-crash-recovery-design.md` — seamless resume after app close. Persist in-flight manifest, startup scan, interrupted verdict UI with "Continue" button, full resume for all topologies via `rerunFromNode`.
 
 2. **Typed result vocabulary** | Status: **fixed**
    - `KnownArtifactKind` already has 30+ types including marketing/content (`trend_digest`, `editorial_calendar`, `draft`, `content_brief`).
@@ -207,6 +208,7 @@ These follow from the north star but apply to later release layers (R3+). They a
 - **The product must help the user formulate a good point B.** Routing a weak ask well is not enough. The composer should surface missing context, constraints, and quality bar expectations before the run starts — compact chips and short forks, not a form or a prompt-engineering school. "Make a good run easier than a bad run."
 - **Self-improving flows require self-observing flows first.** Before the system can recommend recipe/policy/prompt improvements (R4+), it must persist run evidence: check outcomes, retries, chosen paths, human edits, continuation success (R3). Promotion of a variant is always an explicit human action, never silent mutation.
 - **Expansion beyond repo-local work starts with repo-adjacent digital operations.** The first external systems are PRs, issues, docs, browser QA, research sources, and messaging-based approvals/delivery. This product must not drift into generic automation mesh or n8n-style integration sprawl.
+- **Execution detail must stay secondary to the current decision surface.** Verbose streaming logs and step-level chatter must not drive whole-shell renderer churn or displace the current result/status/action grammar. Future implementation work is tracked in `docs/specs/active/2026-03-24-renderer-execution-event-batching-spec.md`.
 
 ### 2.2 Intent layer (Do / Plan / Review)
 
