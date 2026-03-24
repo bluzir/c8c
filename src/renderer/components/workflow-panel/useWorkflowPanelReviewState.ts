@@ -87,7 +87,9 @@ export function useWorkflowPanelReviewState({
   useEffect(() => {
     const isTerminalResultState =
       runStatus === "error" ||
-      (runStatus === "done" && runOutcome !== "blocked")
+      (runStatus === "done" &&
+        runOutcome !== "blocked" &&
+        runOutcome !== "cancelled")
     if (
       !isTerminalResultState ||
       !canShowTerminalResultSurface ||

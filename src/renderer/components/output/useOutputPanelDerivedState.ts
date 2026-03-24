@@ -933,7 +933,6 @@ export function useOutputPanelDerivedState({
     (reviewingRunHistory ||
       runStatus === "done" ||
       runStatus === "error" ||
-      runStatus === "cancelled" ||
       pastRuns.length > 0)
   const canRerunStages =
     Boolean(onRerunFrom) && !isRunInFlight(runStatus as any) && !!rerunWorkspace
@@ -949,13 +948,13 @@ export function useOutputPanelDerivedState({
       artifactRecords.length > 0 ||
       Boolean(artifactPersistenceError) ||
       Boolean(nextStageTemplate))
-  const runIsTerminal =
-    runStatus === "done" || runStatus === "error" || runStatus === "cancelled"
+  const runIsTerminal = runStatus === "done" || runStatus === "error"
   const showResultSurface = reviewingRunHistory
     ? hasResult
     : runIsTerminal &&
       (hasResult ||
         runStatus === "error" ||
+        effectiveRunOutcome === "cancelled" ||
         (runStatus === "done" && effectiveRunOutcome !== "blocked"))
   const failedNodeErrors = Object.entries(displayNodeStates).filter(
     ([, state]) => state.status === "failed" && state.error,
