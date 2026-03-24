@@ -3,6 +3,7 @@ import type { WorkflowTemplate } from "@shared/types"
 import {
   filterTemplatesForResultMode,
   getResultMode,
+  getResultModeRouteDestinations,
   getResultModeQuickStarts,
   presentDevelopmentCreateQuickStarts,
   presentDevelopmentCreateRouteOptions,
@@ -143,7 +144,7 @@ describe("result-modes", () => {
     ])
   })
 
-  it("exposes the full content router destination registry as quick starts", () => {
+  it("keeps content quick starts curated while exposing the full router registry separately", () => {
     const templates = [
       createTemplate({ id: "content-trend-watch", name: "Watch trends" }),
       createTemplate({
@@ -176,6 +177,17 @@ describe("result-modes", () => {
     expect(
       getResultModeQuickStarts(templates, "content").map(
         (entry) => entry.template.id,
+      ),
+    ).toEqual([
+      "content-trend-watch",
+      "content-draft-post",
+      "content-qa-review",
+      "content-pipeline",
+    ])
+
+    expect(
+      getResultModeRouteDestinations("content").map(
+        (entry) => entry.templateId,
       ),
     ).toEqual([
       "content-trend-watch",

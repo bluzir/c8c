@@ -57,21 +57,57 @@ type CreateEntryAgentDecision =
 const ROUTER_FAILURE_MESSAGE =
   "The AI router couldn't choose a starting point right now. Try again."
 
-function deriveIntentValue(
-  option: CreateEntryRouteOption,
+function deriveIntentValueFromLabel(
+  label: string,
 ): CreateEntryHelpModeHint | null {
-  const label = normalize(option.intentLabel).toLowerCase()
-  if (label === "do it") return "do"
-  if (label === "plan it") return "plan"
-  if (label === "review it") return "review"
+  const normalized = normalize(label).toLowerCase()
+  if (normalized === "do it") return "do"
+  if (normalized === "plan it") return "plan"
+  if (normalized === "review it") return "review"
   return null
+}
+
+function deriveIntentValues(
+  option: CreateEntryRouteOption,
+): CreateEntryHelpModeHint[] {
+  if (Array.isArray(option.intentValues) && option.intentValues.length > 0) {
+    const seen = new Set<CreateEntryHelpModeHint>()
+    const next: CreateEntryHelpModeHint[] = []
+    for (const value of option.intentValues) {
+      if (value !== "do" && value !== "plan" && value !== "review") continue
+      if (seen.has(value)) continue
+      seen.add(value)
+      next.push(value)
+    }
+    if (next.length > 0) return next
+  }
+
+  const derived = deriveIntentValueFromLabel(option.intentLabel || "")
+  return derived ? [derived] : []
+}
+
+function formatIntentValues(values: CreateEntryHelpModeHint[]): string {
+  return values
+    .map((value) =>
+      value === "do" ? "Do it" : value === "plan" ? "Plan it" : "Review it",
+    )
+    .join(" / ")
+}
+
+function formatIntentSummary(option: CreateEntryRouteOption): string {
+  const label = normalize(option.intentLabel)
+  if (label) return option.intentLabel!.trim()
+  const intentValues = deriveIntentValues(option)
+  return intentValues.length > 0 ? formatIntentValues(intentValues) : ""
 }
 
 function filterOptionsForIntent(
   options: CreateEntryRouteOption[],
   helpModeHint: CreateEntryHelpModeHint,
 ): CreateEntryRouteOption[] {
-  return options.filter((option) => deriveIntentValue(option) === helpModeHint)
+  return options.filter((option) =>
+    deriveIntentValues(option).includes(helpModeHint),
+  )
 }
 
 function normalize(value: string | undefined | null) {
@@ -79,7 +115,7 @@ function normalize(value: string | undefined | null) {
 }
 
 function formatIntentLabel(option: CreateEntryRouteOption): string {
-  const label = normalize(option.intentLabel)
+  const label = normalize(formatIntentSummary(option))
   return label ? ` [${label}]` : ""
 }
 
@@ -341,6 +377,7 @@ function buildContentRouterPrompt(
     "- Repurposing is right when the user has existing material and wants it in different formats.",
     "- Structured text generation is right when the user needs batch copy, long-form text, or descriptions from a brief.",
     "- Copy quality review is right when the user has existing text that needs cleanup, polish, and anti-slop editing.",
+    "- Review intent is valid only when draft or text context already exists. If that context is missing, return a clarification instead of guessing a review path.",
     "- Recurring/cadence requests should route to calendar planning (full recurring execution is not yet available).",
     "- Help mode is a hard constraint when present.",
     "- Handle English, Russian, and mixed-language requests.",
@@ -523,7 +560,9 @@ async function runAgentRouteDecision(
   if (input.modeId === "content") {
     const contentContext =
       input.contentContext ??
-      (await inspectContentDomainContext(projectInspection.projectPath))
+      (await inspectContentDomainContext(projectInspection.projectPath, {
+        webSearchBackend: input.webSearchBackend,
+      }))
     prompt = buildContentRouterPrompt(input, contentContext, allowedOptions)
   } else if (input.modeId === "marketing") {
     prompt = buildMarketingRouterPrompt(input, allowedOptions)

@@ -112,7 +112,8 @@ const contentOptions: CreateEntryRouteOption[] = [
   {
     templateId: "content-pipeline",
     label: "Build content strategy",
-    intentLabel: "Plan it",
+    intentLabel: "Do it / Plan it",
+    intentValues: ["do", "plan"],
   },
   {
     templateId: "content-repurposing-factory",
@@ -363,6 +364,9 @@ describe("routeCreateEntry JTBD prompt contract", () => {
     expect(latestPrompt()).toContain("Content context:")
     expect(latestPrompt()).toContain('"availableTools": [')
     expect(latestPrompt()).toContain('"web_search"')
+    expect(latestPrompt()).toContain(
+      "- content-pipeline: Build content strategy [Do it / Plan it]",
+    )
     expect(latestPrompt()).toContain(
       "- predictable-text-factory: Generate text [Do it]",
     )

@@ -87,6 +87,25 @@ const developmentOptions: CreateEntryRouteOption[] = [
   },
 ]
 
+const contentOptions: CreateEntryRouteOption[] = [
+  {
+    templateId: "content-draft-post",
+    label: "Draft a post",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "content-pipeline",
+    label: "Build content strategy",
+    intentLabel: "Do it / Plan it",
+    intentValues: ["do", "plan"],
+  },
+  {
+    templateId: "content-post-calendar",
+    label: "Plan content calendar",
+    intentLabel: "Plan it",
+  },
+]
+
 function createInspection(
   overrides: Partial<ProjectInspectionSummary> = {},
 ): ProjectInspectionSummary {
@@ -144,6 +163,10 @@ function createTemplate(id: string, name: string): WorkflowTemplate {
 }
 
 const templates = developmentOptions.map((option) =>
+  createTemplate(option.templateId, option.label),
+)
+
+const contentTemplates = contentOptions.map((option) =>
   createTemplate(option.templateId, option.label),
 )
 
@@ -326,5 +349,33 @@ describe("routeCreateEntry agent-first", () => {
     ).rejects.toThrow(
       "The AI router couldn't choose a starting point right now. Try again.",
     )
+  })
+
+  it("keeps multi-intent content strategy starts available for Do intent", async () => {
+    mockAgentJson(
+      JSON.stringify({
+        kind: "route",
+        recommendedTemplateId: "content-pipeline",
+        alternateTemplateIds: ["content-draft-post"],
+        reason: "This request needs a strategy-level start.",
+        confidence: 0.81,
+      }),
+    )
+
+    const route = await routeCreateEntry(
+      createInput({
+        modeId: "content",
+        fallbackTemplateId: "content-draft-post",
+        draftPrompt: "собери контент-стратегию для нового лендинга",
+        requestedResult: "собери контент-стратегию для нового лендинга",
+        helpModeHint: "do",
+        allowedOptions: contentOptions,
+      }),
+      createInspection(),
+      contentTemplates,
+    )
+
+    expect(route.recommendedTemplateId).toBe("content-pipeline")
+    expect(route.source).toBe("agent")
   })
 })

@@ -352,6 +352,32 @@ describe("workflow-entry factory helpers", () => {
       ),
     ).toBe("Build")
 
+    expect(
+      deriveTemplateJourneyStageLabel(
+        createTemplate({
+          id: "content-trend-watch",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "research",
+          },
+        }),
+      ),
+    ).toBe("Understand")
+
+    expect(
+      deriveTemplateJourneyStageLabel(
+        createTemplate({
+          id: "content-ready-posts",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "deliver",
+          },
+        }),
+      ),
+    ).toBe("Ship")
+
     const entryState = buildTemplateWorkflowEntryState({
       template: createTemplate({
         id: "delivery-plan-phase",

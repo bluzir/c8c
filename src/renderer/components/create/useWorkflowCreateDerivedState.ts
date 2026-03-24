@@ -23,7 +23,7 @@ import {
 } from "@/lib/result-mode-config"
 import {
   getResultMode,
-  getResultModeQuickStartOptions,
+  getResultModeRouteDestinations,
   presentDevelopmentCreateQuickStarts,
   presentDevelopmentCreateRouteOptions,
   prioritizeDevelopmentCreateQuickStarts,
@@ -296,17 +296,25 @@ export function useWorkflowCreateDerivedState({
     [availableTemplates, selectedResultModeId],
   )
   const visibleQuickStarts = modeTemplateSplit.quickStarts
-  const quickStartOptions = useMemo(
-    () => getResultModeQuickStartOptions(selectedResultMode.id),
+  const routeDestinationOptions = useMemo(
+    () => getResultModeRouteDestinations(selectedResultMode.id),
     [selectedResultMode.id],
   )
   const routeOptions = useMemo<CreateEntryRouteOption[]>(() => {
-    const basePrimaryOptions = (
-      visibleQuickStarts.length > 0 ? visibleQuickStarts : quickStartOptions
-    ).map((quickStart) => ({
+    const availableTemplateIds = new Set(
+      availableTemplates.map((template) => template.id),
+    )
+    const selectedQuickStarts =
+      availableTemplates.length > 0
+        ? routeDestinationOptions.filter((quickStart) =>
+            availableTemplateIds.has(quickStart.templateId),
+          )
+        : routeDestinationOptions
+    const basePrimaryOptions = selectedQuickStarts.map((quickStart) => ({
       templateId: quickStart.templateId,
       label: quickStart.label,
       intentLabel: quickStart.intentLabel,
+      intentValues: quickStart.intentValues,
       recommended: quickStart.recommended,
     }))
     const primaryOptions = filterDirectCreateEntryOptions(
@@ -316,10 +324,6 @@ export function useWorkflowCreateDerivedState({
         : basePrimaryOptions,
     )
     if (selectedResultMode.id !== "development") return primaryOptions
-
-    const availableTemplateIds = new Set(
-      availableTemplates.map((template) => template.id),
-    )
     const contextualOptions = filterDirectCreateEntryOptions(
       selectedResultMode.id,
       DEVELOPMENT_CONTEXTUAL_ROUTE_OPTIONS.filter((option) =>
@@ -336,9 +340,8 @@ export function useWorkflowCreateDerivedState({
   }, [
     availableTemplates,
     projectKind,
-    quickStartOptions,
+    routeDestinationOptions,
     selectedResultMode.id,
-    visibleQuickStarts,
   ])
   const displayQuickStarts = useMemo(() => {
     if (visibleQuickStarts.length === 0) return []

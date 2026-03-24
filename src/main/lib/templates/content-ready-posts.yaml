@@ -1,27 +1,30 @@
 id: content-ready-posts
 stage: content
-stage_family: execute
-recommended_next:
-  - content-qa-review
+stage_family: deliver
+recommended_next: []
 emoji: "\U0001F4DD"
-headline: Turn a post calendar into ready-to-publish posts
-how: Draft the posts from the plan, apply voice/quality discipline, and hand back publish-ready copy.
-input: Post calendar, ToV constraints, and brand rules
-output: Ready posts bundle prepared for review or publishing
-use_when: You already have a concrete post calendar and want the actual posts written with strong quality control.
+headline: Turn an approved draft into ready-to-publish posts
+how: Apply the approved QA guidance, finalize the copy, and hand back a publish-ready bundle.
+input: Approved draft, QA report, and channel constraints
+output: Ready posts bundle prepared for publishing or scheduling
+use_when: A draft has passed QA and you want the final publish-ready version bundled cleanly.
 time: ~6-8 min.
 steps:
-  - Draft the planned posts from the calendar
-  - Evaluate them for voice, specificity, and no-slop quality
-  - Hold a human review approval before final output
+  - Apply the approved QA edits to the draft
+  - Finalize the publish-ready copy and packaging notes
+  - Hold a final human publish approval before output
 pack:
   id: content-factory-alpha
   label: Content Lab
-  journey_stage: execute
+  journey_stage: deliver
 contract_in:
-  - kind: editorial_calendar
-    title: Post Calendar
-    description: Concrete post slots that should be turned into ready-to-publish copy.
+  - kind: draft
+    title: Draft Post
+    description: The approved draft that should be finalized into a publish-ready bundle.
+    required: true
+  - kind: qa_report
+    title: QA Report
+    description: Approved review guidance that should be applied before publishing.
     required: true
 suggested_tools: []
 contract_out:
@@ -30,8 +33,8 @@ contract_out:
     description: Final post bundle ready for publishing or scheduling.
 execution_policy:
   profile_id: content_ready_posts
-  summary: Voice-locked no-slop drafting
-  description: Generate publish-ready posts from a plan while keeping tone, specificity, and quality checks visible.
+  summary: Publish-gated finalization
+  description: Finalize an approved draft into a publish-ready bundle while keeping the last human checkpoint visible.
   tags:
     - voice_locked
     - no_slop
@@ -43,7 +46,7 @@ execution_policy:
     - Require a human checkpoint before calling the bundle done.
 version: 1
 name: "Content Lab: Ready Posts"
-description: Turn a post calendar into ready-to-publish posts with visible quality control.
+description: Turn an approved draft and QA report into ready-to-publish posts with a final publish gate.
 defaults:
   model: sonnet
   maxTurns: 150
@@ -57,7 +60,7 @@ nodes:
     config:
       inputType: text
       required: true
-      placeholder: Paste the post calendar, tone of voice, style rules, and any constraints for the final posts.
+      placeholder: Paste the approved draft, QA report, channel rules, and any final publishing constraints.
   - id: drafter-1
     type: skill
     position:
@@ -66,19 +69,21 @@ nodes:
     config:
       skillRef: writer
       prompt: >-
-        Draft the final posts from the Post Calendar. For each planned slot produce:
-        1) the final post copy,
-        2) a short hook label,
-        3) why this version fits the planned angle,
-        4) any optional publishing note.
-        Keep the posts crisp, specific, and aligned with the requested tone of voice.
+        Use the Approved Draft and QA Report to finalize a Ready Posts bundle.
+        Produce:
+        1) the final publish-ready copy,
+        2) the key edits or fixes applied from QA,
+        3) any optional publishing or scheduling note,
+        4) any unresolved risk that still needs human attention.
+        Keep the copy specific, on-voice, and aligned with the requested channel constraints.
+        Do not reinvent the thesis; tighten and finalize the approved draft.
   - id: eval-1
     type: evaluator
     position:
       x: 640
       y: 200
     config:
-      criteria: "Score 1-10: posts are specific and not generic, tone is consistent, no repeated hooks, output is publish-ready for the stated channel."
+      criteria: "Score 1-10: QA issues are addressed, tone remains consistent, copy is specific and not generic, and output is publish-ready for the stated channel."
       threshold: 7
       maxRetries: 2
       retryFrom: drafter-1
@@ -88,7 +93,7 @@ nodes:
       x: 960
       y: 200
     config:
-      message: Review the ready posts bundle before this path is considered done.
+      message: Approve the final ready-posts bundle before it is treated as publish-ready.
       show_content: true
       allow_edit: true
       timeout_minutes: 180

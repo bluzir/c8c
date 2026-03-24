@@ -991,6 +991,7 @@ export type ErrorKind =
   | "model"
   | "timeout"
   | "policy"
+  | "auth"
   | "network"
   | "unknown"
 

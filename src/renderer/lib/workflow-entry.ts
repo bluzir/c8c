@@ -247,6 +247,18 @@ const TEMPLATE_STAGE_LABELS: Record<string, string> = {
   "full-stack-code-audit": "Review",
   "gstack-preflight-gate": "Check",
   "gstack-release-room": "Ship",
+  "content-trend-watch": "Understand",
+  "content-post-calendar": "Plan",
+  "content-editorial-calendar": "Plan",
+  "content-idea-backlog": "Plan",
+  "content-draft-post": "Build",
+  "content-repurposing-factory": "Build",
+  "predictable-text-factory": "Build",
+  "content-qa-review": "Check",
+  "copy-quality-pipeline": "Check",
+  "content-ready-posts": "Ship",
+  "content-distribution-bundle": "Ship",
+  "content-pipeline": "Ship",
 }
 
 const TEMPLATE_JOB_LABELS: Record<string, string> = {

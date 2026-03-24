@@ -69,8 +69,10 @@ describe("create-entry-content-context", () => {
           createdAt: 4_000,
         }),
       ],
-      ["web_search", "exa", "web_search", "github"],
-      10_000,
+      {
+        availableTools: ["web_search", "exa", "web_search", "github"],
+        now: 10_000,
+      },
     )
 
     expect(context.previousResults).toEqual([
@@ -84,6 +86,38 @@ describe("create-entry-content-context", () => {
     expect(context.availableTools).toEqual(["web_search", "exa"])
   })
 
+  it("merges recorded template history and builtin search availability", async () => {
+    const context = await inspectContentDomainContext("/tmp/project", {
+      listProjectArtifacts: async () => [
+        createArtifact({
+          kind: "draft",
+          title: "Claude launch post",
+          templateId: "content-draft-post",
+          createdAt: 3_000,
+        }),
+      ],
+      getSearchToolStatuses: async () => [
+        {
+          configured: true,
+          requestedToolIds: ["exa"],
+        },
+      ],
+      listRecordedTemplateIds: async () => [
+        "delivery-plan-phase",
+        "content-trend-watch",
+        "content-draft-post",
+      ],
+      webSearchBackend: "builtin",
+      now: () => 5_000,
+    })
+
+    expect(context.templatesRun).toEqual([
+      "content-draft-post",
+      "content-trend-watch",
+    ])
+    expect(context.availableTools).toEqual(["web_search", "exa"])
+  })
+
   it("inspects content context fail-closed when providers error", async () => {
     const context = await inspectContentDomainContext("/tmp/project", {
       listProjectArtifacts: async () => {
@@ -91,6 +125,9 @@ describe("create-entry-content-context", () => {
       },
       getSearchToolStatuses: async () => {
         throw new Error("mcp unavailable")
+      },
+      listRecordedTemplateIds: async () => {
+        throw new Error("history unavailable")
       },
       now: () => 5_000,
     })

@@ -973,6 +973,7 @@ export function WorkflowCreatePage() {
             modeConfig: selectedModeConfig,
             promptScaffold,
             allowedOptions: routeOptions,
+            webSearchBackend,
           })
         : null
       await ensureMinimumRoutingVisibility()

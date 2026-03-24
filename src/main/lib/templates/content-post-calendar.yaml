@@ -19,7 +19,7 @@ pack:
   label: Content Lab
   journey_stage: plan
   recommended_next:
-    - content-ready-posts
+    - content-draft-post
 contract_in:
   - kind: trend_digest
     title: Trend Digest

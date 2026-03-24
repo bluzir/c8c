@@ -1,4 +1,5 @@
 import type {
+  CreateEntryHelpModeHint,
   CreateEntryRouteInput,
   CreateEntryRouteOption,
   ResultModeId,
@@ -19,6 +20,7 @@ export interface DomainQuickStart {
   label: string
   summary: string
   intentLabel: string
+  intentValues?: CreateEntryHelpModeHint[]
 }
 
 export interface DomainDefinition {
@@ -50,6 +52,7 @@ export interface DomainDefinition {
   metadataTokens: string[]
   stagePreferences: WorkflowTemplateStage[]
   quickStarts: DomainQuickStart[]
+  routeDestinations?: DomainQuickStart[]
   scoreTemplate: (template: WorkflowTemplate) => number
 
   // Spine

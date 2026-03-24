@@ -81,6 +81,37 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       intentLabel: "Plan it",
     },
     {
+      templateId: "content-draft-post",
+      label: "Draft a post",
+      summary:
+        "Turn a topic or calendar slot into a channel-ready draft with voice control.",
+      intentLabel: "Do it",
+    },
+    {
+      templateId: "content-qa-review",
+      label: "Review content quality",
+      summary:
+        "Check a draft for slop, tone consistency, and channel fit before publishing.",
+      intentLabel: "Review it",
+    },
+    {
+      templateId: "content-pipeline",
+      label: "Build content strategy",
+      summary:
+        "Turn a product brief into positioning, messaging, and content plan.",
+      intentLabel: "Do it / Plan it",
+      intentValues: ["do", "plan"],
+    },
+  ],
+  routeDestinations: [
+    {
+      templateId: "content-trend-watch",
+      label: "Watch trends",
+      summary:
+        "Gather signals, themes, and launches in your space before planning content.",
+      intentLabel: "Plan it",
+    },
+    {
       templateId: "content-post-calendar",
       label: "Plan content calendar",
       summary:
@@ -106,7 +137,8 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       label: "Build content strategy",
       summary:
         "Turn a product brief into positioning, messaging, and content plan.",
-      intentLabel: "Plan it",
+      intentLabel: "Do it / Plan it",
+      intentValues: ["do", "plan"],
     },
     {
       templateId: "content-repurposing-factory",

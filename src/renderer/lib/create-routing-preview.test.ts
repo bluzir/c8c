@@ -138,4 +138,39 @@ describe("buildCreateRoutingPreview", () => {
       stageLabel: "Review",
     })
   })
+
+  it("normalizes content routing previews to the shared spine labels", () => {
+    const templates = [
+      createTemplate({
+        id: "content-trend-watch",
+        name: "Content Lab: Trend Watch",
+        stage: "content",
+        pack: {
+          id: "content-factory-alpha",
+          label: "Content Lab",
+          journeyStage: "research",
+          recommendedNext: ["content-post-calendar"],
+        },
+      }),
+    ]
+    const routeOptions: CreateEntryRouteOption[] = [
+      {
+        templateId: "content-trend-watch",
+        label: "Watch trends",
+        intentLabel: "Plan it",
+      },
+    ]
+
+    const preview = buildCreateRoutingPreview({
+      templateId: "content-trend-watch",
+      templates,
+      routeOptions,
+    })
+
+    expect(preview).toMatchObject({
+      title: "Watch trends",
+      helpModeLabel: "Plan it",
+      stageLabel: "Understand",
+    })
+  })
 })

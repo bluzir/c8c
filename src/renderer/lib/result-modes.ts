@@ -1,4 +1,5 @@
 import type {
+  CreateEntryHelpModeHint,
   ProjectInspectionKind,
   ResultModeDefinition,
   ResultModeId,
@@ -29,6 +30,7 @@ export interface WorkflowResultModeQuickStart {
   label: string
   summary: string
   intentLabel: string
+  intentValues?: CreateEntryHelpModeHint[]
   recommended?: boolean
 }
 
@@ -165,6 +167,13 @@ export function getResultModeQuickStartOptions(
 ): WorkflowResultModeQuickStart[] {
   const domain = getDomain(modeId)
   return [...domain.quickStarts]
+}
+
+export function getResultModeRouteDestinations(
+  modeId: ResultModeId,
+): WorkflowResultModeQuickStart[] {
+  const domain = getDomain(modeId)
+  return [...(domain.routeDestinations || domain.quickStarts)]
 }
 
 export function prioritizeDevelopmentCreateQuickStarts<

@@ -161,6 +161,107 @@ describe("workflow-create-continuation", () => {
     expect(candidates[0]?.action.kind).toBe("launch_next_step")
   })
 
+  it("routes approved content QA into Ready Posts when the draft is still available", () => {
+    const qaTemplate = createTemplate({
+      id: "content-qa-review",
+      name: "Content Lab: QA Review",
+      description: "Review a draft before it goes live.",
+      stage: "content",
+      headline: "Review a draft before it goes live",
+      how: "Critique the draft, approve it, and hand off to finalization.",
+      input: "Draft post",
+      output: "QA report",
+      pack: {
+        id: "content-factory-alpha",
+        label: "Content Lab",
+        journeyStage: "verify",
+        recommendedNext: ["content-ready-posts"],
+      },
+      contractIn: [{ kind: "draft", title: "Draft Post" }],
+      contractOut: [{ kind: "qa_report", title: "QA Report" }],
+      workflow: {
+        version: 1,
+        name: "Content Lab: QA Review",
+        nodes: [],
+        edges: [],
+      },
+    })
+    const readyPostsTemplate = createTemplate({
+      id: "content-ready-posts",
+      name: "Content Lab: Ready Posts",
+      description: "Finalize an approved draft into ready-to-publish posts.",
+      stage: "content",
+      headline: "Finalize ready posts",
+      how: "Apply QA guidance and package the final copy.",
+      input: "Approved draft and QA report",
+      output: "Ready posts bundle",
+      pack: {
+        id: "content-factory-alpha",
+        label: "Content Lab",
+        journeyStage: "deliver",
+        recommendedNext: [],
+      },
+      contractIn: [
+        { kind: "draft", title: "Draft Post" },
+        { kind: "qa_report", title: "QA Report" },
+      ],
+      contractOut: [{ kind: "distribution_bundle", title: "Ready Posts" }],
+      workflow: {
+        version: 1,
+        name: "Content Lab: Ready Posts",
+        nodes: [],
+        edges: [],
+      },
+    })
+
+    const candidates = deriveWorkflowCreateContinuations({
+      artifacts: [
+        createArtifact({
+          kind: "qa_report",
+          title: "QA Report",
+          templateId: "content-qa-review",
+          templateName: "Content Lab: QA Review",
+          updatedAt: 12,
+        }),
+        createArtifact({
+          id: "artifact-2",
+          kind: "draft",
+          title: "Draft Post",
+          templateId: "content-draft-post",
+          templateName: "Content Lab: Draft Post",
+          updatedAt: 10,
+        }),
+      ],
+      caseStates: [
+        createCaseState({
+          artifactIds: ["artifact-1", "artifact-2"],
+          lastGate: {
+            family: "approval",
+            outcome: "passed",
+            summaryText: "QA approved. Ready Posts can continue.",
+            reasonText: "The approved QA report is saved.",
+            stepLabel: "Check",
+            happenedAt: 12,
+          },
+          updatedAt: 12,
+        }),
+      ],
+      humanTasks: [],
+      templates: [qaTemplate, readyPostsTemplate],
+    })
+
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0]?.nextStepLabel).toBe("Ready Posts")
+    expect(candidates[0]?.action.kind).toBe("launch_next_step")
+    if (candidates[0]?.action.kind !== "launch_next_step") {
+      throw new Error("Expected launch_next_step continuation")
+    }
+    expect(candidates[0].action.template.id).toBe("content-ready-posts")
+    expect(
+      candidates[0].action.artifacts.map((artifact) => artifact.kind),
+    ).toEqual(["draft", "qa_report"])
+  })
+
   it("prioritizes blocked work ahead of other resumable paths", () => {
     const shapeTemplate = createTemplate()
     const planTemplate = createTemplate({
