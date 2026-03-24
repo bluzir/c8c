@@ -138,7 +138,8 @@ export function EmptyProjectState({
         </Button>
         {!hasCompletedFirstFlow && (
           <p className="text-body-sm text-muted-foreground/70">
-            First time? Describe what you need — c8c will handle the rest.
+            First time? Describe what you need — c8c will suggest the best
+            starting point.
           </p>
         )}
       </div>
@@ -185,7 +186,7 @@ export function EmptyWorkspaceState({
         {!hasCompletedFirstFlow && (
           <p className="text-body-sm text-muted-foreground/70">
             First time? Open a project and describe what you need — c8c will
-            handle the rest.
+            suggest the best starting point.
           </p>
         )}
       </div>
@@ -206,8 +207,8 @@ export function WorkflowDraftSkeleton() {
             Preparing the first flow draft
           </div>
           <p className="mt-2 text-body-sm text-muted-foreground">
-            The agent is turning your prompt into a runnable flow. This view
-            will populate as soon as the draft is ready.
+            c8c is building a flow from your request. This view will update when
+            the draft is ready.
           </p>
         </div>
       </div>
@@ -348,6 +349,13 @@ export function takeLeadingSentence(
   return sentenceMatch?.[0]?.trim() || normalized
 }
 
+function formatPreviousResultLine(latestResultText: string | null | undefined) {
+  if (!latestResultText) return null
+  return latestResultText.startsWith("Previous:")
+    ? latestResultText
+    : `Previous: ${latestResultText}`
+}
+
 export function WorkflowResumeHeader({
   entry,
   displayTitle,
@@ -391,18 +399,14 @@ export function WorkflowResumeHeader({
         : nextStepLabel
   const detailLines = blockedResumeSummary
     ? [
-        blockedResumeSummary.latestResultText
-          ? `Previous: ${blockedResumeSummary.latestResultText}`
-          : null,
+        formatPreviousResultLine(blockedResumeSummary.latestResultText),
         `Step input: ${blockedResumeSummary.attachText}`,
         `Status: ${blockedResumeSummary.reasonText}`,
       ]
     : resumeSummary
       ? [
-          resumeSummary.latestResultText
-            ? `Previous: ${resumeSummary.latestResultText}`
-            : null,
-          `Attached: ${resumeSummary.attachText} -> used by this step`,
+          formatPreviousResultLine(resumeSummary.latestResultText),
+          `Attached: ${resumeSummary.attachText} — used by this step`,
           `Status: ${readyToRun ? resumeSummary.checksText : resumeSummary.readyBecauseText}`,
         ]
       : [
