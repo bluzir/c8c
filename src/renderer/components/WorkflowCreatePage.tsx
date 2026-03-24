@@ -157,8 +157,8 @@ function WorkflowCreateRoutingState({
           Choosing the best start
         </p>
         <p className="mt-1 text-body-sm text-muted-foreground">
-          Using your request and project context to pick the first flow. This
-          only chooses the start. It does not run anything yet.
+          Using your request and project context to pick the best starting
+          point. Nothing runs until you approve.
         </p>
       </div>
       <div className="mt-4 space-y-0" aria-live="polite">
