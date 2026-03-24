@@ -18,7 +18,6 @@ export function useToolbarDesktopMenuState({
   canRedo,
   viewMode,
   flowSurfaceMode,
-  chatOpen,
   runShortcutEnabled,
   canRun,
   canBatchRun,
@@ -34,7 +33,6 @@ export function useToolbarDesktopMenuState({
   canRedo: boolean
   viewMode: ViewMode
   flowSurfaceMode: FlowSurfaceMode
-  chatOpen: boolean
   runShortcutEnabled: boolean
   canRun: boolean
   canBatchRun: boolean
@@ -70,7 +68,7 @@ export function useToolbarDesktopMenuState({
         },
         toggleAgentPanel: {
           enabled: true,
-          checked: chatOpen,
+          checked: viewMode === "chat",
         },
       },
       flow: {
@@ -102,7 +100,6 @@ export function useToolbarDesktopMenuState({
     canRun,
     canRerunFromStep,
     canUndo,
-    chatOpen,
     flowSurfaceMode,
     isRunning,
     isSaving,

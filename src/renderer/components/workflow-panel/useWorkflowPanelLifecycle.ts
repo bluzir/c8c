@@ -16,7 +16,6 @@ export function useWorkflowPanelLifecycle({
   runStartedAt,
   inputValue,
   viewMode,
-  chatOpen,
   selectedWorkflowPath,
   workflowEntryState,
   setWorkflowOpenState,
@@ -33,7 +32,6 @@ export function useWorkflowPanelLifecycle({
   runStartedAt: number | null
   inputValue: string
   viewMode: ViewMode
-  chatOpen: boolean
   selectedWorkflowPath: string | null
   workflowEntryState: WorkflowEntryState | null
   setWorkflowOpenState: (value: WorkflowOpenState) => void
@@ -48,8 +46,6 @@ export function useWorkflowPanelLifecycle({
 }) {
   const listScrollRegionRef = useRef<HTMLDivElement | null>(null)
   const outputPanelRef = useRef<HTMLDivElement | null>(null)
-  const chatPanelShellRef = useRef<HTMLDivElement | null>(null)
-  const chatPanelToggleRef = useRef<HTMLButtonElement | null>(null)
   const inputPanelRef = useRef<HTMLDivElement | null>(null)
   const blockedTaskPanelRef = useRef<HTMLDivElement | null>(null)
   const previousRunStatusRef = useRef(runStatus)
@@ -162,16 +158,6 @@ export function useWorkflowPanelLifecycle({
   }, [runStatus, scrollOutputPanelIntoListViewport, viewMode])
 
   useEffect(() => {
-    if (chatOpen) return
-    const activeElement = document.activeElement as HTMLElement | null
-    if (activeElement && chatPanelShellRef.current?.contains(activeElement)) {
-      window.requestAnimationFrame(() => {
-        chatPanelToggleRef.current?.focus()
-      })
-    }
-  }, [chatOpen])
-
-  useEffect(() => {
     setShowEntryEditor(false)
     setFlowSurfaceMode("outline")
     setPrepareNewRun(false)
@@ -227,8 +213,6 @@ export function useWorkflowPanelLifecycle({
   return {
     listScrollRegionRef,
     outputPanelRef,
-    chatPanelShellRef,
-    chatPanelToggleRef,
     inputPanelRef,
     blockedTaskPanelRef,
     lastRunInputRef,

@@ -22,7 +22,7 @@ import { CostWarningDialog } from "@/components/workflow-panel/CostWarningDialog
 import {
   mainViewAtom,
   desktopRuntimeAtom,
-  chatPanelOpenAtom,
+  viewModeAtom,
   factoryBetaEnabledAtom,
   workflowDirtyAtom,
   firstLaunchAtom,
@@ -67,7 +67,7 @@ import { useRecoverInterruptedRuns } from "@/hooks/useRecoverInterruptedRuns"
 const AppShell = memo(function AppShell() {
   useRecoverInterruptedRuns()
   const [mainView, setMainView] = useAtom(mainViewAtom)
-  const [, setChatPanelOpen] = useAtom(chatPanelOpenAtom)
+  const [viewMode, setViewMode] = useAtom(viewModeAtom)
   const [desktopRuntime, setDesktopRuntime] = useAtom(desktopRuntimeAtom)
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const [firstLaunch] = useAtom(firstLaunchAtom)
@@ -341,7 +341,7 @@ const AppShell = memo(function AppShell() {
         if (mainView !== "thread") {
           setMainView("thread")
         }
-        setChatPanelOpen((open) => !open)
+        setViewMode(viewMode === "chat" ? "list" : "chat")
         return
       }
 
@@ -361,7 +361,8 @@ const AppShell = memo(function AppShell() {
     openWorkflowCreate,
     openWorkflowFromPalette,
     quickSwitchTargets,
-    setChatPanelOpen,
+    setViewMode,
+    viewMode,
     setMainView,
     toggleSidebar,
   ])

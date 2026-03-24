@@ -5,7 +5,7 @@ import {
   workflowExecutionStatesAtom,
 } from "@/features/execution"
 import {
-  chatPanelOpenAtom,
+  viewModeAtom,
   desktopRuntimeAtom,
   multiRunDashboardOpenAtom,
 } from "@/lib/store"
@@ -72,7 +72,8 @@ export function ApprovalDialog() {
   const [requests, setRequests] = useAtom(approvalRequestsAtom)
   const executionStates = useAtomValue(workflowExecutionStatesAtom)
   const desktopRuntime = useAtomValue(desktopRuntimeAtom)
-  const chatOpen = useAtomValue(chatPanelOpenAtom)
+  const viewMode = useAtomValue(viewModeAtom)
+  const chatOpen = viewMode === "chat"
   const allFlowMessages = useAtomValue(flowChatMessagesAtom)
   const multiRunDashboardOpen = useAtomValue(multiRunDashboardOpenAtom)
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)

@@ -1,5 +1,4 @@
-import type { Ref } from "react"
-import { Check, GitBranch, MessageSquare, Save } from "lucide-react"
+import { Check, GitBranch, MessageSquare, PanelLeft, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -20,7 +19,6 @@ interface WorkflowPrimaryActionsProps {
   primaryShortcutLabel: string
   chatOpen: boolean
   chatShortcutLabel: string
-  agentToggleRef?: Ref<HTMLButtonElement>
   actionMenuDisabled?: boolean
   canOpenDefaults?: boolean
   flowDefaultsOpen?: boolean
@@ -43,7 +41,6 @@ export function WorkflowPrimaryActions({
   primaryShortcutLabel,
   chatOpen,
   chatShortcutLabel,
-  agentToggleRef,
   actionMenuDisabled = false,
   canOpenDefaults = false,
   flowDefaultsOpen = false,
@@ -107,18 +104,26 @@ export function WorkflowPrimaryActions({
           <Button
             variant="ghost"
             size="sm"
-            ref={agentToggleRef}
             className="gap-1.5 text-muted-foreground hover:border-transparent hover:bg-surface-2/55"
             onClick={onToggleChat}
-            aria-label="Toggle Agent panel"
+            aria-label={chatOpen ? "Show flow editor" : "Show chat"}
             aria-pressed={chatOpen}
           >
-            <MessageSquare size={14} />
-            Agent
+            {chatOpen ? (
+              <>
+                <PanelLeft size={14} />
+                Flow editor
+              </>
+            ) : (
+              <>
+                <MessageSquare size={14} />
+                Chat
+              </>
+            )}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          Toggle Agent panel ({chatShortcutLabel})
+          {chatOpen ? "Show flow editor" : "Show chat"} ({chatShortcutLabel})
         </TooltipContent>
       </Tooltip>
 

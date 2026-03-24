@@ -339,16 +339,18 @@ export const webSearchBackendAtom = atomWithStorage<WebSearchBackend>(
 export const providerSetupBannerDismissedKeyAtom = atom<string | null>(null)
 
 // View mode
-export type ViewMode = "list" | "settings"
+export type ViewMode = "chat" | "list" | "settings"
 type LegacyStoredViewMode = ViewMode | "canvas"
 
 function sanitizeViewMode(value: unknown): ViewMode {
-  return value === "settings" ? "settings" : "list"
+  if (value === "settings") return "settings"
+  if (value === "list") return "list"
+  return "chat"
 }
 
 const viewModeStorageAtom = atomWithStorage<LegacyStoredViewMode>(
   "c8c:view-mode",
-  "list",
+  "chat",
 )
 export const viewModeAtom = atom(
   (get) => sanitizeViewMode(get(viewModeStorageAtom)),

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
-  chatPanelOpenAtom,
   currentWorkflowAtom,
   inputAttachmentsAtom,
   inputValueAtom,
@@ -270,7 +269,6 @@ export function WorkflowCreatePage() {
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [, setMainView] = useAtom(mainViewAtom)
   const [, setViewMode] = useAtom(viewModeAtom)
-  const [, setChatPanelOpen] = useAtom(chatPanelOpenAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
   const [webSearchBackend] = useAtom(webSearchBackendAtom)
@@ -566,8 +564,7 @@ export function WorkflowCreatePage() {
     setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
     setSelectedPastRun(null)
     setSelectedInboxTaskKey(null)
-    setViewMode("list")
-    setChatPanelOpen(Boolean(options?.pendingMessage))
+    setViewMode(options?.pendingMessage ? "chat" : "list")
     if (typeof options?.initialInputValue === "string") {
       setInputValue(options.initialInputValue)
     }
@@ -627,8 +624,7 @@ export function WorkflowCreatePage() {
     setWorkflowEntryState(null)
     setQueuedAutoRunPath(null)
     setSelectedPastRun(options?.pastRun ?? null)
-    setViewMode("list")
-    setChatPanelOpen(false)
+    setViewMode("chat")
     resetCreateSurfaceState()
     setMainView("thread")
     return loadedWorkflow
