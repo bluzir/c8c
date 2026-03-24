@@ -237,6 +237,8 @@ export function WorkflowIdleStageContract({
   inputLabels,
   flowRules = [],
   showNeeds = true,
+  estimatedCostUsd,
+  estimatedInvocations,
   onPrimaryAction,
   primaryActionLabel,
   onSecondaryAction,
@@ -250,6 +252,8 @@ export function WorkflowIdleStageContract({
   inputLabels: string[]
   flowRules?: FlowRulePreview[]
   showNeeds?: boolean
+  estimatedCostUsd?: number | null
+  estimatedInvocations?: number
   onPrimaryAction?: (() => void) | null
   primaryActionLabel?: string
   onSecondaryAction?: (() => void) | null
@@ -259,10 +263,15 @@ export function WorkflowIdleStageContract({
     inputLabels.length > 0
       ? inputLabels.slice(0, 3).join(" · ")
       : "Input from this page"
+  const estimatedCostLine =
+    estimatedCostUsd != null && estimatedCostUsd > 0.01
+      ? `Estimated cost: ~$${estimatedCostUsd.toFixed(2)}${estimatedInvocations != null && estimatedInvocations > 1 ? ` (${estimatedInvocations} skill calls)` : ""}`
+      : null
   const detailLines = [
     provenanceLabel ? `Using: ${provenanceLabel}` : null,
     resultLabel ? `Result: ${resultLabel}` : null,
     showNeeds ? `Input: ${needsText}` : null,
+    estimatedCostLine,
   ].filter((line): line is string => Boolean(line))
 
   return (

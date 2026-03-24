@@ -3,6 +3,7 @@ import { useMemo } from "react"
 import { buildArtifactInputAttachments } from "@/lib/workflow-entry"
 import { buildRunProgressSummary } from "@/lib/run-progress"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
+import { estimateFlowCost } from "@/features/execution/preflight"
 import type { WorkflowPanelShellState } from "@/components/workflow-panel/WorkflowPanelChrome"
 import {
   resolveWorkflowPrimaryScreenState,
@@ -265,6 +266,11 @@ export function useWorkflowPanelShellDerivations({
     const isEntryContractState =
       primaryScreenState === "fresh_start" ||
       primaryScreenState === "cross_flow_handoff"
+    const costEstimate = estimateFlowCost(workflow, workflow.defaults?.model)
+    const estimatedCostUsd =
+      costEstimate.estimatedCostUsd > 0.01
+        ? costEstimate.estimatedCostUsd
+        : null
     return {
       title: isEntryContractState ? stageStartTitle : presentation.title,
       resultLabel: templateOutputText?.trim() || presentation.artifactLabel,
@@ -273,6 +279,8 @@ export function useWorkflowPanelShellDerivations({
       contextLine: isEntryContractState ? stageStartContextLine : null,
       provenanceLabel: isEntryContractState ? stageStartProvenanceLabel : null,
       showNeeds: !isEntryContractState,
+      estimatedCostUsd,
+      estimatedInvocations: costEstimate.worstCaseInvocations,
     }
   }, [
     firstRunnableNode,
@@ -283,6 +291,7 @@ export function useWorkflowPanelShellDerivations({
     stageStartProvenanceLabel,
     stageStartTitle,
     templateOutputText,
+    workflow,
   ])
 
   const liveTerminalResultOwnsLayout =

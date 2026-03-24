@@ -19,6 +19,7 @@ interface WorkflowRunControlsProps {
   canRun: boolean
   runDisabledReason: string | null
   canBatchRun: boolean
+  estimatedCostUsd?: number | null
   onPause: () => void
   onResume: () => void
   onCancel: () => void
@@ -37,6 +38,7 @@ export function WorkflowRunControls({
   canRun,
   runDisabledReason,
   canBatchRun,
+  estimatedCostUsd,
   onPause,
   onResume,
   onCancel,
@@ -157,7 +159,8 @@ export function WorkflowRunControls({
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              {runDisabledReason || `Run in edit mode (${runShortcutLabel})`}
+              {runDisabledReason ||
+                `Run in edit mode (${runShortcutLabel})${estimatedCostUsd != null && estimatedCostUsd > 0.01 ? ` — ~$${estimatedCostUsd.toFixed(2)}` : ""}`}
             </TooltipContent>
           </Tooltip>
           {canBatchRun ? (

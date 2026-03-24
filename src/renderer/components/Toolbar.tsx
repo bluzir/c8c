@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type Ref } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Ref,
+} from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import type { InputNodeConfig, PermissionMode, RunResult } from "@shared/types"
 import { toast } from "sonner"
@@ -69,7 +76,10 @@ import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { resolveWorkflowRunAvailability } from "@/components/toolbar/run-availability"
 import type { WorkflowPanelShellState } from "@/components/workflow-panel/WorkflowPanelChrome"
 import { dispatchDesktopCommand } from "@/lib/desktop-command-bus"
-import { resolveExecutionStartBlockReason } from "@/features/execution/preflight"
+import {
+  estimateFlowCost,
+  resolveExecutionStartBlockReason,
+} from "@/features/execution/preflight"
 import type { WorkflowActionMenuAction } from "@/components/toolbar/WorkflowActionMenu"
 
 export function Toolbar({
@@ -287,6 +297,10 @@ export function Toolbar({
     })
   const hasProviderRunBlock =
     providerRunBlockReason !== null && workflowRunBlockReason === null
+  const toolbarEstimatedCostUsd = useMemo(() => {
+    const estimate = estimateFlowCost(workflow, workflow.defaults?.model)
+    return estimate.estimatedCostUsd > 0.01 ? estimate.estimatedCostUsd : null
+  }, [workflow])
   const navigateToValidationIssue = useCallback(
     (issue: (typeof workflowValidation)[number]) => {
       const target = resolveValidationNavigationTarget(
@@ -767,6 +781,7 @@ export function Toolbar({
                 canRun={canRun}
                 runDisabledReason={runDisabledReason}
                 canBatchRun={canBatchRun}
+                estimatedCostUsd={toolbarEstimatedCostUsd}
                 onPause={() => void handlePauseRun()}
                 onResume={() => void handleResumeRun()}
                 onCancel={() => void onCancel()}

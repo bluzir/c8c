@@ -144,6 +144,8 @@ interface WorkflowListTabProps {
     contextLine?: string | null
     provenanceLabel?: string | null
     showNeeds?: boolean
+    estimatedCostUsd?: number | null
+    estimatedInvocations?: number
   } | null
   // Review / output state
   reviewMode: boolean
@@ -238,6 +240,8 @@ export function WorkflowListTab({
                 inputLabels={idleStageContract.inputLabels}
                 flowRules={entryFlowRules}
                 showNeeds={idleStageContract.showNeeds}
+                estimatedCostUsd={idleStageContract.estimatedCostUsd}
+                estimatedInvocations={idleStageContract.estimatedInvocations}
                 onPrimaryAction={onPrimaryEntryAction}
                 primaryActionLabel={
                   blockedResumeSummary?.primaryActionLabel ||
