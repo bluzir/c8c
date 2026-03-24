@@ -110,7 +110,7 @@ export function FinalResultSection({
           className="h-auto px-0 py-0 text-body-sm text-muted-foreground hover:text-foreground"
           onClick={onUseInNewFlow}
         >
-          Use in new flow
+          Start next flow
         </Button>,
       )
     }
