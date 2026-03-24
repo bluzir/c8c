@@ -25,8 +25,7 @@ import {
   applyProviderFeatureFlags,
   startProviderTask,
 } from "./provider-runtime"
-import { listProjectArtifacts } from "./artifact-store"
-import { buildContentDomainContext } from "./create-entry-content-context"
+import { inspectContentDomainContext } from "./create-entry-content-context"
 import { logWarn } from "./structured-log"
 
 // Ensure domains are registered before any module-level references.
@@ -77,6 +76,11 @@ function filterOptionsForIntent(
 
 function normalize(value: string | undefined | null) {
   return (value || "").trim()
+}
+
+function formatIntentLabel(option: CreateEntryRouteOption): string {
+  const label = normalize(option.intentLabel)
+  return label ? ` [${label}]` : ""
 }
 
 function buildAllowedOptionMap(
@@ -261,7 +265,7 @@ function buildRouterPrompt(
   const allowedOptionSummary = allowedOptions
     .map(
       (option) =>
-        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+        `- ${option.templateId}: ${option.label}${formatIntentLabel(option)}`,
     )
     .join("\n")
 
@@ -319,7 +323,7 @@ function buildContentRouterPrompt(
   const allowedOptionSummary = allowedOptions
     .map(
       (option) =>
-        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+        `- ${option.templateId}: ${option.label}${formatIntentLabel(option)}`,
     )
     .join("\n")
 
@@ -335,6 +339,8 @@ function buildContentRouterPrompt(
     "- Quality review is right when the user has a draft and needs slop/tone/quality check.",
     "- Strategy is right when the user needs a full content strategy from a product brief.",
     "- Repurposing is right when the user has existing material and wants it in different formats.",
+    "- Structured text generation is right when the user needs batch copy, long-form text, or descriptions from a brief.",
+    "- Copy quality review is right when the user has existing text that needs cleanup, polish, and anti-slop editing.",
     "- Recurring/cadence requests should route to calendar planning (full recurring execution is not yet available).",
     "- Help mode is a hard constraint when present.",
     "- Handle English, Russian, and mixed-language requests.",
@@ -374,7 +380,7 @@ function buildResearchRouterPrompt(
   const allowedOptionSummary = allowedOptions
     .map(
       (option) =>
-        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+        `- ${option.templateId}: ${option.label}${formatIntentLabel(option)}`,
     )
     .join("\n")
 
@@ -426,7 +432,7 @@ function buildMarketingRouterPrompt(
   const allowedOptionSummary = allowedOptions
     .map(
       (option) =>
-        `- ${option.templateId}: ${option.label}${option.intentLabel ? ` [${option.intentLabel}]` : ""}`,
+        `- ${option.templateId}: ${option.label}${formatIntentLabel(option)}`,
     )
     .join("\n")
 
@@ -515,10 +521,9 @@ async function runAgentRouteDecision(
   // in this file and cannot be moved to shared domain data.
   let prompt: string
   if (input.modeId === "content") {
-    const artifacts = await listProjectArtifacts(
-      projectInspection.projectPath,
-    ).catch(() => [])
-    const contentContext = buildContentDomainContext(artifacts)
+    const contentContext =
+      input.contentContext ??
+      (await inspectContentDomainContext(projectInspection.projectPath))
     prompt = buildContentRouterPrompt(input, contentContext, allowedOptions)
   } else if (input.modeId === "marketing") {
     prompt = buildMarketingRouterPrompt(input, allowedOptions)

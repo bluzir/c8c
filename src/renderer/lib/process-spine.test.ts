@@ -107,6 +107,73 @@ describe("process-spine", () => {
     ).toBe("review")
   })
 
+  it("maps the primary content chain onto the shared process spine", () => {
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "content-trend-watch",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "research",
+          },
+        }),
+      ),
+    ).toBe("shape_map")
+
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "content-post-calendar",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "plan",
+          },
+        }),
+      ),
+    ).toBe("plan")
+
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "content-draft-post",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "execute",
+          },
+        }),
+      ),
+    ).toBe("implement")
+
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "content-qa-review",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "verify",
+          },
+        }),
+      ),
+    ).toBe("verify")
+
+    expect(
+      deriveProcessSpineStageId(
+        createTemplate({
+          id: "content-distribution-bundle",
+          pack: {
+            id: "content-factory-alpha",
+            label: "Content Lab",
+            journeyStage: "deliver",
+          },
+        }),
+      ),
+    ).toBe("ship")
+  })
+
   it("builds a compact dev spine with current and next states", () => {
     const stages = buildProcessSpine({
       context: createContext(),

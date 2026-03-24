@@ -2,10 +2,11 @@
 
 > **Reference document.** Key principles (keyboard-first, status-at-glance, run-until-next-decision) already in [CANON.md](./CANON.md) §3. This file provides the full daily-driver vision.
 
-Рабочий документ о том, как c8c должен ощущаться не на первом демо, а на `day 30` ежедневного использования.
-Он задаёт daily-driver contract, через который нужно проверять execution plans, walkthroughs и app shell.
+A working document about how c8c should feel not on the first demo, but on `day 30` of daily use.
+It defines the daily-driver contract against which execution plans, walkthroughs, and the app shell should be validated.
 
-Основные источники:
+Main sources:
+
 - [docs/REFERENCES.md](./REFERENCES.md)
 - [docs/R1-EXECUTION-PLAN.md](./R1-EXECUTION-PLAN.md)
 - [docs/releases/R2-EXECUTION-PLAN.md](../releases/R2-EXECUTION-PLAN.md)
@@ -14,66 +15,66 @@
 
 ---
 
-## 1. Зачем нужен этот документ
+## 1. Why This Document Exists
 
-У c8c уже есть сильный first-run narrative:
+c8c already has a strong first-run narrative:
 
 - guided path
 - stage shell
 - dominant artifact
 - continuation
 
-Но desktop product для advanced users нельзя проектировать только под первый успешный прогон.
+But a desktop product for advanced users cannot be designed only for the first successful run.
 
-Нужно отдельно зафиксировать, как продукт должен работать, когда пользователь:
+We need to separately document how the product should work when the user:
 
-- запускает процессы каждый день
-- ведёт несколько процессов параллельно
-- больше не хочет перечитывать объяснения
-- ожидает скорость, клавиатуру и status-at-a-glance
+- launches processes every day
+- runs several processes in parallel
+- no longer wants to re-read explanations
+- expects speed, keyboard, and status-at-a-glance
 
-Коротко:
+In short:
 
-> `R1` и `R2` должны быть понятны на первом запуске, но удобны на тридцатом.
+> `R1` and `R2` should be clear on the first run, but convenient on the thirtieth.
 
 ---
 
-## 2. Пять принципов day-30 продукта
+## 2. Five Principles of a Day-30 Product
 
 ### 2.1 Run until next decision
 
-Один явный запуск должен продвигать процесс до следующего человеческого решения.
+A single explicit launch should advance the process to the next human decision.
 
-Это значит:
+This means:
 
-- система не должна требовать вручную перезапускать каждую deterministic stage
-- loops and continuations могут идти автоматически, пока не нужен новый judgment
-- остановка нужна на:
+- the system should not require manually restarting each deterministic stage
+- loops and continuations can proceed automatically until a new judgment is needed
+- a stop is needed on:
   - approval gate
   - blocked state
   - ambiguous outcome
   - explicit user pause
 
-Это не значит:
+This does not mean:
 
-- "запусти всё до конца без контроля"
-- скрывай stages and gates
-- убирай process legibility ради магии
+- "run everything to the end without control"
+- hide stages and gates
+- remove process legibility for the sake of magic
 
-Правильная формула:
+The right formula:
 
-> Не `run everything`.  
-> А `run until next decision`.
+> Not `run everything`.
+> But `run until next decision`.
 
 ### 2.2 Keyboard-first
 
-Если действие повторяется каждый день, у него должен быть keyboard path.
+If an action is repeated every day, it must have a keyboard path.
 
-Минимум:
+Minimum:
 
-- primary action на активной поверхности должен иметь shortcut
-- keyboard path не должен быть хуже mouse path
-- user не должен кликать через весь flow только потому, что продукт не определил command rhythm
+- the primary action on the active surface must have a shortcut
+- the keyboard path must not be worse than the mouse path
+- the user should not have to click through the entire flow just because the product did not define a command rhythm
 
 Baseline shortcuts:
 
@@ -91,128 +92,128 @@ Expanded shell shortcuts for later layers:
 
 ### 2.3 Status at a glance
 
-Пользователь должен понимать состояние процесса за секунды.
+The user should understand the process state within seconds.
 
-На уровне surface это значит:
+At the surface level this means:
 
 - current stage
 - compact outcome token
 - next decision
 - pending approval / blocked state
 
-На уровне app shell это значит:
+At the app shell level this means:
 
-- список активных процессов с текущей stage и status token
-- без необходимости открывать каждый процесс по очереди
+- a list of active processes with current stage and status token
+- without needing to open each process individually
 
 ### 2.4 Progressive disclosure by familiarity
 
-Первый запуск и тридцатый не должны выглядеть одинаково.
+The first run and the thirtieth should not look the same.
 
-Принцип:
+Principle:
 
-- first run может быть немного более explanatory
-- repeat run должен быть более compact
-- recurring operator не должен перечитывать один и тот же helper copy
+- the first run can be slightly more explanatory
+- repeat runs should be more compact
+- a recurring operator should not have to re-read the same helper copy
 
-Практически:
+In practice:
 
 - explanation collapses after first understanding
-- loop history and policy detail stay inspectable, но не всегда expanded
+- loop history and policy detail stay inspectable, but not always expanded
 - system uses badges, counters and labels before prose paragraphs
 
 ### 2.5 Inline over click-through
 
-Если пользователь уже находится в рабочем контексте, продукт должен решать задачу inline.
+If the user is already in a working context, the product should resolve the task inline.
 
-Это значит:
+This means:
 
-- dominant artifact preview сначала visible inline, потом full inspect
-- next action visible рядом с artifact
-- capability attach possible from current process or stage when relevant
+- dominant artifact preview is first visible inline, then full inspect
+- next action is visible next to the artifact
+- capability attach is possible from current process or stage when relevant
 
-Это не значит:
+This does not mean:
 
-- убрать отдельные pages entirely
+- remove separate pages entirely
 
-Но значит:
+But it does mean:
 
-- browser/catalog pages secondary
-- click-through только когда реально нужен deeper inspect or broader browse
+- browser/catalog pages are secondary
+- click-through only when a deeper inspect or broader browse is actually needed
 
 ### 2.6 Words are scaffolding, not the product
 
-`JTBD`, walkthroughs и explanatory copy полезны, потому что они заставляют нас честно назвать:
+`JTBD`, walkthroughs, and explanatory copy are useful because they force us to honestly name:
 
-- какую работу пользователь пытается закрыть
-- зачем существует конкретный stage or gate
-- какое следующее решение ожидается
+- what job the user is trying to close
+- why a specific stage or gate exists
+- what the next expected decision is
 
-Но это не означает, что shipped interface должен жить как текстовый нарратив.
+But this does not mean that the shipped interface should live as a text narrative.
 
-Правильная роль слов:
+The right role of words:
 
-- помочь нам выбрать правильные product objects
-- назвать states, actions and outcomes
-- временно поддержать новую mental model, пока surface ещё не достаточно читается визуально
+- help us choose the right product objects
+- name states, actions and outcomes
+- temporarily support a new mental model while the surface is not yet readable enough visually
 
-Неправильная роль слов:
+The wrong role of words:
 
-- заменять layout, hierarchy and controls
-- объяснять то, что уже должно быть понятно через badges, counters, rows, buttons and stage state
-- превращать daily-driver surface в лендинг, walkthrough или длинный onboarding paragraph
+- replace layout, hierarchy and controls
+- explain what should already be clear through badges, counters, rows, buttons and stage state
+- turn a daily-driver surface into a landing page, walkthrough, or long onboarding paragraph
 
-Правильная формула:
+The right formula:
 
-> Сначала words help explain the work.  
-> Потом interface должен позволять делать эту работу почти без объяснения.
+> First, words help explain the work.
+> Then, the interface should let you do that work with almost no explanation.
 
 ---
 
-## 3. Что этот контракт значит для R1
+## 3. What This Contract Means for R1
 
-`R1` не обязан быть full daily-driver shell.
+`R1` does not have to be a full daily-driver shell.
 
-Но он обязан заложить baseline, без которого `R2` будет строиться на demo-only UX.
+But it must lay the baseline without which `R2` would be built on demo-only UX.
 
 ### 3.1 R1 baseline
 
-`R1` должен дать:
+`R1` must provide:
 
-- compact guided entry вместо text-heavy launch cards
+- compact guided entry instead of text-heavy launch cards
 - stage shell as control header, not onboarding screen
 - dominant artifact with inline preview
-- `run until next decision` на canonical path там, где downstream behavior deterministic
+- `run until next decision` on the canonical path where downstream behavior is deterministic
 - minimal keyboard baseline on active process surfaces:
   - `Cmd+Enter` for run / continue / approve
   - `Esc` for closing secondary detail
 
-### 3.2 Что R1 ещё не обязан дать
+### 3.2 What R1 does not yet need to provide
 
-`R1` не обязан:
+`R1` does not need to:
 
-- решать multi-process status at a glance
-- строить full command palette shell
-- помнить user-specific disclosure preferences everywhere
-- делать full app-wide keyboard matrix
+- solve multi-process status at a glance
+- build a full command palette shell
+- remember user-specific disclosure preferences everywhere
+- implement a full app-wide keyboard matrix
 
-### 3.3 Главная проверка для R1
+### 3.3 The main test for R1
 
-После первого успешного прогона пользователь не должен думать:
+After the first successful run, the user should not be thinking:
 
-- "теперь мне придётся пять раз нажимать Run на каждый feature flow"
-- "без мыши это невозможно"
-- "каждый раз надо открывать артефакт в отдельном экране"
+- "now I'll have to press Run five times for every feature flow"
+- "this is impossible without a mouse"
+- "every time I have to open the artifact in a separate screen"
 
 ---
 
-## 4. Что этот контракт значит для R2
+## 4. What This Contract Means for R2
 
-`R2` должен превратить baseline в настоящий daily-driver shell.
+`R2` must turn the baseline into a real daily-driver shell.
 
 ### 4.1 R2 expansion
 
-`R2` должен дать:
+`R2` must provide:
 
 - multi-process status rail / sidebar with active stage and compact status tokens
 - keyboard-first shell:
@@ -224,33 +225,33 @@ Expanded shell shortcuts for later layers:
 - gate and loop state encoded as badges / counters / concise operator rows
 - inline capability attach from current process or stage
 
-### 4.2 Что нельзя делать в R2
+### 4.2 What must not be done in R2
 
-Нельзя:
+Must not:
 
-- строить process map как красивую демонстрационную схему без operator value
-- держать policy detail always expanded
-- заставлять capability attach проходить через длинный browse ritual, если user already knows current stage context
-- проектировать multi-process work так, будто пользователь ведёт только один процесс за раз
-- считать, что JTBD-derived copy itself already solves UX, если interface всё ещё требует читать длинные объяснения вместо чтения state through elements
+- build a process map as a pretty demo diagram without operator value
+- keep policy detail always expanded
+- force capability attach to go through a long browse ritual if the user already knows the current stage context
+- design multi-process work as if the user runs only one process at a time
+- assume that JTBD-derived copy itself already solves UX if the interface still requires reading long explanations instead of reading state through elements
 
-### 4.3 Главная проверка для R2
+### 4.3 The main test for R2
 
-Day-30 operator должен уметь:
+A day-30 operator should be able to:
 
-1. увидеть 3+ процесса и их состояние за один взгляд
-2. продолжить или одобрить активный процесс с клавиатуры
-3. быстро переключиться в другой процесс
-4. attach'ить нужную capability без ухода в expert-only browse flow
+1. see 3+ processes and their state at a glance
+2. continue or approve an active process from the keyboard
+3. quickly switch to another process
+4. attach the needed capability without navigating to an expert-only browse flow
 
 ---
 
-## 5. Вопросы, которые нужно задавать каждому новому UX-решению
+## 5. Questions to Ask Every New UX Decision
 
-1. Помогает ли это действовать на тридцатом прогоне, а не только понять продукт на первом?
-2. Это сокращает путь до следующего решения или добавляет ещё один explain-and-click step?
-3. Это читает state через tokens, counters, labels and actions, или только через copy?
-4. Это доступно inline из текущего контекста, или почему-то требует перехода в отдельный browse surface?
-5. Есть ли keyboard path для этого на frequent-user route?
+1. Does this help act on the thirtieth run, not just understand the product on the first?
+2. Does this shorten the path to the next decision, or add yet another explain-and-click step?
+3. Does this read state through tokens, counters, labels and actions, or only through copy?
+4. Is this accessible inline from the current context, or does it for some reason require navigating to a separate browse surface?
+5. Is there a keyboard path for this on the frequent-user route?
 
-Если хотя бы на два вопроса ответ отрицательный, решение, скорее всего, слишком demo-oriented.
+If at least two answers are negative, the decision is most likely too demo-oriented.

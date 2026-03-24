@@ -131,7 +131,7 @@ export const developmentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   spinePackIds: new Set(["delivery-foundation", "gstack-team"]),
 
   // Intents
-  intentsEnabled: false,
+  intentsEnabled: true,
 
   // Config form
   configFields: [

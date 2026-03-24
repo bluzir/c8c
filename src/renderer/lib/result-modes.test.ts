@@ -143,6 +143,52 @@ describe("result-modes", () => {
     ])
   })
 
+  it("exposes the full content router destination registry as quick starts", () => {
+    const templates = [
+      createTemplate({ id: "content-trend-watch", name: "Watch trends" }),
+      createTemplate({
+        id: "content-post-calendar",
+        name: "Plan content calendar",
+      }),
+      createTemplate({ id: "content-draft-post", name: "Draft a post" }),
+      createTemplate({
+        id: "content-qa-review",
+        name: "Review content quality",
+      }),
+      createTemplate({
+        id: "content-pipeline",
+        name: "Build content strategy",
+      }),
+      createTemplate({
+        id: "content-repurposing-factory",
+        name: "Repurpose content",
+      }),
+      createTemplate({
+        id: "predictable-text-factory",
+        name: "Generate text",
+      }),
+      createTemplate({
+        id: "copy-quality-pipeline",
+        name: "Check copy quality",
+      }),
+    ]
+
+    expect(
+      getResultModeQuickStarts(templates, "content").map(
+        (entry) => entry.template.id,
+      ),
+    ).toEqual([
+      "content-trend-watch",
+      "content-post-calendar",
+      "content-draft-post",
+      "content-qa-review",
+      "content-pipeline",
+      "content-repurposing-factory",
+      "predictable-text-factory",
+      "copy-quality-pipeline",
+    ])
+  })
+
   it("reorders development create quick starts from stable project context", () => {
     const quickStarts = [
       {

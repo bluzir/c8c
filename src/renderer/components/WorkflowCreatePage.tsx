@@ -78,7 +78,7 @@ import {
 } from "@/lib/result-mode-config"
 import { getResultMode } from "@/lib/result-modes"
 import { sanitizeDirectCreateFallbackTemplateId } from "@shared/create-entry-routing"
-import { isGuidedDomain } from "@shared/domains"
+import { isGuidedDomain, isIntentEnabledDomain } from "@shared/domains"
 import {
   buildCreateRoutingPreview,
   type CreateRoutingPreview,
@@ -938,9 +938,14 @@ export function WorkflowCreatePage() {
     }
 
     try {
+      const intentSelectionEnabled = isIntentEnabledDomain(
+        selectedResultMode.id,
+      )
       const effectiveHelpModeHint = isGuidedRouting
         ? (helpModeOverride ??
-          (useCurrentHelpMode ? developmentHelpModeHint : null) ??
+          (intentSelectionEnabled && useCurrentHelpMode
+            ? developmentHelpModeHint
+            : null) ??
           undefined)
         : undefined
       const routeCreateEntry = isGuidedRouting

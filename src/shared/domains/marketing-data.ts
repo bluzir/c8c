@@ -107,7 +107,7 @@ export const marketingDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   spinePackIds: new Set<string>(),
 
   // Intents
-  intentsEnabled: true,
+  intentsEnabled: false,
 
   // Config form
   configFields: [

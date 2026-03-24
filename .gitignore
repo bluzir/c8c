@@ -11,7 +11,8 @@ resources/bin/**
 .worktrees/
 .c8c/
 .chain-runner/
-docs/
+docs/*
+!docs/conventions/
 .env*
 !.env.example
 

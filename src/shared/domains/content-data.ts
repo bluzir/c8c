@@ -81,6 +81,13 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       intentLabel: "Plan it",
     },
     {
+      templateId: "content-post-calendar",
+      label: "Plan content calendar",
+      summary:
+        "Turn current themes into a concrete publishing plan before drafting starts.",
+      intentLabel: "Plan it",
+    },
+    {
       templateId: "content-draft-post",
       label: "Draft a post",
       summary:
@@ -99,7 +106,28 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       label: "Build content strategy",
       summary:
         "Turn a product brief into positioning, messaging, and content plan.",
+      intentLabel: "Plan it",
+    },
+    {
+      templateId: "content-repurposing-factory",
+      label: "Repurpose content",
+      summary:
+        "Turn one strong source piece into channel-ready variants without rewriting from scratch.",
       intentLabel: "Do it",
+    },
+    {
+      templateId: "predictable-text-factory",
+      label: "Generate text",
+      summary:
+        "Write structured long-form or batch copy from a brief with quality checks.",
+      intentLabel: "Do it",
+    },
+    {
+      templateId: "copy-quality-pipeline",
+      label: "Check copy quality",
+      summary:
+        "Clean up existing copy for clarity, specificity, and anti-slop quality.",
+      intentLabel: "Review it",
     },
   ],
 
@@ -121,7 +149,7 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   spinePackIds: new Set(["content-factory-alpha"]),
 
   // Intents
-  intentsEnabled: false,
+  intentsEnabled: true,
 
   // Config form
   configFields: [

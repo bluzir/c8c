@@ -1,21 +1,22 @@
 # UX Scenarios — Pattern Library
 
-**Дата:** 2026-03-18 | **Метод:** 4 UX-дизайнера проработали 9 сценариев из JTBD.md, product-agnostic → distilled в дизайн-принципы
+**Date:** 2026-03-18 | **Method:** 4 UX designers worked through 9 scenarios from JTBD.md, product-agnostic → distilled into design principles
 
-> **Как пользоваться этим документом:**
+> **How to use this document:**
 >
-> Это **north-star pattern library**, не ближайший roadmap. Сценарии ранжированы по приоритету:
-> - **CORE (Segment 1, ближайший roadmap):** Dev Process, Code Review, Refactor Shepherd — строить сейчас
-> - **NEXT (validated need, future packs):** Content Repurposing, Launch Kit, Telegram Dev Process — паттерны для будущих шаблонов
-> - **EXPLORE (hypothesis, C-grade):** Content Engine, Customer Voice, Competitive Intel, Onboarding — если будет валидация
+> This is a **north-star pattern library**, not a near-term roadmap. Scenarios are ranked by priority:
 >
-> Принципы дизайна разделены на **core** (применимы ко всем сценариям) и **pack-specific** (применимы только к определённым паттернам).
+> - **CORE (Segment 1, near-term roadmap):** Dev Process, Code Review, Refactor Shepherd — build now
+> - **NEXT (validated need, future packs):** Content Repurposing, Launch Kit, Telegram Dev Process — patterns for future templates
+> - **EXPLORE (hypothesis, C-grade):** Content Engine, Customer Voice, Competitive Intel, Onboarding — if validated
+>
+> Design principles are divided into **core** (applicable to all scenarios) and **pack-specific** (applicable only to specific patterns).
 
 ---
 
-## Содержание
+## Table of Contents
 
-1. [Дистиллят: 4 мета-паттерна и принципы дизайна](#дистиллят)
+1. [Distillation: 4 Meta-Patterns and Design Principles](#distillation)
 2. [CORE: Dev Process — Feature Factory + Code Review](#dev-process)
 3. [NEXT: Content & Launch — Launch Kit + Content Engine + Repurposing](#content--launch)
 4. [EXPLORE: Analysis & Intel — Customer Voice + Competitive Intel + Onboarding](#analysis--intel)
@@ -23,143 +24,153 @@
 
 ---
 
-# Дистиллят
+# Distillation
 
-## 4 мета-паттерна (покрывают все 9 сценариев)
+## 4 Meta-Patterns (Cover All 9 Scenarios)
 
-Все 9 сценариев сводятся к комбинации четырёх мета-паттернов:
+All 9 scenarios reduce to combinations of four meta-patterns:
 
-### Паттерн A: Multi-Phase Process (Feature Factory, Refactor, Telegram Dev)
-```
-ЭТАП 1 → GATE → ЭТАП 2 → GATE → ЭТАП 3 → ... → РЕЗУЛЬТАТ
-```
-Последовательные этапы с человеческими решениями между ними. Каждый этап = отдельный когнитивный режим, свежий контекст, именованный артефакт на выходе.
+### Pattern A: Multi-Phase Process (Feature Factory, Refactor, Telegram Dev)
 
-### Паттерн B: Quality Loop (Code Review, Refactor verification)
 ```
-ДЕЙСТВИЕ → ПРОВЕРКА → PASS? → да: дальше / нет: ФИКС → ПРОВЕРКА → ...
+STAGE 1 → GATE → STAGE 2 → GATE → STAGE 3 → ... → RESULT
 ```
-Замкнутый цикл с порогом качества и лимитом итераций. Автоматический retry при провале, эскалация к человеку при достижении лимита.
 
-### Паттерн C: Fan-Out / Fan-In (Launch Kit, Content Repurposing, Content Engine)
-```
-ОДИН ВХОД → ЯДРО → ПАРАЛЛЕЛЬНО: [A] [B] [C] [D] → CONSISTENCY CHECK → ПАКЕТ
-```
-Один input порождает N именованных outputs. Между генерацией и выдачей — автоматическая проверка согласованности между артефактами.
+Sequential stages with human decisions between them. Each stage = a separate cognitive mode, fresh context, named artifact as output.
 
-### Паттерн D: Chaos → Clarity (Customer Voice, Competitive Intel, Onboarding)
-```
-СЫРЫЕ ДАННЫЕ → КЛАССИФИКАЦИЯ → ФИЛЬТРАЦИЯ ШУМА → ПРИОРИТИЗАЦИЯ → ДЕЙСТВИЯ
-```
-Неструктурированный input трансформируется в structured actionable output через 4 стадии: хаос → структура → фильтрация → действие.
+### Pattern B: Quality Loop (Code Review, Refactor verification)
 
-### Паттерн E: Recurring Pipeline with Memory (Content Cadence, Trend Watching, Scheduled Audits)
 ```
-CRON/TRIGGER → СБОР СИГНАЛОВ → ФИЛЬТРАЦИЯ (с учётом истории) → СИНТЕЗ → ДОСТАВКА
+ACTION → CHECK → PASS? → yes: forward / no: FIX → CHECK → ...
+```
+
+A closed loop with a quality threshold and iteration limit. Auto-retry on failure, escalation to human when the limit is reached.
+
+### Pattern C: Fan-Out / Fan-In (Launch Kit, Content Repurposing, Content Engine)
+
+```
+ONE INPUT → CORE → PARALLEL: [A] [B] [C] [D] → CONSISTENCY CHECK → PACKAGE
+```
+
+One input produces N named outputs. Between generation and delivery — an automatic consistency check across artifacts.
+
+### Pattern D: Chaos → Clarity (Customer Voice, Competitive Intel, Onboarding)
+
+```
+RAW DATA → CLASSIFY → FILTER NOISE → PRIORITIZE → ACTIONS
+```
+
+Unstructured input is transformed into structured actionable output through 4 stages: chaos → structure → filtering → action.
+
+### Pattern E: Recurring Pipeline with Memory (Content Cadence, Trend Watching, Scheduled Audits)
+
+```
+CRON/TRIGGER → SIGNAL COLLECTION → FILTERING (with history) → SYNTHESIS → DELIVERY
                                       ↑                                      │
-                                      └──── TYPED RESULT из предыдущего запуска ──┘
+                                      └──── TYPED RESULT from previous run ──┘
 ```
-Pipe работает по расписанию (cron) или триггеру. Каждый запуск получает typed result из предыдущего запуска (Trend Lines, Topic Archive, Voice Profile). Память накапливается: видны тренды, а не только моментальные снимки. Anti-degradation: drift detection, controlled randomness, human calibration. Escalation: критический сигнал не ждёт каданса.
 
-> Полное описание паттерна E и сценариев, которые его используют: [JTBD-PIPE-SCENARIOS.md](./JTBD-PIPE-SCENARIOS.md)
+The pipe runs on a schedule (cron) or trigger. Each run receives the typed result from the previous run (Trend Lines, Topic Archive, Voice Profile). Memory accumulates: trends are visible, not just point-in-time snapshots. Anti-degradation: drift detection, controlled randomness, human calibration. Escalation: a critical signal does not wait for the cadence.
 
-### Как паттерны комбинируются в сценариях
+> Full description of Pattern E and scenarios that use it: [JTBD-PIPE-SCENARIOS.md](./JTBD-PIPE-SCENARIOS.md)
 
-| Сценарий | A (Process) | B (Loop) | C (Fan-Out) | D (Chaos→Clarity) |
-|----------|:-----------:|:--------:|:-----------:|:-----------------:|
-| Feature Factory | **основной** | внутри Review | — | — |
-| Code Review Pipeline | — | **основной** | — | — |
-| Launch Kit | — | — | **основной** | — |
-| Content Engine | частично | quality gate | **основной** | — |
-| Content Repurposing | — | — | **основной** | — |
-| Customer Voice | — | — | fan-out по категориям | **основной** |
-| Competitive Intel | — | — | fan-out по конкурентам | **основной** |
-| Onboarding Optimizer | — | — | — | **основной** |
-| Refactor Shepherd | **основной** | верификация | — | — |
-| Telegram Dev Process | **основной** | внутри review | — | — |
+### How Patterns Combine in Scenarios
 
----
-
-## Принципы дизайна
-
-### CORE — применимы ко всем сценариям, строить сейчас
-
-| # | Принцип | Суть |
-|---|---------|------|
-| 1 | **Процесс → Этап → Шаг** | Три уровня: процесс (стратегический, всегда видим) → этап (тактический, текущий артефакт + решение) → шаг (операционный, сворачиваемый). Один экран = один артефакт = одно решение |
-| 2 | **Quality Gates** | Три режима: автоматический проход (score > threshold), автоматический возврат (critical found), человеческое решение (пограничный случай). Настраиваемые пороги |
-| 3 | **Замкнутые циклы** | Review → Fix → Re-review с лимитом итераций и эскалацией к человеку. Визуальный счётчик итераций |
-| 4 | **Artifact Handoff** | Каждый этап получает **нужные артефакты и релевантный контекст** предыдущих этапов — не "всё", а то, что сконфигурировано. Пользователь видит "этот этап использовал: [список артефактов]". Это **не** "полный контекст всех этапов" — это artifact-based handoff, preventing context rot |
-| 5 | **Наблюдение > Вмешательство** | Пользователь — супервизор, не оркестратор. Вмешивается только на gates. Может перехватить управление в любой момент |
-| 6 | **Именованные артефакты** | Каждый этап производит named output: "Стратегический вердикт", "Дизайн-аудит", "Отчёт ревью v2". Не blob, а объект с типом, версией, связями |
-| 7 | **Сводка как доказательство ценности** | Финал: "3 бага найдены и исправлены, 9 тестов, покрытие 87%. Без этого процесса 3 бага ушли бы в прод" |
-| 8 | **Approval перед исполнением** | Gate стоит ПЕРЕД исполнением. Пользователь одобряет план ("5 файлов, ~1000 строк, 1 рекомендация"), не 2000 строк кода |
-| 9 | **Гранулярное одобрение** | Не "да/нет", а "одобрить шаги 1-2 / редактировать план / одобрить + добавить rate limiting" |
-| 10 | **Самодостаточный контекст в approval** | Каждый approval-запрос читается как самостоятельный документ. Пользователь мог не видеть предыдущие 5 сообщений |
-| 11 | **Execution Policy** | Настраиваемые правила: "если 0 critical — продолжай без меня", "если затронут /core/ — всегда спрашивай". Пользователь задаёт **policy**, не "уровень доверия". Это human-gated controllable execution, не autonomy ladder |
-| 12 | **Channel-adaptive progress** | Desktop: real-time stream. Background: system notification. Messenger: edit message. Звук только при решении/ошибке/завершении |
-
-### PACK-SPECIFIC — применимы к определённым паттернам
-
-**Fan-Out / Content packs (паттерн C):**
-
-| # | Принцип | Паттерн | Суть |
-|---|---------|---------|------|
-| 13 | **Content DNA** | Fan-Out | Перед fan-out — экстракция и подтверждение ядра: key message, тезисы, canonical facts. Пользователь подтверждает ДО генерации |
-| 14 | **Canonical Facts** | Fan-Out | Факты зафиксированы. "47%" = 47% везде. Авто-исправление при расхождении |
-| 15 | **Видимый параллелизм** | Fan-Out | Grid карточек, каждая зажигается по мере готовности. Быстрые первыми |
-| 16 | **Consistency Verification** | Fan-Out | Матрица "факт × артефакт" с цветовой кодировкой. Consistency score |
-| 17 | **Cascade Editing** | Fan-Out | Правка тезиса в одном артефакте → подсветка зависимых мест → предложение обновить |
-| 18 | **Review Board** | Fan-Out | Все артефакты рядом на одном экране. Approve по одному или "Approve All" |
-| 19 | **Package Export** | Fan-Out | Результат = готовый пакет (.zip), не россыпь текстов |
-
-**Analysis / Intel packs (паттерн D):**
-
-| # | Принцип | Паттерн | Суть |
-|---|---------|---------|------|
-| 20 | **Действие первично** | Chaos→Clarity | Верхний блок = "Что делать". Данные = обоснование, в складных секциях |
-| 21 | **Трёхуровневая глубина** | Chaos→Clarity | L1: действие. L2: обоснование (один клик). L3: сырые данные (второй клик) |
-| 22 | **Честная неуверенность** | Chaos→Clarity | Уровень уверенности на каждом выводе. Диапазон, не точка |
-| 23 | **Дельта, а не абсолют** | Chaos→Clarity | "73 бага (▲+12 vs прошлая неделя)" — тренды видны без действий |
+| Scenario             | A (Process) |   B (Loop)    |      C (Fan-Out)      | D (Chaos→Clarity) |
+| -------------------- | :---------: | :-----------: | :-------------------: | :---------------: |
+| Feature Factory      | **primary** | within Review |           —           |         —         |
+| Code Review Pipeline |      —      |  **primary**  |           —           |         —         |
+| Launch Kit           |      —      |       —       |      **primary**      |         —         |
+| Content Engine       |  partially  | quality gate  |      **primary**      |         —         |
+| Content Repurposing  |      —      |       —       |      **primary**      |         —         |
+| Customer Voice       |      —      |       —       |  fan-out by category  |    **primary**    |
+| Competitive Intel    |      —      |       —       | fan-out by competitor |    **primary**    |
+| Onboarding Optimizer |      —      |       —       |           —           |    **primary**    |
+| Refactor Shepherd    | **primary** | verification  |           —           |         —         |
+| Telegram Dev Process | **primary** | within review |           —           |         —         |
 
 ---
 
-## Как core-принципы группируются в UI
+## Design Principles
+
+### CORE — applicable to all scenarios, build now
+
+| #   | Principle                            | Essence                                                                                                                                                                                                                                                                                      |
+| --- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Process → Stage → Step**           | Three levels: process (strategic, always visible) → stage (tactical, current artifact + decision) → step (operational, collapsible). One screen = one artifact = one decision                                                                                                                |
+| 2   | **Quality Gates**                    | Three modes: auto-pass (score > threshold), auto-return (critical found), human decision (borderline case). Configurable thresholds                                                                                                                                                          |
+| 3   | **Closed Loops**                     | Review → Fix → Re-review with iteration limit and escalation to human. Visual iteration counter                                                                                                                                                                                              |
+| 4   | **Artifact Handoff**                 | Each stage receives **the needed artifacts and relevant context** from previous stages — not "everything," but what is configured. The user sees "this stage used: [list of artifacts]." This is **not** "full context of all stages" — it is artifact-based handoff, preventing context rot |
+| 5   | **Observation > Intervention**       | The user is a supervisor, not an orchestrator. Intervenes only at gates. Can take over control at any moment                                                                                                                                                                                 |
+| 6   | **Named Artifacts**                  | Each stage produces a named output: "Strategic Verdict," "Design Audit," "Review Report v2." Not a blob, but an object with type, version, relationships                                                                                                                                     |
+| 7   | **Summary as Proof of Value**        | Finale: "3 bugs found and fixed, 9 tests, 87% coverage. Without this process, 3 bugs would have shipped to production"                                                                                                                                                                       |
+| 8   | **Approval Before Execution**        | The gate stands BEFORE execution. The user approves the plan ("5 files, ~1000 lines, 1 recommendation"), not 2000 lines of code                                                                                                                                                              |
+| 9   | **Granular Approval**                | Not "yes/no," but "approve steps 1-2 / edit plan / approve + add rate limiting"                                                                                                                                                                                                              |
+| 10  | **Self-Sufficient Approval Context** | Each approval request reads as a standalone document. The user may not have seen the previous 5 messages                                                                                                                                                                                     |
+| 11  | **Execution Policy**                 | Configurable rules: "if 0 critical — continue without me," "if /core/ is touched — always ask." The user sets a **policy**, not a "trust level." This is human-gated controllable execution, not an autonomy ladder                                                                          |
+| 12  | **Channel-adaptive progress**        | Desktop: real-time stream. Background: system notification. Messenger: edit message. Sound only on decision/error/completion                                                                                                                                                                 |
+
+### PACK-SPECIFIC — applicable to specific patterns
+
+**Fan-Out / Content packs (Pattern C):**
+
+| #   | Principle                    | Pattern | Essence                                                                                                                                     |
+| --- | ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13  | **Content DNA**              | Fan-Out | Before fan-out — extraction and confirmation of the core: key message, talking points, canonical facts. The user confirms BEFORE generation |
+| 14  | **Canonical Facts**          | Fan-Out | Facts are locked. "47%" = 47% everywhere. Auto-correction on divergence                                                                     |
+| 15  | **Visible Parallelism**      | Fan-Out | Grid of cards, each lights up as it becomes ready. Fastest first                                                                            |
+| 16  | **Consistency Verification** | Fan-Out | Matrix of "fact × artifact" with color coding. Consistency score                                                                            |
+| 17  | **Cascade Editing**          | Fan-Out | Editing a talking point in one artifact → highlighting dependent locations → suggesting an update                                           |
+| 18  | **Review Board**             | Fan-Out | All artifacts side by side on one screen. Approve individually or "Approve All"                                                             |
+| 19  | **Package Export**           | Fan-Out | Result = a ready package (.zip), not a scatter of texts                                                                                     |
+
+**Analysis / Intel packs (Pattern D):**
+
+| #   | Principle               | Pattern       | Essence                                                                 |
+| --- | ----------------------- | ------------- | ----------------------------------------------------------------------- |
+| 20  | **Action First**        | Chaos→Clarity | Top block = "What to do." Data = justification, in collapsible sections |
+| 21  | **Three-Level Depth**   | Chaos→Clarity | L1: action. L2: justification (one click). L3: raw data (second click)  |
+| 22  | **Honest Uncertainty**  | Chaos→Clarity | Confidence level on each conclusion. A range, not a point               |
+| 23  | **Delta, Not Absolute** | Chaos→Clarity | "73 bugs (+12 vs last week)" — trends are visible without extra actions |
+
+---
+
+## How Core Principles Group in the UI
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  CORE: всегда присутствует                                              │
+│  CORE: always present                                                    │
 │                                                                         │
-│  ┌─── PROCESS VIEW (принципы 1-3) ──────────────────────────────────┐  │
+│  ┌─── PROCESS VIEW (principles 1-3) ─────────────────────────────────┐  │
 │  │                                                                    │  │
-│  │  [Этап 1] ──◆── [Этап 2] ──◆── [Этап 3] ──◆── [Результат]      │  │
+│  │  [Stage 1] ──◆── [Stage 2] ──◆── [Stage 3] ──◆── [Result]       │  │
 │  │              │                │                │                   │  │
 │  │           gate            gate (loop)       gate                  │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
-│  ┌─── STAGE VIEW (принципы 4, 6, 7) ────────────────────────────────┐  │
+│  ┌─── STAGE VIEW (principles 4, 6, 7) ────────────────────────────────┐  │
 │  │                                                                    │  │
-│  │  📄 "Архитектурный план v2"        Используемые артефакты:        │  │
-│  │  ├── Затронутые модули: 3          [вердикт] + [аудит]            │  │
-│  │  └── [Подробнее] [Сравнить v1]    (artifact handoff, не "всё")   │  │
+│  │  "Architecture Plan v2"            Artifacts used:                 │  │
+│  │  ├── Affected modules: 3          [verdict] + [audit]             │  │
+│  │  └── [Details] [Compare v1]       (artifact handoff, not "everything") │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
-│  ┌─── APPROVAL VIEW (принципы 8-12) ────────────────────────────────┐  │
+│  ┌─── APPROVAL VIEW (principles 8-12) ────────────────────────────────┐  │
 │  │                                                                    │  │
-│  │  🔔 "Дизайн готов. 5 файлов, ~1000 строк, 1 рек."               │  │
-│  │  [✅ Одобрить] [✅ + rate limiting] [✏️ Правки] [❌ Отклонить]     │  │
+│  │  "Design ready. 5 files, ~1000 lines, 1 rec."                    │  │
+│  │  [Approve] [Approve + rate limiting] [Edit] [Reject]              │  │
 │  │                                                                    │  │
-│  │  Policy: "при 0 critical — продолжать автоматически"              │  │
+│  │  Policy: "if 0 critical — continue automatically"                 │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  PACK-SPECIFIC: подключается через шаблоны                              │
+│  PACK-SPECIFIC: connected via templates                                  │
 │                                                                         │
-│  ┌─── FAN-OUT (принципы 13-19) ─────────────────────────────────────┐  │
+│  ┌─── FAN-OUT (principles 13-19) ─────────────────────────────────────┐  │
 │  │  [Article ●] [TW#1 ●] [TW#2 ◐]   Consistency: 92/100            │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
-│  ┌─── INSIGHT (принципы 20-23) ─────────────────────────────────────┐  │
-│  │  🔴 ДЕЙСТВУЙ: Починить crash PDF   ▸ L2  ▸ L3                    │  │
+│  ┌─── INSIGHT (principles 20-23) ─────────────────────────────────────┐  │
+│  │  ACT: Fix PDF crash   ▸ L2  ▸ L3                                  │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -171,123 +182,129 @@ Pipe работает по расписанию (cron) или триггеру. 
 
 ## Feature Factory [S-GRADE: gstack]
 
-### Идеальный путь
+### Ideal Path
 
 ```
-ВВОД: "Добавить экспорт дашборда в PDF"
+INPUT: "Add dashboard export to PDF"
 
-  [Этап 1: CEO Review]     →  Артефакт: "Стратегический вердикт"
-       ◆ Gate: "Стоит строить?" (авто при score>7, иначе human)
-  [Этап 2: Design Review]  →  Артефакт: "Дизайн-аудит" (80 баллов)
-       ◆ Gate: "Дизайн готов?" (авто при score>70, human при 50-70, авто-возврат <50)
-  [Этап 3: Eng Review]     →  Артефакт: "Архитектурный план"
-       ◆ Gate: Human approval (всегда)
-  [Этап 4: Implement]      →  Артефакт: diff (+1847/-203 строк)
-       (автоматический переход)
-  [Этап 5: Code Review]    →  Артефакт: "Отчёт ревью v{N}"
+  [Stage 1: CEO Review]     →  Artifact: "Strategic Verdict"
+       ◆ Gate: "Worth building?" (auto if score>7, otherwise human)
+  [Stage 2: Design Review]  →  Artifact: "Design Audit" (80 points)
+       ◆ Gate: "Design ready?" (auto if score>70, human if 50-70, auto-return <50)
+  [Stage 3: Eng Review]     →  Artifact: "Architecture Plan"
+       ◆ Gate: Human approval (always)
+  [Stage 4: Implement]      →  Artifact: diff (+1847/-203 lines)
+       (automatic transition)
+  [Stage 5: Code Review]    →  Artifact: "Review Report v{N}"
        ◆ Gate: Critical>0 → auto-fix → re-review (loop, max 3)
-  [Этап 6: QA]             →  Артефакт: "QA-отчёт" (9 тестов, 87% покрытие)
-       ◆ Gate: Тесты зелёные? (авто при pass, loop при fail)
-  [Этап 7: Ship]           →  Артефакт: "PR #142"
-       ◆ Gate: Human approval (финальный)
+  [Stage 6: QA]             →  Artifact: "QA Report" (9 tests, 87% coverage)
+       ◆ Gate: Tests green? (auto on pass, loop on fail)
+  [Stage 7: Ship]           →  Artifact: "PR #142"
+       ◆ Gate: Human approval (final)
 
-  РЕЗУЛЬТАТ: PR + сводка "2400 строк, 3 бага найдены/исправлены, 9 тестов"
-  + "Без этого процесса 3 бага ушли бы в прод"
+  RESULT: PR + summary "2400 lines, 3 bugs found/fixed, 9 tests"
+  + "Without this process, 3 bugs would have shipped to production"
 ```
 
-**Ключевой момент:** пользователь на каждом этапе видит **один экран с одним артефактом** и **одним решением**. Не граф, не лог, не blob — карточка с вердиктом и кнопками.
+**Key point:** the user at each stage sees **one screen with one artifact** and **one decision**. Not a graph, not a log, not a blob — a card with a verdict and buttons.
 
 ## Code Review Pipeline [S-GRADE]
 
-### Идеальный путь
+### Ideal Path
 
 ```
-ВВОД: git diff (ветка feature/pdf-export)
+INPUT: git diff (branch feature/pdf-export)
 
-  [Review] → "3 бага: 1 Critical, 2 Warning"
+  [Review] → "3 bugs: 1 Critical, 2 Warning"
        ◆ Critical>0 → AUTO-FIX
-  [Fix] → "Патч v1: 3 исправления, 2 теста добавлены"
-       (автоматический переход)
+  [Fix] → "Patch v1: 3 fixes, 2 tests added"
+       (automatic transition)
   [Re-Review] → "0 Critical, 0 Warning, 1 Info"
        ◆ PASS
-  [Ship] → PR со сводкой
+  [Ship] → PR with summary
        ◆ Human: "Merge?"
 
-  Счётчик: "Итерация 2/3, quality score 92/100"
-  Сводка: "Без этого 3 бага в проде"
+  Counter: "Iteration 2/3, quality score 92/100"
+  Summary: "Without this, 3 bugs in production"
 ```
 
-**Ключевой момент:** замкнутый цикл — первоклассный UI-примитив, не hack. Видна история итераций: v1 → патч → v2.
+**Key point:** a closed loop is a first-class UI primitive, not a hack. Iteration history is visible: v1 → patch → v2.
 
 ---
 
 # Content & Launch
 
-## Единый мета-паттерн для всех трёх сценариев
+## Unified Meta-Pattern for All Three Scenarios
 
 ```
 INPUT → EXTRACT CORE → CONFIRM → FAN-OUT → EVALUATE → CONSISTENCY → REVIEW BOARD → PACKAGE
 ```
 
 ### Launch Kit
-- Input: описание продукта + аудитория + тон
+
+- Input: product description + audience + tone
 - Core: "Brand DNA" (key message, 3 benefits, tone vocabulary, canonical facts)
 - Fan-out: Landing Copy + PH Listing + Twitter Thread + Email
-- Review: 4 карточки рядом, consistency 92/100
+- Review: 4 cards side by side, consistency 92/100
 - Package: Launch Kit .zip
 
-### Content Engine (повторяемый, 3-5 раз/нед)
-- Input: тема + тезисы
+### Content Engine (repeatable, 3-5 times/week)
+
+- Input: topic + talking points
 - Core: research brief
 - Fan-out: Blog + Twitter + LinkedIn (per platform)
-- Quality gate: оценка по критериям, auto-retry при провале
-- Review: approve по одному, Ready Queue с прогрессом недели
+- Quality gate: evaluation by criteria, auto-retry on failure
+- Review: approve individually, Ready Queue with weekly progress
 
 ### Content Repurposing
-- Input: 45-мин транскрипт подкаста
-- Core: "Content DNA" (5 тезисов, canonical facts, 8 цитат, timestamps)
-- Fan-out: 12 артефактов (статья, 5 threads, newsletter, 3 TikTok, LinkedIn, Telegram, YouTube desc, quote cards)
-- Consistency: матрица "факт × артефакт" (47% = 47% везде)
-- Cascade edit: правка тезиса → обновление зависимых мест
-- Package: Content Package .zip с осмысленной структурой папок
+
+- Input: 45-min podcast transcript
+- Core: "Content DNA" (5 talking points, canonical facts, 8 quotes, timestamps)
+- Fan-out: 12 artifacts (article, 5 threads, newsletter, 3 TikTok, LinkedIn, Telegram, YouTube desc, quote cards)
+- Consistency: matrix of "fact × artifact" (47% = 47% everywhere)
+- Cascade edit: editing a talking point → updating dependent locations
+- Package: Content Package .zip with a meaningful folder structure
 
 ---
 
 # Analysis & Intel
 
-## Единый мета-паттерн: Chaos → Clarity
+## Unified Meta-Pattern: Chaos → Clarity
 
 ```
-СЫРЫЕ ДАННЫЕ → КЛАССИФИКАЦИЯ → ФИЛЬТРАЦИЯ ШУМА → ПРИОРИТИЗАЦИЯ → "3 ДЕЙСТВИЯ НА НЕДЕЛЮ"
+RAW DATA → CLASSIFY → FILTER NOISE → PRIORITIZE → "3 ACTIONS FOR THE WEEK"
 ```
 
 ### Customer Voice Analyzer
-- Input: 147 сообщений (CSV, Discord, Intercom)
+
+- Input: 147 messages (CSV, Discord, Intercom)
 - Classify: bug/feature/praise/churn + confidence score
-- Output артефакты:
-  - "Пульс продукта" (dashboard: 73 бага ▲+12, настроение 6.2/10 ▼)
-  - "Матрица приоритетов багов" (3 бага на неделю с обоснованием)
-  - "Карта спроса на фичи" (23 упоминания, растущий тренд, сегмент)
-  - "Радар оттока" (5 users at risk с рекомендациями)
+- Output artifacts:
+  - "Product Pulse" (dashboard: 73 bugs +12, sentiment 6.2/10 down)
+  - "Bug Priority Matrix" (3 bugs for the week with justification)
+  - "Feature Demand Map" (23 mentions, growing trend, segment)
+  - "Churn Radar" (5 users at risk with recommendations)
 
 ### Competitive Intel
-- Input: список 3-5 конкурентов (URL, Twitter, pricing)
+
+- Input: list of 3-5 competitors (URL, Twitter, pricing)
 - Parallel: Changelog Scanner + Review Miner + Pricing Analyzer
-- Evaluator: значимое изменение (≥6/10) vs шум
-- Output артефакты:
-  - "Еженедельный дайджест" (🔴 ДЕЙСТВУЙ / 🟡 НАБЛЮДАЙ + "Что это значит для нас")
-  - "Конкурентная карта" (scatter plot: цена × функции + стрелки движения)
-  - "Хронология движений" (timeline с фильтрами)
+- Evaluator: significant change (>=6/10) vs noise
+- Output artifacts:
+  - "Weekly Digest" (ACT / WATCH + "What this means for us")
+  - "Competitive Map" (scatter plot: price × features + movement arrows)
+  - "Movement Timeline" (timeline with filters)
 
 ### Onboarding Optimizer
-- Input: описание шагов + скриншоты + drop-off данные + жалобы
-- Pipeline: UX Auditor → Best Practices → Improvement Proposer → Impact/Effort Evaluator
-- Output артефакты:
-  - "Карта трения" (визуальная воронка с красными зонами: −36% на шаге 3)
-  - "Диагностика главной проблемы" (что сейчас + что говорят + как делают лучшие)
-  - "Sprint Board" (3 улучшения, отсортированные по ROI, с описанием мокапов)
 
-**Ключевой принцип:** Время от загрузки данных до первого действия — главная метрика. Не точность, не красота. Время до "что делать".
+- Input: step descriptions + screenshots + drop-off data + complaints
+- Pipeline: UX Auditor → Best Practices → Improvement Proposer → Impact/Effort Evaluator
+- Output artifacts:
+  - "Friction Map" (visual funnel with red zones: -36% at step 3)
+  - "Root Problem Diagnosis" (current state + what users say + how the best do it)
+  - "Sprint Board" (3 improvements sorted by ROI, with mockup descriptions)
+
+**Key principle:** Time from data upload to first action is the main metric. Not accuracy, not beauty. Time to "what to do."
 
 ---
 
@@ -295,74 +312,74 @@ INPUT → EXTRACT CORE → CONFIRM → FAN-OUT → EVALUATE → CONSISTENCY → 
 
 ## Refactor Shepherd
 
-### Паттерн: "Одобряй план, не результат"
+### Pattern: "Approve the Plan, Not the Result"
 
 ```
-ДИАГНОСТИКА → ПЛАН → ВАЛИДАЦИЯ ПЛАНА → ◆ HUMAN APPROVAL (план) → ИСПОЛНЕНИЕ → ВЕРИФИКАЦИЯ → PR
+DIAGNOSIS → PLAN → PLAN VALIDATION → ◆ HUMAN APPROVAL (plan) → EXECUTION → VERIFICATION → PR
 
-Пользователь одобряет:
+The user approves:
 ┌──────────────────────────────────────────┐
-│ Шаг 1: Extract helper (3 файла, LOW ●○○)│
-│ Шаг 2: Remove dupes (5 файлов, LOW ●○○) │
-│ Шаг 3: Break circular (MED ●●○)         │
+│ Step 1: Extract helper (3 files, LOW)    │
+│ Step 2: Remove dupes (5 files, LOW)      │
+│ Step 3: Break circular (MED)             │
 │                                          │
-│ [Одобрить всё] [Шаги 1-2] [Редактировать]│
+│ [Approve all] [Steps 1-2] [Edit]         │
 └──────────────────────────────────────────┘
 ```
 
-### Паттерн: "Эскалация доверия"
+### Pattern: "Trust Escalation"
 
 ```
-Неделя 1:  "Покажи проблемы" (только диагностика)          Доверие: 0→1
-Неделя 2:  "Предложи план" (+ план, без исполнения)        Доверие: 1→2
-Неделя 3:  "Сделай один шаг" (одобрение 1 из 4)           Доверие: 2→4
-Неделя 4:  "Сделай весь план" (одобрение всех шагов)       Доверие: 4→6
-Неделя 6:  "Делай, я посмотрю PR" (ревью постфактум)       Доверие: 6→8
-Неделя 10: "Каждый понедельник автоматически" (scheduled)   Доверие: 8→9
+Week 1:  "Show problems" (diagnosis only)                Trust: 0→1
+Week 2:  "Suggest a plan" (+ plan, no execution)         Trust: 1→2
+Week 3:  "Do one step" (approval for 1 of 4)             Trust: 2→4
+Week 4:  "Do the full plan" (approval for all steps)     Trust: 4→6
+Week 6:  "Go ahead, I'll review the PR" (post-hoc review) Trust: 6→8
+Week 10: "Every Monday automatically" (scheduled)         Trust: 8→9
 ```
 
-Система **никогда не эскалирует автономию сама** — только пользователь решает. При проблемах — автоматическая деэскалация: "Последний PR имел проблемы. Вернуть одобрение перед реализацией?"
+The system **never escalates autonomy on its own** — only the user decides. On problems — automatic de-escalation: "The last PR had issues. Restore approval before implementation?"
 
 ## Telegram Dev Process (OpenClaw)
 
-### Идеальный путь в мессенджере
+### Ideal Path in Messenger
 
 ```
-👤 "Добавь фото-загрузку для продавцов. До 5МБ, S3."
+User: "Add photo upload for sellers. Up to 5MB, S3."
 
-🤖 "Принял. 7 этапов, ветка feat/seller-photo-upload. [Начать]"
+Bot: "Accepted. 7 stages, branch feat/seller-photo-upload. [Start]"
 
-🤖 "✅ Этап 1/7: Анализ — готово. 3 upload endpoint, паттерн multer→sharp→S3"
-🤖 "✅ Этап 2/7: Дизайн — готово. 2 endpoint, ~1000 строк"
+Bot: "Stage 1/7: Analysis — done. 3 upload endpoints, multer→sharp→S3 pattern"
+Bot: "Stage 2/7: Design — done. 2 endpoints, ~1000 lines"
 
-🤖 "🔔 Требуется решение.
-    Дизайн готов: 5 файлов, ~1000 строк, 1 рекомендация (rate limit).
-    [✅ Одобрить] [✅ + rate limiting] [✏️ Правки] [❌ Отклонить]"
+Bot: "Decision required.
+    Design ready: 5 files, ~1000 lines, 1 recommendation (rate limit).
+    [Approve] [Approve + rate limiting] [Edit] [Reject]"
 
-👤 нажимает [✅ + rate limiting]
+User presses [Approve + rate limiting]
 
-🤖 "⏳ Этап 4/7: Реализация ████████████░░░░ 75%"  (edit message)
+Bot: "Stage 4/7: Implementation 75%"  (edit message)
 
-🤖 "🎉 PR #234 готов. 2,400 строк, 9 тестов, 0 critical.
-    [Открыть PR ↗] [Запустить ещё задачу]"
+Bot: "PR #234 ready. 2,400 lines, 9 tests, 0 critical.
+    [Open PR] [Run another task]"
 ```
 
-### Ключевые UX-решения для мессенджера
+### Key UX Decisions for Messenger
 
-| Решение | Почему |
-|---------|--------|
-| **Edit message** для прогресса | Чат не загромождается, один message обновляется |
-| **Звук только при: решение / завершение / ошибка** | Не спамить пользователя промежуточными обновлениями |
-| **Inline-кнопки, не текстовые команды** | Одно нажатие, не "напечатай approve" |
-| **Таймаут с дефолтом** | "Если не ответите за 30 мин — продолжу с рекомендацией" |
-| **Мессенджер для решений, веб для деталей** | Кнопка "Подробнее" открывает полный отчёт в браузере |
+| Decision                                         | Why                                                                          |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| **Edit message** for progress                    | Chat does not get cluttered, one message gets updated                        |
+| **Sound only on: decision / completion / error** | Do not spam the user with intermediate updates                               |
+| **Inline buttons, not text commands**            | One tap, not "type approve"                                                  |
+| **Timeout with default**                         | "If you don't respond within 30 min — I'll continue with the recommendation" |
+| **Messenger for decisions, web for details**     | "Details" button opens the full report in browser                            |
 
 ---
 
-## Связанные документы
+## Related Documents
 
-| Документ | Что в нём |
-|----------|-----------|
-| `docs/JTBD.md` | Чистая карта потребностей пользователей (product-agnostic) |
-| `docs/STRATEGY.md` | Продуктовая интерпретация и roadmap |
-| `docs/BRAND.md` | Позиционирование, tone of voice |
+| Document           | Contents                               |
+| ------------------ | -------------------------------------- |
+| `docs/JTBD.md`     | Pure user needs map (product-agnostic) |
+| `docs/STRATEGY.md` | Product interpretation and roadmap     |
+| `docs/BRAND.md`    | Positioning, tone of voice             |

@@ -2,15 +2,15 @@
 
 > **Key rules absorbed into [CANON.md](./CANON.md) §9.** This file contains the full design system reference (anti-patterns, copy rules, tokens, surface archetypes). CANON is authoritative for visual hierarchy hard rules and thresholds.
 
-Единый документ подхода к дизайну интерфейса c8c. Консолидирует принципы из DAY-30-OPERATOR-CONTRACT, execution plans, UX-SCENARIOS, BRAND, HUB-WRITING-GUIDE, copy-style-guide.
+A unified document on the c8c interface design approach. Consolidates principles from DAY-30-OPERATOR-CONTRACT, execution plans, UX-SCENARIOS, BRAND, HUB-WRITING-GUIDE, copy-style-guide.
 
 ---
 
-## 1. Кто пользователь и что за продукт
+## 1. Who Is the User and What Is the Product
 
-**c8c — daily-driver инструмент для оператора AI-процессов.** Не лендинг, не демо, не маркетинговый сайт.
+**c8c is a daily-driver tool for AI process operators.** Not a landing page, not a demo, not a marketing site.
 
-Оператор работает с c8c каждый день. У него одновременно 3+ активных процессов. Он переключается между ними, утверждает гейты, прикрепляет capabilities, запускает батчи. Интерфейс должен работать на этого человека на 30-й день использования, а не впечатлять на первом скриншоте.
+The operator works with c8c every day. They have 3+ active processes running simultaneously. They switch between them, approve gates, attach capabilities, launch batches. The interface must work for this person on day 30 of usage, not impress on the first screenshot.
 
 **Brand qualities:** Calm · Legible · Accountable · Capable
 
@@ -18,136 +18,158 @@
 
 ---
 
-## 2. Каноничный guardrail: UI elements > text
+## 2. Canonical Guardrail: UI Elements > Text
 
-> Сначала слова помогают назвать работу. Потом интерфейс позволяет делать эту работу почти без объяснения.
+> First, words help name the work. Then, the interface lets you do that work with almost no explanation.
 
-JTBD и walkthrough-текст — это design scaffolding. Они помогают выбрать правильные продуктовые объекты, назвать состояния и действия. Но shipped UI не должен зависеть от narrative copy.
+JTBD and walkthrough text are design scaffolding. They help choose the right product objects, name states and actions. But shipped UI must not depend on narrative copy.
 
-**Тест:** если убрать из surface весь paragraph-level текст и она перестаёт работать — surface не готова. Нужны лучший layout, hierarchy, badges, counters, actions.
+**Test:** if you remove all paragraph-level text from a surface and it stops working — the surface is not ready. Better layout, hierarchy, badges, counters, and actions are needed.
 
-**Роль слов в shipped UI:**
-- Помогают выбрать правильные product objects
-- Называют states, actions, outcomes
-- Временно поддерживают новый mental model (при первом контакте)
+**Role of words in shipped UI:**
 
-**Что слова НЕ должны делать:**
-- Заменять layout, hierarchy, controls
-- Объяснять то, что должно быть понятно через badges, counters, rows, buttons, stage state
-- Зависимость: если surface понятна только после чтения параграфа текста — не дотягивает до quality bar
+- Help choose the right product objects
+- Name states, actions, outcomes
+- Temporarily support a new mental model (on first contact)
+
+**What words should NOT do:**
+
+- Replace layout, hierarchy, controls
+- Explain what should be clear through badges, counters, rows, buttons, stage state
+- Dependency: if a surface only makes sense after reading a paragraph of text — it does not meet the quality bar
 
 ---
 
-## 3. Шесть UX-принципов daily-driver
+## 3. Six UX Principles for a Daily-Driver
 
 ### 3.1 Run until next decision
-Один запуск продвигает процесс до следующего человеческого решения. Автоматически продолжать, когда поведение детерминистично. Останавливаться на: approval gates, blocked states, ambiguous outcomes, explicit user pause.
+
+A single launch advances the process to the next human decision. Automatically continue when behavior is deterministic. Stop on: approval gates, blocked states, ambiguous outcomes, explicit user pause.
 
 ### 3.2 Keyboard-first
-Частые действия обязаны иметь клавиатурные шорткаты.
 
-| Shortcut | Action |
-|----------|--------|
+Frequent actions must have keyboard shortcuts.
+
+| Shortcut    | Action                                  |
+| ----------- | --------------------------------------- |
 | `Cmd+Enter` | Primary action (Run, Continue, Approve) |
-| `Esc` | Close detail/dialog |
-| `Cmd+K` | Command palette |
-| `Cmd+N` | New process |
-| `Cmd+1..5` | Quick switch |
+| `Esc`       | Close detail/dialog                     |
+| `Cmd+K`     | Command palette                         |
+| `Cmd+N`     | New process                             |
+| `Cmd+1..5`  | Quick switch                            |
 
-Shortcuts ускоряют ту же IA, а не создают параллельный expert-only продукт.
+Shortcuts accelerate the same IA rather than creating a parallel expert-only product.
 
 ### 3.3 Status at a glance
-Пользователь понимает состояние процесса за секунды: текущий stage, compact outcome token, next decision, pending approval/blocked. App shell показывает 3+ активных процессов с current stage и status token без открытия каждого.
+
+The user understands the process state within seconds: current stage, compact outcome token, next decision, pending approval/blocked. The app shell shows 3+ active processes with current stage and status token without opening each one.
 
 ### 3.4 Progressive disclosure by familiarity
-Первый запуск может быть explanatory. Повторный должен быть compact. Объяснения коллапсируются после первого понимания. Loop history и policy detail остаются inspectable, но не expanded по умолчанию.
+
+The first run can be explanatory. Repeat runs should be compact. Explanations collapse after first understanding. Loop history and policy detail remain inspectable but not expanded by default.
 
 ### 3.5 Inline over click-through
-Если пользователь в контексте — решай inline. Dominant artifact preview видим inline, потом full inspect. Next action видно рядом с артефактом.
+
+If the user is in context — resolve inline. Dominant artifact preview is visible inline, then full inspect. Next action is visible next to the artifact.
 
 ### 3.6 Words are scaffolding, not the product
-(См. секцию 2 — каноничный guardrail)
+
+(See section 2 — canonical guardrail)
 
 ---
 
-## 4. Принципы редактора
+## 4. Editor Principles
 
 ### P-01: Feedback where user is looking
-После действия — feedback в текущей области фокуса. Edit field → feedback в inspector. Canvas action → feedback на canvas. Workflow run → progress в активной surface.
+
+After an action — feedback in the current focus area. Edit field — feedback in inspector. Canvas action — feedback on canvas. Workflow run — progress in the active surface.
 
 ### P-02: Hidden power OK, hidden basics — not
-Advanced actions могут жить в canvas, context menu, shortcuts. Basic actions не могут зависеть только от них.
 
-### P-03: One editor → one undo model
-Одинаковый undo mechanism независимо от того, где сделано изменение (list, canvas, inspector, auto-layout).
+Advanced actions can live in canvas, context menu, shortcuts. Basic actions cannot depend solely on them.
+
+### P-03: One editor — one undo model
+
+A single undo mechanism regardless of where the change was made (list, canvas, inspector, auto-layout).
 
 ### P-04: Spatial actions honor spatial intent
-Если пользователь кликнул в конкретную точку, добавил ноду, вручную выложил граф — система не должна молча отбрасывать этот intent.
+
+If the user clicked a specific point, added a node, manually laid out the graph — the system must not silently discard that intent.
 
 ### P-05: Disabled is explanatory
-Disabled control объясняет ПОЧЕМУ и что сделать, чтобы включить.
 
-### P-06: One concept → one label
-Flow, Graph, Run, Output, Edit mode, Settings — однозначные, непересекающиеся термины.
+A disabled control explains WHY and what to do to enable it.
+
+### P-06: One concept — one label
+
+Flow, Graph, Run, Output, Edit mode, Settings — unambiguous, non-overlapping terms.
 
 ---
 
-## 5. Четыре мета-паттерна (покрывают все сценарии)
+## 5. Four Meta-Patterns (Cover All Scenarios)
 
 ### Multi-Phase Process
+
 ```
 STAGE 1 → GATE → STAGE 2 → GATE → STAGE 3 → ... → RESULT
 ```
-Последовательные стадии с человеческими решениями между ними. Каждый stage = отдельный cognitive mode, fresh context, named artifact.
+
+Sequential stages with human decisions between them. Each stage = a separate cognitive mode, fresh context, named artifact.
 
 ### Quality Loop
+
 ```
 ACTION → CHECK → PASS? → yes: forward / no: FIX → CHECK → ...
 ```
-Замкнутый цикл с quality threshold + iteration limit. Auto-retry при fail; escalation к человеку при лимите.
+
+A closed loop with a quality threshold + iteration limit. Auto-retry on fail; escalation to human on limit.
 
 ### Fan-Out / Fan-In
+
 ```
 ONE INPUT → CORE → PARALLEL: [A] [B] [C] [D] → CONSISTENCY CHECK → PACKAGE
 ```
-Один вход порождает N named outputs. Consistency check между генерацией и доставкой.
+
+One input produces N named outputs. Consistency check between generation and delivery.
 
 ### Chaos → Clarity
+
 ```
 RAW DATA → CLASSIFY → FILTER NOISE → PRIORITIZE → ACTIONS
 ```
-Неструктурированный вход → структурированный actionable выход.
+
+Unstructured input → structured actionable output.
 
 ---
 
-## 6. Принципы UX-сценариев
+## 6. UX Scenario Principles
 
-1. **Process → Stage → Step** — три уровня: стратегический (всегда видно), тактический (текущий artifact + decision), операционный (collapsible)
-2. **Quality Gates** — три режима: auto-pass (score > threshold), auto-return (critical found), human decision (borderline)
-3. **Closed loops** — Review → Fix → Re-review с iteration limit + escalation
-4. **Artifact Handoff** — каждый stage получает нужные артефакты и релевантный контекст предыдущих (не "всё")
-5. **Observation > Intervention** — пользователь supervisor, не orchestrator. Вмешивается только на gates.
-6. **Named artifacts** — каждый stage создаёт named output с type, version, relationships
-7. **Summary as proof of value** — финал: "3 бага найдено и исправлено, 9 тестов, 87% покрытие"
-8. **Approval before execution** — гейт ПЕРЕД исполнением. Пользователь утверждает план, не 2000 строк кода
-9. **Granular approval** — не только да/нет: "approve steps 1-2 / edit plan / approve + add rate limiting"
-10. **Self-sufficient approval context** — каждый approval request читается standalone
-11. **Execution Policy** — настраиваемые правила: "if 0 critical → continue without me"
+1. **Process → Stage → Step** — three levels: strategic (always visible), tactical (current artifact + decision), operational (collapsible)
+2. **Quality Gates** — three modes: auto-pass (score > threshold), auto-return (critical found), human decision (borderline)
+3. **Closed loops** — Review → Fix → Re-review with iteration limit + escalation
+4. **Artifact Handoff** — each stage receives the needed artifacts and relevant context from previous ones (not "everything")
+5. **Observation > Intervention** — the user is a supervisor, not an orchestrator. Intervenes only at gates.
+6. **Named artifacts** — each stage creates a named output with type, version, relationships
+7. **Summary as proof of value** — finale: "3 bugs found and fixed, 9 tests, 87% coverage"
+8. **Approval before execution** — gate is placed BEFORE execution. The user approves the plan, not 2000 lines of code
+9. **Granular approval** — not just yes/no: "approve steps 1-2 / edit plan / approve + add rate limiting"
+10. **Self-sufficient approval context** — each approval request reads as standalone
+11. **Execution Policy** — configurable rules: "if 0 critical → continue without me"
 12. **Channel-adaptive progress** — Desktop: real-time stream; Background: system notification
 
 ---
 
-## 7. Продуктовые объекты R2
+## 7. R2 Product Objects
 
-| Object | Суть | Формат |
-|--------|------|--------|
-| Process map spine | Цепочка stages с state | Compact persistent navigation, не explanatory hero |
-| Stage shell | Current stage + readiness + artifact + next decision | Control header, не onboarding screen |
-| Loop state | Iteration number, trigger, outcome | Compact strip/row/block near stage, не status text в логах |
-| Policy summary | Active policy, intent, next action | Concise control panel, не essay about autonomy |
-| Capability intake | List/card с provenance, scope, attach action | Attachable row/card, не marketplace/file browser |
-| Process status rail | Active processes с stage + status token | Quick switch, "что происходит?" за один взгляд |
-| Keyboard layer | Stable shortcuts для frequent actions | `Cmd+Enter`, `Cmd+K`, `Cmd+N` — shipped UX, не footnotes |
+| Object              | Essence                                              | Format                                                      |
+| ------------------- | ---------------------------------------------------- | ----------------------------------------------------------- |
+| Process map spine   | Chain of stages with state                           | Compact persistent navigation, not explanatory hero         |
+| Stage shell         | Current stage + readiness + artifact + next decision | Control header, not onboarding screen                       |
+| Loop state          | Iteration number, trigger, outcome                   | Compact strip/row/block near stage, not status text in logs |
+| Policy summary      | Active policy, intent, next action                   | Concise control panel, not an essay about autonomy          |
+| Capability intake   | List/card with provenance, scope, attach action      | Attachable row/card, not marketplace/file browser           |
+| Process status rail | Active processes with stage + status token           | Quick switch, "what's happening?" at a glance               |
+| Keyboard layer      | Stable shortcuts for frequent actions                | `Cmd+Enter`, `Cmd+K`, `Cmd+N` — shipped UX, not footnotes   |
 
 ---
 
@@ -162,6 +184,7 @@ For each runtime state (idle, ready, blocked, running, completed), there is exac
 **Test:** Cover the primary object with your hand. Can you still tell what state the page is in? If yes, something else is competing. Strip it.
 
 **Enforcement:**
+
 - Only the figure gets `border + background + elevation` (card treatment).
 - Secondary elements use flat text, hairline separators, or transparent backgrounds — never their own card.
 - Removing nested cards does **not** mean removing structure. Use Level 0-2 connective tissue — context strips, slabs/lanes, inset wells, and selected-row tint — to bind related content without creating a competing figure.
@@ -174,6 +197,7 @@ For each runtime state (idle, ready, blocked, running, completed), there is exac
 Hick's Law target. Count every visible clickable element (buttons, tabs, links, selectors, toggles). If the total exceeds 5 for a given state, move excess into overflow.
 
 **Enforcement:**
+
 - One primary CTA per state. It is the only `variant="default"` button visible.
 - If two components render the same action (e.g., Toolbar Run + Resume Header Run), one must defer: hide, become ghost, or disable.
 - Secondary actions (Copy, Export, Open Report) live in an overflow menu, not a flat button row.
@@ -184,6 +208,7 @@ Hick's Law target. Count every visible clickable element (buttons, tabs, links, 
 Progressive disclosure. An element renders only in the states where it provides actionable value.
 
 **Enforcement:**
+
 - OutputPanel (and its tab bar) is absent until the first run starts. Before that: no tabs, no placeholders, no "No activity yet."
 - Tabs appear individually when their content arrives: Summary on run start, Result on first output, History on first completed run.
 - After run completion, the chain builder (flow editor) collapses. Result rises to top of viewport.
@@ -196,6 +221,7 @@ Progressive disclosure. An element renders only in the states where it provides 
 A piece of state (progress, blocked status, current step) appears in exactly one place. Never two.
 
 **Enforcement:**
+
 - If RunStrip shows progress, OutputPanel header does not repeat it.
 - If Resume Header shows "Blocked", Toolbar does not show a separate blocker banner.
 - If Result tab is auto-selected, RunStrip's "View result" button has no reason to exist.
@@ -205,6 +231,7 @@ A piece of state (progress, blocked status, current step) appears in exactly one
 Nested bordered containers break figure-ground. A card (border + background) may contain flat content, but never another card.
 
 **Enforcement:**
+
 - ScopeBanner's internal grid uses flat label+value pairs, not `rounded-lg border bg-surface-1/70` sub-cards.
 - InputPanel's inset card (`surface-inset-card`) flattens into the parent when inside a resume header context.
 - Activity/Result tab's inner summary cards recede to `border-hairline` only (no background, no elevation) when nested inside OutputPanel.
@@ -214,13 +241,13 @@ Nested bordered containers break figure-ground. A card (border + background) may
 
 Two tiers: **target** (what we aim for) and **ship-blocker** (what fails review). The gap between them is "not ideal but shippable — file a follow-up."
 
-| Metric | Target | Shippable (file follow-up) | Ship-blocker (must fix) |
-|--------|--------|---------------------------|------------------------|
-| Bordered containers per state | ≤3 | 4-5 | >5 |
-| Visible clickable elements per state | ≤5 | 6-8 | >8 |
-| Duplicate status signals | 0 | 0 | >0 |
-| Nested cards (card inside card) | 0 | 0 | >0 |
-| Rendered-but-empty sections | 0 | 0 | >0 |
+| Metric                               | Target | Shippable (file follow-up) | Ship-blocker (must fix) |
+| ------------------------------------ | ------ | -------------------------- | ----------------------- |
+| Bordered containers per state        | ≤3     | 4-5                        | >5                      |
+| Visible clickable elements per state | ≤5     | 6-8                        | >8                      |
+| Duplicate status signals             | 0      | 0                          | >0                      |
+| Nested cards (card inside card)      | 0      | 0                          | >0                      |
+| Rendered-but-empty sections          | 0      | 0                          | >0                      |
 
 The last three (duplicates, nesting, empty sections) are always ship-blockers — no shippable middle ground.
 
@@ -230,12 +257,12 @@ The last three (duplicates, nesting, empty sections) are always ship-blockers �
 
 Components are **flat by default**. Card treatment (border + background + elevation) is earned, not given. Use the lightest surface that communicates the role:
 
-| Level | Treatment | When to use |
-|-------|-----------|-------------|
-| **0 — Ground** | No border, no background, no shadow. Content sits on the page. | Secondary/supporting content: input areas, step lists, metadata, labels. The default. |
-| **1 — Separator** | `border-hairline` line only, no background. | Dividing siblings within the same context: step rows, list items, section breaks. |
-| **2 — Tint** | Background tint only (`bg-surface-2/40` or status color at low opacity), no border. | Highlighting the active item in a list (e.g., active step during running). Temporary emphasis, not containment. |
-| **3 — Card** | `border + background + elevation` (`surface-panel` or `rounded-xl border ui-elevation-base`). | **Only the figure.** One per state. This is the visual object that answers "what am I looking at?" |
+| Level             | Treatment                                                                                     | When to use                                                                                                     |
+| ----------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **0 — Ground**    | No border, no background, no shadow. Content sits on the page.                                | Secondary/supporting content: input areas, step lists, metadata, labels. The default.                           |
+| **1 — Separator** | `border-hairline` line only, no background.                                                   | Dividing siblings within the same context: step rows, list items, section breaks.                               |
+| **2 — Tint**      | Background tint only (`bg-surface-2/40` or status color at low opacity), no border.           | Highlighting the active item in a list (e.g., active step during running). Temporary emphasis, not containment. |
+| **3 — Card**      | `border + background + elevation` (`surface-panel` or `rounded-xl border ui-elevation-base`). | **Only the figure.** One per state. This is the visual object that answers "what am I looking at?"              |
 
 `surface-soft` and `surface-inset-card` are Level 3 — they create card weight. Do not use them for empty states, placeholders, or secondary info. Empty states are Level 0 (plain text).
 
@@ -246,13 +273,13 @@ If that cleanup leaves the page reading like divider soup, the fix is not "bring
 
 Use these patterns:
 
-| Pattern | Level | Purpose | Test |
-|--------|-------|---------|------|
-| **Context strip** | 0-1 | Tie local title, status, scope, and links together above the figure | If removed, the figure still makes sense, but the user loses "what am I looking at below?" |
-| **Slab / lane** | 1-2 | Make a group of related rows read as one region | If removed, the rows feel unrelated rather than over-decorated |
-| **Chapter shell** | 2 | Bind a heading to a long administrative body on a compound page | If removed, the page turns into loose section headings plus hanging content |
-| **Inset well** | 2 | Create a local focal point inside the figure or selected row | If removed, the page loses local emphasis but not figure ownership |
-| **Selected-row tint** | 2 | Mark the current item in a collection | If removed, the page loses current-item clarity but not global state clarity |
+| Pattern               | Level | Purpose                                                             | Test                                                                                       |
+| --------------------- | ----- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Context strip**     | 0-1   | Tie local title, status, scope, and links together above the figure | If removed, the figure still makes sense, but the user loses "what am I looking at below?" |
+| **Slab / lane**       | 1-2   | Make a group of related rows read as one region                     | If removed, the rows feel unrelated rather than over-decorated                             |
+| **Chapter shell**     | 2     | Bind a heading to a long administrative body on a compound page     | If removed, the page turns into loose section headings plus hanging content                |
+| **Inset well**        | 2     | Create a local focal point inside the figure or selected row        | If removed, the page loses local emphasis but not figure ownership                         |
+| **Selected-row tint** | 2     | Mark the current item in a collection                               | If removed, the page loses current-item clarity but not global state clarity               |
 
 What these are **not**:
 
@@ -317,6 +344,7 @@ Applied specifically to runtime/result surfaces: thresholds, rule inventories, r
 Every approval gate and every continuation surface must make these elements available in the owner surface. Keep the current decision, outcome, and next action in the default read; supporting detail may live in local disclosure or another compact inspect layer.
 
 **Approval (blocked state):**
+
 - Which step paused (job-language name)
 - Why it paused (specific reason, not generic "task open")
 - What happens on approve (next step name + expected result type)
@@ -325,6 +353,7 @@ Every approval gate and every continuation surface must make these elements avai
 - Relevant artifact preview (if compact)
 
 **Continuation (ready/completed state):**
+
 - What was just completed (typed result label + one-line outcome)
 - What happens next (next step name in job language)
 - One primary action ("Continue to [next step]" or "Run")
@@ -343,6 +372,7 @@ Not every terminal state should use the same shell. Pick the archetype that matc
 - **Log / inspector surface** — the main job is debugging or tracing execution. Figure = log viewer or inspector pane.
 
 **Archetype rules:**
+
 - A workflow or project may have **one strong page-level header**. Do not repeat hero-style headers inside child surfaces.
 - Child surfaces use **flat context strips** (title, status, artifact, local links), not second-level hero cards.
 - Local navigation between sibling modes (`result`, `activity`, `log`, `history`) is allowed **inside the owner surface** as one low-emphasis strip when it replaces heavier page chrome.
@@ -358,14 +388,14 @@ For the full process of going from JTBD questions to screen layout, see `docs/co
 
 ## 9. Anti-patterns
 
-- Dashboard theater: много схем, мало control value
-- Default-expanded prose panels: объяснение процесса вместо ведения через него
-- Capability discovery как browser raw objects вместо attachable tools
-- Process map красивый на демо, плохой для daily-use navigation
-- Interface понятен только после чтения narrative copy
-- Feature dumps в карточках
-- Node counts и внутренняя архитектура видны пользователю
-- Rhetorical questions, fake empathy, emotion diagnosis в UI-тексте
+- Dashboard theater: lots of charts, little control value
+- Default-expanded prose panels: explaining the process instead of guiding through it
+- Capability discovery as browsing raw objects instead of attachable tools
+- Process map that looks great in demos but is bad for daily-use navigation
+- Interface only makes sense after reading narrative copy
+- Feature dumps in cards
+- Node counts and internal architecture visible to the user
+- Rhetorical questions, fake empathy, emotion diagnosis in UI text
 - **Equal-weight hamburger:** stacked sections with identical border+bg+shadow treatment where no single section dominates
 - **Premature chrome:** tab bars, selectors, toggles rendered before they have content or purpose
 - **Zombie buttons:** disabled-but-visible controls that occupy scanning bandwidth without offering action
@@ -375,12 +405,14 @@ For the full process of going from JTBD questions to screen layout, see `docs/co
 
 ---
 
-## 10. UI-копирайтинг
+## 10. UI Copywriting
 
-### Тон
-Clear, operational language. Start with user intent. Name the result or next action. Без внутреннего жаргона.
+### Tone
 
-### Формула карточки шаблона (6 полей)
+Clear, operational language. Start with user intent. Name the result or next action. No internal jargon.
+
+### Template Card Formula (6 fields)
+
 ```
 HEADLINE: [verb] + [what you get]        — max 10 words
 WHEN:     [trigger situation]             — max 2 sentences
@@ -390,35 +422,42 @@ HOW:      [what happens]                  — max 30 words, human terms
 TIME:     [estimate with ~]
 ```
 
-### Словарь терминов
-`workflow` (не thread) · `run` · `step` · `result` · `approval` · `budget` · `library` · `skill`
+### Term Glossary
+
+`workflow` (not thread) · `run` · `step` · `result` · `approval` · `budget` · `library` · `skill`
 
 Status mapping: `queued` → `waiting` · `waiting_approval` → `waiting for approval` · `Reject changes` → `Stop workflow`
 
-### Запрещённые слова
+### Banned Words
+
 comprehensive · advanced · AI-powered · intelligent · cutting-edge · next-generation · state-of-the-art · robust · scalable · innovative · leverage · utilize · harness the power of · unlock · empower · game-changer · revolutionary · transformative · seamless
 
 ### Empty states
-Отвечают на: (1) Что произошло? (2) Что делать дальше?
+
+Answer: (1) What happened? (2) What to do next?
+
 ```
 No skills match this filter. Install a library or clear search.
 ```
 
 ### Toasts
+
 Include entity type + name, keep under one short line.
+
 ```
 Workflow saved: Content QA
 Library removed: Anthropic Skills
 ```
 
 ### Budget messaging
+
 Show numeric usage. Text thresholds: 70% = notice, 90% = warning, 100%+ = exceeded. Never color alone.
 
 ---
 
-## 11. Дизайн-система (reference)
+## 11. Design System (Reference)
 
-### Токены
+### Tokens
 
 **Surfaces:** `bg-sidebar`, `bg-surface-1` / `-2` / `-3`
 **Status:** `text-status-success` / `warning` / `danger` / `info`
@@ -426,21 +465,21 @@ Show numeric usage. Text thresholds: 70% = notice, 90% = warning, 100%+ = exceed
 **Motion:** `--motion-fast` (140ms), `--motion-base` (170ms), `--motion-slow` (220ms)
 **Controls:** `control-xs` (1.25rem), `control-sm` (1.75rem), `control-md` (2.25rem), `control-lg` (2.5rem)
 
-### Типографика
+### Typography
 
-| Token | Size | Weight | Use |
-|-------|------|--------|-----|
-| `text-title-lg` | — | — | Page titles |
-| `text-title-md` | — | — | Section titles |
-| `text-title-sm` | — | — | Card titles |
-| `text-body-md` | 14px | — | Default body |
-| `text-body-sm` | 13px | — | Compact body/controls |
-| `text-label-xs` | — | — | Small labels |
-| `text-sidebar-item` | 13px | 400 | Nav items, workflow names |
-| `text-sidebar-label` | 11px | 500 | Group headers |
-| `text-sidebar-meta` | 10px | 400 | Timestamps |
+| Token                | Size | Weight | Use                       |
+| -------------------- | ---- | ------ | ------------------------- |
+| `text-title-lg`      | —    | —      | Page titles               |
+| `text-title-md`      | —    | —      | Section titles            |
+| `text-title-sm`      | —    | —      | Card titles               |
+| `text-body-md`       | 14px | —      | Default body              |
+| `text-body-sm`       | 13px | —      | Compact body/controls     |
+| `text-label-xs`      | —    | —      | Small labels              |
+| `text-sidebar-item`  | 13px | 400    | Nav items, workflow names |
+| `text-sidebar-label` | 11px | 500    | Group headers             |
+| `text-sidebar-meta`  | 10px | 400    | Timestamps                |
 
-### Utility-классы (globals.css)
+### Utility Classes (globals.css)
 
 **Surfaces:** `.surface-panel` · `.surface-elevated` · `.surface-soft` · `.surface-inset-card`
 **Severity:** `.surface-info-soft` · `.surface-success-soft` · `.surface-danger-soft` · `.surface-warning-soft`
@@ -456,14 +495,15 @@ Full reference: `CLAUDE.md` → Styling section, `src/renderer/styles/globals.cs
 
 ---
 
-## Источники
+## Sources
 
-Этот документ консолидирует:
-- `docs/DAY-30-OPERATOR-CONTRACT.md` — UX-принципы daily-driver
-- `docs/R2-EXECUTION-PLAN.md` — продуктовые объекты, guardrails, anti-patterns
-- `docs/UX-SCENARIOS.md` — мета-паттерны, 12+ принципов сценариев
-- `docs/BRAND.md` — бренд-качества, feel, позиционирование
-- `docs/HUB-WRITING-GUIDE.md` — формула карточек, запрещённые слова
-- `docs/plans/2026-03-12-copy-style-guide.md` — UI-копирайтинг, словарь
-- `docs/plans/2026-03-17-c8c-workflow-editor-ux-remediation-spec.md` — принципы редактора
-- `CLAUDE.md` — дизайн-система, токены, утилиты
+This document consolidates:
+
+- `docs/DAY-30-OPERATOR-CONTRACT.md` — daily-driver UX principles
+- `docs/R2-EXECUTION-PLAN.md` — product objects, guardrails, anti-patterns
+- `docs/UX-SCENARIOS.md` — meta-patterns, 12+ scenario principles
+- `docs/BRAND.md` — brand qualities, feel, positioning
+- `docs/HUB-WRITING-GUIDE.md` — card formula, banned words
+- `docs/plans/2026-03-12-copy-style-guide.md` — UI copywriting, glossary
+- `docs/plans/2026-03-17-c8c-workflow-editor-ux-remediation-spec.md` — editor principles
+- `CLAUDE.md` — design system, tokens, utilities

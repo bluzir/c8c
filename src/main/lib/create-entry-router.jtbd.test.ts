@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type {
+  ContentDomainContext,
   CreateEntryRouteInput,
   CreateEntryRouteOption,
   ProjectInspectionSummary,
@@ -87,6 +88,49 @@ const developmentOptions: CreateEntryRouteOption[] = [
   },
 ]
 
+const contentOptions: CreateEntryRouteOption[] = [
+  {
+    templateId: "content-trend-watch",
+    label: "Watch trends",
+    intentLabel: "Plan it",
+  },
+  {
+    templateId: "content-post-calendar",
+    label: "Plan content calendar",
+    intentLabel: "Plan it",
+  },
+  {
+    templateId: "content-draft-post",
+    label: "Draft a post",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "content-qa-review",
+    label: "Review content quality",
+    intentLabel: "Review it",
+  },
+  {
+    templateId: "content-pipeline",
+    label: "Build content strategy",
+    intentLabel: "Plan it",
+  },
+  {
+    templateId: "content-repurposing-factory",
+    label: "Repurpose content",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "predictable-text-factory",
+    label: "Generate text",
+    intentLabel: "Do it",
+  },
+  {
+    templateId: "copy-quality-pipeline",
+    label: "Check copy quality",
+    intentLabel: "Review it",
+  },
+]
+
 function createInspection(
   overrides: Partial<ProjectInspectionSummary> = {},
 ): ProjectInspectionSummary {
@@ -143,11 +187,32 @@ function createTemplate(id: string, name: string): WorkflowTemplate {
   }
 }
 
-const templates = developmentOptions.map((option) =>
+const developmentTemplates = developmentOptions.map((option) =>
   createTemplate(option.templateId, option.label),
 )
 
-function mockAgentJson() {
+const contentTemplates = contentOptions.map((option) =>
+  createTemplate(option.templateId, option.label),
+)
+
+const contentContext: ContentDomainContext = {
+  previousResults: [
+    {
+      kind: "trend_digest",
+      title: "AI agents weekly digest",
+      ageMs: 86_400_000,
+    },
+  ],
+  templatesRun: ["content-trend-watch", "content-draft-post"],
+  availableTools: ["web_search", "exa"],
+}
+
+function mockAgentJson(
+  route: {
+    recommendedTemplateId?: string
+    alternateTemplateIds?: string[]
+  } = {},
+) {
   mocks.drainExecutionHandle.mockImplementationOnce(
     async (
       _handle,
@@ -163,8 +228,11 @@ function mockAgentJson() {
         type: "text",
         content: JSON.stringify({
           kind: "route",
-          recommendedTemplateId: "delivery-shape-project",
-          alternateTemplateIds: ["delivery-plan-phase"],
+          recommendedTemplateId:
+            route.recommendedTemplateId || "delivery-shape-project",
+          alternateTemplateIds: route.alternateTemplateIds || [
+            "delivery-plan-phase",
+          ],
           reason: "This is the best first step.",
           confidence: 0.88,
         }),
@@ -201,7 +269,7 @@ describe("routeCreateEntry JTBD prompt contract", () => {
         requestedResult: "проаудируй все компоненты",
       }),
       createInspection(),
-      templates,
+      developmentTemplates,
     )
 
     expect(latestPrompt()).toContain(
@@ -218,7 +286,7 @@ describe("routeCreateEntry JTBD prompt contract", () => {
         requestedResult: "поменяй текст кнопки и чуть поправь spacing",
       }),
       createInspection(),
-      templates,
+      developmentTemplates,
     )
 
     expect(latestPrompt()).toContain(
@@ -235,7 +303,7 @@ describe("routeCreateEntry JTBD prompt contract", () => {
         requestedResult: "после релиза checkout падает с 500",
       }),
       createInspection(),
-      templates,
+      developmentTemplates,
     )
 
     expect(latestPrompt()).toContain(
@@ -265,11 +333,41 @@ describe("routeCreateEntry JTBD prompt contract", () => {
         fileCountEstimate: 0,
         projectKind: "greenfield_empty",
       }),
-      templates,
+      developmentTemplates,
     )
 
     expect(latestPrompt()).toContain(
       "Detailed PRDs, specs, and requirements docs are plan-ready starts",
+    )
+  })
+
+  it("includes content domain context and the full content registry in the content router prompt", async () => {
+    mockAgentJson({
+      recommendedTemplateId: "content-post-calendar",
+      alternateTemplateIds: ["content-trend-watch"],
+    })
+
+    await routeCreateEntry(
+      createInput({
+        modeId: "content",
+        fallbackTemplateId: "content-trend-watch",
+        draftPrompt: "что мне писать на этой неделе про AI agents",
+        requestedResult: "что мне писать на этой неделе про AI agents",
+        allowedOptions: contentOptions,
+        contentContext,
+      }),
+      createInspection(),
+      contentTemplates,
+    )
+
+    expect(latestPrompt()).toContain("Content context:")
+    expect(latestPrompt()).toContain('"availableTools": [')
+    expect(latestPrompt()).toContain('"web_search"')
+    expect(latestPrompt()).toContain(
+      "- predictable-text-factory: Generate text [Do it]",
+    )
+    expect(latestPrompt()).toContain(
+      "Copy quality review is right when the user has existing text that needs cleanup",
     )
   })
 })

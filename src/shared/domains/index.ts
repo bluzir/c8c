@@ -25,6 +25,10 @@ export function isGuidedDomain(id: ResultModeId): boolean {
   return DOMAIN_MAP.has(id) && getDomain(id).guidedRouting
 }
 
+export function isIntentEnabledDomain(id: ResultModeId): boolean {
+  return DOMAIN_MAP.has(id) && getDomain(id).intentsEnabled
+}
+
 export type {
   DomainDefinition,
   DomainQuickStart,
