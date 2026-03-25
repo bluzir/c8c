@@ -11,6 +11,8 @@ import {
   workflowCreateDraftPromptAtom,
   workflowCreateSourceArtifactsAtom,
   workflowCreateSourceAttachmentsAtom,
+  type MainView,
+  type ViewMode,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
 import type {
@@ -31,7 +33,8 @@ interface OpenWorkflowCreateOptions {
 interface ApplyWorkflowCreateNavigationParams {
   options?: OpenWorkflowCreateOptions
   selectedProject: string | null
-  setMainView: (next: "workflow_create") => void
+  setMainView: (next: MainView) => void
+  setViewMode: (next: ViewMode) => void
   setSelectedResultModeId: (next: ResultModeId) => void
   setWorkflowCreateContext: (next: {
     projectPath: string | null
@@ -47,6 +50,7 @@ export function applyWorkflowCreateNavigationState({
   options = {},
   selectedProject,
   setMainView,
+  setViewMode,
   setSelectedResultModeId,
   setWorkflowCreateContext,
   setWorkflowCreateDraftPrompt,
@@ -73,7 +77,9 @@ export function applyWorkflowCreateNavigationState({
   setWorkflowCreateSourceArtifacts(options.sourceArtifacts ?? [])
   setWorkflowCreateSourceAttachments(options.initialAttachments ?? [])
   clearReviewState()
-  setMainView("workflow_create")
+  // Always go to chat — never to the separate create page
+  setMainView("thread")
+  setViewMode("chat")
 }
 
 export function useWorkflowCreateNavigation() {
@@ -128,6 +134,7 @@ export function useWorkflowCreateNavigation() {
         options,
         selectedProject,
         setMainView,
+        setViewMode,
         setSelectedResultModeId,
         setWorkflowCreateContext,
         setWorkflowCreateDraftPrompt,

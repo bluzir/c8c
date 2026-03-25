@@ -9,6 +9,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       { kind: "text", label: "Source", content: "result" },
     ]
     const setMainView = vi.fn()
+    const setViewMode = vi.fn()
     const setSelectedResultModeId = vi.fn()
     const setWorkflowCreateContext = vi.fn()
     const setWorkflowCreateDraftPrompt = vi.fn()
@@ -25,6 +26,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       },
       selectedProject: "/tmp/project",
       setMainView,
+      setViewMode,
       setSelectedResultModeId,
       setWorkflowCreateContext,
       setWorkflowCreateDraftPrompt,
@@ -48,7 +50,8 @@ describe("useWorkflowCreateNavigation helpers", () => {
       sourceAttachments,
     )
     expect(clearReviewState).toHaveBeenCalledTimes(1)
-    expect(setMainView).toHaveBeenCalledWith("workflow_create")
+    expect(setMainView).toHaveBeenCalledWith("thread")
+    expect(setViewMode).toHaveBeenCalledWith("chat")
     expect(clearReviewState.mock.invocationCallOrder[0]).toBeLessThan(
       setMainView.mock.invocationCallOrder[0],
     )
@@ -56,6 +59,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
 
   it("respects explicit project selection and lock state", () => {
     const setMainView = vi.fn()
+    const setViewMode = vi.fn()
     const setSelectedResultModeId = vi.fn()
     const setWorkflowCreateContext = vi.fn()
     const setWorkflowCreateDraftPrompt = vi.fn()
@@ -70,6 +74,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       },
       selectedProject: "/tmp/project",
       setMainView,
+      setViewMode,
       setSelectedResultModeId,
       setWorkflowCreateContext,
       setWorkflowCreateDraftPrompt,
@@ -87,6 +92,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     expect(setWorkflowCreateSourceArtifacts).toHaveBeenCalledWith([])
     expect(setWorkflowCreateSourceAttachments).toHaveBeenCalledWith([])
     expect(clearReviewState).toHaveBeenCalledTimes(1)
-    expect(setMainView).toHaveBeenCalledWith("workflow_create")
+    expect(setMainView).toHaveBeenCalledWith("thread")
+    expect(setViewMode).toHaveBeenCalledWith("chat")
   })
 })
