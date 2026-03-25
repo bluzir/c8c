@@ -11,6 +11,7 @@ import { runStatusAtom } from "@/features/execution"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
+import { FlowProgressBar } from "./FlowProgressBar"
 import { useChatSession } from "@/hooks/useChatSession"
 import { useFlowRouting } from "@/hooks/useFlowRouting"
 import { cn } from "@/lib/cn"
@@ -200,6 +201,7 @@ export function ChatPanel({
 
       <ChatMessages messages={messages} status={status} />
 
+      <FlowProgressBar />
       <ChatInput
         onSend={handleSend}
         onCancel={cancel}
