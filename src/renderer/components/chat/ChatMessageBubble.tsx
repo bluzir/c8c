@@ -52,7 +52,7 @@ export function ChatMessageBubble({
             groupedWithNext && "rounded-br-md",
           )}
         >
-          <p className="text-body-md whitespace-pre-wrap break-words">
+          <p className="text-body-md leading-relaxed whitespace-pre-wrap break-words">
             {message.content}
           </p>
         </div>

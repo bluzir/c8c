@@ -16,12 +16,14 @@ export function FlowCompleteMessage({
   onOpenReport,
 }: FlowCompleteMessageProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Header — flow name as meta label */}
       <p className="ui-meta-label text-muted-foreground">{flowName}</p>
 
       {/* Summary */}
-      <p className="text-body-sm text-foreground">{data.summary}</p>
+      <p className="text-[15px] leading-relaxed text-foreground">
+        {data.summary}
+      </p>
 
       {/* Findings */}
       {data.findings.length > 0 && (
@@ -29,7 +31,10 @@ export function FlowCompleteMessage({
           <p className="ui-meta-label text-muted-foreground">What's inside</p>
           <ul className="mt-1 space-y-0.5">
             {data.findings.map((finding, i) => (
-              <li key={i} className="text-body-sm text-foreground">
+              <li
+                key={i}
+                className="text-[15px] leading-relaxed text-foreground"
+              >
                 • {finding}
               </li>
             ))}
@@ -42,7 +47,10 @@ export function FlowCompleteMessage({
         <div>
           <p className="ui-meta-label text-status-warning">Important</p>
           {data.limitations.map((limit, i) => (
-            <p key={i} className="mt-1 text-body-sm text-foreground">
+            <p
+              key={i}
+              className="mt-1 text-[15px] leading-relaxed text-foreground"
+            >
               {limit}
             </p>
           ))}

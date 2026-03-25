@@ -34,7 +34,7 @@ const variantBadge: Record<ErrorContent["variant"], React.ReactNode> = {
 
 export function FlowErrorMessage({ flowName, data }: FlowErrorMessageProps) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-4">
       {/* Header: flow name + variant badge */}
       <div className="flex items-center gap-2">
         <span className="ui-meta-text text-muted-foreground truncate">
@@ -44,7 +44,9 @@ export function FlowErrorMessage({ flowName, data }: FlowErrorMessageProps) {
       </div>
 
       {/* Summary */}
-      <p className="text-body-sm text-foreground-subtle">{data.summary}</p>
+      <p className="text-[15px] leading-relaxed text-foreground-subtle">
+        {data.summary}
+      </p>
 
       {/* Suggestions */}
       {data.suggestions.length > 0 && (
@@ -52,7 +54,7 @@ export function FlowErrorMessage({ flowName, data }: FlowErrorMessageProps) {
           {data.suggestions.map((suggestion, i) => (
             <li
               key={i}
-              className="text-body-sm text-muted-foreground flex items-start gap-1.5"
+              className="text-[15px] leading-relaxed text-muted-foreground flex items-start gap-1.5"
             >
               <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
               {suggestion}

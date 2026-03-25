@@ -7,9 +7,11 @@ interface FlowStartMessageProps {
 
 export function FlowStartMessage({ flowName, data }: FlowStartMessageProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <p className="ui-meta-label text-muted-foreground">{flowName}</p>
-      <p className="text-body-sm text-foreground">{data.description}</p>
+      <p className="text-[15px] leading-relaxed text-foreground">
+        {data.description}
+      </p>
     </div>
   )
 }

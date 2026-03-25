@@ -395,7 +395,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
         ref={containerRef}
         className="h-full overflow-y-auto ui-scroll-region"
       >
-        <div className="max-w-3xl mx-auto w-full px-4 py-4 space-y-0">
+        <div className="max-w-3xl mx-auto w-full px-4 py-4 space-y-2">
           {timeline.map((entry, index) => {
             if (entry.kind === "flow") {
               const flowMsg = entry.message
@@ -404,7 +404,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <div
                     key={flowMsg.id}
                     className={cn(
-                      "ui-fade-slide-in pt-4",
+                      "ui-fade-slide-in pt-6",
                       index === 0 && "pt-0",
                     )}
                   >
@@ -420,7 +420,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <div
                     key={flowMsg.id}
                     className={cn(
-                      "ui-fade-slide-in pt-4",
+                      "ui-fade-slide-in pt-6",
                       index === 0 && "pt-0",
                     )}
                   >
@@ -433,7 +433,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <div
                     key={flowMsg.id}
                     className={cn(
-                      "ui-fade-slide-in pt-4",
+                      "ui-fade-slide-in pt-6",
                       index === 0 && "pt-0",
                     )}
                   >
@@ -451,7 +451,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <div
                     key={flowMsg.id}
                     className={cn(
-                      "ui-fade-slide-in pt-4",
+                      "ui-fade-slide-in pt-6",
                       index === 0 && "pt-0",
                     )}
                   >
@@ -467,7 +467,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <div
                     key={flowMsg.id}
                     className={cn(
-                      "ui-fade-slide-in pt-4",
+                      "ui-fade-slide-in pt-6",
                       index === 0 && "pt-0",
                     )}
                   >
@@ -485,7 +485,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                   <div
                     key={flowMsg.id}
                     className={cn(
-                      "ui-fade-slide-in pt-4",
+                      "ui-fade-slide-in pt-6",
                       index === 0 && "pt-0",
                     )}
                   >
@@ -525,7 +525,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
                 key={msg.id}
                 className={cn(
                   "ui-fade-slide-in",
-                  groupedWithPrevious ? "pt-1" : "pt-4",
+                  groupedWithPrevious ? "pt-1" : "pt-6",
                   index === 0 && "pt-0",
                 )}
               >

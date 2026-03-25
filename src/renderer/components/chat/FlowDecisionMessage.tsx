@@ -147,7 +147,7 @@ export function FlowDecisionMessage({
     data.resultFacts.length > 0 || data.issues.length > 0
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-4">
       {/* Header: flow name + tone badge */}
       <div className="flex items-center gap-2">
         <span className="ui-meta-text text-muted-foreground truncate">
@@ -157,7 +157,9 @@ export function FlowDecisionMessage({
       </div>
 
       {/* Summary */}
-      <p className="text-body-sm text-foreground-subtle">{data.summary}</p>
+      <p className="text-[15px] leading-relaxed text-foreground-subtle">
+        {data.summary}
+      </p>
 
       {/* RESULT + ISSUES slab */}
       {hasResultOrIssues && (
@@ -171,7 +173,7 @@ export function FlowDecisionMessage({
                 {data.resultFacts.map((fact, i) => (
                   <li
                     key={i}
-                    className="text-body-sm text-foreground-subtle flex items-start gap-1.5"
+                    className="text-[15px] leading-relaxed text-foreground-subtle flex items-start gap-1.5"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                     {fact}
@@ -189,7 +191,7 @@ export function FlowDecisionMessage({
                 {data.issues.map((issue, i) => (
                   <li
                     key={i}
-                    className="text-body-sm text-status-warning flex items-start gap-1.5"
+                    className="text-[15px] leading-relaxed text-status-warning flex items-start gap-1.5"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-status-warning/60" />
                     {issue}

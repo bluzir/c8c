@@ -33,7 +33,7 @@ export function FlowRoutingMessage({
   const template = data.selectedTemplate
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Header */}
       <p className="ui-meta-label text-muted-foreground">
         {allDone
@@ -48,7 +48,7 @@ export function FlowRoutingMessage({
             <StepIcon status={step.status} />
             <span
               className={cn(
-                "text-body-sm",
+                "text-[15px] leading-relaxed",
                 step.status === "done"
                   ? "text-muted-foreground"
                   : step.status === "running"
@@ -64,13 +64,13 @@ export function FlowRoutingMessage({
 
       {/* Selected template + Run button */}
       {template && allDone && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="space-y-1">
             <p className="text-body-md font-medium text-foreground">
               {template.name}
             </p>
             {template.description && (
-              <p className="text-body-sm text-muted-foreground">
+              <p className="text-[15px] leading-relaxed text-muted-foreground">
                 {template.description}
               </p>
             )}
