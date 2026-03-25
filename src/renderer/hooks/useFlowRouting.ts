@@ -320,6 +320,9 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       setSubmitError(null)
       setRouteClarification(null)
       setRoutingPreview(null)
+      // Immediately switch to chat so routing progress is visible there
+      setMainView("thread")
+      setViewMode("chat")
       void window.api.trackUiEvent("point_b_entered").catch(() => undefined)
 
       const selectedResultMode = getResultMode(selectedResultModeId)
