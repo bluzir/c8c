@@ -19,7 +19,6 @@ import {
   routeAlternativesOpenAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
-  selectedWorkflowTemplateContextAtom,
   templateLibraryContextAtom,
   workflowEntryStateAtom,
   chatRoutingProgressAtom,
@@ -58,7 +57,6 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const resolvedIds = useAtomValue(resolvedDecisionIdsAtom)
   const resolveDecision = useSetAtom(resolveFlowChatDecisionAtom)
   const workflow = useAtomValue(currentWorkflowAtom)
-  const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
   const entryState = useAtomValue(workflowEntryStateAtom)
   const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
   const executionState = useAtomValue(selectedWorkflowExecutionAtom)
@@ -373,26 +371,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   ])
 
   if (timeline.length === 0) {
-    const flowName = workflow?.name || templateContext?.workflowName || "Flow"
-    const description =
-      workflow?.description || templateContext?.useWhen || null
-    const hasPastRuns = workflowHistoryRuns.length > 0
-
-    return (
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="ui-empty-state-box max-w-md text-center space-y-3">
-          <p className="text-body-md font-medium text-foreground">{flowName}</p>
-          {description && (
-            <p className="text-body-sm text-muted-foreground">{description}</p>
-          )}
-          <p className="ui-meta-text text-muted-foreground">
-            {hasPastRuns
-              ? "No completed runs yet. Click Run to start a new one."
-              : "Click Run to start, or type a message below"}
-          </p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   const scrollToBottom = () => {

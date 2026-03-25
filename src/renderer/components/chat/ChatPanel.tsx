@@ -5,12 +5,18 @@ import {
   chatFlowInputRequestAtom,
   chatPendingRoutingPromptAtom,
   chatRoutingProgressAtom,
+  currentWorkflowAtom,
   inputValueAtom,
   selectedWorkflowPathAtom,
+  selectedWorkflowTemplateContextAtom,
   workflowEntryStateAtom,
 } from "@/lib/store"
 import { runStatusAtom } from "@/features/execution"
 import { currentFlowChatMessagesAtom } from "@/features/execution/flow-chat-state"
+import {
+  selectedWorkflowExecutionAtom,
+  workflowHistoryRunsAtom,
+} from "@/features/execution/state"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
@@ -48,6 +54,10 @@ export function ChatPanel({
   const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
   const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
   const entryState = useAtomValue(workflowEntryStateAtom)
+  const workflow = useAtomValue(currentWorkflowAtom)
+  const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
+  const executionState = useAtomValue(selectedWorkflowExecutionAtom)
+  const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
   )
@@ -160,14 +170,24 @@ export function ChatPanel({
     [maxPanelWidth, minWidth, setPanelWidth],
   )
 
-  // True when there are no messages at all — chat + flow + routing.
-  // Also false when entryState exists (generates synthetic routing messages)
-  // or when a run is active/complete (runStatus !== "idle").
+  // True when there are no messages at all — chat + flow + routing + synthetics.
+  // Accounts for every source ChatMessages uses to build its timeline:
+  // entryState → synthetic routing message, executionState.runOutcome → synthetic
+  // complete message, workflowHistoryRuns → latest past run message.
+  const hasSyntheticComplete =
+    executionState.runOutcome === "completed" ||
+    workflowHistoryRuns.some(
+      (r) =>
+        r.status === "completed" ||
+        r.status === "failed" ||
+        r.status === "cancelled",
+    )
   const isChatEmpty =
     messages.length === 0 &&
     flowMessages.length === 0 &&
     !chatRoutingProgress &&
     !entryState &&
+    !hasSyntheticComplete &&
     runStatus === "idle"
 
   // ── Centered empty state (Manus-style) ──────────────────────────
@@ -206,12 +226,13 @@ export function ChatPanel({
         )}
 
         <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="max-w-2xl w-full space-y-4 text-center">
+          <div className="max-w-2xl w-full space-y-3 text-center">
             <h1 className="text-2xl font-medium text-foreground">
-              What can I do for you?
+              {workflow?.name || "What can I do for you?"}
             </h1>
             <p className="text-[15px] text-muted-foreground">
-              Describe your goal — c8c builds a flow to solve it
+              {templateContext?.useWhen ||
+                "Describe your goal \u2014 c8c builds a flow to solve it"}
             </p>
           </div>
           <div className="max-w-2xl w-full mt-6">
@@ -259,19 +280,21 @@ export function ChatPanel({
         />
       )}
 
-      <ChatHeader
-        onClose={onClose}
-        onUndo={undo}
-        onClear={clearHistory}
-        canUndo={undoStack.length > 0}
-        messageCount={
-          messages.filter((m) => m.role === "user" || m.role === "assistant")
-            .length
-        }
-        status={status}
-        activeToolName={activeToolName}
-        showClose={!embedded}
-      />
+      {!embedded && (
+        <ChatHeader
+          onClose={onClose}
+          onUndo={undo}
+          onClear={clearHistory}
+          canUndo={undoStack.length > 0}
+          messageCount={
+            messages.filter((m) => m.role === "user" || m.role === "assistant")
+              .length
+          }
+          status={status}
+          activeToolName={activeToolName}
+          showClose={!embedded}
+        />
+      )}
 
       <ChatMessages messages={messages} status={status} />
 
