@@ -5,15 +5,16 @@ recommended_next:
   - content-post-calendar
 emoji: "\U0001F4E1"
 headline: Track trends and turn them into a usable trend digest
-how: Gather recent signals, themes, launches, and discussion patterns, then condense them into a trend digest that can drive ideation.
-input: Notes, links, feeds, or a research brief describing the market or topic space
+how: Search news, Reddit, X/Twitter, blogs, and research papers with configurable timeframe and sources, then condense into a trend digest.
+input: Topic description with optional search preferences (timeframe, sources, focus areas)
 output: Trend digest with named themes, signals, and why they matter
 use_when: You need a current evidence base before generating a concrete post plan or drafting posts.
 time: ~6-8 min.
 steps:
-  - Extract recurring themes, launches, controversies, and shifts in the topic space
-  - Turn the raw input into a structured trend digest that can drive downstream content work
-  - Evaluate digest quality for evidence backing, specificity, and niche coverage before output
+  - Parse search preferences from input (timeframe, sources, focus)
+  - Search selected sources in parallel using Exa (news, tweets, blogs, research) and Serper (reddit)
+  - Synthesize results into a structured trend digest with themes, signals, and sources
+  - Evaluate digest quality for evidence backing, specificity, and niche coverage
 pack:
   id: content-factory-alpha
   label: Content Lab
@@ -56,7 +57,7 @@ nodes:
     config:
       inputType: text
       required: true
-      placeholder: Paste links, notes, scraped research, or a topic brief for the trend watch pass.
+      placeholder: "Describe the topic and search preferences. Example: 'AI agent orchestration — last 7 days, news + reddit, focus on launches and pricing changes'"
   - id: trend-watch-1
     type: skill
     position:
@@ -65,26 +66,48 @@ nodes:
     config:
       skillRef: researcher
       prompt: >-
-        Build a Trend Digest by actively searching for signals. Use TWO
-        sources in parallel:
+        Build a Trend Digest by actively searching for signals.
 
-        1) REDDIT (via Serper): search site:reddit.com for the topic,
-           scrape top threads with includeMarkdown=true, extract
-           top-scored comments as community insights.
+        STEP 1 — Parse the user input for search preferences:
+        - Topic/keywords (required)
+        - Timeframe: look for "last N days/hours/week" → use maxAgeHours parameter.
+          Default: 168 hours (7 days) if not specified.
+        - Sources requested: "news", "reddit", "twitter/X", "blogs", "research".
+          Default: news + reddit if not specified.
+        - Focus: "launches", "pricing", "controversies", "opinions", etc.
 
-        2) X/TWITTER (via Exa): use web_search_advanced_exa with
-           category "tweet" to find recent discussions, launches,
-           and opinions.
+        STEP 2 — Search using available tools based on requested sources:
 
-        Then synthesize into a structured digest:
-        - Major themes (with source links)
-        - Specific signals backed by quotes and scores
-        - What feels newly important vs continuing
+        NEWS (via Exa): use web_search_advanced_exa with:
+        - category: "news" for press coverage and announcements
+        - maxAgeHours: from user preference (default 168)
+        - numResults: 30
+        - enableHighlights: true, highlightsQuery: the user's topic
+        - type: "neural" for semantic matching
+
+        REDDIT (via Serper or Exa): search site:reddit.com for the topic,
+        scrape top threads, extract top-scored comments as community signals.
+
+        X/TWITTER (via Exa): use web_search_advanced_exa with
+        category "tweet" to find recent discussions and opinions.
+
+        BLOGS/PERSONAL (via Exa): use category "personal site" for
+        independent analysis and contrarian takes.
+
+        RESEARCH (via Exa): use category "research paper" for
+        academic signals if the user requests it.
+
+        Only search the sources the user asked for, or default to news + reddit.
+
+        STEP 3 — Synthesize into a structured digest:
+        - Major themes (with source links and dates)
+        - Specific signals backed by quotes, scores, or engagement data
+        - What feels newly important vs continuing trends
         - Contrarian or under-covered angles
-        - What these signals suggest for future content
+        - What these signals suggest for future content or action
 
         Keep the output structured, concise, and ready to feed into
-        an idea backlog. Cite Reddit scores and tweet engagement.
+        an idea backlog or content calendar. Cite sources with dates.
   - id: eval-1
     type: evaluator
     position:
