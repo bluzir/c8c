@@ -1042,23 +1042,27 @@ export function WorkflowPanel() {
     }
   }, [canShowRouteAlternatives, routeAlternativesOpen])
 
-  if (!selectedProject && !hasMeaningfulContent) {
-    return (
-      <EmptyWorkspaceState
-        onOpenProject={() => {
-          void window.api.addProject()
-        }}
-      />
-    )
-  }
+  // In chat mode, always show the chat — even without a workflow selected.
+  // The chat empty state handles the "no workflow" case with centered input.
+  if (viewMode !== "chat") {
+    if (!selectedProject && !hasMeaningfulContent) {
+      return (
+        <EmptyWorkspaceState
+          onOpenProject={() => {
+            void window.api.addProject()
+          }}
+        />
+      )
+    }
 
-  if (!selectedWorkflowPath && !hasMeaningfulContent) {
-    return (
-      <EmptyProjectState
-        onOpenTemplates={() => setMainView("templates")}
-        onQuickStart={(prompt) => openWorkflowCreate({ prompt })}
-      />
-    )
+    if (!selectedWorkflowPath && !hasMeaningfulContent) {
+      return (
+        <EmptyProjectState
+          onOpenTemplates={() => setMainView("templates")}
+          onQuickStart={(prompt) => openWorkflowCreate({ prompt })}
+        />
+      )
+    }
   }
 
   return (
