@@ -4,6 +4,7 @@ import {
   chatPendingRoutingPromptAtom,
   mainViewAtom,
   selectedProjectAtom,
+  selectedWorkflowPathAtom,
   selectedInboxTaskKeyAtom,
   selectedResultModeIdAtom,
   viewModeAtom,
@@ -35,6 +36,7 @@ interface ApplyWorkflowCreateNavigationParams {
   selectedProject: string | null
   setMainView: (next: MainView) => void
   setViewMode: (next: ViewMode) => void
+  setSelectedWorkflowPath: (next: string | null) => void
   setSelectedResultModeId: (next: ResultModeId) => void
   setWorkflowCreateContext: (next: {
     projectPath: string | null
@@ -51,6 +53,7 @@ export function applyWorkflowCreateNavigationState({
   selectedProject,
   setMainView,
   setViewMode,
+  setSelectedWorkflowPath,
   setSelectedResultModeId,
   setWorkflowCreateContext,
   setWorkflowCreateDraftPrompt,
@@ -77,6 +80,8 @@ export function applyWorkflowCreateNavigationState({
   setWorkflowCreateSourceArtifacts(options.sourceArtifacts ?? [])
   setWorkflowCreateSourceAttachments(options.initialAttachments ?? [])
   clearReviewState()
+  // Clear current workflow so chat shows empty state for new flow creation
+  setSelectedWorkflowPath(null)
   // Always go to chat — never to the separate create page
   setMainView("thread")
   setViewMode("chat")
@@ -86,6 +91,7 @@ export function useWorkflowCreateNavigation() {
   const [selectedProject] = useAtom(selectedProjectAtom)
   const setMainView = useSetAtom(mainViewAtom)
   const setViewMode = useSetAtom(viewModeAtom)
+  const setSelectedWorkflowPath = useSetAtom(selectedWorkflowPathAtom)
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
   const setSelectedResultModeId = useSetAtom(selectedResultModeIdAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
@@ -122,6 +128,7 @@ export function useWorkflowCreateNavigation() {
         setWorkflowCreateDraftPrompt(options.prompt)
         setWorkflowCreateSourceArtifacts(options.sourceArtifacts ?? [])
         setWorkflowCreateSourceAttachments(options.initialAttachments ?? [])
+        setSelectedWorkflowPath(null)
         setSelectedInboxTaskKey(null)
         setSelectedPastRun(null)
         setChatPendingRoutingPrompt(options.prompt)
@@ -135,6 +142,7 @@ export function useWorkflowCreateNavigation() {
         selectedProject,
         setMainView,
         setViewMode,
+        setSelectedWorkflowPath,
         setSelectedResultModeId,
         setWorkflowCreateContext,
         setWorkflowCreateDraftPrompt,
@@ -150,6 +158,7 @@ export function useWorkflowCreateNavigation() {
       selectedProject,
       setChatPendingRoutingPrompt,
       setMainView,
+      setSelectedWorkflowPath,
       setSelectedInboxTaskKey,
       setSelectedPastRun,
       setSelectedResultModeId,

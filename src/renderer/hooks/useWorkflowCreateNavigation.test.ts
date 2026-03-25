@@ -10,6 +10,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     ]
     const setMainView = vi.fn()
     const setViewMode = vi.fn()
+    const setSelectedWorkflowPath = vi.fn()
     const setSelectedResultModeId = vi.fn()
     const setWorkflowCreateContext = vi.fn()
     const setWorkflowCreateDraftPrompt = vi.fn()
@@ -27,6 +28,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       selectedProject: "/tmp/project",
       setMainView,
       setViewMode,
+      setSelectedWorkflowPath,
       setSelectedResultModeId,
       setWorkflowCreateContext,
       setWorkflowCreateDraftPrompt,
@@ -60,6 +62,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
   it("respects explicit project selection and lock state", () => {
     const setMainView = vi.fn()
     const setViewMode = vi.fn()
+    const setSelectedWorkflowPath = vi.fn()
     const setSelectedResultModeId = vi.fn()
     const setWorkflowCreateContext = vi.fn()
     const setWorkflowCreateDraftPrompt = vi.fn()
@@ -75,6 +78,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       selectedProject: "/tmp/project",
       setMainView,
       setViewMode,
+      setSelectedWorkflowPath,
       setSelectedResultModeId,
       setWorkflowCreateContext,
       setWorkflowCreateDraftPrompt,
