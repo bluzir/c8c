@@ -24,6 +24,7 @@ import {
   setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   templateLibraryContextAtom,
+  viewModeAtom,
   workflowCreateDraftPromptAtom,
   workflowCreateModeConfigsAtom,
   workflowCreatePromptScaffoldAtom,
@@ -148,6 +149,7 @@ export function WorkflowsTemplatesPage() {
     setWorkflowContinuationEntryStateForKeyAtom,
   )
   const [, setMainView] = useAtom(mainViewAtom)
+  const [, setViewMode] = useAtom(viewModeAtom)
   const [runStatus] = useAtom(runStatusAtom)
   const [queuedFollowUpTemplateId, setQueuedFollowUpTemplateId] = useAtom(
     queuedFollowUpTemplateIdAtom,
@@ -545,9 +547,10 @@ export function WorkflowsTemplatesPage() {
       context: templateStartState.templateContext,
     })
     setMainView("thread")
+    setViewMode("chat")
     setPendingTemplate(null)
     toast.success(
-      `"${templateForWorkflowUse.name}" is ready in the current flow`,
+      `"${templateForWorkflowUse.name}" is ready — describe your topic below`,
       {
         action: {
           label: "Undo",
@@ -631,9 +634,10 @@ export function WorkflowsTemplatesPage() {
         context: templateStartState.templateContext,
       })
       setMainView("thread")
+      setViewMode("chat")
       setPendingTemplate(null)
       toast.success(
-        `"${loadedWorkflow.name || templateForWorkflowUse.name}" is ready in ${projectPath.split(/[\\/]/).pop() || "project"}`,
+        `"${loadedWorkflow.name || templateForWorkflowUse.name}" is ready — describe your topic below`,
       )
     } catch (error) {
       toastErrorFromCatch("Could not create flow", error)

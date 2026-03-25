@@ -279,6 +279,37 @@
   box-shadow: 0 0 0 1px hsl(var(--surface-1) / 0.82);
 }
 
+/* Chat message entry animation — slightly more pronounced slide than ui-fade-slide-in */
+@keyframes chat-fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message-enter {
+  animation: chat-fade-slide-in 200ms ease-out;
+}
+
+/* Chat panel thin scrollbar */
+[data-chat-panel] {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+}
+
+[data-chat-panel]::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-chat-panel]::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

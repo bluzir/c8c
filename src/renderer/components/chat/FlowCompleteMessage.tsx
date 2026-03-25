@@ -45,7 +45,7 @@ export function FlowCompleteMessage({
       {/* Limitations — colored label, no background box */}
       {data.limitations.length > 0 && (
         <div>
-          <p className="ui-meta-label text-status-warning">Important</p>
+          <p className="ui-meta-label text-status-warning">Limitations</p>
           {data.limitations.map((limit, i) => (
             <p
               key={i}

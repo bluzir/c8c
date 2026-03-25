@@ -112,7 +112,7 @@ export function buildDecisionMessage(input: DecisionInput): FlowChatMessage {
       action: { type: "expand-details" },
     },
     {
-      label: "Stop",
+      label: "Stop flow",
       variant: "destructive",
       action: { type: "reject", runId, nodeId },
     },

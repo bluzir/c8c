@@ -94,7 +94,7 @@ export function FlowDecisionMessage({
             toastError("Could not approve step: this flow is no longer active")
             break
           }
-          toast.success("Step approved \u2014 flow continuing.")
+          toast.success("Accepted \u2014 flow continuing.")
           break
         }
         case "override": {
@@ -112,7 +112,7 @@ export function FlowDecisionMessage({
             )
             break
           }
-          toast.success("Check overridden \u2014 flow continuing.")
+          toast.success("Accepted \u2014 flow continuing.")
           break
         }
         case "reject": {

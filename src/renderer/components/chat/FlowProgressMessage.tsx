@@ -215,7 +215,7 @@ export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
                 {isExpandable && (
                   <ChevronDown
                     className={cn(
-                      "h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform ui-motion-fast",
+                      "h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform duration-200 ease-out",
                       isExpanded && "rotate-180",
                     )}
                   />

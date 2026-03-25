@@ -19,7 +19,9 @@ import {
   globalDetailBudgetAtom,
   providerSettingsAtom,
   selectedWorkflowPathAtom,
+  selectedWorkflowTemplateContextAtom,
 } from "@/lib/store"
+import { runStatusAtom } from "@/features/execution"
 import {
   isShortcutConsumed,
   matchesPrimaryShortcut,
@@ -58,6 +60,8 @@ export function ChatInput({
     chatDraftByWorkflowAtom,
   )
   const desktopRuntime = useAtomValue(desktopRuntimeAtom)
+  const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
+  const runStatus = useAtomValue(runStatusAtom)
   const composerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeWorkflowDraft = selectedWorkflowPath
@@ -71,6 +75,16 @@ export function ChatInput({
   const activeProvider = workflow.defaults?.provider || defaultProvider
   const detailBudget = workflow.defaults?.detailBudget ?? globalDetailBudget
   const selectedDetailBudgetPreset = resolveDetailBudgetPreset(detailBudget)
+  const placeholder =
+    runStatus === "idle" &&
+    selectedWorkflowPath &&
+    templateContext?.templateName
+      ? `Describe your topic for ${templateContext.templateName}...`
+      : runStatus === "idle" && selectedWorkflowPath
+        ? "Describe what you need..."
+        : !selectedWorkflowPath
+          ? "Describe what you need..."
+          : "Refine the flow, adjust the result, or change how it works..."
   const shortcutHint = isCompact
     ? isStreaming
       ? `${sendShortcutLabel} send · Esc cancel`
@@ -159,7 +173,7 @@ export function ChatInput({
         value={value}
         onChange={handleInput}
         onKeyDown={handleKeyDown}
-        placeholder="Ask the agent to refine the flow, adjust the result, or change how it works..."
+        placeholder={placeholder}
         rows={1}
         spellCheck
         autoCorrect="on"

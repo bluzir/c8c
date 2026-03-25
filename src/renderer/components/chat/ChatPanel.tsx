@@ -210,6 +210,9 @@ export function ChatPanel({
             <h1 className="text-title-lg font-medium text-foreground">
               What can I do for you?
             </h1>
+            <p className="text-body-sm text-muted-foreground">
+              Describe your goal — c8c builds a flow to solve it
+            </p>
             <ChatInput
               onSend={handleSend}
               onCancel={cancel}

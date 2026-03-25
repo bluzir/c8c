@@ -90,7 +90,7 @@ export function FlowRoutingMessage({
             )}
             {onShowAlternatives && (
               <Button size="sm" variant="ghost" onClick={onShowAlternatives}>
-                Other starts
+                See other options
               </Button>
             )}
           </div>
