@@ -52,10 +52,8 @@ import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { projectFolderName } from "@/components/sidebar/projectSidebarUtils"
 import { toast } from "sonner"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
-import { errorToUserMessage } from "@/lib/error-message"
 import { ArrowUp, Check, Loader2 } from "lucide-react"
 import type {
-  CreateEntryRouteClarification,
   CreateEntryHelpModeHint,
   InputAttachment,
   RunResult,
@@ -76,8 +74,7 @@ import {
   normalizeResultModeConfig,
 } from "@/lib/result-mode-config"
 import { getResultMode } from "@/lib/result-modes"
-import { sanitizeDirectCreateFallbackTemplateId } from "@shared/create-entry-routing"
-import { isGuidedDomain, isIntentEnabledDomain } from "@shared/domains"
+import { isGuidedDomain } from "@shared/domains"
 import {
   buildCreateRoutingPreview,
   type CreateRoutingPreview,
@@ -86,8 +83,6 @@ import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { prepareTemplateStageLaunch } from "@/lib/factory-launch"
 import { buildTemplateStartState } from "@/lib/template-start"
-import { prepareRoutedTemplateLaunch } from "@/lib/routed-template-launch"
-import { shouldAutoRunCreateStart } from "@/lib/workflow-create-start-policy"
 import {
   RouteClarificationDialog,
   WorkflowCreatePendingTemplateDialog,
@@ -109,17 +104,10 @@ import {
   toContinuationRun,
 } from "@/components/notifications/task-ui"
 import type { WorkflowCreateContinuationCandidate } from "@/lib/workflow-create-continuation"
+import { useFlowRouting, type FlowRoutingPhase } from "@/hooks/useFlowRouting"
 
 const POPULAR_TEMPLATE_LIMIT = 12
 const CREATE_SURFACE_MAX_WIDTH = "max-w-5xl"
-const DEVELOPMENT_ROUTING_MIN_VISIBLE_MS = 550
-type WorkflowCreateRoutingPhase = "inspecting" | "opening"
-
-function waitForMs(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms)
-  })
-}
 
 function WorkflowCreateRoutingState({
   targetProjectName,
@@ -127,7 +115,7 @@ function WorkflowCreateRoutingState({
   routingPreview,
 }: {
   targetProjectName: string | null
-  phase: WorkflowCreateRoutingPhase
+  phase: FlowRoutingPhase
   routingPreview: CreateRoutingPreview | null
 }) {
   const steps = [
@@ -303,24 +291,26 @@ export function WorkflowCreatePage() {
     setWorkflowTemplateContextForKeyAtom,
   )
   const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
+  const {
+    submitting,
+    routingPhase,
+    routingPreview,
+    routeClarification,
+    submitError,
+    startRouting,
+    selectClarification,
+    resetRoutingState,
+  } = useFlowRouting()
   const [promptHelperOpen, setPromptHelperOpen] = useState(false)
   const [preferNewFlow, setPreferNewFlow] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [openingProject, setOpeningProject] = useState(false)
   const [projectPickerOpen, setProjectPickerOpen] = useState(false)
   const [pendingTemplate, setPendingTemplate] =
     useState<WorkflowTemplate | null>(null)
-  const [routeClarification, setRouteClarification] =
-    useState<CreateEntryRouteClarification | null>(null)
-  const [routingPreview, setRoutingPreview] =
-    useState<CreateRoutingPreview | null>(null)
   const [templateAction, setTemplateAction] = useState<
     "create" | "customize" | null
   >(null)
   const [continuationPending, setContinuationPending] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [routingPhase, setRoutingPhase] =
-    useState<WorkflowCreateRoutingPhase>("inspecting")
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const composerRef = useRef<HTMLDivElement | null>(null)
   const promptHelperRef = useRef<HTMLDivElement | null>(null)
@@ -522,12 +512,9 @@ export function WorkflowCreatePage() {
     setPromptScaffold(EMPTY_WORKFLOW_CREATE_SCAFFOLD)
     setPromptHelperOpen(false)
     setPreferNewFlow(false)
-    setRouteClarification(null)
-    setRoutingPreview(null)
-    setSubmitError(null)
+    resetRoutingState()
     setSourceArtifacts([])
     setSourceAttachments([])
-    setRoutingPhase("inspecting")
   }
 
   const openWorkflowFile = async (
@@ -723,7 +710,7 @@ export function WorkflowCreatePage() {
 
   const handleTemplateSelect = (template: WorkflowTemplate) => {
     setPendingTemplate(template)
-    setSubmitError(null)
+    resetRoutingState()
   }
 
   const handleModeConfigChange = (fieldId: string, value: string) => {
@@ -877,10 +864,7 @@ export function WorkflowCreatePage() {
   }
 
   const handleSend = async ({
-    helpModeOverride = null,
     skipDiscardConfirm = false,
-    templateConstraintId = null,
-    useCurrentHelpMode = true,
   }: {
     helpModeOverride?: CreateEntryHelpModeHint | null
     skipDiscardConfirm?: boolean
@@ -890,16 +874,9 @@ export function WorkflowCreatePage() {
     const message = createSeedMessage
     if (!message || submitting) return
     if (projectRequired.projectRequired) {
-      const errorMessage = `${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`
-      setSubmitError(errorMessage)
-      toastError(errorMessage)
-      return
-    }
-    const ensuredProjectPath = targetProjectPath
-    if (!ensuredProjectPath) {
-      const errorMessage = "Choose a project before starting a new flow."
-      setSubmitError(errorMessage)
-      toastError(errorMessage)
+      toastError(
+        `${projectRequired.blockerStatement} ${projectRequired.actionInstruction}`,
+      )
       return
     }
 
@@ -910,212 +887,7 @@ export function WorkflowCreatePage() {
       return
     }
 
-    setSubmitting(true)
-    setSubmitError(null)
-    setRouteClarification(null)
-    setRoutingPreview(null)
-    void window.api.trackUiEvent("point_b_entered").catch(() => undefined)
-    const isGuidedRouting = isGuidedDomain(selectedResultMode.id)
-    if (isGuidedRouting) {
-      setRoutingPhase("inspecting")
-    }
-    const submitStartedAt = Date.now()
-    let minimumRoutingVisibilityPromise: Promise<void> | null = null
-    const ensureMinimumRoutingVisibility = () => {
-      if (!isGuidedRouting) return Promise.resolve()
-      if (!minimumRoutingVisibilityPromise) {
-        const elapsed = Date.now() - submitStartedAt
-        minimumRoutingVisibilityPromise =
-          elapsed >= DEVELOPMENT_ROUTING_MIN_VISIBLE_MS
-            ? Promise.resolve()
-            : waitForMs(DEVELOPMENT_ROUTING_MIN_VISIBLE_MS - elapsed)
-      }
-      return minimumRoutingVisibilityPromise
-    }
-
-    try {
-      const intentSelectionEnabled = isIntentEnabledDomain(
-        selectedResultMode.id,
-      )
-      const effectiveHelpModeHint = isGuidedRouting
-        ? (helpModeOverride ??
-          (intentSelectionEnabled && useCurrentHelpMode
-            ? developmentHelpModeHint
-            : null) ??
-          undefined)
-        : undefined
-      const routeCreateEntry = isGuidedRouting
-        ? (
-            window.api as typeof window.api & {
-              routeCreateEntry?: typeof window.api.routeCreateEntry
-            }
-          ).routeCreateEntry
-        : null
-      if (isGuidedRouting && !routeCreateEntry) {
-        throw new Error("The AI router is not available in this build.")
-      }
-      const routeResult = routeCreateEntry
-        ? await routeCreateEntry({
-            modeId: selectedResultMode.id,
-            projectPath: ensuredProjectPath,
-            fallbackTemplateId: sanitizeDirectCreateFallbackTemplateId(
-              selectedResultMode.id,
-              selectedResultMode.startTemplateId,
-            ),
-            draftPrompt,
-            requestedResult: message,
-            helpModeHint: effectiveHelpModeHint,
-            templateConstraintId: templateConstraintId || undefined,
-            modeConfig: selectedModeConfig,
-            promptScaffold,
-            allowedOptions: routeOptions,
-            webSearchBackend,
-          })
-        : null
-      await ensureMinimumRoutingVisibility()
-      if (routeResult?.clarification) {
-        setRouteClarification(routeResult.clarification)
-        return
-      }
-      if (
-        routeResult?.domainMode &&
-        routeResult.domainMode !== selectedResultMode.id
-      ) {
-        setSelectedResultModeId(routeResult.domainMode)
-      }
-      if (isGuidedRouting) {
-        setRoutingPhase("opening")
-      }
-      const catalog =
-        availableTemplates.length > 0
-          ? availableTemplates
-          : await window.api.listTemplates()
-      const startTemplate =
-        (routeResult
-          ? catalog.find(
-              (template) => template.id === routeResult.recommendedTemplateId,
-            )
-          : null) ||
-        catalog.find(
-          (template) => template.id === selectedResultMode.startTemplateId,
-        ) ||
-        null
-
-      if (!startTemplate && routeResult?.recommendedTemplateId) {
-        toast.warning("This starting point is no longer available.", {
-          description:
-            "The composer is ready for you to describe what you want to build.",
-        })
-      }
-
-      if (startTemplate) {
-        setRoutingPreview(
-          buildCreateRoutingPreview({
-            templateId: startTemplate.id,
-            templates: catalog,
-            routeOptions,
-          }),
-        )
-        if (routeResult) {
-          const launch = await prepareRoutedTemplateLaunch({
-            projectPath: ensuredProjectPath,
-            template: startTemplate,
-            webSearchBackend,
-            routeResult,
-            requestedResult: message,
-            sourceArtifacts,
-            detailBudget,
-          })
-          await openWorkflowFile(launch.filePath, ensuredProjectPath, {
-            entryState: launch.templateStartState.entryState,
-            templateContext: launch.templateStartState.templateContext,
-            initialInputValue: launch.templateStartState.initialInputValue,
-            initialAttachments: mergeInputAttachments(
-              sourceAttachments,
-              launch.templateStartState.initialAttachments,
-            ),
-            autoRunIfAllowed: shouldAutoRunCreateStart(
-              routeResult,
-              startTemplate,
-            ),
-          })
-          return
-        }
-
-        const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
-        const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
-          resolvedStartTemplate,
-        )
-        const nextWorkflow = resolveTemplateWorkflow(
-          templateForWorkflowUse,
-          webSearchBackend,
-          {
-            detailBudget,
-            templateId: templateForWorkflowUse.id,
-          },
-        )
-        const filePath = await window.api.createWorkflow(
-          ensuredProjectPath,
-          templateForWorkflowUse.name,
-          nextWorkflow,
-        )
-        const template = {
-          ...templateForWorkflowUse,
-          workflow: nextWorkflow,
-        }
-        const templateStartState = buildTemplateStartState({
-          template,
-          workflowPath: filePath,
-          projectPath: ensuredProjectPath,
-          requestedResult: message,
-          sourceArtifacts,
-        })
-
-        await window.api
-          .recordProjectTemplateUsage(ensuredProjectPath, startTemplate.id)
-          .catch(() => undefined)
-        await openWorkflowFile(filePath, ensuredProjectPath, {
-          entryState: templateStartState.entryState,
-          templateContext: templateStartState.templateContext,
-          initialInputValue: templateStartState.initialInputValue,
-          initialAttachments: mergeInputAttachments(
-            sourceAttachments,
-            templateStartState.initialAttachments,
-          ),
-          autoRunIfAllowed: shouldAutoRunCreateStart(routeResult, template),
-        })
-        return
-      }
-
-      const draftWorkflow = applyWorkflowDetailBudget(
-        createEmptyWorkflow(),
-        detailBudget,
-      )
-      if (isGuidedRouting) {
-        setRoutingPhase("opening")
-      }
-      const filePath = await window.api.createWorkflow(
-        ensuredProjectPath,
-        "new-flow",
-        draftWorkflow,
-      )
-      await openWorkflowFile(filePath, ensuredProjectPath, {
-        pendingMessage: message,
-        pendingEntryRequest: message,
-        initialInputValue: message,
-        initialAttachments: sourceAttachments,
-      })
-    } catch (error) {
-      await ensureMinimumRoutingVisibility()
-      setSubmitError(
-        errorToUserMessage(error).replace(
-          /^Error: Error invoking remote method '[^']+': Error: /,
-          "",
-        ),
-      )
-    } finally {
-      setSubmitting(false)
-    }
+    void startRouting(message)
   }
 
   const handleTextareaKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1133,20 +905,10 @@ export function WorkflowCreatePage() {
   const handleClarificationSelect = (
     selection: RouteClarificationSelection,
   ) => {
-    setRouteClarification(null)
-    if (selection.kind === "job_route") {
-      void handleSend({
-        skipDiscardConfirm: true,
-        templateConstraintId: selection.templateId,
-        useCurrentHelpMode: false,
-      })
-      return
+    selectClarification(selection)
+    if (selection.kind === "help_mode") {
+      setDevelopmentHelpModeHint(selection.helpMode)
     }
-    setDevelopmentHelpModeHint(selection.helpMode)
-    void handleSend({
-      helpModeOverride: selection.helpMode,
-      skipDiscardConfirm: true,
-    })
   }
 
   return (
@@ -1222,12 +984,12 @@ export function WorkflowCreatePage() {
                 onFocus={() => {
                   if (figureOwner === "continue_first") {
                     setPreferNewFlow(true)
-                    setRouteClarification(null)
+                    resetRoutingState()
                   }
                 }}
                 onChange={(event) => {
                   setPreferNewFlow(true)
-                  setRouteClarification(null)
+                  resetRoutingState()
                   setDraftPrompt(event.target.value)
                 }}
                 onKeyDown={handleTextareaKeyDown}
@@ -1281,7 +1043,7 @@ export function WorkflowCreatePage() {
                       }}
                       onToggleHelpMode={(helpMode) => {
                         setPreferNewFlow(true)
-                        setRouteClarification(null)
+                        resetRoutingState()
                         setDevelopmentHelpModeHint(helpMode)
                       }}
                       promptHelperOpen={promptHelperOpen}
@@ -1374,7 +1136,7 @@ export function WorkflowCreatePage() {
       <RouteClarificationDialog
         clarification={routeClarification}
         jobRouteMetaByTemplateId={jobRouteMetaByTemplateId}
-        onClose={() => setRouteClarification(null)}
+        onClose={() => resetRoutingState()}
         onSelect={handleClarificationSelect}
       />
       <WorkflowCreatePendingTemplateDialog
