@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { ChevronRight } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/cn"
 import type { ProgressContent, ProgressStep } from "@/lib/flow-chat-types"
 
@@ -18,7 +18,7 @@ function StepIcon({ status }: { status: ProgressStep["status"] }) {
   if (status === "done") {
     return (
       <span
-        className="text-status-success text-[13px] leading-none"
+        className="flex h-5 w-5 items-center justify-center rounded-full bg-status-success/15 text-status-success text-[12px] leading-none flex-shrink-0"
         aria-label="Done"
       >
         &#10003;
@@ -28,15 +28,17 @@ function StepIcon({ status }: { status: ProgressStep["status"] }) {
   if (status === "running") {
     return (
       <span
-        className="inline-block h-2.5 w-2.5 rounded-full bg-status-info animate-pulse"
+        className="flex h-5 w-5 items-center justify-center flex-shrink-0"
         aria-label="Running"
-      />
+      >
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-status-info animate-pulse" />
+      </span>
     )
   }
   if (status === "failed") {
     return (
       <span
-        className="text-status-danger text-[13px] leading-none"
+        className="flex h-5 w-5 items-center justify-center rounded-full bg-status-danger/15 text-status-danger text-[12px] leading-none flex-shrink-0"
         aria-label="Failed"
       >
         &#10005;
@@ -46,9 +48,11 @@ function StepIcon({ status }: { status: ProgressStep["status"] }) {
   // pending
   return (
     <span
-      className="inline-block h-2.5 w-2.5 rounded-full border border-muted-foreground/40"
+      className="flex h-5 w-5 items-center justify-center flex-shrink-0"
       aria-label="Pending"
-    />
+    >
+      <span className="inline-block h-2 w-2 rounded-full border border-muted-foreground/40" />
+    </span>
   )
 }
 
@@ -58,7 +62,7 @@ function SubStepPills({
   subSteps: NonNullable<ProgressStep["subSteps"]>
 }) {
   return (
-    <div className="flex flex-wrap gap-1 mt-1">
+    <div className="flex flex-wrap gap-1">
       {subSteps.map((sub) => (
         <span
           key={sub.key}
@@ -110,7 +114,28 @@ function useElapsedTimer(
 
 export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set())
+  const prevRunningRef = useRef<string | null>(null)
   const liveElapsed = useElapsedTimer(data.startedAt, data.collapsed)
+
+  // Auto-expand the currently running step; collapse the previous one when it finishes
+  useEffect(() => {
+    const runningStep = data.steps.find((s) => s.status === "running")
+    const runningId = runningStep?.nodeId ?? null
+
+    if (runningId && runningId !== prevRunningRef.current) {
+      setExpandedSteps((prev) => {
+        const next = new Set(prev)
+        // Collapse the previously-running step
+        if (prevRunningRef.current) {
+          next.delete(prevRunningRef.current)
+        }
+        // Expand the newly-running step
+        next.add(runningId)
+        return next
+      })
+      prevRunningRef.current = runningId
+    }
+  }, [data.steps])
 
   if (data.collapsed && data.collapsedLabel) {
     return (
@@ -141,77 +166,81 @@ export function FlowProgressMessage({ data }: FlowProgressMessageProps) {
   }
 
   return (
-    <div className="space-y-2">
-      {/* Step checklist */}
-      <ul className="space-y-1.5">
+    <div className="space-y-3">
+      {/* Step list */}
+      <div className="divide-y divide-hairline">
         {data.steps.map((step) => {
+          const hasOutput = !!step.output
+          const hasSubSteps = !!step.subSteps && step.subSteps.length > 0
           const isExpandable =
-            (step.status === "done" || step.status === "failed") &&
-            !!step.output
+            (step.status === "done" ||
+              step.status === "failed" ||
+              step.status === "running") &&
+            (hasOutput || hasSubSteps)
           const isExpanded = expandedSteps.has(step.nodeId)
 
           return (
-            <li key={step.nodeId}>
+            <div key={step.nodeId}>
               <button
                 type="button"
                 className={cn(
-                  "flex items-start gap-2 w-full text-left",
-                  isExpandable &&
-                    "cursor-pointer hover:bg-surface-2/40 -mx-1 px-1 rounded",
-                  !isExpandable && "cursor-default",
+                  "flex w-full items-center gap-3 py-3 text-left",
+                  isExpandable
+                    ? "cursor-pointer hover:bg-surface-2/40 rounded"
+                    : "cursor-default",
                 )}
                 onClick={() => isExpandable && toggleExpand(step.nodeId)}
                 disabled={!isExpandable}
               >
-                <span className="mt-0.5 flex-shrink-0 w-3.5 flex items-center justify-center">
-                  <StepIcon status={step.status} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <span
-                    className={cn(
-                      "text-body-sm",
-                      step.status === "done"
+                <StepIcon status={step.status} />
+                <span
+                  className={cn(
+                    "flex-1 text-[15px] leading-relaxed",
+                    step.status === "running"
+                      ? "text-foreground font-medium"
+                      : step.status === "done"
                         ? "text-foreground-subtle"
-                        : step.status === "running"
-                          ? "text-foreground"
-                          : step.status === "failed"
-                            ? "text-status-danger"
-                            : "text-muted-foreground",
-                    )}
-                  >
-                    {step.label}
-                  </span>
+                        : step.status === "failed"
+                          ? "text-status-danger"
+                          : "text-muted-foreground",
+                  )}
+                >
+                  {step.label}
                   {step.status === "done" && step.summary && (
-                    <span className="ml-1.5 ui-meta-text text-muted-foreground">
+                    <span className="ml-2 ui-meta-text text-muted-foreground font-normal">
                       {step.summary}
                     </span>
                   )}
-                </div>
+                </span>
                 {isExpandable && (
-                  <ChevronRight
+                  <ChevronDown
                     className={cn(
-                      "mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground ui-motion-fast",
-                      isExpanded && "rotate-90",
+                      "h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform ui-motion-fast",
+                      isExpanded && "rotate-180",
                     )}
                   />
                 )}
               </button>
-              {isExpanded && step.output && (
-                <div className="ml-6 mt-1 max-h-64 overflow-y-auto ui-scroll-region rounded bg-surface-2/40 p-2">
-                  <pre className="text-body-sm text-foreground-subtle whitespace-pre-wrap font-mono">
-                    {step.output}
-                  </pre>
+
+              {/* Expanded detail panel */}
+              {isExpanded && (
+                <div className="pl-8 pb-3 space-y-2">
+                  {step.subSteps && step.subSteps.length > 0 && (
+                    <SubStepPills subSteps={step.subSteps} />
+                  )}
+                  {step.output && (
+                    <div className="max-h-64 overflow-y-auto ui-scroll-region rounded bg-surface-2/40 p-2">
+                      <pre className="text-body-sm text-muted-foreground whitespace-pre-wrap font-mono">
+                        {step.output}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
-              {step.subSteps && step.subSteps.length > 0 && (
-                <div className="ml-5">
-                  <SubStepPills subSteps={step.subSteps} />
-                </div>
-              )}
-            </li>
+            </div>
           )
         })}
-      </ul>
+      </div>
 
       {/* Footer: step count + elapsed */}
       <div className="flex items-center gap-2 ui-meta-text text-muted-foreground">
