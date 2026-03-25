@@ -205,14 +205,16 @@ export function ChatPanel({
           />
         )}
 
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
           <div className="max-w-2xl w-full space-y-4 text-center">
-            <h1 className="text-title-lg font-medium text-foreground">
+            <h1 className="text-2xl font-medium text-foreground">
               What can I do for you?
             </h1>
-            <p className="text-body-sm text-muted-foreground">
+            <p className="text-[15px] text-muted-foreground">
               Describe your goal — c8c builds a flow to solve it
             </p>
+          </div>
+          <div className="max-w-2xl w-full mt-6">
             <ChatInput
               onSend={handleSend}
               onCancel={cancel}
