@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react"
 import { useSetAtom } from "jotai"
 import type { MainView } from "@/lib/store"
+import { viewModeAtom } from "@/lib/store"
 import type { RunResult, Workflow, WorkflowFile } from "@shared/types"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
@@ -153,6 +154,7 @@ export function useWorkflowCrud({
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
+  const setViewMode = useSetAtom(viewModeAtom)
   const [pendingRenameWorkflow, setPendingRenameWorkflow] =
     useState<WorkflowFile | null>(null)
   const [renameInput, setRenameInput] = useState("")
@@ -245,6 +247,7 @@ export function useWorkflowCrud({
         setSelectedPastRun,
       )
       setMainView("thread")
+      setViewMode("chat")
       return
     }
     if (!(await confirmDiscard("open another flow", workflowDirty))) {
@@ -256,6 +259,7 @@ export function useWorkflowCrud({
     }
 
     setMainView("thread")
+    setViewMode("chat")
     const loadingToastId = toast.loading("Opening flow...")
     setWorkflowOpenState({
       status: "loading",
@@ -311,6 +315,7 @@ export function useWorkflowCrud({
           ?.replace(/\.(chain|yaml|yml)$/i, "") || name
 
       setMainView("thread")
+      setViewMode("chat")
       setWorkflows((prev) => [
         {
           name: loadedWorkflow.name || workflowNameFromPath,
@@ -369,6 +374,7 @@ export function useWorkflowCrud({
         setSelectedPastRun,
       )
       setMainView("thread")
+      setViewMode("chat")
       return
     }
     if (!(await confirmDiscard("open another flow", workflowDirty))) {
@@ -376,6 +382,7 @@ export function useWorkflowCrud({
     }
 
     setMainView("thread")
+    setViewMode("chat")
     const loadingToastId = toast.loading("Opening flow...")
     setWorkflowOpenState({
       status: "loading",
@@ -567,6 +574,7 @@ export function useWorkflowCrud({
       setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
       clearReviewState()
       setMainView("thread")
+      setViewMode("chat")
       toast.success("Flow duplicated")
     } catch (error) {
       toastErrorFromCatch("Could not duplicate flow", error)

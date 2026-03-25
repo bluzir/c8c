@@ -11,6 +11,7 @@ import {
   currentWorkflowAtom,
   skillsAtom,
   mainViewAtom,
+  viewModeAtom,
   clearWorkflowTemplateContextForKeyAtom,
   clearWorkflowRequestedResultForKeyAtom,
   moveWorkflowContinuationEntryStateAtom,
@@ -99,6 +100,7 @@ export function ProjectSidebar({
   const [, setWorkflowSavedSnapshot] = useAtom(workflowSavedSnapshotAtom)
   const [, setSkills] = useAtom(skillsAtom)
   const [mainView, setMainView] = useAtom(mainViewAtom)
+  const setViewMode = useSetAtom(viewModeAtom)
   const [workflowCreateContext] = useAtom(workflowCreateContextAtom)
   const [unreadInboxCount] = useAtom(unreadInboxCountAtom)
   const runsDashboardOpen = useAtomValue(multiRunDashboardOpenAtom)
@@ -379,7 +381,10 @@ export function ProjectSidebar({
         workflowSearchQuery={workflowSearchQuery}
         showSearch={showSidebarSearch}
         onSearchChange={setWorkflowSearchQuery}
-        onOpenThread={() => setMainView("thread")}
+        onOpenThread={() => {
+          setMainView("thread")
+          setViewMode("chat")
+        }}
         onOpenCreate={() => handleOpenWorkflowCreate()}
         onOpenStartingPoints={() => {
           if (mainView === "workflow_create") {

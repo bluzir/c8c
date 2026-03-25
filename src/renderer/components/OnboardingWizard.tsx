@@ -6,6 +6,7 @@ import {
   firstLaunchAtom,
   globalExecutionDefaultsAtom,
   mainViewAtom,
+  viewModeAtom,
   providerAuthStatusAtom,
   providerAvailabilityAtom,
   providerSettingsAtom,
@@ -40,13 +41,15 @@ export function OnboardingWizard() {
   const [projectPath, setProjectPath] = useState<string | null>(null)
   const [, setFirstLaunch] = useAtom(firstLaunchAtom)
   const [, setMainView] = useAtom(mainViewAtom)
+  const [, setViewMode] = useAtom(viewModeAtom)
   const [, setSelectedProject] = useAtom(selectedProjectAtom)
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
 
   const skip = useCallback(() => {
     setFirstLaunch(false)
     setMainView("thread")
-  }, [setFirstLaunch, setMainView])
+    setViewMode("chat")
+  }, [setFirstLaunch, setMainView, setViewMode])
 
   const next = useCallback(() => {
     if (step === 2 && !projectPath) return

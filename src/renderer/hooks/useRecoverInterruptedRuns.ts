@@ -8,7 +8,11 @@ import {
   createEmptyWorkflowExecutionState,
   isRunInFlight,
 } from "@/lib/workflow-execution"
-import { mainViewAtom, selectedWorkflowPathAtom } from "@/lib/store"
+import {
+  mainViewAtom,
+  selectedWorkflowPathAtom,
+  viewModeAtom,
+} from "@/lib/store"
 import type { InFlightManifestEntry } from "@shared/types"
 
 const MANIFEST_KEY = "c8c:in-flight-runs"
@@ -33,6 +37,7 @@ export function useRecoverInterruptedRuns(): void {
   const updateExecutionState = useSetAtom(updateWorkflowExecutionStateAtom)
   const setSelectedWorkflowPath = useSetAtom(selectedWorkflowPathAtom)
   const setMainView = useSetAtom(mainViewAtom)
+  const setViewMode = useSetAtom(viewModeAtom)
 
   useEffect(() => {
     let cancelled = false
@@ -142,6 +147,7 @@ export function useRecoverInterruptedRuns(): void {
         const workflowPath = singleKey === "__draft__" ? null : singleKey
         setSelectedWorkflowPath(workflowPath)
         setMainView("thread")
+        setViewMode("chat")
       }
     }
 

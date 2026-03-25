@@ -104,7 +104,6 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const syntheticCompleteMessage = useMemo<FlowChatMessage | null>(() => {
     if (flowMessages.length > 0) return null
     if (executionState.runOutcome !== "completed") return null
-    if (!executionState.reportPath) return null
 
     const durationMs =
       executionState.completedAt && executionState.runStartedAt
@@ -115,15 +114,17 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       0,
     )
 
+    const reportPath = executionState.reportPath
+
     return buildCompleteMessage({
       runId: executionState.runId ?? "past-run",
       flowName: executionState.workflowName || workflow?.name || "Flow",
       summary: "Flow completed.",
       findings: [],
       limitations: [],
-      artifacts: [
-        { name: "report.md", path: executionState.reportPath, kind: "report" },
-      ],
+      artifacts: reportPath
+        ? [{ name: "report.md", path: reportPath, kind: "report" }]
+        : [],
       followUps: [],
       durationMs,
       costUsd,
@@ -145,17 +146,29 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     if (syntheticCompleteMessage) return null
     if (flowMessages.length > 0) return null
 
-    const completed = workflowHistoryRuns
-      .filter((r) => r.status === "completed")
+    const eligible = workflowHistoryRuns
+      .filter(
+        (r) =>
+          r.status === "completed" ||
+          r.status === "failed" ||
+          r.status === "cancelled",
+      )
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
 
-    const latest = completed[0]
+    const latest = eligible[0]
     if (!latest) return null
+
+    const summary =
+      latest.status === "completed"
+        ? "Last run completed."
+        : latest.status === "failed"
+          ? "Last run failed."
+          : "Last run stopped."
 
     return buildCompleteMessage({
       runId: latest.runId,
       flowName: latest.workflowName || workflow?.name || "Flow",
-      summary: "Last run completed.",
+      summary,
       findings: [],
       limitations: [],
       artifacts: latest.reportPath

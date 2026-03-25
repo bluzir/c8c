@@ -10,6 +10,7 @@ import {
   batchStatusAtom,
   currentWorkflowAtom,
   mainViewAtom,
+  viewModeAtom,
   multiRunDashboardOpenAtom,
   selectedInboxTaskKeyAtom,
   selectedProjectAtom,
@@ -64,6 +65,7 @@ export function MultiRunDashboard() {
   const [, setSelectedPastRun] = useAtom(selectedPastRunAtom)
   const workflowDirty = useAtomValue(workflowDirtyAtom)
   const [, setMainView] = useAtom(mainViewAtom)
+  const [, setViewMode] = useAtom(viewModeAtom)
   const setBatchDialogOpen = useSetAtom(batchDialogOpenAtom)
   const updateWorkflowExecutionState = useSetAtom(
     updateWorkflowExecutionStateAtom,
@@ -129,6 +131,7 @@ export function MultiRunDashboard() {
     if (entry.isSelectedWorkflow) {
       applyReviewState()
       setMainView("thread")
+      setViewMode("chat")
       setOpen(false)
       return
     }
@@ -141,6 +144,7 @@ export function MultiRunDashboard() {
     }
 
     setMainView("thread")
+    setViewMode("chat")
 
     const restoreWorkflowSnapshot = (snapshot: Workflow | null) => {
       if (!snapshot) return false

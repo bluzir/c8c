@@ -34,6 +34,7 @@ import {
   inputAttachmentsAtom,
   inputValueAtom,
   mainViewAtom,
+  viewModeAtom,
   selectedFactoryIdAtom,
   selectedInboxTaskKeyAtom,
   selectedProjectAtom,
@@ -84,6 +85,7 @@ export function ArtifactsPage() {
   const [selectedProject] = useAtom(selectedProjectAtom)
   const [factoryBetaEnabled] = useAtom(factoryBetaEnabledAtom)
   const [, setMainView] = useAtom(mainViewAtom)
+  const [, setViewMode] = useAtom(viewModeAtom)
   const [selectedFactoryId] = useAtom(selectedFactoryIdAtom)
   const [selectedCaseId, setSelectedCaseId] = useAtom(selectedFactoryCaseIdAtom)
   const [, setSelectedInboxTaskKey] = useAtom(selectedInboxTaskKeyAtom)
@@ -554,6 +556,7 @@ export function ArtifactsPage() {
       setSelectedInboxTaskKey(null)
       setSelectedPastRun(null)
       setMainView("thread")
+      setViewMode("chat")
 
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => {
@@ -579,7 +582,10 @@ export function ArtifactsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setMainView("thread")}
+              onClick={() => {
+                setMainView("thread")
+                setViewMode("chat")
+              }}
             >
               <FolderOpen size={14} />
               Back to flow

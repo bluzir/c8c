@@ -214,6 +214,7 @@ const AppShell = memo(function AppShell() {
     setSelectedFactoryCaseId(null)
     if (mainView === "factory") {
       setMainView("thread")
+      setViewMode("chat")
     }
   }, [
     factoryBetaEnabled,
@@ -221,6 +222,7 @@ const AppShell = memo(function AppShell() {
     setMainView,
     setSelectedFactoryCaseId,
     setSelectedFactoryId,
+    setViewMode,
   ])
 
   useEffect(() => {
