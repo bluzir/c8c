@@ -1042,27 +1042,35 @@ export function WorkflowPanel() {
     }
   }, [canShowRouteAlternatives, routeAlternativesOpen])
 
-  // In chat mode, always show the chat — even without a workflow selected.
-  // The chat empty state handles the "no workflow" case with centered input.
-  if (viewMode !== "chat") {
-    if (!selectedProject && !hasMeaningfulContent) {
-      return (
-        <EmptyWorkspaceState
-          onOpenProject={() => {
-            void window.api.addProject()
-          }}
-        />
-      )
-    }
+  // In chat mode without a workflow, render just the chat (no Toolbar/runtime hooks).
+  // This handles "New workflow" from sidebar — user types request → routing creates workflow.
+  if (viewMode === "chat" && !selectedWorkflowPath) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <SectionErrorBoundary sectionName="Flow chat">
+          <ChatPanel embedded onClose={() => setViewMode("list")} />
+        </SectionErrorBoundary>
+      </div>
+    )
+  }
 
-    if (!selectedWorkflowPath && !hasMeaningfulContent) {
-      return (
-        <EmptyProjectState
-          onOpenTemplates={() => setMainView("templates")}
-          onQuickStart={(prompt) => openWorkflowCreate({ prompt })}
-        />
-      )
-    }
+  if (!selectedProject && !hasMeaningfulContent) {
+    return (
+      <EmptyWorkspaceState
+        onOpenProject={() => {
+          void window.api.addProject()
+        }}
+      />
+    )
+  }
+
+  if (!selectedWorkflowPath && !hasMeaningfulContent) {
+    return (
+      <EmptyProjectState
+        onOpenTemplates={() => setMainView("templates")}
+        onQuickStart={(prompt) => openWorkflowCreate({ prompt })}
+      />
+    )
   }
 
   return (
