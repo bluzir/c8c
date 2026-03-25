@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   chatPanelWidthAtom,
@@ -7,6 +7,7 @@ import {
   chatRoutingProgressAtom,
   currentWorkflowAtom,
   inputValueAtom,
+  selectedResultModeIdAtom,
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
   workflowEntryStateAtom,
@@ -17,6 +18,7 @@ import {
   selectedWorkflowExecutionAtom,
   workflowHistoryRunsAtom,
 } from "@/features/execution/state"
+import { getResultModeQuickStartOptions } from "@/lib/result-modes"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
@@ -58,6 +60,7 @@ export function ChatPanel({
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
   const executionState = useAtomValue(selectedWorkflowExecutionAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
+  const selectedResultModeId = useAtomValue(selectedResultModeIdAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
   )
@@ -170,25 +173,23 @@ export function ChatPanel({
     [maxPanelWidth, minWidth, setPanelWidth],
   )
 
-  // True when there are no messages at all — chat + flow + routing + synthetics.
-  // Accounts for every source ChatMessages uses to build its timeline:
-  // entryState → synthetic routing message, executionState.runOutcome → synthetic
-  // complete message, workflowHistoryRuns → latest past run message.
-  const hasSyntheticComplete =
-    executionState.runOutcome === "completed" ||
-    workflowHistoryRuns.some(
-      (r) =>
-        r.status === "completed" ||
-        r.status === "failed" ||
-        r.status === "cancelled",
-    )
+  // True when there are no real messages — chat + flow + active routing.
+  // Synthetic messages (past run results, entry state routing) are rendered by
+  // ChatMessages inside the normal layout; they don't prevent the centered
+  // empty state from showing.
   const isChatEmpty =
     messages.length === 0 &&
     flowMessages.length === 0 &&
     !chatRoutingProgress &&
     !entryState &&
-    !hasSyntheticComplete &&
     runStatus === "idle"
+
+  // Quick starts from the selected domain — shown in the centered empty state
+  // so users can jump directly into a starting point.
+  const quickStarts = useMemo(
+    () => getResultModeQuickStartOptions(selectedResultModeId),
+    [selectedResultModeId],
+  )
 
   // ── Centered empty state (Manus-style) ──────────────────────────
   if (isChatEmpty) {
@@ -235,6 +236,20 @@ export function ChatPanel({
                 "Describe your goal \u2014 c8c builds a flow to solve it"}
             </p>
           </div>
+          {!selectedWorkflowPath && quickStarts.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl w-full">
+              {quickStarts.map((qs) => (
+                <button
+                  key={qs.templateId}
+                  type="button"
+                  onClick={() => void startRouting(qs.label)}
+                  className="px-3 py-1.5 rounded-full border border-hairline text-body-sm text-foreground/80 hover:text-foreground hover:bg-surface-2/30 ui-motion-fast"
+                >
+                  {qs.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="max-w-2xl w-full mt-6">
             <ChatInput
               onSend={handleSend}
