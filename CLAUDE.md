@@ -74,6 +74,16 @@ npm run test:watch   # Run tests in watch mode
 npx tsc --noEmit     # Type-check without emitting
 ```
 
+## Component Health Rules
+
+React components rot when business logic and UI mix. Three rules:
+
+1. **≤300 lines per component file.** If a component grows past 300 lines, extract a hook or split it. A 1400-line component is a bug, not a feature.
+2. **Business logic lives in hooks, not in JSX files.** IPC calls, atom orchestration, multi-step flows → custom hook. The component calls the hook and renders. If `handleSend()` is 200 lines inside a component, it should be `useFlowRouting().startRouting()`.
+3. **One job per file.** A file that does project selection AND routing AND workflow creation AND navigation is doing four jobs. Split by responsibility: `useFlowRouting.ts`, `useOpenWorkflowFile.ts`, `ProjectPicker.tsx`.
+
+When touching a component that violates these rules, include a targeted split as part of the work — don't schedule a separate "refactoring ticket" that never happens.
+
 ## Architecture
 
 Electron app with three app layers:
