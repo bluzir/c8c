@@ -260,6 +260,26 @@ export const inputValueAtom = atom("")
  * inputValueAtom has propagated) and calls handleRunRequest().
  */
 export const chatFlowInputRequestAtom = atom<string | null>(null)
+
+/**
+ * In-progress routing state driven by useFlowRouting hook.
+ * ChatMessages reads this to render a live routing message while routing is
+ * in flight. Cleared when routing completes or is aborted.
+ */
+export interface ChatRoutingProgress {
+  phase: "inspecting" | "opening"
+  templateName?: string | null
+  templateDescription?: string | null
+}
+export const chatRoutingProgressAtom = atom<ChatRoutingProgress | null>(null)
+
+/**
+ * When set, the chat panel auto-triggers routing with this prompt on mount.
+ * Used by useWorkflowCreateNavigation when a prompt is provided — navigates
+ * directly to thread+chat and triggers routing instead of showing the create page.
+ */
+export const chatPendingRoutingPromptAtom = atom<string | null>(null)
+
 export const inputAttachmentsAtom = atom<InputAttachment[]>([])
 export const selectedNodeIdAtom = atom<string | null>(null)
 

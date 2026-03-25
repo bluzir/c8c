@@ -1,15 +1,18 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   chatPanelWidthAtom,
   chatFlowInputRequestAtom,
+  chatPendingRoutingPromptAtom,
   inputValueAtom,
+  selectedWorkflowPathAtom,
 } from "@/lib/store"
 import { runStatusAtom } from "@/features/execution"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
 import { useChatSession } from "@/hooks/useChatSession"
+import { useFlowRouting } from "@/hooks/useFlowRouting"
 import { cn } from "@/lib/cn"
 
 const MIN_PANEL_WIDTH = 280
@@ -34,8 +37,13 @@ export function ChatPanel({
   const [panelWidth, setPanelWidth] = useAtom(chatPanelWidthAtom)
   const [resizing, setResizing] = useState(false)
   const runStatus = useAtomValue(runStatusAtom)
+  const selectedWorkflowPath = useAtomValue(selectedWorkflowPathAtom)
   const setInputValue = useSetAtom(inputValueAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
+  const { startRouting } = useFlowRouting()
+  const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
+    chatPendingRoutingPromptAtom,
+  )
 
   const {
     messages,
@@ -50,25 +58,49 @@ export function ChatPanel({
 
   const isStreaming = status === "thinking" || status === "streaming"
 
+  // Auto-trigger routing when navigated here with a pending prompt
+  // (e.g. from useWorkflowCreateNavigation with a prompt option).
+  useEffect(() => {
+    if (pendingRoutingPrompt && !selectedWorkflowPath) {
+      const prompt = pendingRoutingPrompt
+      setPendingRoutingPrompt(null)
+      void startRouting(prompt)
+    }
+  }, [
+    pendingRoutingPrompt,
+    selectedWorkflowPath,
+    setPendingRoutingPrompt,
+    startRouting,
+  ])
+
   /**
-   * Dual-purpose send handler:
-   * - When the flow is idle (not running): treat the message as flow input and
-   *   trigger a run. Sets inputValueAtom and signals WorkflowPanel via
-   *   chatFlowInputRequestAtom.
-   * - When the flow is in-flight: delegate to the agent chat (existing behavior).
+   * Tri-mode send handler:
+   * 1. Idle + has workflow → start a flow run with this message as input
+   * 2. No workflow (idle) → route to pick a starting point template
+   * 3. Flow running/done/error → send as agent chat message
    */
   const handleSend = useCallback(
     (message: string) => {
-      if (runStatus === "idle") {
-        // Flow is idle — start a flow run with this message as input.
+      if (runStatus === "idle" && selectedWorkflowPath) {
+        // Already have a workflow — start the flow run.
         setInputValue(message)
         setChatFlowInputRequest(message)
+      } else if (!selectedWorkflowPath) {
+        // No workflow yet — route to pick a template.
+        void startRouting(message)
       } else {
         // Flow is running/done/error — send as agent chat message.
         sendMessage(message)
       }
     },
-    [runStatus, sendMessage, setChatFlowInputRequest, setInputValue],
+    [
+      runStatus,
+      selectedWorkflowPath,
+      sendMessage,
+      setChatFlowInputRequest,
+      setInputValue,
+      startRouting,
+    ],
   )
   const maxPanelWidth = Math.max(
     minWidth,

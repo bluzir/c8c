@@ -27,6 +27,7 @@ import {
   setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowRequestedResultForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
+  chatRoutingProgressAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
@@ -164,6 +165,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
   const setWorkflowRequestedResultForKey = useSetAtom(
     setWorkflowRequestedResultForKeyAtom,
   )
+  const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const setWorkflowTemplateContextForKey = useSetAtom(
     setWorkflowTemplateContextForKeyAtom,
   )
@@ -324,6 +326,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       const isGuidedRouting = isGuidedDomain(selectedResultMode.id)
       if (isGuidedRouting) {
         setRoutingPhase("inspecting")
+        setChatRoutingProgress({ phase: "inspecting" })
       }
       const submitStartedAt = Date.now()
       let minimumRoutingVisibilityPromise: Promise<void> | null = null
@@ -439,6 +442,14 @@ export function useFlowRouting(): UseFlowRoutingReturn {
           ) ||
           null
 
+        if (isGuidedRouting && startTemplate) {
+          setChatRoutingProgress({
+            phase: "opening",
+            templateName: getWorkflowTemplateDisplayName(startTemplate),
+            templateDescription: startTemplate.how || null,
+          })
+        }
+
         if (!startTemplate && routeResult?.recommendedTemplateId) {
           toast.warning("This starting point is no longer available.", {
             description:
@@ -532,6 +543,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         )
         if (isGuidedRouting) {
           setRoutingPhase("opening")
+          setChatRoutingProgress({ phase: "opening" })
         }
         const filePath = await window.api.createWorkflow(
           targetProjectPath,
@@ -554,6 +566,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         )
       } finally {
         setSubmitting(false)
+        setChatRoutingProgress(null)
       }
     },
     [
@@ -568,6 +581,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       webSearchBackend,
       detailBudget,
       setSelectedResultModeId,
+      setChatRoutingProgress,
       openWorkflowFile,
     ],
   )

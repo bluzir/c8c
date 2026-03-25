@@ -22,6 +22,7 @@ import {
   selectedWorkflowTemplateContextAtom,
   templateLibraryContextAtom,
   workflowEntryStateAtom,
+  chatRoutingProgressAtom,
   type ChatMessageDisplay,
 } from "@/lib/store"
 import {
@@ -59,6 +60,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
   const workflow = useAtomValue(currentWorkflowAtom)
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
   const entryState = useAtomValue(workflowEntryStateAtom)
+  const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
   const executionState = useAtomValue(selectedWorkflowExecutionAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
   const setQueuedFollowUpTemplateId = useSetAtom(queuedFollowUpTemplateIdAtom)
@@ -218,12 +220,61 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     }
   }, [entryState, selectedWorkflowPath, flowMessages, workflow?.name])
 
+  // Live in-progress routing message driven by chatRoutingProgressAtom.
+  // Shown while useFlowRouting is actively routing (before a workflow exists).
+  const liveRoutingMessage = useMemo<FlowChatMessage | null>(() => {
+    if (!chatRoutingProgress) return null
+    // Don't show live progress if we already have the completed routing message
+    if (syntheticRoutingMessage) return null
+
+    const isOpening = chatRoutingProgress.phase === "opening"
+    const templateLabel =
+      chatRoutingProgress.templateName || "the best starting point"
+
+    const routingSteps: Array<{
+      label: string
+      status: "pending" | "running" | "done"
+    }> = [
+      { label: "Read your goal", status: "done" },
+      {
+        label: "Inspect project context",
+        status: isOpening ? "done" : "running",
+      },
+      {
+        label: isOpening
+          ? `Open ${templateLabel}`
+          : "Open the best starting point",
+        status: isOpening ? "running" : "pending",
+      },
+    ]
+
+    return {
+      id: "routing-live",
+      flowName: "Flow",
+      timestamp: Date.now(),
+      content: {
+        type: "routing" as const,
+        data: {
+          steps: routingSteps,
+          selectedTemplate:
+            isOpening && chatRoutingProgress.templateName
+              ? {
+                  name: chatRoutingProgress.templateName,
+                  description: chatRoutingProgress.templateDescription || "",
+                }
+              : undefined,
+        },
+      },
+    }
+  }, [chatRoutingProgress, syntheticRoutingMessage])
+
   const timeline = useMemo<TimelineEntry[]>(() => {
     const chatEntries: TimelineEntry[] = messages.map((m) => ({
       kind: "chat",
       message: m,
     }))
     const extraFlowMessages: FlowChatMessage[] = []
+    if (liveRoutingMessage) extraFlowMessages.push(liveRoutingMessage)
     if (syntheticRoutingMessage) extraFlowMessages.push(syntheticRoutingMessage)
     if (syntheticMessage) extraFlowMessages.push(syntheticMessage)
     const allFlowMessages =
@@ -239,7 +290,13 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       const tsB = b.kind === "chat" ? b.message.timestamp : b.message.timestamp
       return tsA - tsB
     })
-  }, [messages, flowMessages, syntheticRoutingMessage, syntheticMessage])
+  }, [
+    messages,
+    flowMessages,
+    liveRoutingMessage,
+    syntheticRoutingMessage,
+    syntheticMessage,
+  ])
 
   useEffect(() => {
     const el = containerRef.current
