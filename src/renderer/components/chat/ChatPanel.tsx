@@ -4,10 +4,13 @@ import {
   chatPanelWidthAtom,
   chatFlowInputRequestAtom,
   chatPendingRoutingPromptAtom,
+  chatRoutingProgressAtom,
   inputValueAtom,
   selectedWorkflowPathAtom,
+  workflowEntryStateAtom,
 } from "@/lib/store"
 import { runStatusAtom } from "@/features/execution"
+import { currentFlowChatMessagesAtom } from "@/features/execution/flow-chat-state"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
@@ -42,6 +45,9 @@ export function ChatPanel({
   const setInputValue = useSetAtom(inputValueAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
   const { startRouting } = useFlowRouting()
+  const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
+  const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
+  const entryState = useAtomValue(workflowEntryStateAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
   )
@@ -154,6 +160,69 @@ export function ChatPanel({
     [maxPanelWidth, minWidth, setPanelWidth],
   )
 
+  // True when there are no messages at all — chat + flow + routing.
+  // Also false when entryState exists (generates synthetic routing messages)
+  // or when a run is active/complete (runStatus !== "idle").
+  const isChatEmpty =
+    messages.length === 0 &&
+    flowMessages.length === 0 &&
+    !chatRoutingProgress &&
+    !entryState &&
+    runStatus === "idle"
+
+  // ── Centered empty state (Manus-style) ──────────────────────────
+  if (isChatEmpty) {
+    return (
+      <div
+        className={cn(
+          "relative flex h-full flex-col bg-background",
+          embedded
+            ? "flex-1 min-w-0"
+            : "border-l border-hairline shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
+          !embedded &&
+            collapsed &&
+            "translate-x-4 opacity-0 pointer-events-none",
+        )}
+        style={embedded ? undefined : { width: panelWidth }}
+      >
+        {/* Left resize handle — side-panel mode only */}
+        {!embedded && (
+          <div
+            role="slider"
+            aria-orientation="horizontal"
+            aria-label="Resize Agent panel"
+            aria-valuenow={panelWidth}
+            aria-valuemin={minWidth}
+            aria-valuemax={maxPanelWidth}
+            tabIndex={0}
+            onPointerDown={startResize}
+            onKeyDown={handleResizeKeyDown}
+            className={cn(
+              "absolute left-0 top-0 h-full z-10 ui-resize-handle",
+              collapsed && "pointer-events-none",
+            )}
+            data-resizing={resizing}
+          />
+        )}
+
+        <div className="flex-1 flex flex-col items-center justify-center px-4">
+          <div className="max-w-2xl w-full space-y-4 text-center">
+            <h1 className="text-title-lg font-medium text-foreground">
+              What can I do for you?
+            </h1>
+            <ChatInput
+              onSend={handleSend}
+              onCancel={cancel}
+              isStreaming={isStreaming}
+              autoFocus={!collapsed}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal layout (messages visible) ────────────────────────────
   return (
     <div
       className={cn(
