@@ -93,9 +93,6 @@ const MCP_INTEGRATION_REGISTRY: readonly McpIntegrationRegistryEntry[] = [
     runtime: {
       type: "proxy_stdio",
       scriptName: "exa",
-      activation: {
-        webSearchBackend: "exa",
-      },
     },
   },
   {

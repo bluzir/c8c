@@ -48,6 +48,12 @@ describe("buildProviderExtraArgs", () => {
     const workspace = join(root, "workspace")
     await mkdir(project, { recursive: true })
     await mkdir(workspace, { recursive: true })
+    // Isolate from real integrations on the local machine
+    process.env.HOME = root
+    delete process.env.EXA_API_KEY
+    delete process.env.EXA_API_KEYS
+    delete process.env.SERPER_API_KEY
+    delete process.env.SERPER_API_KEYS
     process.env.MCP_KEYRING_PATH = join(
       root,
       ".c8c",

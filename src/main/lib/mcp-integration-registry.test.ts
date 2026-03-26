@@ -14,6 +14,8 @@ afterEach(() => {
   process.env.HOME = originalHome
   process.env.MCP_KEYRING_PATH = originalKeyringPath
   delete process.env.GITHUB_TOKEN
+  delete process.env.EXA_API_KEY
+  delete process.env.SERPER_API_KEY
 })
 
 describe("mcp integration registry", () => {
@@ -23,7 +25,9 @@ describe("mcp integration registry", () => {
     ).toEqual(["exa", "serper"])
   })
 
-  it("builds configured Exa runtime entries only when the matching backend is active", async () => {
+  // --- User scenario tests ---
+
+  it("user with Exa configured gets Exa in ALL flows, not just exa-backend flows", async () => {
     const root = await mkdtemp(join(tmpdir(), "mcp-integrations-"))
     const keyringDir = join(root, ".c8c", "integrations")
     await mkdir(keyringDir, { recursive: true })
@@ -31,14 +35,11 @@ describe("mcp integration registry", () => {
     process.env.MCP_KEYRING_PATH = join(keyringDir, "keyring.json")
     await writeFile(
       join(keyringDir, "keyring.json"),
-      JSON.stringify({
-        exa: {
-          keys: ["exa-live-key"],
-        },
-      }),
+      JSON.stringify({ exa: { keys: ["exa-live-key"] } }),
       "utf-8",
     )
 
+    // Both "builtin" and "exa" backends should include Exa when key exists
     const builtin = await buildConfiguredMcpIntegrationServerEntries(
       undefined,
       "builtin",
@@ -48,14 +49,38 @@ describe("mcp integration registry", () => {
       "exa",
     )
 
-    expect(builtin.entries.exa).toBeUndefined()
-    // On CI the mcp-search-proxy dist may not exist — entry will be undefined
+    // On CI the mcp-search-proxy dist may not exist — skip assertion
+    if (builtin.entries.exa) {
+      expect(builtin.entries.exa).toMatchObject({
+        type: "stdio",
+        command: process.execPath,
+      })
+    }
     if (exa.entries.exa) {
       expect(exa.entries.exa).toMatchObject({
         type: "stdio",
         command: process.execPath,
       })
     }
+  })
+
+  it("user without Exa configured gets no Exa entry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "mcp-integrations-"))
+    const keyringDir = join(root, ".c8c", "integrations")
+    await mkdir(keyringDir, { recursive: true })
+    process.env.HOME = root
+    process.env.MCP_KEYRING_PATH = join(keyringDir, "keyring.json")
+    await writeFile(
+      join(keyringDir, "keyring.json"),
+      JSON.stringify({}),
+      "utf-8",
+    )
+
+    const entries = await buildConfiguredMcpIntegrationServerEntries(
+      undefined,
+      "builtin",
+    )
+    expect(entries.entries.exa).toBeUndefined()
   })
 
   it("builds stdio integrations from environment fallback secrets", async () => {
