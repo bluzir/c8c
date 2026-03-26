@@ -49,6 +49,9 @@ jobs:
             exit 1
           fi
 
+      - name: Build shared packages
+        run: npm run build:shared
+
       - name: Validate release quality
         run: |
           npm run lint
