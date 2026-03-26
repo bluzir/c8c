@@ -2,38 +2,13 @@ import type {
   AgentExecutionHandle,
   AgentProvider,
   AgentRunOptions,
-  AgentRunResult,
   ProviderAuthStatus,
   ProviderHealth,
 } from "@shared/types"
-import { spawnClaude, type ClaudeSpawnOptions } from "@claude-tools/runner"
-import { createLegacyExecutionHandle } from "../agent-execution"
 import { createClaudeSdkExecutionHandle } from "../claude-sdk-runtime"
 import { execClaude, findClaudeExecutable } from "../claude-cli"
 import { getClaudeCodeSubscriptionStatus } from "../claude-subscription"
-import { buildProviderExtraArgs } from "../mcp-config"
 import { errorMessage } from "./provider-utils"
-
-function toClaudeSpawnOptions(options: AgentRunOptions): ClaudeSpawnOptions {
-  const legacyExtraArgs = [
-    ...buildProviderExtraArgs("claude", options.mcpConfigPath),
-    ...(options.disableSlashCommands ? ["--disable-slash-commands"] : []),
-    ...(options.disableBuiltInTools ? ["--tools", ""] : []),
-    ...(options.resumeSessionId ? ["--resume", options.resumeSessionId] : []),
-    ...(options.persistSession === false ? ["--no-session-persistence"] : []),
-    ...(options.systemPrompts?.length
-      ? ["--append-system-prompt", options.systemPrompts.join("\n\n")]
-      : []),
-    ...(options.extraArgs || []),
-  ]
-
-  return {
-    ...options,
-    extraArgs: legacyExtraArgs,
-    onStdout: options.onStdout ? (data) => options.onStdout?.(data) : undefined,
-    onStderr: options.onStderr ? (data) => options.onStderr?.(data) : undefined,
-  }
-}
 
 async function checkClaudeAvailability(): Promise<ProviderHealth> {
   const executablePath = findClaudeExecutable() || undefined
@@ -83,38 +58,14 @@ export class ClaudeAgentProvider implements AgentProvider {
     }
   }
 
-  private async runLegacyClaude(
-    options: AgentRunOptions,
-  ): Promise<AgentRunResult> {
-    return spawnClaude(toClaudeSpawnOptions(options))
-  }
-
   async executeInteractive(
     options: AgentRunOptions,
   ): Promise<AgentExecutionHandle> {
-    try {
-      return await createClaudeSdkExecutionHandle(options)
-    } catch {
-      return createLegacyExecutionHandle(
-        this.id,
-        "claude_cli",
-        options,
-        this.runLegacyClaude.bind(this),
-      )
-    }
+    return createClaudeSdkExecutionHandle(options)
   }
 
   async executeTask(options: AgentRunOptions): Promise<AgentExecutionHandle> {
-    try {
-      return await createClaudeSdkExecutionHandle(options)
-    } catch {
-      return createLegacyExecutionHandle(
-        this.id,
-        "claude_cli",
-        options,
-        this.runLegacyClaude.bind(this),
-      )
-    }
+    return createClaudeSdkExecutionHandle(options)
   }
 
   cancel(_sessionId: string): boolean {

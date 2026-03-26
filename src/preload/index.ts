@@ -306,7 +306,8 @@ const api: C8cApi = {
     ),
 
   // Templates
-  listTemplates: () => invokeIpc<C8cApi["listTemplates"]>("templates:list"),
+  listTemplates: (projectPath?: string) =>
+    invokeIpc<C8cApi["listTemplates"]>("templates:list", projectPath),
   listPopularProjectTemplates: (projectPath: string, limit?: number) =>
     invokeIpc<C8cApi["listPopularProjectTemplates"]>(
       "templates:list-popular-project",

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
 import { cn } from "@/lib/cn"
 import { Loader2 } from "lucide-react"
-import { StepRow } from "./StepRow"
+import { StepRow, type StepVariant } from "./StepRow"
 import { LogTab } from "./OutputSections"
 import { formatDuration, formatCost } from "./outputFormatters"
 import { getRuntimeNodeLabel } from "@/lib/runtime-flow-labels"
@@ -26,6 +26,7 @@ interface StepsListProps {
   runId?: string | null
   evalOverrideNodeIds?: Set<string>
   onRerunFrom?: (nodeId: string) => void
+  variant?: StepVariant
 }
 
 function deriveStepStatus(nodeState: NodeState | undefined): StepStatus {
@@ -86,7 +87,9 @@ export function StepsList({
   runId,
   evalOverrideNodeIds,
   onRerunFrom,
+  variant = "full",
 }: StepsListProps) {
+  const isCompact = variant === "compact"
   const [expandedStepId, setExpandedStepId] = useState<string | null>(
     activeNodeId ?? null,
   )
@@ -181,30 +184,39 @@ export function StepsList({
           }
         }}
         fanOutProgress={fanOutProgress}
+        variant={variant}
       >
         {/* Branch children inside splitter accordion */}
         {branches && branches.length > 0 && (
-          <div className="border-l-2 border-hairline ml-4">
+          <div
+            className={cn(
+              "border-l-2 border-hairline",
+              isCompact ? "ml-3" : "ml-4",
+            )}
+          >
             {branches.map((branch) => renderStepRow(branch, true))}
           </div>
         )}
-        {/* Step expanded content (log/result) — only if no branches or if this is a branch itself */}
-        {(!branches || branches.length === 0) && (
-          <StepExpandedContent
-            nodeId={node.id}
-            status={status}
-            nodeState={nodeState}
-            nodeStates={nodeStates}
-            evalResults={evalResults}
-            workflowNode={
-              "config" in node && node.config
-                ? (node as WorkflowNode)
-                : undefined
-            }
-            runId={runId}
-            evalOverrideNodeIds={evalOverrideNodeIds}
-          />
-        )}
+        {/* Step expanded content — full mode: log viewer; compact mode: one-line summary */}
+        {(!branches || branches.length === 0) &&
+          (isCompact ? (
+            <CompactExpandedContent status={status} nodeState={nodeState} />
+          ) : (
+            <StepExpandedContent
+              nodeId={node.id}
+              status={status}
+              nodeState={nodeState}
+              nodeStates={nodeStates}
+              evalResults={evalResults}
+              workflowNode={
+                "config" in node && node.config
+                  ? (node as WorkflowNode)
+                  : undefined
+              }
+              runId={runId}
+              evalOverrideNodeIds={evalOverrideNodeIds}
+            />
+          ))}
       </StepRow>
     )
   }
@@ -214,6 +226,56 @@ export function StepsList({
       {mainNodes.map((node) => renderStepRow(node))}
     </div>
   )
+}
+
+function CompactExpandedContent({
+  status,
+  nodeState,
+}: {
+  status: StepStatus
+  nodeState: NodeState | undefined
+}) {
+  if (status === "running") {
+    const logSummary = deriveLogSummary(nodeState?.log)
+    return (
+      <div className="flex items-center gap-2 px-2 py-1 text-body-sm text-muted-foreground min-h-[1.25rem]">
+        <Loader2
+          size={10}
+          className="animate-spin shrink-0"
+          aria-hidden="true"
+        />
+        <span className="truncate tabular-nums">
+          {logSummary?.lastAction || "Working..."}
+        </span>
+      </div>
+    )
+  }
+  if (status === "failed") {
+    return (
+      <div className="px-2 py-1 text-body-sm text-status-danger truncate">
+        {nodeState?.error || "Step failed"}
+      </div>
+    )
+  }
+  if (status === "done" && nodeState?.output?.content) {
+    const fullContent = nodeState.output.content
+    const firstLine = fullContent.split(/[.\n]/)[0]?.trim()
+    const summary =
+      firstLine && firstLine.length > 120
+        ? firstLine.slice(0, 117) + "..."
+        : firstLine
+    if (summary) {
+      return (
+        <div
+          className="px-2 py-1 text-body-sm text-muted-foreground truncate"
+          title={firstLine && firstLine.length > 120 ? firstLine : undefined}
+        >
+          {summary}
+        </div>
+      )
+    }
+  }
+  return null
 }
 
 function deriveLogSummary(log: import("@shared/types").LogEntry[] | undefined) {
@@ -349,7 +411,11 @@ function StepExpandedContent({
       {/* Live activity line for running */}
       {status === "running" && logSummary?.lastAction && (
         <div className="flex items-center gap-2 text-body-sm text-muted-foreground min-h-[1.25rem]">
-          <Loader2 size={12} className="animate-spin shrink-0" />
+          <Loader2
+            size={12}
+            className="animate-spin shrink-0"
+            aria-hidden="true"
+          />
           <span className="truncate tabular-nums">{logSummary.lastAction}</span>
         </div>
       )}

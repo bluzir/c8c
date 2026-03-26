@@ -1,10 +1,8 @@
 import {
-  Activity,
   FileText,
   FolderOpen,
   Inbox,
   LayoutTemplate,
-  Workflow,
   Puzzle,
   Plus,
   PanelLeftClose,
@@ -77,7 +75,7 @@ export function ProjectSidebarChrome({
               <button
                 type="button"
                 data-sidebar-item="true"
-                className="ui-icon-button hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
+                className="ui-icon-button hover:bg-sidebar-hover"
                 onClick={onToggleVisibility}
                 aria-label="Hide sidebar"
               >
@@ -89,22 +87,13 @@ export function ProjectSidebarChrome({
         </div>
       ) : null}
 
-      <div className="px-2.5 pt-2.5 pb-1 section-kicker text-muted-foreground">
-        Workspace
-      </div>
-      <div className="space-y-px px-1.5 pb-2">
+      <div className="space-y-px px-1.5 pt-2.5 pb-2">
         <SidebarNavItem
-          icon={Workflow}
-          label="Flow"
-          active={mainView === "thread"}
-          onClick={onOpenThread}
+          icon={Plus}
+          label="New flow"
+          active={false}
+          onClick={onOpenCreate}
         />
-      </div>
-
-      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">
-        Browse
-      </div>
-      <div className="space-y-px px-1.5 pb-2">
         <SidebarNavItem
           icon={LayoutTemplate}
           label="Starting points"
@@ -117,6 +106,13 @@ export function ProjectSidebarChrome({
           active={mainView === "skills"}
           onClick={onOpenSkills}
         />
+        <SidebarNavItem
+          icon={Inbox}
+          label="Inbox"
+          active={mainView === "inbox"}
+          onClick={onOpenInbox}
+          meta={inboxMeta(unreadInboxCount)}
+        />
         {factoryBetaEnabled && (
           <SidebarNavItem
             icon={FileText}
@@ -127,60 +123,25 @@ export function ProjectSidebarChrome({
         )}
       </div>
 
-      <div className="px-2.5 pt-1 pb-1 section-kicker text-muted-foreground">
-        Review
-      </div>
-      <div className="space-y-px px-1.5 pb-1">
-        <SidebarNavItem
-          icon={Activity}
-          label="Runs"
-          active={runsDashboardOpen}
-          onClick={onOpenRunsDashboard}
-        />
-        <SidebarNavItem
-          icon={Inbox}
-          label="Inbox"
-          active={mainView === "inbox"}
-          onClick={onOpenInbox}
-          meta={inboxMeta(unreadInboxCount)}
-        />
-      </div>
-
-      <div className="px-2.5 pt-3 pb-1.5">
+      <div className="px-2.5 pt-1 pb-1.5">
         <div className="flex items-center justify-between">
           <span className="section-kicker">Flows</span>
-          <div className="flex items-center gap-1">
+          {hasProjects ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   data-sidebar-item="true"
-                  className="ui-icon-button hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
-                  onClick={onOpenCreate}
-                  aria-label="New flow"
+                  className="ui-icon-button hover:bg-sidebar-hover"
+                  onClick={onAddProject}
+                  aria-label="Add project"
                 >
-                  <Plus size={12} />
+                  <FolderOpen size={12} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent>New flow</TooltipContent>
+              <TooltipContent>Add project</TooltipContent>
             </Tooltip>
-            {hasProjects ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    data-sidebar-item="true"
-                    className="ui-icon-button hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
-                    onClick={onAddProject}
-                    aria-label="Add project"
-                  >
-                    <FolderOpen size={12} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Add project</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
+          ) : null}
         </div>
         <div className="mt-1.5 h-px bg-hairline" />
       </div>

@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react"
+import { useRef, useState, type Dispatch, type SetStateAction } from "react"
 import { useSetAtom } from "jotai"
 import type { MainView } from "@/lib/store"
 import { viewModeAtom } from "@/lib/store"
@@ -151,6 +151,7 @@ export function useWorkflowCrud({
   onProjectAdd,
   onWorkflowCreate,
 }: UseWorkflowCrudParams) {
+  const selectSequenceRef = useRef(0)
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
@@ -258,6 +259,7 @@ export function useWorkflowCrud({
       setSelectedProject(projectPath)
     }
 
+    const seq = ++selectSequenceRef.current
     setMainView("thread")
     setViewMode("chat")
     const loadingToastId = toast.loading("Opening flow...")
@@ -268,6 +270,10 @@ export function useWorkflowCrud({
     })
     try {
       const loadedWorkflow = await window.api.loadWorkflow(workflow.path)
+      if (selectSequenceRef.current !== seq) {
+        toast.dismiss(loadingToastId)
+        return // A newer selection superseded this one
+      }
       toast.dismiss(loadingToastId)
       setWorkflowOpenState({
         status: "idle",
@@ -286,6 +292,10 @@ export function useWorkflowCrud({
         setSelectedPastRun(reviewRun)
       }
     } catch (error) {
+      if (selectSequenceRef.current !== seq) {
+        toast.dismiss(loadingToastId)
+        return // A newer selection superseded this one
+      }
       toast.dismiss(loadingToastId)
       setWorkflowOpenState({
         status: "error",
@@ -381,6 +391,7 @@ export function useWorkflowCrud({
       return
     }
 
+    const seq = ++selectSequenceRef.current
     setMainView("thread")
     setViewMode("chat")
     const loadingToastId = toast.loading("Opening flow...")
@@ -391,6 +402,10 @@ export function useWorkflowCrud({
     })
     try {
       const loadedWorkflow = await window.api.loadWorkflow(workflow.path)
+      if (selectSequenceRef.current !== seq) {
+        toast.dismiss(loadingToastId)
+        return // A newer selection superseded this one
+      }
       toast.dismiss(loadingToastId)
       setWorkflowOpenState({
         status: "idle",
@@ -409,6 +424,10 @@ export function useWorkflowCrud({
         setSelectedPastRun(reviewRun)
       }
     } catch (error) {
+      if (selectSequenceRef.current !== seq) {
+        toast.dismiss(loadingToastId)
+        return // A newer selection superseded this one
+      }
       toast.dismiss(loadingToastId)
       setWorkflowOpenState({
         status: "error",

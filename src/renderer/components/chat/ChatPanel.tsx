@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import type { CreateEntryHelpModeHint } from "@shared/types"
 import {
   chatPanelWidthAtom,
   chatFlowInputRequestAtom,
@@ -22,7 +23,6 @@ import { getResultModeQuickStartOptions } from "@/lib/result-modes"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
-import { FlowProgressBar } from "./FlowProgressBar"
 import { useChatSession } from "@/hooks/useChatSession"
 import { useFlowRouting } from "@/hooks/useFlowRouting"
 import { cn } from "@/lib/cn"
@@ -37,6 +37,9 @@ interface ChatPanelProps {
   maxWidth?: number
   /** When true, fills parent container instead of using fixed width. Hides resize handle and close button. */
   embedded?: boolean
+  routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
+  pendingRouteAlternativeId?: string | null
+  onSelectRouteAlternative?: (templateId: string) => void
 }
 
 export function ChatPanel({
@@ -45,6 +48,9 @@ export function ChatPanel({
   minWidth = MIN_PANEL_WIDTH,
   maxWidth = MAX_PANEL_WIDTH,
   embedded = false,
+  routeAlternatives,
+  pendingRouteAlternativeId,
+  onSelectRouteAlternative,
 }: ChatPanelProps) {
   const [panelWidth, setPanelWidth] = useAtom(chatPanelWidthAtom)
   const [resizing, setResizing] = useState(false)
@@ -52,9 +58,13 @@ export function ChatPanel({
   const selectedWorkflowPath = useAtomValue(selectedWorkflowPathAtom)
   const setInputValue = useSetAtom(inputValueAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
-  const { startRouting } = useFlowRouting()
+  const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
+  const { startRouting, selectClarification, resetRoutingState, submitting } =
+    useFlowRouting()
   const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
-  const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
+  const [chatRoutingProgress, setChatRoutingProgress] = useAtom(
+    chatRoutingProgressAtom,
+  )
   const entryState = useAtomValue(workflowEntryStateAtom)
   const workflow = useAtomValue(currentWorkflowAtom)
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
@@ -77,6 +87,16 @@ export function ChatPanel({
   } = useChatSession()
 
   const isStreaming = status === "thinking" || status === "streaming"
+  const isRouting = Boolean(chatRoutingProgress) || submitting
+
+  const handleCancel = useCallback(() => {
+    if (isRouting) {
+      resetRoutingState()
+      setChatRoutingProgress(null)
+    } else {
+      cancel()
+    }
+  }, [isRouting, resetRoutingState, setChatRoutingProgress, cancel])
 
   // Auto-trigger routing when navigated here with a pending prompt
   // (e.g. from useWorkflowCreateNavigation with a prompt option).
@@ -93,35 +113,82 @@ export function ChatPanel({
     startRouting,
   ])
 
+  // True when the flow completed — either in-memory state or disk fallback.
+  const effectivelyDone =
+    runStatus === "done" ||
+    (runStatus === "idle" &&
+      selectedWorkflowPath !== null &&
+      workflowHistoryRuns.some((r) => r.status === "completed"))
+
   /**
    * Tri-mode send handler:
-   * 1. Idle + has workflow → start a flow run with this message as input
-   * 2. No workflow (idle) → route to pick a starting point template
-   * 3. Flow running/done/error → send as agent chat message
+   * 1. Idle + has workflow (no past runs) → start a flow run with this message as input
+   * 2. No workflow OR done/has past runs → route to pick a new starting point template
+   * 3. Flow running/error → send as agent chat message
    */
   const handleSend = useCallback(
-    (message: string) => {
-      if (runStatus === "idle" && selectedWorkflowPath) {
-        // Already have a workflow — start the flow run.
+    (message: string, helpModeHint?: CreateEntryHelpModeHint | null) => {
+      if (runStatus === "idle" && selectedWorkflowPath && !effectivelyDone) {
+        // Truly idle workflow — start the flow run.
         setInputValue(message)
         setChatFlowInputRequest(message)
-      } else if (!selectedWorkflowPath) {
-        // No workflow yet — route to pick a template.
-        void startRouting(message)
+        setWorkflowEntryState((prev) =>
+          prev ? { ...prev, awaitingInput: false } : null,
+        )
+      } else if (!selectedWorkflowPath || effectivelyDone) {
+        // No workflow yet, or flow completed — route to a new flow.
+        void startRouting(message, {
+          helpModeOverride: helpModeHint,
+          sourceArtifacts: effectivelyDone
+            ? executionState.artifactRecords
+            : undefined,
+        })
       } else {
-        // Flow is running/done/error — send as agent chat message.
+        // Flow is running/error — send as agent chat message.
         sendMessage(message)
       }
     },
     [
       runStatus,
       selectedWorkflowPath,
+      effectivelyDone,
+      executionState.artifactRecords,
       sendMessage,
       setChatFlowInputRequest,
       setInputValue,
+      setWorkflowEntryState,
       startRouting,
     ],
   )
+
+  const handleFollowUp = useCallback(
+    (followUp: { label: string; templateId?: string }) => {
+      if (!followUp.templateId) return
+      void startRouting(followUp.label, {
+        templateConstraintId: followUp.templateId,
+        sourceArtifacts: executionState.artifactRecords,
+      })
+    },
+    [startRouting, executionState.artifactRecords],
+  )
+
+  const handleClarificationSelect = useCallback(
+    (selection: { kind: string; value: string; templateId?: string }) => {
+      if (selection.kind === "job_route" && selection.templateId) {
+        selectClarification({
+          kind: "job_route",
+          templateId: selection.templateId,
+        })
+      } else if (selection.kind === "help_mode") {
+        selectClarification({
+          kind: "help_mode",
+          helpMode: selection.value as CreateEntryHelpModeHint,
+        })
+      }
+    },
+    [selectClarification],
+  )
+
   const maxPanelWidth = Math.max(
     minWidth,
     Math.min(maxWidth, Math.floor(window.innerWidth * 0.4)),
@@ -156,7 +223,7 @@ export function ChatPanel({
       window.addEventListener("pointerup", stopResize)
       window.addEventListener("pointercancel", stopResize)
     },
-    [panelWidth, setPanelWidth],
+    [panelWidth, setPanelWidth, minWidth, maxPanelWidth],
   )
 
   const handleResizeKeyDown = useCallback(
@@ -180,8 +247,13 @@ export function ChatPanel({
   const isChatEmpty =
     messages.length === 0 &&
     flowMessages.length === 0 &&
+    workflowHistoryRuns.length === 0 &&
     !chatRoutingProgress &&
-    !entryState &&
+    !(
+      entryState &&
+      (!entryState.workflowPath ||
+        entryState.workflowPath === selectedWorkflowPath)
+    ) &&
     runStatus === "idle"
 
   // Quick starts from the selected domain — shown in the centered empty state
@@ -196,10 +268,10 @@ export function ChatPanel({
     return (
       <div
         className={cn(
-          "relative flex h-full flex-col bg-background",
+          "relative flex flex-col bg-background",
           embedded
-            ? "flex-1 min-w-0"
-            : "border-l border-hairline shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
+            ? "flex-1 min-h-0 min-w-0"
+            : "h-full border-l border-hairline shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
           !embedded &&
             collapsed &&
             "translate-x-4 opacity-0 pointer-events-none",
@@ -228,22 +300,30 @@ export function ChatPanel({
 
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <div className="max-w-2xl w-full space-y-3 text-center">
-            <h1 className="text-2xl font-medium text-foreground">
-              {workflow?.name || "What can I do for you?"}
+            <h1 className="text-title-lg text-foreground">
+              {(selectedWorkflowPath && workflow?.name) ||
+                "What can I do for you?"}
             </h1>
-            <p className="text-[15px] text-muted-foreground">
+            <p className="text-body-lg text-muted-foreground">
               {templateContext?.useWhen ||
                 "Describe your goal \u2014 c8c builds a flow to solve it"}
             </p>
           </div>
           {!selectedWorkflowPath && quickStarts.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl w-full">
-              {quickStarts.map((qs) => (
+              {quickStarts.map((qs, i) => (
                 <button
                   key={qs.templateId}
                   type="button"
-                  onClick={() => void startRouting(qs.label)}
-                  className="px-3 py-1.5 rounded-full border border-hairline text-body-sm text-foreground/80 hover:text-foreground hover:bg-surface-2/30 ui-motion-fast"
+                  onClick={() =>
+                    void startRouting(qs.label, { awaitingInput: true })
+                  }
+                  title={qs.summary}
+                  className="px-3 py-1.5 rounded-full border border-hairline text-body-sm text-foreground/80 hover:text-foreground hover:bg-surface-2/30 ui-motion-fast ui-transition-colors ui-fade-slide-in"
+                  style={{
+                    animationDelay: `${200 + i * 50}ms`,
+                    animationFillMode: "backwards",
+                  }}
                 >
                   {qs.label}
                 </button>
@@ -253,8 +333,9 @@ export function ChatPanel({
           <div className="max-w-2xl w-full mt-6">
             <ChatInput
               onSend={handleSend}
-              onCancel={cancel}
+              onCancel={handleCancel}
               isStreaming={isStreaming}
+              isCancellable={isStreaming || isRouting}
               autoFocus={!collapsed}
             />
           </div>
@@ -267,10 +348,10 @@ export function ChatPanel({
   return (
     <div
       className={cn(
-        "relative flex h-full flex-col bg-background",
+        "relative flex flex-col bg-background overflow-hidden",
         embedded
-          ? "flex-1 min-w-0"
-          : "border-l border-hairline shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
+          ? "flex-1 min-h-0 min-w-0"
+          : "h-full border-l border-hairline shrink-0 ui-motion-standard transition-[opacity,transform] will-change-transform",
         !embedded && collapsed && "translate-x-4 opacity-0 pointer-events-none",
       )}
       style={embedded ? undefined : { width: panelWidth }}
@@ -311,14 +392,23 @@ export function ChatPanel({
         />
       )}
 
-      <ChatMessages messages={messages} status={status} />
+      <ChatMessages
+        messages={messages}
+        status={status}
+        onSelectClarification={handleClarificationSelect}
+        onFollowUp={handleFollowUp}
+        routeAlternatives={routeAlternatives}
+        pendingRouteAlternativeId={pendingRouteAlternativeId}
+        onSelectRouteAlternative={onSelectRouteAlternative}
+      />
 
-      <FlowProgressBar />
       <ChatInput
         onSend={handleSend}
-        onCancel={cancel}
+        onCancel={handleCancel}
         isStreaming={isStreaming}
+        isCancellable={isStreaming || isRouting}
         autoFocus={!collapsed}
+        effectivelyDone={effectivelyDone}
       />
     </div>
   )

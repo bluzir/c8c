@@ -31,7 +31,7 @@ export function MarketplaceCard({
   return (
     <article className="ui-interactive-card rounded-lg surface-panel px-4 py-3 flex items-center gap-3">
       <div className="h-control-lg w-control-lg rounded-lg bg-surface-2 flex items-center justify-center">
-        <Store size={18} className="text-muted-foreground" />
+        <Store size={18} className="text-muted-foreground" aria-hidden="true" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -73,9 +73,13 @@ export function MarketplaceCard({
               aria-label={`Update ${marketplace.name}`}
             >
               {busy && actionLabel === "Updating" ? (
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2
+                  size={14}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
               ) : (
-                <RefreshCw size={14} />
+                <RefreshCw size={14} aria-hidden="true" />
               )}
             </Button>
             <Button
@@ -94,7 +98,9 @@ export function MarketplaceCard({
             onClick={onInstall}
             disabled={busy}
           >
-            {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+            {busy ? (
+              <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+            ) : null}
             Install
           </Button>
         )}
@@ -123,7 +129,11 @@ export function PluginCard({
   return (
     <article className="ui-interactive-card rounded-lg surface-panel px-4 py-3 flex items-center gap-3">
       <div className="h-control-lg w-control-lg rounded-lg bg-surface-2 flex items-center justify-center">
-        <Package size={18} className="text-muted-foreground" />
+        <Package
+          size={18}
+          className="text-muted-foreground"
+          aria-hidden="true"
+        />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -166,7 +176,7 @@ export function PluginCard({
           disabled={busy}
           aria-label={`Preview ${plugin.name}`}
         >
-          <Eye size={14} />
+          <Eye size={14} aria-hidden="true" />
         </Button>
         <Switch
           checked={plugin.enabled}
@@ -206,7 +216,11 @@ export function SkillLibraryCard({
       )}
     >
       <div className="h-control-lg w-control-lg rounded-lg bg-surface-2 flex items-center justify-center">
-        <Library size={18} className="text-muted-foreground" />
+        <Library
+          size={18}
+          className="text-muted-foreground"
+          aria-hidden="true"
+        />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -232,7 +246,7 @@ export function SkillLibraryCard({
           disabled={busy}
           aria-label={`Preview ${library.name}`}
         >
-          <Eye size={14} />
+          <Eye size={14} aria-hidden="true" />
         </Button>
         {library.installed && (
           <Button
@@ -243,9 +257,9 @@ export function SkillLibraryCard({
             aria-label={`Update ${library.name}`}
           >
             {busy ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" aria-hidden="true" />
             ) : (
-              <RefreshCw size={14} />
+              <RefreshCw size={14} aria-hidden="true" />
             )}
           </Button>
         )}

@@ -80,8 +80,7 @@ export function OnboardingWizard() {
             {Array.from({ length: TOTAL_STEPS }, (_, i) => (
               <div
                 key={i}
-                style={{ transitionProperty: "width, background-color" }}
-                className={`h-1.5 rounded-full ui-motion-fast ${
+                className={`h-1.5 rounded-full transition-[width,background-color] ui-motion-fast ${
                   i + 1 === step
                     ? "w-8 bg-foreground"
                     : i + 1 < step

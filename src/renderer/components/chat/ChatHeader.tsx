@@ -28,7 +28,7 @@ export function ChatHeader({
   messageCount,
   status,
   activeToolName,
-  title = "Agent",
+  title = "Chat",
   showClose = true,
 }: ChatHeaderProps) {
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
@@ -38,7 +38,7 @@ export function ChatHeader({
     status === "error"
       ? "Error"
       : activeToolName
-        ? `Editing: ${activeToolName}`
+        ? "Editing\u2026"
         : status === "streaming"
           ? "Responding"
           : status === "thinking"
@@ -74,15 +74,6 @@ export function ChatHeader({
         </span>
       )}
 
-      {messageCount > 0 && (
-        <span
-          className="ui-meta-text text-muted-foreground/50 tabular-nums"
-          aria-label={`${messageCount} messages`}
-        >
-          {messageCount}
-        </span>
-      )}
-
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -104,13 +95,13 @@ export function ChatHeader({
             type="button"
             onClick={() => setConfirmClearOpen(true)}
             disabled={!canClearAction}
-            aria-label="Clear Agent history"
+            aria-label="Clear chat history"
             className="ui-icon-button"
           >
             <Trash2 size={13} />
           </button>
         </TooltipTrigger>
-        <TooltipContent>Clear Agent history</TooltipContent>
+        <TooltipContent>Clear chat history</TooltipContent>
       </Tooltip>
 
       {showClose && (
@@ -119,21 +110,25 @@ export function ChatHeader({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close Agent panel"
+              aria-label="Close panel"
               className="ui-icon-button"
             >
               <PanelRightClose size={13} />
             </button>
           </TooltipTrigger>
-          <TooltipContent>Close Agent panel</TooltipContent>
+          <TooltipContent>Close panel</TooltipContent>
         </Tooltip>
       )}
 
       <SingleDecisionDialog
         open={confirmClearOpen}
         onOpenChange={setConfirmClearOpen}
-        title="Clear Agent history?"
-        description="Clear the current conversation?"
+        title="Clear chat history?"
+        description={
+          messageCount > 0
+            ? `Clear ${messageCount} message${messageCount === 1 ? "" : "s"}?`
+            : "Clear the current conversation?"
+        }
         note="This cannot be undone."
         noteTone="danger"
         confirmLabel="Clear"

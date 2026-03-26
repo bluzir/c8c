@@ -1,5 +1,6 @@
 import type { WorkflowTemplate, WorkflowTemplateStage } from "@shared/types"
 import { listPluginTemplates } from "./plugin-templates"
+import { listProjectTemplates } from "./project-templates"
 import { parseTemplate } from "./parse"
 import { getHubCatalog, type CatalogEntry } from "./hub-catalog"
 
@@ -35,18 +36,33 @@ function catalogEntryToTemplate(entry: CatalogEntry): WorkflowTemplate {
   }
 }
 
-export async function listTemplates(): Promise<WorkflowTemplate[]> {
+export async function listTemplates(
+  projectPath?: string,
+): Promise<WorkflowTemplate[]> {
+  const projectTemplateList = projectPath
+    ? await listProjectTemplates(projectPath)
+    : []
   const pluginTemplates = await listPluginTemplates()
   const hubEntries = getHubCatalog()
 
-  // Dedup: builtins and plugins win over hub entries with same ID
+  // Dedup priority: project > builtin > plugin > hub
+  const projectIds = new Set(projectTemplateList.map((t) => t.id))
   const localIds = new Set([
+    ...projectIds,
     ...builtinTemplates.map((t) => t.id),
     ...pluginTemplates.map((t) => t.id),
   ])
+
+  const filteredBuiltins = builtinTemplates.filter((t) => !projectIds.has(t.id))
+  const filteredPlugins = pluginTemplates.filter((t) => !projectIds.has(t.id))
   const hubTemplates = hubEntries
     .filter((e) => !localIds.has(e.id))
     .map(catalogEntryToTemplate)
 
-  return [...builtinTemplates, ...pluginTemplates, ...hubTemplates]
+  return [
+    ...projectTemplateList,
+    ...filteredBuiltins,
+    ...filteredPlugins,
+    ...hubTemplates,
+  ]
 }

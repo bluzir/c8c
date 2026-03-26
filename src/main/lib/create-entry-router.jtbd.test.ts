@@ -95,13 +95,8 @@ const contentOptions: CreateEntryRouteOption[] = [
     intentLabel: "Plan it",
   },
   {
-    templateId: "content-post-calendar",
-    label: "Plan content calendar",
-    intentLabel: "Plan it",
-  },
-  {
-    templateId: "content-draft-post",
-    label: "Draft a post",
+    templateId: "content-post-drafter",
+    label: "Draft posts",
     intentLabel: "Do it",
   },
   {
@@ -204,7 +199,7 @@ const contentContext: ContentDomainContext = {
       ageMs: 86_400_000,
     },
   ],
-  templatesRun: ["content-trend-watch", "content-draft-post"],
+  templatesRun: ["content-trend-watch", "content-post-drafter"],
   availableTools: ["web_search", "exa"],
 }
 
@@ -344,7 +339,7 @@ describe("routeCreateEntry JTBD prompt contract", () => {
 
   it("includes content domain context and the full content registry in the content router prompt", async () => {
     mockAgentJson({
-      recommendedTemplateId: "content-post-calendar",
+      recommendedTemplateId: "content-post-drafter",
       alternateTemplateIds: ["content-trend-watch"],
     })
 

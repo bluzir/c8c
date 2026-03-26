@@ -39,6 +39,7 @@ import { toast } from "sonner"
 import { toastError } from "@/lib/toast-error"
 import { errorToUserMessage } from "@/lib/error-message"
 import type {
+  ArtifactRecord,
   CreateEntryHelpModeHint,
   CreateEntryRouteClarification,
   InputAttachment,
@@ -114,6 +115,8 @@ export interface UseFlowRoutingReturn extends FlowRoutingState {
       helpModeOverride?: CreateEntryHelpModeHint | null
       templateConstraintId?: string | null
       useCurrentHelpMode?: boolean
+      awaitingInput?: boolean
+      sourceArtifacts?: ArtifactRecord[]
     },
   ) => Promise<void>
   selectClarification: (selection: RouteClarificationSelection) => void
@@ -176,6 +179,11 @@ export function useFlowRouting(): UseFlowRoutingReturn {
 
   // Track help mode hint across clarification rounds
   const helpModeHintRef = useRef<CreateEntryHelpModeHint | null>(null)
+  // Flag to prevent finally block from clearing clarification progress
+  const clarificationActiveRef = useRef(false)
+  // Monotonic session counter — incremented on each startRouting call so
+  // earlier (stale) async continuations silently abort.
+  const routingSessionRef = useRef(0)
 
   const resetRoutingState = useCallback(() => {
     setRouteClarification(null)
@@ -304,9 +312,13 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         helpModeOverride?: CreateEntryHelpModeHint | null
         templateConstraintId?: string | null
         useCurrentHelpMode?: boolean
+        awaitingInput?: boolean
+        sourceArtifacts?: ArtifactRecord[]
       },
     ) => {
       if (!message || submitting) return
+
+      const sessionId = ++routingSessionRef.current
 
       const targetProjectPath = createContext.projectPath
       if (!targetProjectPath) {
@@ -320,6 +332,10 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       setSubmitError(null)
       setRouteClarification(null)
       setRoutingPreview(null)
+      clarificationActiveRef.current = false
+      // Immediately show routing progress BEFORE any async work
+      setChatRoutingProgress({ phase: "inspecting", userRequest: message })
+      setRoutingPhase("inspecting")
       // Immediately switch to chat so routing progress is visible there
       setMainView("thread")
       setViewMode("chat")
@@ -327,10 +343,6 @@ export function useFlowRouting(): UseFlowRoutingReturn {
 
       const selectedResultMode = getResultMode(selectedResultModeId)
       const isGuidedRouting = isGuidedDomain(selectedResultMode.id)
-      if (isGuidedRouting) {
-        setRoutingPhase("inspecting")
-        setChatRoutingProgress({ phase: "inspecting" })
-      }
       const submitStartedAt = Date.now()
       let minimumRoutingVisibilityPromise: Promise<void> | null = null
       const ensureMinimumRoutingVisibility = () => {
@@ -350,11 +362,12 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         modeConfigs[selectedResultModeId],
       )
       const currentPromptScaffold = promptScaffold
-      const currentSourceArtifacts = sourceArtifacts
+      const currentSourceArtifacts = options?.sourceArtifacts ?? sourceArtifacts
       const currentSourceAttachments = sourceAttachments
 
       // Compute route options from available templates
-      const allTemplates = await window.api.listTemplates()
+      const allTemplates = await window.api.listTemplates(targetProjectPath)
+      if (routingSessionRef.current !== sessionId) return
       const availableTemplateIds = new Set(allTemplates.map((t) => t.id))
       const routeDestinations = getResultModeRouteDestinations(
         selectedResultMode.id,
@@ -416,9 +429,19 @@ export function useFlowRouting(): UseFlowRoutingReturn {
               webSearchBackend,
             })
           : null
+        if (routingSessionRef.current !== sessionId) return
         await ensureMinimumRoutingVisibility()
+        if (routingSessionRef.current !== sessionId) return
         if (routeResult?.clarification) {
           setRouteClarification(routeResult.clarification)
+          // Also surface in chat timeline so the clarification appears inline
+          setChatRoutingProgress({
+            phase: "clarifying",
+            userRequest: message,
+            clarification: routeResult.clarification,
+          })
+          clarificationActiveRef.current = true
+          setSubmitting(false)
           return
         }
         if (
@@ -433,7 +456,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         const catalog =
           allTemplates.length > 0
             ? allTemplates
-            : await window.api.listTemplates()
+            : await window.api.listTemplates(targetProjectPath)
         const startTemplate =
           (routeResult
             ? catalog.find(
@@ -448,6 +471,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         if (isGuidedRouting && startTemplate) {
           setChatRoutingProgress({
             phase: "opening",
+            userRequest: message,
             templateName: getWorkflowTemplateDisplayName(startTemplate),
             templateDescription: startTemplate.how || null,
           })
@@ -478,23 +502,34 @@ export function useFlowRouting(): UseFlowRoutingReturn {
               sourceArtifacts: currentSourceArtifacts,
               detailBudget,
             })
+            if (routingSessionRef.current !== sessionId) return
+            const awaitInput = options?.awaitingInput === true
+            const routedEntry = launch.templateStartState.entryState
             await openWorkflowFile(launch.filePath, targetProjectPath, {
-              entryState: launch.templateStartState.entryState,
+              entryState: awaitInput
+                ? {
+                    ...routedEntry,
+                    awaitingInput: true,
+                    summary: routedEntry.inputText,
+                  }
+                : routedEntry,
               templateContext: launch.templateStartState.templateContext,
-              initialInputValue: launch.templateStartState.initialInputValue,
+              initialInputValue: awaitInput
+                ? undefined
+                : launch.templateStartState.initialInputValue,
               initialAttachments: mergeInputAttachments(
                 currentSourceAttachments,
                 launch.templateStartState.initialAttachments,
               ),
-              autoRunIfAllowed: shouldAutoRunCreateStart(
-                routeResult,
-                startTemplate,
-              ),
+              autoRunIfAllowed: awaitInput
+                ? false
+                : shouldAutoRunCreateStart(routeResult, startTemplate),
             })
             return
           }
 
           const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
+          if (routingSessionRef.current !== sessionId) return
           const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
             resolvedStartTemplate,
           )
@@ -511,6 +546,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
             templateForWorkflowUse.name,
             nextWorkflow,
           )
+          if (routingSessionRef.current !== sessionId) return
           const template = {
             ...templateForWorkflowUse,
             workflow: nextWorkflow,
@@ -526,15 +562,28 @@ export function useFlowRouting(): UseFlowRoutingReturn {
           await window.api
             .recordProjectTemplateUsage(targetProjectPath, startTemplate.id)
             .catch(() => undefined)
+          if (routingSessionRef.current !== sessionId) return
+          const awaitInput2 = options?.awaitingInput === true
+          const tplEntry = templateStartState.entryState
           await openWorkflowFile(filePath, targetProjectPath, {
-            entryState: templateStartState.entryState,
+            entryState: awaitInput2
+              ? {
+                  ...tplEntry,
+                  awaitingInput: true,
+                  summary: tplEntry.inputText,
+                }
+              : tplEntry,
             templateContext: templateStartState.templateContext,
-            initialInputValue: templateStartState.initialInputValue,
+            initialInputValue: awaitInput2
+              ? undefined
+              : templateStartState.initialInputValue,
             initialAttachments: mergeInputAttachments(
               currentSourceAttachments,
               templateStartState.initialAttachments,
             ),
-            autoRunIfAllowed: shouldAutoRunCreateStart(routeResult, template),
+            autoRunIfAllowed: awaitInput2
+              ? false
+              : shouldAutoRunCreateStart(routeResult, template),
           })
           return
         }
@@ -546,13 +595,14 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         )
         if (isGuidedRouting) {
           setRoutingPhase("opening")
-          setChatRoutingProgress({ phase: "opening" })
+          setChatRoutingProgress({ phase: "opening", userRequest: message })
         }
         const filePath = await window.api.createWorkflow(
           targetProjectPath,
           "new-flow",
           draftWorkflow,
         )
+        if (routingSessionRef.current !== sessionId) return
         await openWorkflowFile(filePath, targetProjectPath, {
           pendingMessage: message,
           pendingEntryRequest: message,
@@ -561,15 +611,23 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         })
       } catch (error) {
         await ensureMinimumRoutingVisibility()
-        setSubmitError(
-          errorToUserMessage(error).replace(
-            /^Error: Error invoking remote method '[^']+': Error: /,
-            "",
-          ),
+        const userMessage = errorToUserMessage(error).replace(
+          /^Error: Error invoking remote method '[^']+': Error: /,
+          "",
         )
+        setSubmitError(userMessage)
+        // Persist error in chat routing progress so the timeline renders it
+        setChatRoutingProgress({
+          phase: "error",
+          userRequest: message,
+          errorMessage: userMessage,
+        })
+        clarificationActiveRef.current = true // prevent finally from clearing
       } finally {
         setSubmitting(false)
-        setChatRoutingProgress(null)
+        if (!clarificationActiveRef.current) {
+          setChatRoutingProgress(null)
+        }
       }
     },
     [

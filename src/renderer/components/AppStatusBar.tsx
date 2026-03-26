@@ -25,6 +25,7 @@ import {
 } from "@/features/execution"
 import { cn } from "@/lib/cn"
 import { buildRunProgressSummary } from "@/lib/run-progress"
+import { formatElapsedCompact } from "@/components/output/outputFormatters"
 import { PROVIDER_LABELS } from "@shared/provider-metadata"
 import { Activity, GitBranch, Keyboard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -114,10 +115,7 @@ export function AppStatusBar() {
       return
     }
     const tick = () => {
-      const delta = Math.floor((Date.now() - runStartedAt) / 1000)
-      const m = Math.floor(delta / 60)
-      const s = delta % 60
-      setElapsed(m > 0 ? `${m}m ${String(s).padStart(2, "0")}s` : `${s}s`)
+      setElapsed(formatElapsedCompact(runStartedAt))
     }
     tick()
     const id = window.setInterval(tick, 1000)
@@ -200,7 +198,7 @@ export function AppStatusBar() {
       runStatus === "cancelling")
   const runPhaseLabel =
     runStatus === "starting"
-      ? "connecting to CLI..."
+      ? "starting..."
       : runStatus === "cancelling"
         ? "stopping..."
         : runStatus === "paused"
@@ -285,7 +283,7 @@ export function AppStatusBar() {
         <div className="h-full px-6 flex items-center justify-between ui-meta-text text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="control-badge border border-hairline bg-surface-1/70 text-muted-foreground">
-              {PROVIDER_LABELS[displayedProvider]}
+              {PROVIDER_LABELS[displayedProvider] ?? displayedProvider}
             </span>
             {selectedProject ? (
               <span className="control-badge max-w-56 truncate border border-hairline bg-surface-1/70 text-muted-foreground">
@@ -389,7 +387,7 @@ export function AppStatusBar() {
           <CanvasDialogHeader>
             <DialogTitle>Keyboard shortcuts</DialogTitle>
             <DialogDescription>
-              High-value commands across the shell and active flow.
+              Keyboard shortcuts for navigating and running flows.
             </DialogDescription>
           </CanvasDialogHeader>
           <CanvasDialogBody>

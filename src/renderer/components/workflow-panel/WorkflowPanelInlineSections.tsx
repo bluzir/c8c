@@ -61,8 +61,8 @@ export function EmptyState({
   return (
     <div className="flex-1 flex items-center justify-center text-muted-foreground pt-[var(--titlebar-height)]">
       <div className="ui-empty-state px-8 text-center">
-        <div className="mx-auto mb-3 flex h-control-lg w-control-lg items-center justify-center text-muted-foreground/70">
-          <Icon size={20} className="opacity-70" aria-hidden="true" />
+        <div className="mx-auto mb-3 flex h-control-lg w-control-lg items-center justify-center text-muted-foreground">
+          <Icon size={20} aria-hidden="true" />
         </div>
         <p className="mb-1 text-title-md text-foreground">{title}</p>
         <p className="text-body-md">{description}</p>
@@ -116,28 +116,29 @@ export function EmptyProjectState({
         {onQuickStart && quickStarts.length > 0 && (
           <div className="flex flex-col items-stretch gap-1.5 w-full max-w-xs">
             {quickStarts.map((qs) => (
-              <button
+              <Button
                 key={qs.label}
-                type="button"
+                variant="ghost"
+                size="auto"
                 onClick={() => onQuickStart(qs.prompt)}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-body-sm text-foreground hover:bg-surface-2 ui-transition-colors text-left"
+                className="w-full justify-start gap-2 text-foreground"
               >
                 <ArrowRight
                   size={12}
-                  className="shrink-0 opacity-50"
+                  className="shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />
                 {qs.label}
-              </button>
+              </Button>
             ))}
           </div>
         )}
         <Button variant="outline" size="sm" onClick={onOpenTemplates}>
-          <LayoutTemplate size={14} />
+          <LayoutTemplate size={14} aria-hidden="true" />
           Browse starting points
         </Button>
         {!hasCompletedFirstFlow && (
-          <p className="text-body-sm text-muted-foreground/70">
+          <p className="text-body-sm text-muted-foreground">
             First time? Describe what you need — c8c will suggest the best
             starting point.
           </p>
@@ -168,23 +169,19 @@ export function EmptyWorkspaceState({
     >
       <div className="flex flex-col items-center gap-4">
         <Button variant="outline" size="sm" onClick={onOpenProject}>
-          <FolderOpen size={14} />
+          <FolderOpen size={14} aria-hidden="true" />
           Open project folder
         </Button>
         <ul className="space-y-1.5 text-body-sm text-muted-foreground">
           {CAPABILITY_EXAMPLES.map((example) => (
             <li key={example} className="flex items-center gap-2">
-              <ArrowRight
-                size={12}
-                className="shrink-0 opacity-50"
-                aria-hidden="true"
-              />
+              <ArrowRight size={12} className="shrink-0" aria-hidden="true" />
               {example}
             </li>
           ))}
         </ul>
         {!hasCompletedFirstFlow && (
-          <p className="text-body-sm text-muted-foreground/70">
+          <p className="text-body-sm text-muted-foreground">
             First time? Open a project and describe what you need — c8c will
             suggest the best starting point.
           </p>
@@ -203,7 +200,11 @@ export function WorkflowDraftSkeleton() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-title-sm text-foreground">
-            <Loader2 size={14} className="animate-spin text-status-info" />
+            <Loader2
+              size={14}
+              className="animate-spin text-status-info"
+              aria-hidden="true"
+            />
             Preparing the first flow draft
           </div>
           <p className="mt-2 text-body-sm text-muted-foreground">
@@ -306,7 +307,7 @@ export function WorkflowIdleStageContract({
           {onPrimaryAction && primaryActionLabel && (
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" onClick={onPrimaryAction}>
-                <Play size={14} />
+                <Play size={14} aria-hidden="true" />
                 {primaryActionLabel}
               </Button>
               {onSecondaryAction && secondaryActionLabel ? (
@@ -455,7 +456,7 @@ export function WorkflowResumeHeader({
 
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" onClick={onPrimaryAction}>
-              <Play size={14} />
+              <Play size={14} aria-hidden="true" />
               {primaryActionLabel}
             </Button>
             {onSecondaryAction && secondaryActionLabel ? (
@@ -580,9 +581,7 @@ export function StageStartApprovalDialog({
 
               {notes.length > 0 ? (
                 <section className="space-y-2">
-                  <p className="ui-meta-label text-muted-foreground">
-                    Approval notes
-                  </p>
+                  <p className="ui-meta-label">Approval notes</p>
                   <div className="space-y-2">
                     {notes.map((note, index) => (
                       <p
@@ -609,7 +608,7 @@ export function StageStartApprovalDialog({
               void Promise.resolve(onApprove())
             }}
           >
-            <Play size={14} />
+            <Play size={14} aria-hidden="true" />
             Approve and continue
           </Button>
         </CanvasDialogFooter>

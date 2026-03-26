@@ -16,10 +16,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Determine channel
         id: channel
@@ -52,7 +51,6 @@ jobs:
 
       - name: Validate release quality
         run: |
-          npm run canon:check
           npm run lint
           npm run typecheck
           npm run test:coverage

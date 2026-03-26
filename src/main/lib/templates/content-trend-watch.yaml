@@ -2,18 +2,18 @@ id: content-trend-watch
 stage: content
 stage_family: understand
 recommended_next:
-  - content-post-calendar
+  - content-post-drafter
 emoji: "\U0001F4E1"
 headline: Track trends and turn them into a usable trend digest
-how: Search news, Reddit, X/Twitter, blogs, and research papers with configurable timeframe and sources, then condense into a trend digest.
-input: Topic description with optional search preferences (timeframe, sources, focus areas)
-output: Trend digest with named themes, signals, and why they matter
+how: Split input topics, research each in parallel, merge into a combined trend digest.
+input: One or more topics — comma-separated or one per line
+output: Combined trend digest with named themes, signals, and why they matter
 use_when: You need a current evidence base before generating a concrete post plan or drafting posts.
-time: ~6-8 min.
+time: ~6-12 min.
 steps:
-  - Parse search preferences from input (timeframe, sources, focus)
-  - Search selected sources in parallel using Exa (news, tweets, blogs, research) and Serper (reddit)
-  - Synthesize results into a structured trend digest with themes, signals, and sources
+  - Split the input into individual topics
+  - Research each topic in parallel — news, Reddit, blogs via Exa and Serper
+  - Merge all topic digests into one combined report
   - Evaluate digest quality for evidence backing, specificity, and niche coverage
 pack:
   id: content-factory-alpha
@@ -21,7 +21,7 @@ pack:
   journey_stage: research
   entrypoint: true
   recommended_next:
-    - content-post-calendar
+    - content-post-drafter
 suggested_tools:
   - web_search
   - exa
@@ -37,13 +37,14 @@ execution_policy:
   tags:
     - evidence_first
     - consistency_checks
+    - parallel_split
   notes:
-    - Prefer concrete signals over vague “hot takes.”
+    - Prefer concrete signals over vague "hot takes."
     - Make the evidence base usable for downstream ideation.
-    - “Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions.”
+    - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
 version: 1
 name: "Content Lab: Trend Watch"
-description: Turn incoming research into a trend digest that can seed a content campaign.
+description: Turn incoming research into a trend digest that can seed a content campaign. Supports multiple topics in parallel.
 defaults:
   model: sonnet
   maxTurns: 120
@@ -57,81 +58,86 @@ nodes:
     config:
       inputType: text
       required: true
-      placeholder: "Describe the topic and search preferences. Example: 'AI agent orchestration — last 7 days, news + reddit, focus on launches and pricing changes'"
+      placeholder: "List topics to research — one per line or comma-separated. Example: 'openclaw, claude code, harness'"
+  - id: splitter-1
+    type: splitter
+    position:
+      x: 280
+      y: 200
+    config:
+      strategy: decompose
+      maxBranches: 10
   - id: trend-watch-1
     type: skill
     position:
-      x: 320
+      x: 560
       y: 200
     config:
       skillRef: researcher
       prompt: >-
-        Build a Trend Digest by actively searching for signals.
+        Build a Trend Digest for this topic by actively searching for signals.
 
-        STEP 1 — Parse the user input for search preferences:
-        - Topic/keywords (required)
-        - Timeframe: look for "last N days/hours/week" → use maxAgeHours parameter.
-          Default: 168 hours (7 days) if not specified.
-        - Sources requested: "news", "reddit", "twitter/X", "blogs", "research".
-          Default: news + reddit if not specified.
-        - Focus: "launches", "pricing", "controversies", "opinions", etc.
+        1. UNDERSTAND THE TOPIC — extract keywords, timeframe (default: last 7 days),
+        and any focus the user specified (launches, pricing, community sentiment, etc.).
 
-        STEP 2 — Search using available tools based on requested sources:
+        2. SEARCH BROADLY — use every available search tool to cover the topic
+        from multiple angles. Combine tools if several are available:
+        - News and press coverage
+        - Community discussions (Reddit, forums)
+        - Social posts and opinions (X/Twitter)
+        - Independent blogs and personal analysis
+        - Academic or research papers (if relevant to the topic)
+        Run multiple searches with different queries to maximize coverage.
+        Prefer recent results — use time-bounded searches when supported.
 
-        NEWS (via Exa): use web_search_advanced_exa with:
-        - category: "news" for press coverage and announcements
-        - maxAgeHours: from user preference (default 168)
-        - numResults: 30
-        - enableHighlights: true, highlightsQuery: the user's topic
-        - type: "neural" for semantic matching
-
-        REDDIT (via Serper or Exa): search site:reddit.com for the topic,
-        scrape top threads, extract top-scored comments as community signals.
-
-        X/TWITTER (via Exa): use web_search_advanced_exa with
-        category "tweet" to find recent discussions and opinions.
-
-        BLOGS/PERSONAL (via Exa): use category "personal site" for
-        independent analysis and contrarian takes.
-
-        RESEARCH (via Exa): use category "research paper" for
-        academic signals if the user requests it.
-
-        Only search the sources the user asked for, or default to news + reddit.
-
-        STEP 3 — Synthesize into a structured digest:
+        3. SYNTHESIZE — structure findings into a digest:
         - Major themes (with source links and dates)
-        - Specific signals backed by quotes, scores, or engagement data
+        - Specific signals backed by quotes, data, or engagement metrics
         - What feels newly important vs continuing trends
         - Contrarian or under-covered angles
         - What these signals suggest for future content or action
 
-        Keep the output structured, concise, and ready to feed into
-        an idea backlog or content calendar. Cite sources with dates.
+        Keep the output structured, evidence-backed, and ready to feed
+        into downstream drafting. Cite sources with dates.
+  - id: merger-1
+    type: merger
+    position:
+      x: 840
+      y: 200
+    config:
+      strategy: concatenate
   - id: eval-1
     type: evaluator
     position:
-      x: 640
+      x: 1120
       y: 200
     config:
-      criteria: "Score 1-10: digest is structured with named themes, has real source links or citations (not invented), covers the topic from the user request. Do NOT re-search or re-scrape — only evaluate the text quality of the existing output."
+      criteria: "Score 1-10: digest is structured with named themes, has real source links or citations (not invented), covers the topics from the user request. Do NOT re-search or re-scrape — only evaluate the text quality of the existing output."
       threshold: 5
-      maxRetries: 1
-      retryFrom: trend-watch-1
+      maxRetries: 0
+      retryFrom: merger-1
   - id: output-1
     type: output
     position:
-      x: 960
+      x: 1400
       y: 200
     config:
       title: Trend Digest
 edges:
-  - id: e-input-trend-watch
+  - id: e-input-splitter
     source: input-1
+    target: splitter-1
+    type: default
+  - id: e-splitter-researcher
+    source: splitter-1
     target: trend-watch-1
     type: default
-  - id: e-trend-watch-eval
+  - id: e-researcher-merger
     source: trend-watch-1
+    target: merger-1
+    type: default
+  - id: e-merger-eval
+    source: merger-1
     target: eval-1
     type: default
   - id: e-eval-output
@@ -140,5 +146,5 @@ edges:
     type: pass
   - id: e-eval-retry
     source: eval-1
-    target: trend-watch-1
+    target: merger-1
     type: fail

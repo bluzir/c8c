@@ -31,6 +31,7 @@ export interface WorkflowEntryState {
   inputText: string
   outputText: string
   readinessText: string
+  awaitingInput?: boolean
   routing?: {
     source: "agent"
     reason?: string
@@ -248,10 +249,9 @@ const TEMPLATE_STAGE_LABELS: Record<string, string> = {
   "gstack-preflight-gate": "Check",
   "gstack-release-room": "Ship",
   "content-trend-watch": "Understand",
-  "content-post-calendar": "Plan",
+  "content-post-drafter": "Build",
   "content-editorial-calendar": "Plan",
   "content-idea-backlog": "Plan",
-  "content-draft-post": "Build",
   "content-repurposing-factory": "Build",
   "predictable-text-factory": "Build",
   "content-qa-review": "Check",

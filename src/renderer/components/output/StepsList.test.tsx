@@ -123,7 +123,12 @@ describe("StepsList", () => {
   })
 
   it("shows fan-out progress for splitter nodes", () => {
-    const nodes = [makeSplitterNode("split1")]
+    const branchNodes = [
+      makeSkillNode("branch-1", "Task 1"),
+      makeSkillNode("branch-2", "Task 2"),
+      makeSkillNode("branch-3", "Task 3"),
+    ]
+    const nodes = [makeSplitterNode("split1"), ...branchNodes]
     const nodeStates: Record<string, NodeState> = {
       split1: makeNodeState({ status: "running" }),
     }
@@ -164,8 +169,8 @@ describe("StepsList", () => {
       />,
     )
 
-    // Should show "2 / 3" fan-out progress
-    expect(screen.getByText("2 / 3")).toBeTruthy()
+    // Should show "2/3" fan-out progress (format: doneCount/totalBranches)
+    expect(screen.getByText("2/3")).toBeTruthy()
   })
 
   it("shows error text for failed steps when expanded", () => {
@@ -201,7 +206,7 @@ describe("StepsList", () => {
     expect(screen.getByText("The analysis is complete.")).toBeTruthy()
   })
 
-  it("shows log placeholder for running step", () => {
+  it("shows expanded content area for running step", () => {
     const nodes = [makeSkillNode("a")]
     const nodeStates: Record<string, NodeState> = {
       a: makeNodeState({ status: "running" }),
@@ -209,7 +214,9 @@ describe("StepsList", () => {
 
     render(<StepsList nodes={nodes} nodeStates={nodeStates} activeNodeId="a" />)
 
-    expect(screen.getByTestId("step-log-placeholder")).toBeTruthy()
+    // Running step should be auto-expanded
+    const button = screen.getByRole("button")
+    expect(button.getAttribute("aria-expanded")).toBe("true")
   })
 
   it("shows blocked text for waiting_approval steps", () => {

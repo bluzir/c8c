@@ -212,11 +212,11 @@ export function NodeCardInlineInput({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onSelect={() => setFilePickerOpen(true)}>
-                <File size={13} className="mr-2" />
+                <File size={13} className="mr-2" aria-hidden="true" />
                 Attach file
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setRunPickerOpen(true)}>
-                <History size={13} className="mr-2" />
+                <History size={13} className="mr-2" aria-hidden="true" />
                 Attach run output
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -225,7 +225,7 @@ export function NodeCardInlineInput({
                   setTextEditorOpen(true)
                 }}
               >
-                <Type size={13} className="mr-2" />
+                <Type size={13} className="mr-2" aria-hidden="true" />
                 Add text snippet
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -580,7 +580,7 @@ export function ProjectSidebar({
                           aria-label={projectRollupMeta.title}
                           title={projectRollupMeta.title}
                           className={cn(
-                            "ml-1 inline-flex h-1.5 w-1.5 rounded-full",
+                            "ml-1 inline-flex h-2 w-2 rounded-full",
                             projectRollupMeta.dotClass,
                           )}
                         />
@@ -641,6 +641,9 @@ export function ProjectSidebar({
                             }
                             onRenameWorkflow={requestRenameWorkflow}
                             onWorkflowContextMenu={setSidebarContextMenu}
+                            onCreateFlow={() =>
+                              handleOpenWorkflowCreate(projectPath, true)
+                            }
                           />
                         )
                       })()
@@ -684,6 +687,7 @@ export function ProjectSidebar({
                         key={workflow.path}
                         workflow={workflow}
                         isSelected={isSelected}
+                        isDirty={isSelected && workflowDirty}
                         idleMetaLabel={idleMetaLabel}
                         statusLabel={workflowRowState.statusLabel}
                         statusBadgeClass={workflowRowState.statusBadgeClass}
@@ -737,6 +741,11 @@ export function ProjectSidebar({
         copyWorkflowToProject={copyWorkflowToProject}
         pendingRemoveProject={pendingRemoveProject}
         setPendingRemoveProject={setPendingRemoveProject}
+        pendingRemoveProjectFlowCount={
+          pendingRemoveProject
+            ? (projectWorkflowsCache[pendingRemoveProject]?.length ?? 0)
+            : 0
+        }
         removingSelectedDirtyProject={removingSelectedDirtyProject}
         commitRemoveProject={commitRemoveProject}
         openProjectFlow={(projectPath) => {

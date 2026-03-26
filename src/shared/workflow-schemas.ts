@@ -35,7 +35,13 @@ const humanTaskFieldTypeSchema = z.enum([
   "multiselect",
   "json",
 ])
-const templateSourceSchema = z.enum(["builtin", "plugin", "user", "hub"])
+const templateSourceSchema = z.enum([
+  "builtin",
+  "plugin",
+  "user",
+  "hub",
+  "project",
+])
 
 const nodePositionSchema = z.object({
   x: z.number().finite(),

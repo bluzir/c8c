@@ -28,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SectionHeading } from "@/components/ui/page-shell"
+import { toast } from "sonner"
 import { cn } from "@/lib/cn"
 import {
   ProviderModelInput,
@@ -52,6 +53,7 @@ export function statusBadgeClassName(
 const SETTINGS_SECTION_SLAB_CLASS = "ui-slab space-y-4"
 
 interface SettingsProviderStatusStripProps {
+  initialLoading?: boolean
   badgeVariant: "outline" | "success" | "warning" | "destructive"
   badgeLabel: string
   title: string
@@ -62,6 +64,7 @@ interface SettingsProviderStatusStripProps {
 }
 
 export function SettingsProviderStatusStrip({
+  initialLoading = false,
   badgeVariant,
   badgeLabel,
   title,
@@ -76,26 +79,50 @@ export function SettingsProviderStatusStrip({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="section-kicker">Provider status</span>
-            <span
-              className={cn(statusBadgeClassName(badgeVariant), "ui-meta-text")}
-            >
-              {badgeLabel}
-            </span>
+            {initialLoading ? (
+              <span
+                className={cn(
+                  statusBadgeClassName("outline"),
+                  "ui-meta-text text-muted-foreground",
+                )}
+              >
+                Checking...
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  statusBadgeClassName(badgeVariant),
+                  "ui-meta-text",
+                )}
+              >
+                {badgeLabel}
+              </span>
+            )}
           </div>
-          <p className="text-body-sm font-medium text-foreground">{title}</p>
-          <p className="ui-meta-text text-muted-foreground">{description}</p>
-          {setupHint ? (
-            <p className="ui-meta-text text-foreground">{setupHint}</p>
-          ) : null}
+          {!initialLoading && (
+            <>
+              <p className="text-body-sm font-medium text-foreground">
+                {title}
+              </p>
+              <p className="ui-meta-text text-muted-foreground">
+                {description}
+              </p>
+              {setupHint ? (
+                <p className="ui-meta-text text-foreground">{setupHint}</p>
+              ) : null}
+            </>
+          )}
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onOpenProviders}
-        >
-          {blocking ? "Open provider setup" : "Open providers"}
-        </Button>
+        {!initialLoading && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onOpenProviders}
+          >
+            {blocking ? "Open provider setup" : "Open providers"}
+          </Button>
+        )}
       </div>
     </section>
   )
@@ -115,7 +142,7 @@ export function SettingsChapterShell({
   return (
     <section className="ui-chapter-shell space-y-5">
       <div className="space-y-1">
-        <h2 className="text-body-lg font-semibold text-foreground">{title}</h2>
+        <h2 className="text-title-md text-foreground">{title}</h2>
         {description ? (
           <p className="ui-meta-text max-w-[72ch] text-muted-foreground">
             {description}
@@ -131,6 +158,7 @@ interface SettingsUpdatesSectionProps {
   appVersion: string
   updateInfo: UpdateInfo
   updateChecking: boolean
+  updateInstalling?: boolean
   onCheckForUpdate: () => void
   onInstallUpdate: () => void
 }
@@ -139,6 +167,7 @@ export function SettingsUpdatesSection({
   appVersion,
   updateInfo,
   updateChecking,
+  updateInstalling = false,
   onCheckForUpdate,
   onInstallUpdate,
 }: SettingsUpdatesSectionProps) {
@@ -165,9 +194,18 @@ export function SettingsUpdatesSection({
                   variant="default"
                   size="sm"
                   onClick={onInstallUpdate}
+                  disabled={updateInstalling}
                 >
-                  <Download size={14} />
-                  Restart to update
+                  {updateInstalling ? (
+                    <Loader2
+                      size={14}
+                      aria-hidden="true"
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <Download size={14} aria-hidden="true" />
+                  )}
+                  {updateInstalling ? "Restarting..." : "Restart to update"}
                 </Button>
               ) : (
                 <Button
@@ -182,9 +220,13 @@ export function SettingsUpdatesSection({
                   }
                 >
                   {updateChecking || updateInfo.status === "checking" ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <Loader2
+                      size={14}
+                      aria-hidden="true"
+                      className="animate-spin"
+                    />
                   ) : (
-                    <RefreshCw size={14} />
+                    <RefreshCw size={14} aria-hidden="true" />
                   )}
                   Check for updates
                 </Button>
@@ -194,7 +236,8 @@ export function SettingsUpdatesSection({
 
           {updateInfo.status === "available" && updateInfo.version ? (
             <p className="text-body-sm text-status-info">
-              Version {updateInfo.version} is available. Downloading...
+              Version {updateInfo.version} is available and will download
+              automatically.
             </p>
           ) : null}
 
@@ -203,7 +246,14 @@ export function SettingsUpdatesSection({
               <p className="text-body-sm text-muted-foreground">
                 Downloading update... {updateInfo.progress ?? 0}%
               </p>
-              <div className="ui-progress-track">
+              <div
+                className="ui-progress-track"
+                role="progressbar"
+                aria-valuenow={updateInfo.progress ?? 0}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Download progress"
+              >
                 <div
                   className="ui-progress-bar"
                   style={{
@@ -235,7 +285,7 @@ export function SettingsUpdatesSection({
               <p className="ui-meta-text text-muted-foreground">
                 You can download the latest version from{" "}
                 <a
-                  href="https://github.com/c8c-ai/c8c/releases"
+                  href="https://github.com/bluzir/c8c/releases"
                   className="text-primary underline"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -391,7 +441,7 @@ export function SettingsExecutionDefaultsSection({
             </p>
             <span
               className={cn(
-                "ui-meta-text ui-transition-colors ui-motion-fast",
+                "text-body-sm ui-transition-colors ui-motion-fast",
                 execDefaultsSaveFlash === "saved"
                   ? "text-status-success"
                   : "text-transparent",
@@ -701,7 +751,15 @@ export function SettingsProvidersSection({
                 ) : (
                   <p className="text-body-sm text-muted-foreground">
                     Install:{" "}
-                    <code className="inline-code">
+                    <code
+                      className="inline-code cursor-pointer"
+                      title="Click to copy"
+                      onClick={() => {
+                        const cmd = getProviderInstallCommand(providerId)
+                        void navigator.clipboard.writeText(cmd)
+                        toast("Copied to clipboard")
+                      }}
+                    >
                       {getProviderInstallCommand(providerId)}
                     </code>
                   </p>
@@ -710,7 +768,15 @@ export function SettingsProvidersSection({
                 {available && !authenticated ? (
                   <p className="text-body-sm text-muted-foreground">
                     Sign in with{" "}
-                    <code className="inline-code">
+                    <code
+                      className="inline-code cursor-pointer"
+                      title="Click to copy"
+                      onClick={() => {
+                        const cmd = getProviderLoginCommand(providerId)
+                        void navigator.clipboard.writeText(cmd)
+                        toast("Copied to clipboard")
+                      }}
+                    >
                       {getProviderLoginCommand(providerId)}
                     </code>
                     {providerId === "codex"
@@ -768,9 +834,18 @@ export function SettingsProvidersSection({
                     </div>
                     <p className="ui-meta-text text-muted-foreground">
                       ChatGPT subscription login works via{" "}
-                      <code className="inline-code">codex login</code> and does
-                      not require an API key. The app-managed key is only an
-                      optional override stored in the app.
+                      <code
+                        className="inline-code cursor-pointer"
+                        title="Click to copy"
+                        onClick={() => {
+                          void navigator.clipboard.writeText("codex login")
+                          toast("Copied to clipboard")
+                        }}
+                      >
+                        codex login
+                      </code>{" "}
+                      and does not require an API key. The app-managed key is
+                      only an optional override stored in the app.
                     </p>
                   </div>
                 ) : null}
@@ -808,6 +883,7 @@ interface SettingsPrivacySectionProps {
   telemetryChecked: boolean
   telemetryDisabled: boolean
   telemetryHint: string
+  saving?: boolean
   onCheckedChange: (enabled: boolean) => void
 }
 
@@ -821,6 +897,7 @@ export function SettingsPrivacySection({
   telemetryChecked,
   telemetryDisabled,
   telemetryHint,
+  saving = false,
   onCheckedChange,
 }: SettingsPrivacySectionProps) {
   return (
@@ -888,12 +965,21 @@ export function SettingsPrivacySection({
                   : "Telemetry is not available in this build."}
               </p>
             </div>
-            <Switch
-              checked={telemetryChecked}
-              disabled={telemetryDisabled}
-              aria-label="Allow product analytics"
-              onCheckedChange={onCheckedChange}
-            />
+            <div className="flex items-center gap-2">
+              {saving && (
+                <Loader2
+                  size={12}
+                  aria-hidden="true"
+                  className="animate-spin text-muted-foreground"
+                />
+              )}
+              <Switch
+                checked={telemetryChecked}
+                disabled={telemetryDisabled}
+                aria-label="Allow product analytics"
+                onCheckedChange={onCheckedChange}
+              />
+            </div>
           </div>
 
           <p className="ui-meta-text text-muted-foreground">{telemetryHint}</p>

@@ -497,7 +497,11 @@ export function OutputPanel({
   const savedRunLoadingNotice =
     reviewingRunHistory && reviewedRunLoading ? (
       <div className="flex items-center gap-2 px-1 py-2 ui-meta-text text-muted-foreground">
-        <Loader2 size={14} className="animate-spin shrink-0" />
+        <Loader2
+          size={14}
+          className="animate-spin shrink-0"
+          aria-hidden="true"
+        />
         Loading saved run details…
       </div>
     ) : null

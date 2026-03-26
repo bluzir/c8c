@@ -812,6 +812,7 @@ export interface CreateEntryRouteResult {
   confidence: number
   source: "agent"
   clarification?: CreateEntryRouteClarification | null
+  suggestedTitle?: string | null
 }
 
 export type WorkflowTemplateJourneyStage =
@@ -887,7 +888,7 @@ export interface WorkflowTemplate {
   executionPolicy?: WorkflowExecutionPolicyProfile
   credits?: WorkflowTemplateCredit[]
   workflow: Workflow
-  source?: "builtin" | "plugin" | "user" | "hub"
+  source?: "builtin" | "plugin" | "user" | "hub" | "project"
   pluginId?: string
   pluginName?: string
   marketplaceId?: string

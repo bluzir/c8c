@@ -1,0 +1,115 @@
+id: content-post-drafter
+stage: content
+stage_family: execute
+recommended_next:
+  - content-qa-review
+emoji: "\u270D"
+headline: Turn a trend digest into ready-to-publish post drafts
+how: Split the digest by trend, draft one post per trend, merge all drafts into a single file.
+input: Trend digest with themes and signals
+output: Merged file of post drafts, one per trend
+use_when: You have a trend digest and want concrete post drafts without an intermediate calendar step.
+time: ~5-10 min.
+steps:
+  - Split the trend digest into individual trends
+  - Draft one channel-ready post per trend with voice and anti-slop constraints
+  - Merge all drafts into a single output file
+pack:
+  id: content-factory-alpha
+  label: Content Lab
+  journey_stage: execute
+  recommended_next:
+    - content-qa-review
+contract_in:
+  - kind: trend_digest
+    title: Trend Digest
+    description: Current themes, signals, and emerging angles to turn into post drafts.
+    required: true
+suggested_tools: []
+contract_out:
+  - kind: draft
+    title: Post Drafts
+    description: Merged file containing one draft post per trend from the digest.
+execution_policy:
+  profile_id: content_post_drafter
+  summary: One draft per trend, no calendar step
+  description: Split trends, draft each, concatenate into a single deliverable.
+  tags:
+    - voice_locked
+    - no_slop
+    - parallel_split
+  notes:
+    - Each draft must stand alone with a concrete hook.
+    - Avoid generic AI phrasing or filler.
+    - "Target operator: solo founder with AI agents, no employees. Filter recommendations by what one person can execute with AI tools within a week. Avoid team-dependent suggestions."
+version: 1
+name: "Content Lab: Post Drafter"
+description: Split a trend digest by theme and draft one post per trend, merged into a single output file.
+defaults:
+  model: sonnet
+  maxTurns: 120
+  timeout_minutes: 25
+nodes:
+  - id: input-1
+    type: input
+    position:
+      x: 0
+      y: 200
+    config:
+      inputType: text
+      required: true
+      placeholder: Paste the trend digest. Each trend gets its own draft.
+  - id: splitter-1
+    type: splitter
+    position:
+      x: 320
+      y: 200
+    config:
+      strategy: decompose
+      maxBranches: 10
+  - id: drafter-1
+    type: skill
+    position:
+      x: 640
+      y: 200
+    config:
+      skillRef: writer
+      prompt: >-
+        Draft one post from this trend.
+        Requirements:
+        1) concrete hook and thesis grounded in the trend signal,
+        2) no AI slop words (delve, tapestry, landscape, leverage, elevate, streamline, utilize, synergy),
+        3) channel-aware format and length,
+        4) surface specifics instead of buzzwords.
+        Output the complete draft only — no meta-commentary.
+  - id: merger-1
+    type: merger
+    position:
+      x: 960
+      y: 200
+    config:
+      strategy: concatenate
+  - id: output-1
+    type: output
+    position:
+      x: 1280
+      y: 200
+    config:
+      title: Post Drafts
+edges:
+  - id: e-input-splitter
+    source: input-1
+    target: splitter-1
+    type: default
+  - id: e-splitter-drafter
+    source: splitter-1
+    target: drafter-1
+    type: default
+  - id: e-drafter-merger
+    source: drafter-1
+    target: merger-1
+    type: default
+  - id: e-merger-output
+    source: merger-1
+    target: output-1
+    type: default

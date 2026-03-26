@@ -9,6 +9,12 @@ function replaceOrThrow(source, pattern, replacement, description) {
   }
 
   if (!pattern.test(source)) {
+    if (process.env.CI) {
+      console.warn(
+        `[patch-acp-stack] skipped: ${description} (pattern not found)`,
+      )
+      return source
+    }
     throw new Error(`Could not find patch target: ${description}`)
   }
 

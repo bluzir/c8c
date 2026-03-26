@@ -21,7 +21,11 @@ export function FlowFollowUpList({
             key={i}
             type="button"
             onClick={() => onSelect?.(followUp)}
-            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left ui-motion-fast hover:bg-surface-2/30"
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left ui-motion-fast hover:bg-surface-2/30 ui-fade-slide-in"
+            style={{
+              animationDelay: `${i * 60}ms`,
+              animationFillMode: "backwards",
+            }}
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className="shrink-0">{followUp.emoji}</span>
@@ -32,6 +36,7 @@ export function FlowFollowUpList({
             <ChevronRight
               size={14}
               className="shrink-0 text-muted-foreground/50"
+              aria-hidden="true"
             />
           </button>
         ))}

@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn"
 interface SidebarGlobalWorkflowRowProps {
   workflow: WorkflowFile
   isSelected: boolean
+  isDirty: boolean
   idleMetaLabel: string | null
   statusLabel: string | null
   statusBadgeClass: string | null
@@ -16,6 +17,7 @@ interface SidebarGlobalWorkflowRowProps {
 export function SidebarGlobalWorkflowRow({
   workflow,
   isSelected,
+  isDirty,
   idleMetaLabel,
   statusLabel,
   statusBadgeClass,
@@ -46,6 +48,16 @@ export function SidebarGlobalWorkflowRow({
         <span className="flex items-center gap-1.5 min-w-0">
           <Globe size={12} className="text-muted-foreground flex-shrink-0" />
           <span className="min-w-0 flex-1 truncate">{workflow.name}</span>
+          {isDirty && (
+            <span
+              role="img"
+              aria-label="Unsaved changes"
+              title="Unsaved changes"
+              className="inline-flex h-1.5 w-1.5 flex-shrink-0 rounded-full bg-status-warning"
+            >
+              <span className="sr-only">Unsaved changes</span>
+            </span>
+          )}
           {statusLabel && statusBadgeClass ? (
             <span
               className={cn(

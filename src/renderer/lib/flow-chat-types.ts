@@ -65,6 +65,7 @@ export interface ProgressStep {
   status: "pending" | "running" | "done" | "failed"
   summary?: string
   output?: string
+  costUsd?: number
   subSteps?: Array<{ key: string; label: string; done: boolean }>
 }
 
@@ -77,14 +78,27 @@ export interface ProgressContent {
   collapsedLabel?: string
 }
 
+export interface RoutingClarification {
+  kind: "help_mode" | "job_route"
+  title: string
+  message: string
+  options: Array<{
+    value: string
+    label: string
+    description?: string
+    templateId?: string
+  }>
+}
+
 export interface RoutingContent {
   userRequest?: string
   steps: Array<{ label: string; status: "pending" | "running" | "done" }>
   selectedTemplate?: {
     name: string
     description: string
-    estimatedCost?: string
   }
+  clarification?: RoutingClarification
+  error?: string
 }
 
 export type FlowChatMessageContent =

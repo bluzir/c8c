@@ -183,14 +183,11 @@ export const runsByWorkflowPathAtom = atom<Record<string, RunResult[]>>(
 export function doesRunBelongToWorkflowHistory(
   run: Pick<RunResult, "workflowName" | "workflowPath">,
   selectedWorkflowPath: string | null,
-  workflowName: string,
+  _workflowName: string,
 ): boolean {
+  if (!selectedWorkflowPath) return false
   const runPath = (run.workflowPath || "").trim()
-  if (selectedWorkflowPath) {
-    return runPath === selectedWorkflowPath
-  }
-  if (!workflowName) return false
-  return !runPath && run.workflowName === workflowName
+  return runPath === selectedWorkflowPath
 }
 
 export const workflowHistoryRunsAtom = atom<RunResult[]>((get) => {

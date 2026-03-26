@@ -199,14 +199,16 @@ export function WorkflowsTemplatesPage() {
     try {
       // Trigger background catalog refresh, then load templates
       void window.api.refreshCatalog().catch(() => undefined)
-      const loaded = await window.api.listTemplates()
+      const loaded = await window.api.listTemplates(
+        preferredProjectPath ?? undefined,
+      )
       setTemplates(loaded)
     } catch (error) {
       toastErrorFromCatch("Could not load starting points", error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [preferredProjectPath])
 
   useEffect(() => {
     void loadTemplates()
@@ -677,7 +679,7 @@ export function WorkflowsTemplatesPage() {
           })
         }
       >
-        <Sparkles size={14} />
+        <Sparkles size={14} aria-hidden="true" />
         {templateLibraryContext ? "Back to create" : "Create with agent"}
       </Button>
     </div>
@@ -764,7 +766,7 @@ export function WorkflowsTemplatesPage() {
             ) : null}
             {hasActiveFilters && (
               <Button variant="ghost" size="xs" onClick={clearFilters}>
-                <X size={12} />
+                <X size={12} aria-hidden="true" />
                 Clear
               </Button>
             )}
@@ -781,7 +783,7 @@ export function WorkflowsTemplatesPage() {
                 {Array.from({ length: 6 }).map((_, idx) => (
                   <div
                     key={`skeleton-${idx}`}
-                    className="rounded-lg border border-hairline/70 p-4 flex items-start gap-3"
+                    className="ui-interactive-card-subtle rounded-lg p-4 flex items-start gap-3"
                     aria-hidden="true"
                   >
                     <Skeleton className="h-6 w-6 flex-shrink-0" />
@@ -793,7 +795,7 @@ export function WorkflowsTemplatesPage() {
                 ))}
               </div>
             ) : filteredTemplates.length === 0 ? (
-              <div className="ui-empty-state px-4 text-body-sm text-muted-foreground">
+              <div className="ui-empty-state-box ui-empty-state px-4 text-body-sm text-muted-foreground">
                 <p>
                   {activeCategory === "all"
                     ? "No starting points match these filters."

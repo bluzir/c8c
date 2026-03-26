@@ -8,6 +8,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 
+export type StepVariant = "full" | "compact"
 type StepStatus = "pending" | "running" | "done" | "failed" | "blocked"
 
 interface StepRowProps {
@@ -19,6 +20,7 @@ interface StepRowProps {
   expanded: boolean
   onToggle: () => void
   fanOutProgress?: string
+  variant?: StepVariant
   children?: ReactNode
 }
 
@@ -30,14 +32,16 @@ export function StepRow({
   expanded,
   onToggle,
   fanOutProgress,
+  variant = "full",
   children,
 }: StepRowProps) {
   const isPending = status === "pending"
   const isRunning = status === "running"
+  const isCompact = variant === "compact"
 
   const metaParts: string[] = []
   if (duration) metaParts.push(duration)
-  if (cost) metaParts.push(cost)
+  if (!isCompact && cost) metaParts.push(cost)
   if (fanOutProgress) metaParts.push(fanOutProgress)
 
   return (
@@ -51,7 +55,8 @@ export function StepRow({
         type="button"
         disabled={isPending}
         className={cn(
-          "flex w-full items-center gap-3 px-4 py-2 text-left ui-motion-fast",
+          "flex w-full items-center text-left ui-motion-fast",
+          isCompact ? "gap-2 px-2 py-1.5" : "gap-3 px-4 py-2",
           !isPending && "hover:bg-surface-2/30",
           isPending && "opacity-40",
         )}
@@ -85,7 +90,8 @@ export function StepRow({
         {/* Expand chevron — only for non-pending */}
         {!isPending && (
           <ChevronRight
-            size={12}
+            size={isCompact ? 10 : 12}
+            aria-hidden="true"
             className={cn(
               "shrink-0 text-muted-foreground/50 ui-chevron",
               expanded && "rotate-90",
@@ -105,7 +111,13 @@ export function StepRow({
 function StatusDot({ status }: { status: StepStatus }) {
   switch (status) {
     case "done":
-      return <CheckCircle2 size={14} className="shrink-0 text-status-success" />
+      return (
+        <CheckCircle2
+          size={14}
+          className="shrink-0 text-status-success"
+          aria-hidden="true"
+        />
+      )
     case "running":
       return (
         <span className="ui-status-beacon shrink-0">
@@ -114,10 +126,28 @@ function StatusDot({ status }: { status: StepStatus }) {
         </span>
       )
     case "failed":
-      return <XCircle size={14} className="shrink-0 text-status-danger" />
+      return (
+        <XCircle
+          size={14}
+          className="shrink-0 text-status-danger"
+          aria-hidden="true"
+        />
+      )
     case "blocked":
-      return <Clock size={14} className="shrink-0 text-status-warning" />
+      return (
+        <Clock
+          size={14}
+          className="shrink-0 text-status-warning"
+          aria-hidden="true"
+        />
+      )
     case "pending":
-      return <Circle size={12} className="shrink-0 text-muted-foreground/30" />
+      return (
+        <Circle
+          size={12}
+          className="shrink-0 text-muted-foreground/30"
+          aria-hidden="true"
+        />
+      )
   }
 }

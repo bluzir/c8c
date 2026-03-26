@@ -103,7 +103,7 @@ export function WorkflowOpenErrorBanner({
             Failed to open {flowLabel}. The previous flow remains open.
           </p>
           {message && (
-            <p className="mt-1 ui-meta-text text-status-danger/90">{message}</p>
+            <p className="mt-1 ui-meta-text text-status-danger">{message}</p>
           )}
         </div>
         <Button variant="ghost" size="sm" onClick={onDismiss}>
@@ -141,7 +141,7 @@ export function WorkflowPanelHeader({
           runStatus === "idle" ? "py-2.5" : "py-2",
         )}
       >
-        <div className="min-w-[280px] flex-1">
+        <div className="min-w-72 flex-1">
           {shellState === "idle" ? (
             <>
               <Label htmlFor="workflow-name" className="sr-only">

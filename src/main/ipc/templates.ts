@@ -85,9 +85,15 @@ async function resolveGenerateWorkdir(projectPath?: string): Promise<string> {
 }
 
 export function registerTemplateHandlers() {
-  ipcMain.handle("templates:list", async (): Promise<WorkflowTemplate[]> => {
-    return listTemplateCatalog()
-  })
+  ipcMain.handle(
+    "templates:list",
+    async (_event, projectPath?: string): Promise<WorkflowTemplate[]> => {
+      const safeProjectPath = projectPath
+        ? await resolveGenerateWorkdir(projectPath)
+        : undefined
+      return listTemplateCatalog(safeProjectPath)
+    },
+  )
 
   ipcMain.handle(
     "templates:list-popular-project",
@@ -97,7 +103,7 @@ export function registerTemplateHandlers() {
       limit = 5,
     ): Promise<WorkflowTemplate[]> => {
       const safeProjectPath = await resolveGenerateWorkdir(projectPath)
-      const templates = await listTemplateCatalog()
+      const templates = await listTemplateCatalog(safeProjectPath)
       const popularIds = await listPopularTemplateIdsForProject(
         safeProjectPath,
         limit,
@@ -117,7 +123,7 @@ export function registerTemplateHandlers() {
     "templates:record-usage",
     async (_event, projectPath: string, templateId: string): Promise<void> => {
       const safeProjectPath = await resolveGenerateWorkdir(projectPath)
-      const isKnownTemplate = (await listTemplateCatalog()).some(
+      const isKnownTemplate = (await listTemplateCatalog(safeProjectPath)).some(
         (template) => template.id === templateId,
       )
       if (!isKnownTemplate) return
@@ -159,7 +165,7 @@ export function registerTemplateHandlers() {
       input: CreateEntryRouteInput,
     ): Promise<CreateEntryRouteResult> => {
       const safeProjectPath = await resolveGenerateWorkdir(input.projectPath)
-      const templates = await listTemplateCatalog()
+      const templates = await listTemplateCatalog(safeProjectPath)
       const inspection = await inspectProjectForCreateEntry(safeProjectPath)
       return routeCreateEntry(
         {

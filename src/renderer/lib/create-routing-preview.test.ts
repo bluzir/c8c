@@ -149,7 +149,7 @@ describe("buildCreateRoutingPreview", () => {
           id: "content-factory-alpha",
           label: "Content Lab",
           journeyStage: "research",
-          recommendedNext: ["content-post-calendar"],
+          recommendedNext: ["content-post-drafter"],
         },
       }),
     ]

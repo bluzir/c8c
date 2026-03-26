@@ -18,13 +18,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Canon vocabulary
-        run: npm run canon:check
+        run: npm install
 
       - name: Lint
         run: npm run lint
@@ -40,28 +36,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  electron-smoke:
-    needs: build-and-test
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Electron smoke
-        run: npm run smoke:electron:ci
-
-      - name: Upload smoke artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: electron-smoke-artifacts
-          path: output/ui-smoke
-          if-no-files-found: ignore

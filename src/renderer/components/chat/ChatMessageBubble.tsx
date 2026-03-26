@@ -115,6 +115,7 @@ export function ChatMessageBubble({
         <button
           type="button"
           onClick={() => setToolExpanded(!toolExpanded)}
+          aria-expanded={toolExpanded}
           className={cn(
             "ui-pressable w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg",
             "ui-meta-text text-status-info ui-transition-colors ui-motion-fast hover:bg-status-info/10",
@@ -179,6 +180,7 @@ export function ChatMessageBubble({
         <button
           type="button"
           onClick={() => setToolExpanded(!toolExpanded)}
+          aria-expanded={toolExpanded}
           className={cn(
             "ui-pressable w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg",
             "ui-meta-text ui-transition-colors ui-motion-fast",

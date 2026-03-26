@@ -119,7 +119,7 @@ interface SkillPickerProps {
 
 export function SkillPicker({
   onAddSkill,
-  title = "Add Skill",
+  title = "Add skill",
   description = "Choose a skill to add to your flow",
   searchPlaceholder = "Search skills...",
   emptyStateMessage = "No skills available. Open a project with local skills, or visit Skills to connect a skill source.",

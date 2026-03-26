@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react"
 import { useAtomValue } from "jotai"
 import { approvalRequestsAtom } from "@/features/execution"
 import type { WorkflowExecutionState } from "@/lib/workflow-execution"
@@ -43,6 +44,7 @@ interface SidebarProjectWorkflowListProps {
   onOpenWorkflow: (workflow: WorkflowFile) => void
   onRenameWorkflow: (workflow: WorkflowFile) => void
   onWorkflowContextMenu: (payload: SidebarContextMenuState) => void
+  onCreateFlow?: () => void
 }
 
 export function SidebarProjectWorkflowList({
@@ -63,6 +65,7 @@ export function SidebarProjectWorkflowList({
   onOpenWorkflow,
   onRenameWorkflow,
   onWorkflowContextMenu,
+  onCreateFlow,
 }: SidebarProjectWorkflowListProps) {
   const approvalRequests = useAtomValue(approvalRequestsAtom)
   const hasSearchQuery = workflowSearchQuery.trim().length > 0
@@ -93,6 +96,8 @@ export function SidebarProjectWorkflowList({
   const shouldShowWorkflowToggle =
     !hasSearchQuery &&
     filteredProjectWorkflows.length > PROJECT_WORKFLOW_PREVIEW_LIMIT
+  const hiddenCount =
+    filteredProjectWorkflows.length - PROJECT_WORKFLOW_PREVIEW_LIMIT
 
   return (
     <div className="mt-0.5 ml-7 space-y-px">
@@ -178,6 +183,24 @@ export function SidebarProjectWorkflowList({
             })}
       </div>
 
+      {/* Empty state — project expanded but has no flows */}
+      {!isProjectLoading &&
+        filteredProjectWorkflows.length === 0 &&
+        !hasSearchQuery &&
+        onCreateFlow && (
+          <div className="px-1 py-2">
+            <button
+              type="button"
+              data-sidebar-item="true"
+              onClick={onCreateFlow}
+              className="ui-pressable inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-sidebar-item text-muted-foreground/70 hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
+            >
+              <Plus size={12} strokeWidth={2} className="shrink-0" />
+              No flows yet — create one
+            </button>
+          </div>
+        )}
+
       {shouldShowWorkflowToggle && !autoExpandWorkflowList && (
         <button
           type="button"
@@ -186,7 +209,7 @@ export function SidebarProjectWorkflowList({
           onClick={onToggleExpanded}
           className="ui-pressable ml-1 inline-flex h-6 items-center rounded-md px-1.5 text-sidebar-meta text-muted-foreground hover:bg-sidebar-hover hover:text-foreground ui-transition-colors ui-motion-fast"
         >
-          {isWorkflowListExpanded ? "Show less" : "Show more"}
+          {isWorkflowListExpanded ? "Show less" : `Show ${hiddenCount} more`}
         </button>
       )}
     </div>

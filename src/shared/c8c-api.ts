@@ -135,7 +135,7 @@ export interface C8cApi {
   removeMarketplace: (id: string) => Promise<boolean>
   scanPlugins: () => Promise<InstalledPlugin[]>
   setPluginEnabled: (pluginId: string, enabled: boolean) => Promise<boolean>
-  listTemplates: () => Promise<WorkflowTemplate[]>
+  listTemplates: (projectPath?: string) => Promise<WorkflowTemplate[]>
   listPopularProjectTemplates: (
     projectPath: string,
     limit?: number,

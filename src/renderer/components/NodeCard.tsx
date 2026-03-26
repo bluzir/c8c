@@ -206,7 +206,11 @@ export function NodeCard({
                 "border-hairline bg-surface-1 text-muted-foreground",
             )}
           >
-            <Icon size={compact ? 13 : 14} className="flex-shrink-0" />
+            <Icon
+              size={compact ? 13 : 14}
+              className="shrink-0"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="flex-1 min-w-0">
@@ -282,9 +286,9 @@ export function NodeCard({
                     )}
                   >
                     {skillConfig.permissionMode === "plan" ? (
-                      <Eye size={10} />
+                      <Eye size={10} aria-hidden="true" />
                     ) : (
-                      <Pencil size={10} />
+                      <Pencil size={10} aria-hidden="true" />
                     )}
                     {skillConfig.permissionMode === "plan" ? "Plan" : "Edit"}
                   </Badge>
@@ -334,7 +338,7 @@ export function NodeCard({
                       compact ? "h-6 w-6" : "h-control-sm w-control-sm",
                     )}
                   >
-                    <ArrowUp size={12} />
+                    <ArrowUp size={12} aria-hidden="true" />
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -363,7 +367,7 @@ export function NodeCard({
                       compact ? "h-6 w-6" : "h-control-sm w-control-sm",
                     )}
                   >
-                    <ArrowDown size={12} />
+                    <ArrowDown size={12} aria-hidden="true" />
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -389,7 +393,7 @@ export function NodeCard({
                     )}
                     title="Remove step (Delete)"
                   >
-                    <X size={12} />
+                    <X size={12} aria-hidden="true" />
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -409,7 +413,7 @@ export function NodeCard({
                 )}
                 aria-label="Step has validation errors"
               >
-                <AlertCircle size={14} />
+                <AlertCircle size={14} aria-hidden="true" />
               </span>
             ) : null}
             <Button
@@ -431,6 +435,7 @@ export function NodeCard({
             >
               <ChevronDown
                 size={14}
+                aria-hidden="true"
                 className={cn(
                   "transition-transform ui-motion-fast",
                   expanded && "rotate-180",

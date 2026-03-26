@@ -28,6 +28,8 @@ import {
   buildStartMessage,
   buildProgressMessage,
 } from "@/lib/flow-chat-transformer"
+import { formatElapsedCompact } from "@/components/output/outputFormatters"
+import { toast } from "sonner"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 
 type UpdateValue<T> = T | ((prev: T) => T)
@@ -455,20 +457,36 @@ export class WorkflowExecutionController {
             costUsd,
           })
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+          const duration = formatElapsedCompact(startedAt)
+          toast.success("Flow completed", {
+            description: `Duration: ${duration}`,
+          })
         } else if (finishedState.runOutcome) {
           const variant =
             finishedState.runOutcome === "cancelled" ? "cancelled" : "error"
           const failedNode = Object.entries(finishedState.nodeStates).find(
             ([, ns]) => ns.status === "failed",
           )
+          const errorDetail = finishedState.lastError || failedNode?.[1]?.error
           const msg = buildErrorMessage({
             runId: event.runId,
             flowName: finishedState.workflowName,
             variant,
-            errorMessage: finishedState.lastError || failedNode?.[1]?.error,
+            errorMessage: errorDetail,
             failedNodeLabel: failedNode?.[0],
           })
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+          if (variant === "cancelled") {
+            toast("Flow stopped")
+          } else {
+            toast.error("Flow failed", {
+              description: errorDetail
+                ? errorDetail.length > 80
+                  ? errorDetail.slice(0, 77) + "..."
+                  : errorDetail
+                : undefined,
+            })
+          }
         }
       }
 
@@ -512,12 +530,7 @@ export class WorkflowExecutionController {
       return presentation.title
     }
 
-    const formatElapsed = (startTime: number): string => {
-      const seconds = Math.round((Date.now() - startTime) / 1000)
-      if (seconds < 60) return `${seconds}s`
-      const minutes = Math.round(seconds / 60)
-      return `${minutes} min`
-    }
+    const formatElapsed = formatElapsedCompact
 
     // On first node-start for this workflow key, emit Start + initial Progress
     if (
@@ -599,23 +612,45 @@ export class WorkflowExecutionController {
           ? event.output.content
           : undefined
 
-      // Extract a brief summary from output (first sentence, max 60 chars)
+      // Extract a brief summary from output (first sentence, max 120 chars)
       let summary: string | undefined
       if (outputContent) {
         const firstSentence = outputContent.split(/[.!?\n]/)[0]?.trim()
         if (firstSentence) {
           summary =
-            firstSentence.length > 60
-              ? firstSentence.slice(0, 57) + "..."
+            firstSentence.length > 120
+              ? firstSentence.slice(0, 117) + "..."
               : firstSentence
         }
       }
 
-      const updatedSteps = steps.map((s) =>
-        s.nodeId === event.nodeId
-          ? { ...s, status: "done" as const, summary, output: outputContent }
-          : s,
-      )
+      // Extract cost from the execution state's node metrics
+      const nodeCostUsd = state.nodeStates[event.nodeId]?.metrics?.cost_usd
+
+      const updatedSteps = steps.map((s) => {
+        // Direct match — this node completed
+        if (s.nodeId === event.nodeId) {
+          return {
+            ...s,
+            status: "done" as const,
+            summary,
+            output: outputContent,
+            ...(nodeCostUsd != null && nodeCostUsd > 0
+              ? { costUsd: nodeCostUsd }
+              : {}),
+          }
+        }
+        // Check if the completed node is a subStep of this step
+        if (s.subSteps?.some((sub) => sub.key === event.nodeId)) {
+          return {
+            ...s,
+            subSteps: s.subSteps.map((sub) =>
+              sub.key === event.nodeId ? { ...sub, done: true } : sub,
+            ),
+          }
+        }
+        return s
+      })
 
       this.progressSteps.set(workflowKey, updatedSteps)
       this.emitProgressUpdate(workflowKey, updatedSteps)
@@ -777,6 +812,7 @@ export class WorkflowExecutionController {
       variant: "cancelled",
     })
     this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+    toast("Flow stopped")
 
     this.deps.onRunFinished?.({ workflowKey, state: cancelledState })
     if (runIdToClear) {

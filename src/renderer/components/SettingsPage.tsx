@@ -27,6 +27,7 @@ import {
   modelLooksCompatible,
 } from "@shared/provider-metadata"
 import { Loader2, RefreshCw } from "lucide-react"
+import { toast } from "sonner"
 import { McpIntegrationsSection } from "@/components/McpIntegrationsSection"
 import { McpServersSection } from "@/components/McpServersSection"
 import {
@@ -73,6 +74,8 @@ export function SettingsPage() {
   const [appVersion, setAppVersion] = useState<string>("")
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({ status: "idle" })
   const [updateChecking, setUpdateChecking] = useState(false)
+  const [updateInstalling, setUpdateInstalling] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [execDefaultsSaveFlash, setExecDefaultsSaveFlash] = useState<
     "idle" | "saved"
   >("idle")
@@ -110,6 +113,7 @@ export function SettingsPage() {
     async (patch: Partial<typeof providerSettings>) => {
       const nextSettings = await window.api.updateProviderSettings(patch)
       setProviderSettings(nextSettings)
+      toast.success("Settings saved")
     },
     [setProviderSettings],
   )
@@ -194,6 +198,7 @@ export function SettingsPage() {
   }, [])
 
   const handleInstallUpdate = useCallback(() => {
+    setUpdateInstalling(true)
     void window.api.installUpdate()
   }, [])
 
@@ -207,6 +212,7 @@ export function SettingsPage() {
           ? prev.model
           : getDefaultModelForProvider(provider),
       }))
+      toast.success("Default provider updated")
     },
     [persistProviderSettings, setDefaultProvider, setExecDefaults],
   )
@@ -217,6 +223,7 @@ export function SettingsPage() {
       const diagnostics = await window.api.setCodexApiKey(codexApiKeyDraft)
       applyProviderDiagnostics(diagnostics)
       setCodexApiKeyDraft("")
+      toast.success("API key saved")
     } catch (error) {
       toastErrorFromCatch("Could not save Codex API key", error)
     } finally {
@@ -230,6 +237,7 @@ export function SettingsPage() {
       const diagnostics = await window.api.clearCodexApiKey()
       applyProviderDiagnostics(diagnostics)
       setCodexApiKeyDraft("")
+      toast.success("API key removed")
     } catch (error) {
       toastErrorFromCatch("Could not remove Codex API key", error)
     } finally {
@@ -251,10 +259,12 @@ export function SettingsPage() {
   )
 
   useEffect(() => {
-    void refreshProviderDiagnostics()
-    void refreshTelemetrySettings()
-    void window.api.getAppVersion().then(setAppVersion)
-    void window.api.getUpdateStatus().then(setUpdateInfo)
+    void Promise.allSettled([
+      refreshProviderDiagnostics(),
+      refreshTelemetrySettings(),
+      window.api.getAppVersion().then(setAppVersion),
+      window.api.getUpdateStatus().then(setUpdateInfo),
+    ]).then(() => setInitialLoading(false))
     if (typeof telemetryApi.trackUiEvent === "function") {
       void telemetryApi.trackUiEvent("settings_opened").catch(() => undefined)
     }
@@ -427,9 +437,9 @@ export function SettingsPage() {
             }
           >
             {settingsRefreshLoading ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={14} aria-hidden="true" className="animate-spin" />
             ) : (
-              <RefreshCw size={14} />
+              <RefreshCw size={14} aria-hidden="true" />
             )}
             Refresh status
           </Button>
@@ -437,6 +447,7 @@ export function SettingsPage() {
       />
 
       <SettingsProviderStatusStrip
+        initialLoading={initialLoading}
         badgeVariant={currentProviderVerdict.badgeVariant}
         badgeLabel={currentProviderVerdict.badgeLabel}
         title={currentProviderVerdict.title}
@@ -507,6 +518,7 @@ export function SettingsPage() {
             telemetryChecked={telemetryChecked}
             telemetryDisabled={telemetryDisabled}
             telemetryHint={telemetryHint}
+            saving={telemetryConsentSaving}
             onCheckedChange={(enabled) => {
               void updateTelemetryConsent(enabled)
             }}
@@ -522,6 +534,7 @@ export function SettingsPage() {
               appVersion={appVersion}
               updateInfo={updateInfo}
               updateChecking={updateChecking}
+              updateInstalling={updateInstalling}
               onCheckForUpdate={() => void handleCheckForUpdate()}
               onInstallUpdate={handleInstallUpdate}
             />

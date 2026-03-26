@@ -78,19 +78,19 @@ describe("project-factory-state", () => {
       projectPath: projectDir,
       factoryId: "factory:content-engine",
       artifactId: artifact!.id,
-      templateId: "content-draft-post",
+      templateId: "content-post-drafter",
     })
 
     expect(first.plannedCases).toHaveLength(2)
     expect(first.plannedCases[0]?.title).toBe("OpenAI agents week")
     expect(first.plannedCases[0]?.scheduledFor).toBe("2026-04-01")
-    expect(first.plannedCases[0]?.templateId).toBe("content-draft-post")
+    expect(first.plannedCases[0]?.templateId).toBe("content-post-drafter")
 
     const second = await spawnFactoryCasesFromArtifact({
       projectPath: projectDir,
       factoryId: "factory:content-engine",
       artifactId: artifact!.id,
-      templateId: "content-draft-post",
+      templateId: "content-post-drafter",
     })
 
     expect(second.plannedCases).toHaveLength(0)

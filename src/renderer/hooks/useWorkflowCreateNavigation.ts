@@ -12,6 +12,7 @@ import {
   workflowCreateDraftPromptAtom,
   workflowCreateSourceArtifactsAtom,
   workflowCreateSourceAttachmentsAtom,
+  workflowEntryStateAtom,
   type MainView,
   type ViewMode,
 } from "@/lib/store"
@@ -45,6 +46,7 @@ interface ApplyWorkflowCreateNavigationParams {
   setWorkflowCreateDraftPrompt: (next: string) => void
   setWorkflowCreateSourceArtifacts: (next: ArtifactRecord[]) => void
   setWorkflowCreateSourceAttachments: (next: InputAttachment[]) => void
+  setWorkflowEntryState: (next: null) => void
   clearReviewState: () => void
 }
 
@@ -59,6 +61,7 @@ export function applyWorkflowCreateNavigationState({
   setWorkflowCreateDraftPrompt,
   setWorkflowCreateSourceArtifacts,
   setWorkflowCreateSourceAttachments,
+  setWorkflowEntryState,
   clearReviewState,
 }: ApplyWorkflowCreateNavigationParams): void {
   const projectPath = Object.prototype.hasOwnProperty.call(
@@ -79,6 +82,7 @@ export function applyWorkflowCreateNavigationState({
   setWorkflowCreateDraftPrompt(options.prompt ?? "")
   setWorkflowCreateSourceArtifacts(options.sourceArtifacts ?? [])
   setWorkflowCreateSourceAttachments(options.initialAttachments ?? [])
+  setWorkflowEntryState(null)
   clearReviewState()
   // Clear current workflow so chat shows empty state for new flow creation
   setSelectedWorkflowPath(null)
@@ -104,6 +108,7 @@ export function useWorkflowCreateNavigation() {
     workflowCreateSourceAttachmentsAtom,
   )
   const setChatPendingRoutingPrompt = useSetAtom(chatPendingRoutingPromptAtom)
+  const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
 
   const openWorkflowCreate = useCallback(
     (options: OpenWorkflowCreateOptions = {}) => {
@@ -131,6 +136,7 @@ export function useWorkflowCreateNavigation() {
         setSelectedWorkflowPath(null)
         setSelectedInboxTaskKey(null)
         setSelectedPastRun(null)
+        setWorkflowEntryState(null)
         setChatPendingRoutingPrompt(options.prompt)
         setMainView("thread")
         setViewMode("chat")
@@ -148,6 +154,7 @@ export function useWorkflowCreateNavigation() {
         setWorkflowCreateDraftPrompt,
         setWorkflowCreateSourceArtifacts,
         setWorkflowCreateSourceAttachments,
+        setWorkflowEntryState,
         clearReviewState: () => {
           setSelectedInboxTaskKey(null)
           setSelectedPastRun(null)
@@ -167,6 +174,7 @@ export function useWorkflowCreateNavigation() {
       setWorkflowCreateDraftPrompt,
       setWorkflowCreateSourceArtifacts,
       setWorkflowCreateSourceAttachments,
+      setWorkflowEntryState,
     ],
   )
 

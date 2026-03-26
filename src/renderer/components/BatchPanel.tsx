@@ -317,7 +317,7 @@ export function BatchPanel() {
             {isDone && !batchSummary && (
               <div
                 role="status"
-                className="rounded-md border border-hairline bg-surface-2/70 px-3 py-2 ui-meta-text text-muted-foreground"
+                className="ui-inset-well ui-meta-text text-muted-foreground"
               >
                 Batch completed, but summary is unavailable.
               </div>
@@ -541,7 +541,7 @@ function BatchItemList({
           >
             <button
               type="button"
-              className="w-full flex items-center gap-2 px-3 py-1.5 ui-meta-text hover:bg-surface-2/50 ui-pressable text-left"
+              className="w-full flex items-center gap-2 px-3 py-1.5 ui-meta-text hover:bg-surface-1 ui-pressable text-left"
               onClick={() =>
                 setExpandedIndex(isExpanded ? null : item.input_index)
               }
@@ -599,13 +599,13 @@ function BatchItemList({
             </button>
             <div className="ui-collapsible" data-open={String(isExpanded)}>
               <div className="ui-collapsible-inner">
-                <div className="px-3 pb-2 space-y-1.5 border-t border-hairline bg-surface-2/50">
+                <div className="px-3 pb-2 space-y-1.5 border-t border-hairline bg-surface-1">
                   {inputs?.[item.input_index] && (
                     <div className="pt-1.5">
                       <div className="ui-meta-label text-muted-foreground mb-0.5">
                         Input
                       </div>
-                      <pre className="ui-meta-text font-mono bg-surface-3/50 border border-hairline rounded px-2 py-1 max-h-20 overflow-y-auto whitespace-pre-wrap">
+                      <pre className="ui-meta-text font-mono bg-surface-2 border border-hairline rounded px-2 py-1 max-h-20 overflow-y-auto whitespace-pre-wrap">
                         {inputs[item.input_index]}
                       </pre>
                     </div>
@@ -615,7 +615,7 @@ function BatchItemList({
                       <div className="ui-meta-label text-muted-foreground mb-0.5">
                         Output
                       </div>
-                      <pre className="ui-meta-text font-mono bg-surface-3/50 border border-hairline rounded px-2 py-1 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                      <pre className="ui-meta-text font-mono bg-surface-2 border border-hairline rounded px-2 py-1 max-h-32 overflow-y-auto whitespace-pre-wrap">
                         {item.output}
                       </pre>
                     </div>

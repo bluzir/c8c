@@ -45,6 +45,7 @@ vi.mock("./provider-runtime", () => ({
   resolveNodeProviderId: vi.fn(),
   resolveWorkflowProviderId: vi.fn(),
   startProviderTask: vi.fn(),
+  snapshotProviderSettings: vi.fn(),
 }))
 
 vi.mock("./skill-scanner", () => ({

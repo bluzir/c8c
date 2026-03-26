@@ -2,7 +2,7 @@ id: content-editorial-calendar
 stage: content
 stage_family: design
 recommended_next:
-  - content-draft-post
+  - content-post-drafter
 emoji: "\U0001F4C5"
 headline: Turn the idea backlog into a channel-aware editorial calendar
 how: Sequence the idea backlog into a calendar or publishing plan with spacing, coverage, and quality constraints.
@@ -19,7 +19,7 @@ pack:
   label: Content Lab
   journey_stage: plan
   recommended_next:
-    - content-draft-post
+    - content-post-drafter
 contract_in:
   - kind: idea_backlog
     title: Idea Backlog

@@ -38,6 +38,7 @@ interface CreateEntryRouteDecision {
   domainMode?: string
   reason?: string
   confidence?: number
+  suggestedTitle?: string
 }
 
 interface CreateEntryClarificationDecision {
@@ -256,6 +257,11 @@ function validateAgentDecision(
         )
     : []
 
+  const suggestedTitle =
+    "suggestedTitle" in decision
+      ? normalize(decision.suggestedTitle)
+      : undefined
+
   const normalizedDecision = {
     recommendedTemplateId,
     alternateTemplateIds,
@@ -263,6 +269,7 @@ function validateAgentDecision(
     reason: normalize(decision.reason),
     confidence:
       typeof decision.confidence === "number" ? decision.confidence : undefined,
+    suggestedTitle: suggestedTitle || undefined,
   }
 
   const clarification =
@@ -338,7 +345,7 @@ function buildRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous between distinct job entries inside that intent.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|marketing|courses|research","reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|marketing|courses|research","reason":"one sentence","confidence":0.0,"suggestedTitle":"short descriptive name for this task (2-6 words)"}',
     "",
     "Clarification output schema:",
     '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"development|content|marketing|courses|research","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
@@ -397,7 +404,7 @@ function buildContentRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"content","reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"content","reason":"one sentence","confidence":0.0,"suggestedTitle":"short descriptive name for this task (2-6 words)"}',
     "",
     "Clarification output schema:",
     '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"content","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
@@ -449,7 +456,7 @@ function buildResearchRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"research","reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"research","reason":"one sentence","confidence":0.0,"suggestedTitle":"short descriptive name for this task (2-6 words)"}',
     "",
     "Clarification output schema:",
     '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"research","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
@@ -502,7 +509,7 @@ function buildMarketingRouterPrompt(
     "- If helpModeHint is already present, avoid clarification unless the request is still ambiguous.",
     "",
     "Route output schema:",
-    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"marketing","reason":"one sentence","confidence":0.0}',
+    '{"kind":"route","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"marketing","reason":"one sentence","confidence":0.0,"suggestedTitle":"short descriptive name for this task (2-6 words)"}',
     "",
     "Clarification output schema:",
     '{"kind":"clarification","recommendedTemplateId":"string","alternateTemplateIds":["string"],"domainMode":"marketing","reason":"one sentence","confidence":0.0,"clarification":{"kind":"help_mode|job_route","title":"string","message":"string","options":[{"value":"string","label":"string","description":"string","disabled":false,"templateId":"string"}]}}',
@@ -711,5 +718,6 @@ export async function routeCreateEntry(
     confidence: agentDecision.confidence ?? 0.8,
     source: "agent",
     clarification: null,
+    suggestedTitle: agentDecision.suggestedTitle || null,
   }
 }

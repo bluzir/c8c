@@ -23,6 +23,7 @@ import type {
   ArtifactRecord,
   BatchSummary,
   ChatMessage,
+  CreateEntryRouteClarification,
   Workflow,
   DiscoveredSkill,
   InputAttachment,
@@ -267,9 +268,12 @@ export const chatFlowInputRequestAtom = atom<string | null>(null)
  * in flight. Cleared when routing completes or is aborted.
  */
 export interface ChatRoutingProgress {
-  phase: "inspecting" | "opening"
+  phase: "inspecting" | "opening" | "clarifying" | "error"
+  userRequest?: string | null
   templateName?: string | null
   templateDescription?: string | null
+  clarification?: CreateEntryRouteClarification | null
+  errorMessage?: string | null
 }
 export const chatRoutingProgressAtom = atom<ChatRoutingProgress | null>(null)
 

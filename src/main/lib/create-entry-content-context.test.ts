@@ -58,7 +58,7 @@ describe("create-entry-content-context", () => {
           id: "artifact:2",
           kind: "draft",
           title: "Claude launch post",
-          templateId: "content-draft-post",
+          templateId: "content-post-drafter",
           createdAt: 3_000,
         }),
         createArtifact({
@@ -81,7 +81,7 @@ describe("create-entry-content-context", () => {
     ])
     expect(context.templatesRun).toEqual([
       "content-trend-watch",
-      "content-draft-post",
+      "content-post-drafter",
     ])
     expect(context.availableTools).toEqual(["web_search", "exa"])
   })
@@ -92,7 +92,7 @@ describe("create-entry-content-context", () => {
         createArtifact({
           kind: "draft",
           title: "Claude launch post",
-          templateId: "content-draft-post",
+          templateId: "content-post-drafter",
           createdAt: 3_000,
         }),
       ],
@@ -105,14 +105,14 @@ describe("create-entry-content-context", () => {
       listRecordedTemplateIds: async () => [
         "delivery-plan-phase",
         "content-trend-watch",
-        "content-draft-post",
+        "content-post-drafter",
       ],
       webSearchBackend: "builtin",
       now: () => 5_000,
     })
 
     expect(context.templatesRun).toEqual([
-      "content-draft-post",
+      "content-post-drafter",
       "content-trend-watch",
     ])
     expect(context.availableTools).toEqual(["web_search", "exa"])

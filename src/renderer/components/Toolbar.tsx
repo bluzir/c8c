@@ -736,7 +736,7 @@ export function Toolbar({
               )}
               {shellDetail ? (
                 <span
-                  className="ui-meta-text hidden max-w-[220px] truncate tabular-nums whitespace-nowrap text-muted-foreground sm:inline"
+                  className="ui-meta-text hidden max-w-56 truncate tabular-nums whitespace-nowrap text-muted-foreground sm:inline"
                   title={shellDetail}
                 >
                   {shellDetail}

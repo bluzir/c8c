@@ -89,8 +89,8 @@ const developmentOptions: CreateEntryRouteOption[] = [
 
 const contentOptions: CreateEntryRouteOption[] = [
   {
-    templateId: "content-draft-post",
-    label: "Draft a post",
+    templateId: "content-post-drafter",
+    label: "Draft posts",
     intentLabel: "Do it",
   },
   {
@@ -98,11 +98,6 @@ const contentOptions: CreateEntryRouteOption[] = [
     label: "Build content strategy",
     intentLabel: "Do it / Plan it",
     intentValues: ["do", "plan"],
-  },
-  {
-    templateId: "content-post-calendar",
-    label: "Plan content calendar",
-    intentLabel: "Plan it",
   },
 ]
 
@@ -356,7 +351,7 @@ describe("routeCreateEntry agent-first", () => {
       JSON.stringify({
         kind: "route",
         recommendedTemplateId: "content-pipeline",
-        alternateTemplateIds: ["content-draft-post"],
+        alternateTemplateIds: ["content-post-drafter"],
         reason: "This request needs a strategy-level start.",
         confidence: 0.81,
       }),
@@ -365,7 +360,7 @@ describe("routeCreateEntry agent-first", () => {
     const route = await routeCreateEntry(
       createInput({
         modeId: "content",
-        fallbackTemplateId: "content-draft-post",
+        fallbackTemplateId: "content-post-drafter",
         draftPrompt: "собери контент-стратегию для нового лендинга",
         requestedResult: "собери контент-стратегию для нового лендинга",
         helpModeHint: "do",

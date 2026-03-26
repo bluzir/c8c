@@ -103,6 +103,7 @@ module.exports = {
         "body-xs": ["0.75rem", { lineHeight: "1rem" }],
         "body-sm": ["0.8125rem", { lineHeight: "1.125rem" }],
         "body-md": ["0.875rem", { lineHeight: "1.25rem" }],
+        "body-lg": ["0.9375rem", { lineHeight: "1.5rem" }],
         "title-sm": ["1rem", { lineHeight: "1.375rem", fontWeight: "600" }],
         "title-md": ["1.125rem", { lineHeight: "1.5rem", fontWeight: "600" }],
         "sidebar-meta": ["0.625rem", { lineHeight: "0.875rem" }],

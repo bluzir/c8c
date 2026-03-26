@@ -22,7 +22,7 @@ describe("StepRow", () => {
   })
 
   it("shows running indicator for running status", () => {
-    render(
+    const { container } = render(
       <StepRow
         name="Drafting report"
         status="running"
@@ -31,7 +31,7 @@ describe("StepRow", () => {
       />,
     )
 
-    expect(screen.getByTestId("step-status-beacon")).toBeTruthy()
+    expect(container.querySelector(".ui-status-beacon")).toBeTruthy()
   })
 
   it("calls onToggle on click", async () => {
@@ -47,7 +47,7 @@ describe("StepRow", () => {
       />,
     )
 
-    await user.click(screen.getByLabelText("Step: Analyze data"))
+    await user.click(screen.getByText("Analyze data"))
     expect(onToggle).toHaveBeenCalledTimes(1)
   })
 
@@ -117,7 +117,7 @@ describe("StepRow", () => {
   })
 
   it("shows correct status icon for failed status", () => {
-    render(
+    const { container } = render(
       <StepRow
         name="Broken step"
         status="failed"
@@ -126,11 +126,12 @@ describe("StepRow", () => {
       />,
     )
 
-    expect(screen.getByTestId("step-status-failed")).toBeTruthy()
+    // XCircle icon renders with text-status-danger class
+    expect(container.querySelector(".text-status-danger")).toBeTruthy()
   })
 
   it("shows correct status icon for blocked status", () => {
-    render(
+    const { container } = render(
       <StepRow
         name="Blocked step"
         status="blocked"
@@ -139,6 +140,7 @@ describe("StepRow", () => {
       />,
     )
 
-    expect(screen.getByTestId("step-status-blocked")).toBeTruthy()
+    // Clock icon renders with text-status-warning class
+    expect(container.querySelector(".text-status-warning")).toBeTruthy()
   })
 })

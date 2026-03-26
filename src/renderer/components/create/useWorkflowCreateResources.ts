@@ -30,7 +30,9 @@ export function useWorkflowCreateResources({
 
     void (async () => {
       try {
-        const templates = await window.api.listTemplates()
+        const templates = await window.api.listTemplates(
+          targetProjectPath ?? undefined,
+        )
         let popular: WorkflowTemplate[] = []
 
         if (targetProjectPath) {

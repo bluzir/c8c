@@ -45,13 +45,13 @@ export function TemplateDetailPanel({
     <aside className="w-full lg:w-[22rem] lg:max-h-[calc(100vh-var(--titlebar-height)-6rem)] lg:self-start lg:sticky lg:top-0 flex-shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface-1 flex flex-col">
       <header className="border-b border-border px-4 py-4">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 text-xl leading-none" aria-hidden>
+          <span className="mt-0.5 text-xl leading-none" aria-hidden="true">
             {template.emoji}
           </span>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-body-md font-semibold text-foreground">
+              <h3 className="text-title-sm text-foreground">
                 {entry.jobLabel}
               </h3>
               {entry.entryKind === "guided" ? (

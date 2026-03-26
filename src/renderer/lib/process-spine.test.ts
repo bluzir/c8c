@@ -124,20 +124,7 @@ describe("process-spine", () => {
     expect(
       deriveProcessSpineStageId(
         createTemplate({
-          id: "content-post-calendar",
-          pack: {
-            id: "content-factory-alpha",
-            label: "Content Lab",
-            journeyStage: "plan",
-          },
-        }),
-      ),
-    ).toBe("plan")
-
-    expect(
-      deriveProcessSpineStageId(
-        createTemplate({
-          id: "content-draft-post",
+          id: "content-post-drafter",
           pack: {
             id: "content-factory-alpha",
             label: "Content Lab",

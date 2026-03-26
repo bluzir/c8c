@@ -126,12 +126,16 @@ export function SkillDetailPanel({
       <header className="border-b border-border px-4 py-4">
         <div className="flex items-start gap-3">
           <div className="flex h-control-lg w-control-lg shrink-0 items-center justify-center rounded-lg bg-surface-2">
-            <Wrench size={16} className="text-muted-foreground" />
+            <Wrench
+              size={16}
+              className="text-muted-foreground"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-title-lg">{skill.name}</h2>
+              <h2 className="text-title-sm">{skill.name}</h2>
               <Badge variant="outline" size="compact">
                 {skill.type}
               </Badge>
@@ -168,7 +172,11 @@ export function SkillDetailPanel({
                   key={label}
                   className="flex items-center gap-2 text-body-sm"
                 >
-                  <Icon size={14} className="text-muted-foreground shrink-0" />
+                  <Icon
+                    size={14}
+                    className="text-muted-foreground shrink-0"
+                    aria-hidden="true"
+                  />
                   <span className="ui-meta-label">{label}:</span>
                   <span className="text-body-sm text-foreground font-medium">
                     {value}
@@ -183,6 +191,7 @@ export function SkillDetailPanel({
               <Wrench
                 size={14}
                 className="text-muted-foreground shrink-0 mt-0.5"
+                aria-hidden="true"
               />
               <div>
                 <span className="ui-meta-label">Tools:</span>
@@ -207,7 +216,11 @@ export function SkillDetailPanel({
       <div className="border-b border-border px-4 py-3">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-body-sm">
-            <FileText size={14} className="text-muted-foreground shrink-0" />
+            <FileText
+              size={14}
+              className="text-muted-foreground shrink-0"
+              aria-hidden="true"
+            />
             <span className="ui-meta-label">File:</span>
             <button
               type="button"
@@ -223,11 +236,16 @@ export function SkillDetailPanel({
             sourceKind === "user") && (
             <div className="flex items-center gap-2 text-body-sm">
               {sourceKind === "plugin" ? (
-                <Package size={14} className="text-muted-foreground shrink-0" />
+                <Package
+                  size={14}
+                  className="text-muted-foreground shrink-0"
+                  aria-hidden="true"
+                />
               ) : (
                 <FolderOpen
                   size={14}
                   className="text-muted-foreground shrink-0"
+                  aria-hidden="true"
                 />
               )}
               <span className="ui-meta-label">Source:</span>
@@ -242,7 +260,11 @@ export function SkillDetailPanel({
       <div className="min-h-0 flex-1 overflow-y-auto ui-scroll-region px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 size={18} className="mr-2 animate-spin" />
+            <Loader2
+              size={18}
+              className="mr-2 animate-spin"
+              aria-hidden="true"
+            />
             Loading skill details...
           </div>
         ) : error ? (

@@ -60,6 +60,7 @@ interface SidebarWorkflowDialogsProps {
   ) => Promise<void>
   pendingRemoveProject: string | null
   setPendingRemoveProject: (projectPath: string | null) => void
+  pendingRemoveProjectFlowCount: number
   removingSelectedDirtyProject: boolean
   commitRemoveProject: () => Promise<void>
   openProjectFlow: (projectPath: string) => void
@@ -87,6 +88,7 @@ export function SidebarWorkflowDialogs({
   copyWorkflowToProject,
   pendingRemoveProject,
   setPendingRemoveProject,
+  pendingRemoveProjectFlowCount,
   removingSelectedDirtyProject,
   commitRemoveProject,
   openProjectFlow,
@@ -153,7 +155,7 @@ export function SidebarWorkflowDialogs({
                   setSidebarContextMenu(null)
                 }}
               >
-                Open run folder
+                Show output files
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -219,7 +221,7 @@ export function SidebarWorkflowDialogs({
                   setSidebarContextMenu(null)
                 }}
               >
-                Open run folder
+                Show output files
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -230,7 +232,7 @@ export function SidebarWorkflowDialogs({
                 setSidebarContextMenu(null)
               }}
             >
-              Delete global flow
+              Delete flow
             </DropdownMenuItem>
           </>
         )}
@@ -295,11 +297,18 @@ export function SidebarWorkflowDialogs({
           if (!open) setPendingRemoveProject(null)
         }}
         title="Remove project"
-        description={
-          removingSelectedDirtyProject
-            ? `Remove "${pendingRemoveProject ? projectFolderName(pendingRemoveProject) : "project"}" from Projects? This will discard unsaved flow changes. Files on disk will not be deleted.`
-            : `Remove "${pendingRemoveProject ? projectFolderName(pendingRemoveProject) : "project"}" from Projects? This will not delete files on disk.`
-        }
+        description={(() => {
+          const name = pendingRemoveProject
+            ? projectFolderName(pendingRemoveProject)
+            : "project"
+          const flowNote =
+            pendingRemoveProjectFlowCount > 0
+              ? ` (${pendingRemoveProjectFlowCount} flow${pendingRemoveProjectFlowCount === 1 ? "" : "s"})`
+              : ""
+          return removingSelectedDirtyProject
+            ? `Remove "${name}"${flowNote} from Projects? This will discard unsaved flow changes. Files on disk will not be deleted.`
+            : `Remove "${name}"${flowNote} from Projects? This will not delete files on disk.`
+        })()}
         confirmLabel="Remove"
         onConfirm={() => void commitRemoveProject()}
       />

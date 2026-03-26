@@ -45,8 +45,7 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
     "content-trend-watch",
     "content-idea-backlog",
     "content-editorial-calendar",
-    "content-post-calendar",
-    "content-draft-post",
+    "content-post-drafter",
     "content-ready-posts",
     "content-distribution-bundle",
     "content-qa-review",
@@ -81,10 +80,10 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       intentLabel: "Plan it",
     },
     {
-      templateId: "content-draft-post",
-      label: "Draft a post",
+      templateId: "content-post-drafter",
+      label: "Draft posts",
       summary:
-        "Turn a topic or calendar slot into a channel-ready draft with voice control.",
+        "Split a source document into topics and draft one post per topic, merged into a single file.",
       intentLabel: "Do it",
     },
     {
@@ -112,17 +111,10 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
       intentLabel: "Plan it",
     },
     {
-      templateId: "content-post-calendar",
-      label: "Plan content calendar",
+      templateId: "content-post-drafter",
+      label: "Draft posts",
       summary:
-        "Turn current themes into a concrete publishing plan before drafting starts.",
-      intentLabel: "Plan it",
-    },
-    {
-      templateId: "content-draft-post",
-      label: "Draft a post",
-      summary:
-        "Turn a topic or calendar slot into a channel-ready draft with voice control.",
+        "Split a source document into topics and draft one post per topic, merged into a single file.",
       intentLabel: "Do it",
     },
     {
@@ -166,8 +158,7 @@ export const contentDomain: Omit<DomainDefinition, "scoreTemplate"> = {
   // Spine
   templateStageOverrides: {
     "content-trend-watch": "shape_map",
-    "content-post-calendar": "plan",
-    "content-draft-post": "implement",
+    "content-post-drafter": "implement",
     "content-qa-review": "verify",
     "content-ready-posts": "ship",
     "content-repurposing-factory": "implement",

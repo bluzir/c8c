@@ -96,9 +96,9 @@ describe("result-modes", () => {
   it("prioritizes high-confidence content matches first", () => {
     const templates = [
       createTemplate({
-        id: "content-draft-post",
+        id: "content-post-drafter",
         stage: "content",
-        name: "Draft Post",
+        name: "Post Drafter",
       }),
       createTemplate({
         id: "content-ready-posts",
@@ -115,7 +115,7 @@ describe("result-modes", () => {
       prioritizeTemplatesForResultMode(templates, "content").map(
         (template) => template.id,
       ),
-    ).toEqual(["content-ready-posts", "content-draft-post"])
+    ).toEqual(["content-ready-posts", "content-post-drafter"])
   })
 
   it("falls back to development for unknown mode ids", () => {
@@ -148,10 +148,9 @@ describe("result-modes", () => {
     const templates = [
       createTemplate({ id: "content-trend-watch", name: "Watch trends" }),
       createTemplate({
-        id: "content-post-calendar",
-        name: "Plan content calendar",
+        id: "content-post-drafter",
+        name: "Draft posts",
       }),
-      createTemplate({ id: "content-draft-post", name: "Draft a post" }),
       createTemplate({
         id: "content-qa-review",
         name: "Review content quality",
@@ -180,7 +179,7 @@ describe("result-modes", () => {
       ),
     ).toEqual([
       "content-trend-watch",
-      "content-draft-post",
+      "content-post-drafter",
       "content-qa-review",
       "content-pipeline",
     ])
@@ -191,8 +190,7 @@ describe("result-modes", () => {
       ),
     ).toEqual([
       "content-trend-watch",
-      "content-post-calendar",
-      "content-draft-post",
+      "content-post-drafter",
       "content-qa-review",
       "content-pipeline",
       "content-repurposing-factory",

@@ -150,30 +150,26 @@ export function FlowDecisionMessage({
     <div className="space-y-4">
       {/* Header: flow name + tone badge */}
       <div className="flex items-center gap-2">
-        <span className="ui-meta-text text-muted-foreground truncate">
-          {flowName}
-        </span>
+        <span className="ui-meta-label truncate">{flowName}</span>
         {toneBadge}
       </div>
 
       {/* Summary */}
-      <p className="text-[15px] leading-relaxed text-foreground-subtle">
-        {data.summary}
-      </p>
+      <p className="text-body-lg text-foreground-subtle">{data.summary}</p>
 
       {/* RESULT + ISSUES slab */}
       {hasResultOrIssues && (
         <div className="ui-slab space-y-1 py-2">
           {data.resultFacts.length > 0 && (
             <div>
-              <p className="ui-meta-text font-medium text-muted-foreground uppercase tracking-wide mb-0.5">
+              <p className="ui-meta-label uppercase tracking-wide mb-0.5">
                 Result
               </p>
               <ul className="space-y-0.5">
                 {data.resultFacts.map((fact, i) => (
                   <li
                     key={i}
-                    className="text-[15px] leading-relaxed text-foreground-subtle flex items-start gap-1.5"
+                    className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                     {fact}
@@ -184,14 +180,14 @@ export function FlowDecisionMessage({
           )}
           {data.issues.length > 0 && (
             <div>
-              <p className="ui-meta-text font-medium text-muted-foreground uppercase tracking-wide mb-0.5">
+              <p className="ui-meta-label uppercase tracking-wide mb-0.5">
                 Issues
               </p>
               <ul className="space-y-0.5">
                 {data.issues.map((issue, i) => (
                   <li
                     key={i}
-                    className="text-[15px] leading-relaxed text-status-warning flex items-start gap-1.5"
+                    className="text-body-lg text-status-warning flex items-start gap-1.5"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-status-warning/60" />
                     {issue}

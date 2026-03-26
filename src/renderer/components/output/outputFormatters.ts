@@ -50,6 +50,22 @@ export function formatDuration(ms: number): string {
   return `${mins}m ${secs}s`
 }
 
+/**
+ * Compact elapsed time from an epoch start timestamp.
+ * Returns e.g. "12s", "2m", "1h 3m".
+ */
+export function formatElapsedCompact(
+  startedAt: number,
+  now = Date.now(),
+): string {
+  const s = Math.max(0, Math.round((now - startedAt) / 1000))
+  if (s < 60) return `${s}s`
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  return `${h}h ${m % 60}m`
+}
+
 export function formatTimestamp(ts: number): string {
   return new Date(ts).toLocaleTimeString(undefined, {
     hour: "2-digit",

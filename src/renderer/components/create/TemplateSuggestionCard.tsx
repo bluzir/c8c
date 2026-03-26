@@ -29,7 +29,7 @@ export function TemplateSuggestionCard({
       onClick={() => onSelect(template)}
       className="h-auto w-full !items-start gap-3 rounded-xl px-2 py-2 text-left !whitespace-normal ui-transition-colors ui-motion-fast hover:bg-surface-2/45"
     >
-      <span className="mt-0.5 text-base leading-none" aria-hidden>
+      <span className="mt-0.5 text-base leading-none" aria-hidden="true">
         {template.emoji}
       </span>
       <div className="min-w-0 flex-1 space-y-1">
@@ -43,7 +43,7 @@ export function TemplateSuggestionCard({
         <p className="text-body-sm font-medium text-foreground">
           {title || getWorkflowTemplateDisplayName(template)}
         </p>
-        <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
+        <p className="line-clamp-2 text-body-sm text-muted-foreground">
           {summary || template.headline || deriveTemplateCardCopy(template)}
         </p>
       </div>

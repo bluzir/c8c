@@ -95,7 +95,7 @@ export function FinalResultSection({
         onClick={onRunNextStage}
         disabled={artifactPersistenceStatus === "saving" || nextStagePending}
       >
-        <ArrowRight size={12} />
+        <ArrowRight size={12} aria-hidden="true" />
         {nextStagePending ? "Opening..." : `Continue to ${nextStageLabel}`}
       </Button>,
     )

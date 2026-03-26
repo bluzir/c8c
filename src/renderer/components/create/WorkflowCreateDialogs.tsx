@@ -173,10 +173,10 @@ export function WorkflowCreatePendingTemplateDialog({
                   deriveTemplateJobLabel(pendingTemplate) ||
                   pendingTemplate.name
                 }`
-              : "Start this starting point"}
+              : "Start this flow"}
           </DialogTitle>
           <DialogDescription>
-            Choose how to open this starting point in your project.
+            Choose how to open this flow in your project.
           </DialogDescription>
         </CanvasDialogHeader>
         <CanvasDialogBody className="space-y-4">
@@ -215,9 +215,13 @@ export function WorkflowCreatePendingTemplateDialog({
                 disabled={openingProject}
               >
                 {openingProject ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2
+                    size={14}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <FolderPlus size={14} />
+                  <FolderPlus size={14} aria-hidden="true" />
                 )}
                 Add project
               </Button>

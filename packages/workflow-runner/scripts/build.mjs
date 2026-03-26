@@ -28,7 +28,7 @@ await build({
     schema: "./src/schema.ts",
     "provider-metadata": "./src/provider-metadata.ts",
   },
-  external: ["electron"],
+  external: ["electron", "yaml"],
   format: "esm",
   outdir: distDir,
   platform: "node",

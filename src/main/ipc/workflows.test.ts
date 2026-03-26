@@ -59,6 +59,25 @@ vi.mock("../lib/security-paths", () => ({
   assertWithinRoots: (...args: unknown[]) => assertWithinRootsMock(...args),
 }))
 
+vi.mock("../lib/workflow-runner", () => ({
+  hasActiveRuns: vi.fn(() => false),
+}))
+
+vi.mock("../lib/fs-utils", () => ({
+  pathExists: vi.fn(async () => false),
+}))
+
+vi.mock("node:fs/promises", async () => {
+  const actual =
+    await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises")
+  return {
+    ...actual,
+    open: vi.fn(async () => ({
+      close: vi.fn(async () => undefined),
+    })),
+  }
+})
+
 describe("workflows IPC", () => {
   beforeEach(() => {
     vi.clearAllMocks()

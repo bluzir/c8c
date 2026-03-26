@@ -154,6 +154,7 @@ function McpServerRow({
         >
           <ChevronRight
             size={12}
+            aria-hidden="true"
             className={cn("ui-chevron", expanded && "rotate-90")}
           />
         </IconActionButton>
@@ -189,9 +190,9 @@ function McpServerRow({
             )}
           >
             {testState.result.healthy ? (
-              <Check size={12} />
+              <Check size={12} aria-hidden="true" />
             ) : (
-              <AlertCircle size={12} />
+              <AlertCircle size={12} aria-hidden="true" />
             )}
             {testState.result.healthy ? "Healthy" : "Failed"}
           </span>
@@ -207,9 +208,9 @@ function McpServerRow({
             title="Test connection"
           >
             {testState.loading ? (
-              <Loader2 size={12} className="animate-spin" />
+              <Loader2 size={12} aria-hidden="true" className="animate-spin" />
             ) : (
-              <Activity size={12} />
+              <Activity size={12} aria-hidden="true" />
             )}
           </IconActionButton>
           <IconActionButton
@@ -217,7 +218,7 @@ function McpServerRow({
             label={`Edit ${server.name}`}
             title="Edit"
           >
-            <Pencil size={12} />
+            <Pencil size={12} aria-hidden="true" />
           </IconActionButton>
           <IconActionButton
             onClick={() => onRemove(server)}
@@ -225,7 +226,7 @@ function McpServerRow({
             title="Remove"
             className="ui-icon-button-danger"
           >
-            <Trash2 size={12} />
+            <Trash2 size={12} aria-hidden="true" />
           </IconActionButton>
         </div>
 
@@ -615,7 +616,9 @@ function McpServerFormDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving && (
+              <Loader2 size={14} aria-hidden="true" className="animate-spin" />
+            )}
             {isEdit ? "Save" : "Add Server"}
           </Button>
         </DialogFooter>
@@ -660,6 +663,7 @@ function ServerGroupSection({
       >
         <ChevronRight
           size={12}
+          aria-hidden="true"
           className={cn(
             "ui-chevron text-muted-foreground",
             groupOpen && "rotate-90",
@@ -757,6 +761,7 @@ function PluginMcpServerRow({
         >
           <ChevronRight
             size={12}
+            aria-hidden="true"
             className={cn("ui-chevron", expanded && "rotate-90")}
           />
         </IconActionButton>
@@ -999,7 +1004,7 @@ export function McpServersSection({
         meta={
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="sm" onClick={handleAdd}>
-              <Plus size={14} />
+              <Plus size={14} aria-hidden="true" />
               Add Server
             </Button>
             <Button
@@ -1009,9 +1014,13 @@ export function McpServersSection({
               disabled={loading}
             >
               {loading ? (
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2
+                  size={14}
+                  aria-hidden="true"
+                  className="animate-spin"
+                />
               ) : (
-                <RefreshCw size={14} />
+                <RefreshCw size={14} aria-hidden="true" />
               )}
               Refresh
             </Button>
@@ -1038,7 +1047,11 @@ export function McpServersSection({
 
         {!hasAnyServers && !loading && (
           <div className="ui-empty-state-box py-6 text-center">
-            <Server size={24} className="mx-auto text-muted-foreground" />
+            <Server
+              size={24}
+              aria-hidden="true"
+              className="mx-auto text-muted-foreground"
+            />
             <p className="mt-2 text-body-sm text-muted-foreground">
               No MCP servers configured. Add a server to extend the active
               provider with external tools.
@@ -1051,7 +1064,11 @@ export function McpServersSection({
 
         {loading && !hasAnyServers && (
           <div className="ui-slab flex items-center justify-center gap-2 py-6">
-            <Loader2 size={14} className="animate-spin text-muted-foreground" />
+            <Loader2
+              size={14}
+              aria-hidden="true"
+              className="animate-spin text-muted-foreground"
+            />
             <span className="text-body-sm text-muted-foreground">
               Loading servers...
             </span>

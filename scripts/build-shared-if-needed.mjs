@@ -22,6 +22,12 @@ const packages = [
     inputs: ["src", "package.json", "tsconfig.json"],
     output: "dist",
   },
+  {
+    workspace: "@c8c/workflow-runner",
+    packageRoot: join(repoRoot, "packages/workflow-runner"),
+    inputs: ["src", "scripts", "package.json", "tsconfig.json"],
+    output: "dist",
+  },
 ]
 
 async function pathExists(path) {

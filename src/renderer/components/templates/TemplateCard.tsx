@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/cn"
 import type { WorkflowTemplate } from "@/lib/store"
 import { deriveTemplateCardCopy } from "@/lib/workflow-entry"
 import {
@@ -26,18 +27,17 @@ export function TemplateCard({
       variant="ghost"
       size="bare"
       onClick={() => onSelect(template)}
-      className={`w-full !items-start !justify-start gap-3 rounded-lg border border-hairline bg-transparent p-4 text-left !whitespace-normal ui-transition-colors ui-motion-fast ${
-        isSelected
-          ? "border-transparent bg-surface-2/70 text-foreground"
-          : "text-foreground hover:bg-surface-2/35"
-      }`}
+      className={cn(
+        "ui-interactive-card-subtle w-full !items-start !justify-start gap-3 rounded-lg p-4 text-left !whitespace-normal",
+        isSelected && "ui-selected-row-tint",
+      )}
     >
-      <span className="text-xl flex-shrink-0 mt-0.5" aria-hidden>
+      <span className="text-xl flex-shrink-0 mt-0.5" aria-hidden="true">
         {template.emoji}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-body-md font-semibold">{entry.jobLabel}</h3>
+          <h3 className="text-title-sm">{entry.jobLabel}</h3>
           {entry.entryKind === "guided" ? (
             <Badge variant="outline" size="compact">
               Guided

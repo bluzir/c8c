@@ -227,12 +227,7 @@ export function ArtifactInspectPanel({
             {error}
           </div>
         ) : content ? (
-          <div
-            className={cn(
-              "max-h-[min(420px,50vh)] overflow-y-auto ui-slab px-4 py-4",
-              "prose-c8c",
-            )}
-          >
+          <div className="max-h-[min(420px,50vh)] overflow-y-auto ui-slab prose-c8c">
             <ReactMarkdown {...ARTIFACT_MARKDOWN_PROPS}>
               {content}
             </ReactMarkdown>

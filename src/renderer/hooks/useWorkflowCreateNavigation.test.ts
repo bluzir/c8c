@@ -16,6 +16,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     const setWorkflowCreateDraftPrompt = vi.fn()
     const setWorkflowCreateSourceArtifacts = vi.fn()
     const setWorkflowCreateSourceAttachments = vi.fn()
+    const setWorkflowEntryState = vi.fn()
     const clearReviewState = vi.fn()
 
     applyWorkflowCreateNavigationState({
@@ -34,6 +35,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       setWorkflowCreateDraftPrompt,
       setWorkflowCreateSourceArtifacts,
       setWorkflowCreateSourceAttachments,
+      setWorkflowEntryState,
       clearReviewState,
     })
 
@@ -68,6 +70,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     const setWorkflowCreateDraftPrompt = vi.fn()
     const setWorkflowCreateSourceArtifacts = vi.fn()
     const setWorkflowCreateSourceAttachments = vi.fn()
+    const setWorkflowEntryState = vi.fn()
     const clearReviewState = vi.fn()
 
     applyWorkflowCreateNavigationState({
@@ -84,6 +87,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       setWorkflowCreateDraftPrompt,
       setWorkflowCreateSourceArtifacts,
       setWorkflowCreateSourceAttachments,
+      setWorkflowEntryState,
       clearReviewState,
     })
 

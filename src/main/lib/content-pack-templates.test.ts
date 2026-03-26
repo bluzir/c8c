@@ -5,10 +5,9 @@ import { validateWorkflow } from "./graph-engine"
 describe("content pack templates", () => {
   const targetIds = [
     "content-trend-watch",
-    "content-post-calendar",
+    "content-post-drafter",
     "content-idea-backlog",
     "content-editorial-calendar",
-    "content-draft-post",
     "content-qa-review",
     "content-distribution-bundle",
     "content-ready-posts",
@@ -35,11 +34,8 @@ describe("content pack templates", () => {
     const trendWatch = getBuiltinTemplates().find(
       (template) => template.id === "content-trend-watch",
     )
-    const postCalendar = getBuiltinTemplates().find(
-      (template) => template.id === "content-post-calendar",
-    )
-    const draftPost = getBuiltinTemplates().find(
-      (template) => template.id === "content-draft-post",
+    const postDrafter = getBuiltinTemplates().find(
+      (template) => template.id === "content-post-drafter",
     )
     const qaReview = getBuiltinTemplates().find(
       (template) => template.id === "content-qa-review",
@@ -49,9 +45,8 @@ describe("content pack templates", () => {
     )
 
     expect(trendWatch?.pack?.entrypoint).toBe(true)
-    expect(trendWatch?.pack?.recommendedNext).toEqual(["content-post-calendar"])
-    expect(postCalendar?.pack?.recommendedNext).toEqual(["content-draft-post"])
-    expect(draftPost?.pack?.recommendedNext).toEqual(["content-qa-review"])
+    expect(trendWatch?.pack?.recommendedNext).toEqual(["content-post-drafter"])
+    expect(postDrafter?.pack?.recommendedNext).toEqual(["content-qa-review"])
     expect(qaReview?.pack?.recommendedNext).toEqual(["content-ready-posts"])
     expect(readyPosts?.recommendedNext).toEqual([])
     expect(readyPosts?.stageFamily).toBe("deliver")

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useAtom } from "jotai"
 import { useAtomValue, useSetAtom } from "jotai"
 import { ChatMessageBubble } from "./ChatMessageBubble"
@@ -7,333 +7,146 @@ import { FlowCompleteMessage } from "./FlowCompleteMessage"
 import { FlowErrorMessage } from "./FlowErrorMessage"
 import { FlowStartMessage } from "./FlowStartMessage"
 import { FlowProgressMessage } from "./FlowProgressMessage"
-import { FlowRoutingMessage } from "./FlowRoutingMessage"
+import {
+  FlowRoutingMessage,
+  type ClarificationSelection,
+} from "./FlowRoutingMessage"
 import { cn } from "@/lib/cn"
 import { ArrowDown } from "lucide-react"
+import type { TimelineEntry } from "@/hooks/useFlowChatTimeline"
+
+const FIVE_MINUTES_MS = 5 * 60 * 1000
+
+function getEntryTimestamp(entry: TimelineEntry): number {
+  return entry.kind === "flow"
+    ? entry.message.timestamp
+    : entry.message.timestamp
+}
+
+function formatTimeGap(ts: number): string {
+  const d = new Date(ts)
+  const now = new Date()
+  const isToday =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  if (isToday) {
+    return d.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
 import {
   chatFlowInputRequestAtom,
+  chatRoutingProgressAtom,
   chatScrollTopByWorkflowAtom,
-  currentWorkflowAtom,
-  mainViewAtom,
-  queuedFollowUpTemplateIdAtom,
-  routeAlternativesOpenAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
-  templateLibraryContextAtom,
-  workflowEntryStateAtom,
-  chatRoutingProgressAtom,
   type ChatMessageDisplay,
 } from "@/lib/store"
 import {
-  currentFlowChatMessagesAtom,
   resolvedDecisionIdsAtom,
   resolveFlowChatDecisionAtom,
 } from "@/features/execution/flow-chat-state"
-import {
-  selectedWorkflowExecutionAtom,
-  workflowHistoryRunsAtom,
-} from "@/features/execution/state"
-import { buildCompleteMessage } from "@/lib/flow-chat-transformer"
-import type { FlowChatMessage, FlowFollowUp } from "@/lib/flow-chat-types"
-
-type TimelineEntry =
-  | { kind: "chat"; message: ChatMessageDisplay }
-  | { kind: "flow"; message: FlowChatMessage }
+import type { FlowFollowUp } from "@/lib/flow-chat-types"
+import { useFlowChatTimeline } from "@/hooks/useFlowChatTimeline"
 
 interface ChatMessagesProps {
   messages: ChatMessageDisplay[]
   status: "idle" | "thinking" | "streaming" | "error"
+  onSelectClarification?: (selection: ClarificationSelection) => void
+  onFollowUp?: (followUp: FlowFollowUp) => void
+  routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
+  pendingRouteAlternativeId?: string | null
+  onSelectRouteAlternative?: (templateId: string) => void
 }
 
-export function ChatMessages({ messages, status }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  status,
+  onSelectClarification,
+  onFollowUp,
+  routeAlternatives,
+  pendingRouteAlternativeId,
+  onSelectRouteAlternative,
+}: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isNearBottomRef = useRef(true)
-  const [showScrollIndicator, setShowScrollIndicator] = useState(false)
+  const lastSeenCountRef = useRef(0)
+  const [scrollIndicator, setScrollIndicator] = useState<
+    "hidden" | "new" | "scroll"
+  >("hidden")
   const [selectedWorkflowPath] = useAtom(selectedWorkflowPathAtom)
   const [chatScrollTopByWorkflow, setChatScrollTopByWorkflow] = useAtom(
     chatScrollTopByWorkflowAtom,
   )
-  const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
   const resolvedIds = useAtomValue(resolvedDecisionIdsAtom)
   const resolveDecision = useSetAtom(resolveFlowChatDecisionAtom)
-  const workflow = useAtomValue(currentWorkflowAtom)
-  const entryState = useAtomValue(workflowEntryStateAtom)
-  const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
-  const executionState = useAtomValue(selectedWorkflowExecutionAtom)
-  const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
-  const setQueuedFollowUpTemplateId = useSetAtom(queuedFollowUpTemplateIdAtom)
-  const setMainView = useSetAtom(mainViewAtom)
-  const setTemplateLibraryContext = useSetAtom(templateLibraryContextAtom)
   const selectedProject = useAtomValue(selectedProjectAtom)
 
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
-  const setRouteAlternativesOpen = useSetAtom(routeAlternativesOpenAtom)
+  const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
+
+  const { timeline, flowMessages, entryState } = useFlowChatTimeline(messages)
+
   const handleRunFromRouting = useCallback(() => {
     setChatFlowInputRequest("run")
   }, [setChatFlowInputRequest])
-  const handleShowRouteAlternatives = useCallback(() => {
-    setRouteAlternativesOpen(true)
-  }, [setRouteAlternativesOpen])
+  const handleRetry = useCallback(() => {
+    setChatFlowInputRequest("run")
+  }, [setChatFlowInputRequest])
+  const handleRetryRouting = useCallback(() => {
+    setChatRoutingProgress(null)
+  }, [setChatRoutingProgress])
   const hasRouteAlternatives = Boolean(
-    selectedProject &&
-    entryState?.routing?.source === "agent" &&
-    entryState.routing.alternateTemplateIds?.length,
+    routeAlternatives && routeAlternatives.length > 0,
   )
-
-  const handleFollowUp = useCallback(
-    (followUp: FlowFollowUp) => {
-      if (!followUp.templateId) return
-      setQueuedFollowUpTemplateId(followUp.templateId)
-      setTemplateLibraryContext({
-        projectPath: selectedProject,
-        createOnly: Boolean(selectedProject),
-      })
-      setMainView("templates")
-    },
-    [
-      selectedProject,
-      setMainView,
-      setQueuedFollowUpTemplateId,
-      setTemplateLibraryContext,
-    ],
-  )
-
-  // Synthesize a Complete message for runs that finished before chat existed
-  const syntheticCompleteMessage = useMemo<FlowChatMessage | null>(() => {
-    if (flowMessages.length > 0) return null
-    if (executionState.runOutcome !== "completed") return null
-
-    const durationMs =
-      executionState.completedAt && executionState.runStartedAt
-        ? executionState.completedAt - executionState.runStartedAt
-        : 0
-    const costUsd = Object.values(executionState.nodeStates).reduce(
-      (sum, ns) => sum + (ns.metrics?.cost_usd ?? 0),
-      0,
-    )
-
-    const reportPath = executionState.reportPath
-
-    return buildCompleteMessage({
-      runId: executionState.runId ?? "past-run",
-      flowName: executionState.workflowName || workflow?.name || "Flow",
-      summary: "Flow completed.",
-      findings: [],
-      limitations: [],
-      artifacts: reportPath
-        ? [{ name: "report.md", path: reportPath, kind: "report" }]
-        : [],
-      followUps: [],
-      durationMs,
-      costUsd,
-    })
-  }, [
-    flowMessages.length,
-    executionState.runOutcome,
-    executionState.reportPath,
-    executionState.completedAt,
-    executionState.runStartedAt,
-    executionState.nodeStates,
-    executionState.runId,
-    executionState.workflowName,
-    workflow?.name,
-  ])
-
-  // Fallback: if no synthetic from execution state, try the latest past run
-  const latestPastRunMessage = useMemo<FlowChatMessage | null>(() => {
-    if (syntheticCompleteMessage) return null
-    if (flowMessages.length > 0) return null
-
-    const eligible = workflowHistoryRuns
-      .filter(
-        (r) =>
-          r.status === "completed" ||
-          r.status === "failed" ||
-          r.status === "cancelled",
-      )
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
-
-    const latest = eligible[0]
-    if (!latest) return null
-
-    const summary =
-      latest.status === "completed"
-        ? "Last run completed."
-        : latest.status === "failed"
-          ? "Last run failed."
-          : "Last run stopped."
-
-    return buildCompleteMessage({
-      runId: latest.runId,
-      flowName: latest.workflowName || workflow?.name || "Flow",
-      summary,
-      findings: [],
-      limitations: [],
-      artifacts: latest.reportPath
-        ? [{ name: "report.md", path: latest.reportPath, kind: "report" }]
-        : [],
-      followUps: [],
-      durationMs: latest.durationMs || 0,
-      costUsd: latest.totalCost || 0,
-    })
-  }, [
-    syntheticCompleteMessage,
-    flowMessages.length,
-    workflowHistoryRuns,
-    workflow?.name,
-  ])
-
-  const syntheticMessage = syntheticCompleteMessage ?? latestPastRunMessage
-
-  // Synthesize a routing message from workflowEntryState when template was
-  // routed. This surfaces the routing decision (selected starting point) as a
-  // native chat message so the user sees it in the timeline instead of only on
-  // the full-page entry state card.
-  const syntheticRoutingMessage = useMemo<FlowChatMessage | null>(() => {
-    if (!entryState) return null
-    // Only show for entry states tied to the currently selected workflow
-    if (
-      entryState.workflowPath &&
-      entryState.workflowPath !== selectedWorkflowPath
-    )
-      return null
-
-    const routingSteps: Array<{
-      label: string
-      status: "pending" | "running" | "done"
-    }> = [
-      { label: "Read your goal", status: "done" },
-      { label: "Inspect project context", status: "done" },
-      { label: `Open ${entryState.title || "starting point"}`, status: "done" },
-    ]
-
-    // Place the routing message just before the earliest flow message so it
-    // appears first in the timeline.
-    const firstFlowTs =
-      flowMessages.length > 0 ? flowMessages[0].timestamp : Date.now()
-    const routingTs = firstFlowTs - 1
-
-    return {
-      id: `routing-${entryState.workflowPath || "entry"}`,
-      flowName: entryState.workflowName || workflow?.name || "Flow",
-      timestamp: routingTs,
-      content: {
-        type: "routing" as const,
-        data: {
-          steps: routingSteps,
-          selectedTemplate: {
-            name: entryState.title,
-            description: entryState.summary,
-            estimatedCost: entryState.contractLabel || undefined,
-          },
-        },
-      },
-    }
-  }, [entryState, selectedWorkflowPath, flowMessages, workflow?.name])
-
-  // Live in-progress routing message driven by chatRoutingProgressAtom.
-  // Shown while useFlowRouting is actively routing (before a workflow exists).
-  const liveRoutingMessage = useMemo<FlowChatMessage | null>(() => {
-    if (!chatRoutingProgress) return null
-    // Don't show live progress if we already have the completed routing message
-    if (syntheticRoutingMessage) return null
-
-    const isOpening = chatRoutingProgress.phase === "opening"
-    const templateLabel =
-      chatRoutingProgress.templateName || "the best starting point"
-
-    const routingSteps: Array<{
-      label: string
-      status: "pending" | "running" | "done"
-    }> = [
-      { label: "Read your goal", status: "done" },
-      {
-        label: "Inspect project context",
-        status: isOpening ? "done" : "running",
-      },
-      {
-        label: isOpening
-          ? `Open ${templateLabel}`
-          : "Open the best starting point",
-        status: isOpening ? "running" : "pending",
-      },
-    ]
-
-    return {
-      id: "routing-live",
-      flowName: "Flow",
-      timestamp: Date.now(),
-      content: {
-        type: "routing" as const,
-        data: {
-          steps: routingSteps,
-          selectedTemplate:
-            isOpening && chatRoutingProgress.templateName
-              ? {
-                  name: chatRoutingProgress.templateName,
-                  description: chatRoutingProgress.templateDescription || "",
-                }
-              : undefined,
-        },
-      },
-    }
-  }, [chatRoutingProgress, syntheticRoutingMessage])
-
-  const timeline = useMemo<TimelineEntry[]>(() => {
-    const chatEntries: TimelineEntry[] = messages.map((m) => ({
-      kind: "chat",
-      message: m,
-    }))
-    const extraFlowMessages: FlowChatMessage[] = []
-    if (liveRoutingMessage) extraFlowMessages.push(liveRoutingMessage)
-    if (syntheticRoutingMessage) extraFlowMessages.push(syntheticRoutingMessage)
-    if (syntheticMessage) extraFlowMessages.push(syntheticMessage)
-    const allFlowMessages =
-      extraFlowMessages.length > 0
-        ? [...flowMessages, ...extraFlowMessages]
-        : flowMessages
-    const flowEntries: TimelineEntry[] = allFlowMessages.map((m) => ({
-      kind: "flow",
-      message: m,
-    }))
-    return [...chatEntries, ...flowEntries].sort((a, b) => {
-      const tsA = a.kind === "chat" ? a.message.timestamp : a.message.timestamp
-      const tsB = b.kind === "chat" ? b.message.timestamp : b.message.timestamp
-      return tsA - tsB
-    })
-  }, [
-    messages,
-    flowMessages,
-    liveRoutingMessage,
-    syntheticRoutingMessage,
-    syntheticMessage,
-  ])
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
 
+    let saveTimer: ReturnType<typeof setTimeout> | null = null
     const handleScroll = () => {
       const threshold = 80
       const nearBottom =
         el.scrollHeight - el.scrollTop - el.clientHeight < threshold
       isNearBottomRef.current = nearBottom
-      setShowScrollIndicator(!nearBottom)
+      if (nearBottom) {
+        lastSeenCountRef.current = timeline.length
+        setScrollIndicator("hidden")
+      }
+      // Debounce scroll position persistence (200ms)
       if (selectedWorkflowPath) {
-        setChatScrollTopByWorkflow((prev) => ({
-          ...prev,
-          [selectedWorkflowPath]: el.scrollTop,
-        }))
+        if (saveTimer) clearTimeout(saveTimer)
+        saveTimer = setTimeout(() => {
+          setChatScrollTopByWorkflow((prev) => ({
+            ...prev,
+            [selectedWorkflowPath]: el.scrollTop,
+          }))
+        }, 200)
       }
     }
 
     el.addEventListener("scroll", handleScroll)
-    return () => el.removeEventListener("scroll", handleScroll)
-  }, [selectedWorkflowPath, setChatScrollTopByWorkflow])
+    return () => {
+      el.removeEventListener("scroll", handleScroll)
+      if (saveTimer) clearTimeout(saveTimer)
+    }
+  }, [selectedWorkflowPath, setChatScrollTopByWorkflow, timeline.length])
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
+    lastSeenCountRef.current = timeline.length
+    setScrollIndicator("hidden")
     const savedScrollTop = selectedWorkflowPath
       ? chatScrollTopByWorkflow[selectedWorkflowPath]
       : null
@@ -353,18 +166,18 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     if (!el) return
     if (isNearBottomRef.current) {
       el.scrollTop = el.scrollHeight
+      lastSeenCountRef.current = timeline.length
       if (selectedWorkflowPath) {
         setChatScrollTopByWorkflow((prev) => ({
           ...prev,
           [selectedWorkflowPath]: el.scrollTop,
         }))
       }
-    } else if (messages.length > 0 || flowMessages.length > 0) {
-      setShowScrollIndicator(true)
+    } else if (timeline.length > lastSeenCountRef.current) {
+      setScrollIndicator("new")
     }
   }, [
-    messages,
-    flowMessages,
+    timeline.length,
     selectedWorkflowPath,
     setChatScrollTopByWorkflow,
     status,
@@ -378,7 +191,8 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
     const el = containerRef.current
     if (!el) return
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
-    setShowScrollIndicator(false)
+    lastSeenCountRef.current = timeline.length
+    setScrollIndicator("hidden")
   }
 
   return (
@@ -390,150 +204,142 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
       >
         <div className="max-w-3xl mx-auto w-full px-4 py-4 space-y-2">
           {timeline.map((entry, index) => {
+            // Time separator when gap > 5 minutes
+            const prevEntry = index > 0 ? timeline[index - 1] : null
+            const showTimeSep =
+              prevEntry != null &&
+              getEntryTimestamp(entry) - getEntryTimestamp(prevEntry) >
+                FIVE_MINUTES_MS
+            const timeSep = showTimeSep ? (
+              <div
+                key={`time-${index}`}
+                className="flex items-center gap-3 pt-3 pb-1"
+              >
+                <div className="flex-1 border-t border-hairline" />
+                <span className="ui-meta-text text-muted-foreground/50 shrink-0">
+                  {formatTimeGap(getEntryTimestamp(entry))}
+                </span>
+                <div className="flex-1 border-t border-hairline" />
+              </div>
+            ) : null
+
+            // Build the content element based on entry type
+            let content: React.ReactNode = null
+            let entryKey: string
+            let ptClass: string
+
             if (entry.kind === "flow") {
               const flowMsg = entry.message
+              entryKey = flowMsg.id
+              ptClass = "pt-4"
               if (flowMsg.content.type === "start") {
-                return (
-                  <div
-                    key={flowMsg.id}
-                    className={cn(
-                      "chat-message-enter pt-6",
-                      index === 0 && "pt-0",
-                    )}
-                  >
-                    <FlowStartMessage
-                      flowName={flowMsg.flowName}
-                      data={flowMsg.content.data}
-                    />
-                  </div>
+                content = (
+                  <FlowStartMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                  />
+                )
+              } else if (flowMsg.content.type === "progress") {
+                content = <FlowProgressMessage data={flowMsg.content.data} />
+              } else if (flowMsg.content.type === "complete") {
+                content = (
+                  <FlowCompleteMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                    onFollowUp={onFollowUp}
+                    onOpenReport={(path) => window.api.openPath(path)}
+                  />
+                )
+              } else if (flowMsg.content.type === "error") {
+                content = (
+                  <FlowErrorMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                    onRetry={handleRetry}
+                  />
+                )
+              } else if (flowMsg.content.type === "decision") {
+                content = (
+                  <FlowDecisionMessage
+                    flowName={flowMsg.flowName}
+                    data={flowMsg.content.data}
+                    resolved={resolvedIds.has(flowMsg.id)}
+                    onResolved={() => resolveDecision(flowMsg.id)}
+                  />
+                )
+              } else if (flowMsg.content.type === "routing") {
+                content = (
+                  <FlowRoutingMessage
+                    data={flowMsg.content.data}
+                    onRun={
+                      entryState?.awaitingInput
+                        ? undefined
+                        : handleRunFromRouting
+                    }
+                    alternatives={
+                      hasRouteAlternatives ? routeAlternatives : undefined
+                    }
+                    pendingAlternativeId={pendingRouteAlternativeId}
+                    onSelectAlternative={onSelectRouteAlternative}
+                    onSelectClarification={onSelectClarification}
+                    onRetryRouting={
+                      flowMsg.content.data.error
+                        ? handleRetryRouting
+                        : undefined
+                    }
+                  />
                 )
               }
-              if (flowMsg.content.type === "progress") {
-                return (
-                  <div
-                    key={flowMsg.id}
-                    className={cn(
-                      "chat-message-enter pt-6",
-                      index === 0 && "pt-0",
-                    )}
-                  >
-                    <FlowProgressMessage data={flowMsg.content.data} />
-                  </div>
-                )
-              }
-              if (flowMsg.content.type === "complete") {
-                return (
-                  <div
-                    key={flowMsg.id}
-                    className={cn(
-                      "chat-message-enter pt-6",
-                      index === 0 && "pt-0",
-                    )}
-                  >
-                    <FlowCompleteMessage
-                      flowName={flowMsg.flowName}
-                      data={flowMsg.content.data}
-                      onFollowUp={handleFollowUp}
-                      onOpenReport={(path) => window.api.openPath(path)}
-                    />
-                  </div>
-                )
-              }
-              if (flowMsg.content.type === "error") {
-                return (
-                  <div
-                    key={flowMsg.id}
-                    className={cn(
-                      "chat-message-enter pt-6",
-                      index === 0 && "pt-0",
-                    )}
-                  >
-                    <FlowErrorMessage
-                      flowName={flowMsg.flowName}
-                      data={flowMsg.content.data}
-                    />
-                  </div>
-                )
-              }
-              if (flowMsg.content.type === "decision") {
-                return (
-                  <div
-                    key={flowMsg.id}
-                    className={cn(
-                      "chat-message-enter pt-6",
-                      index === 0 && "pt-0",
-                    )}
-                  >
-                    <FlowDecisionMessage
-                      flowName={flowMsg.flowName}
-                      data={flowMsg.content.data}
-                      resolved={resolvedIds.has(flowMsg.id)}
-                      onResolved={() => resolveDecision(flowMsg.id)}
-                    />
-                  </div>
-                )
-              }
-              if (flowMsg.content.type === "routing") {
-                return (
-                  <div
-                    key={flowMsg.id}
-                    className={cn(
-                      "chat-message-enter pt-6",
-                      index === 0 && "pt-0",
-                    )}
-                  >
-                    <FlowRoutingMessage
-                      data={flowMsg.content.data}
-                      onRun={handleRunFromRouting}
-                      onShowAlternatives={
-                        hasRouteAlternatives
-                          ? handleShowRouteAlternatives
-                          : undefined
-                      }
-                    />
-                  </div>
-                )
-              }
-              return null
+              if (!content) return null
+            } else {
+              const msg = entry.message
+              entryKey = msg.id
+              const prevChatEntry = timeline[index - 1]
+              const nextChatEntry = timeline[index + 1]
+              const prevChat =
+                prevChatEntry?.kind === "chat"
+                  ? prevChatEntry.message
+                  : undefined
+              const nextChat =
+                nextChatEntry?.kind === "chat"
+                  ? nextChatEntry.message
+                  : undefined
+              const isTurnMessage =
+                msg.role === "user" || msg.role === "assistant"
+              const groupedWithPrevious = Boolean(
+                isTurnMessage && prevChat && prevChat.role === msg.role,
+              )
+              const groupedWithNext = Boolean(
+                isTurnMessage && nextChat && nextChat.role === msg.role,
+              )
+              ptClass = groupedWithPrevious ? "pt-1.5" : "pt-4"
+              content = (
+                <ChatMessageBubble
+                  message={msg}
+                  groupedWithPrevious={groupedWithPrevious && !showTimeSep}
+                  groupedWithNext={groupedWithNext}
+                />
+              )
             }
-
-            const msg = entry.message
-            const prevEntry = timeline[index - 1]
-            const nextEntry = timeline[index + 1]
-            const prev =
-              prevEntry?.kind === "chat" ? prevEntry.message : undefined
-            const next =
-              nextEntry?.kind === "chat" ? nextEntry.message : undefined
-            const isTurnMessage =
-              msg.role === "user" || msg.role === "assistant"
-            const groupedWithPrevious = Boolean(
-              isTurnMessage && prev && prev.role === msg.role,
-            )
-            const groupedWithNext = Boolean(
-              isTurnMessage && next && next.role === msg.role,
-            )
 
             return (
               <div
-                key={msg.id}
+                key={entryKey}
                 className={cn(
                   "chat-message-enter",
-                  groupedWithPrevious ? "pt-1" : "pt-6",
+                  showTimeSep ? "" : ptClass,
                   index === 0 && "pt-0",
                 )}
               >
-                <ChatMessageBubble
-                  message={msg}
-                  groupedWithPrevious={groupedWithPrevious}
-                  groupedWithNext={groupedWithNext}
-                />
+                {timeSep}
+                {content}
               </div>
             )
           })}
         </div>
       </div>
       <div
-        data-visible={showScrollIndicator ? "true" : "false"}
+        data-visible={scrollIndicator !== "hidden" ? "true" : "false"}
         className="ui-inline-presence absolute bottom-3 left-1/2 z-10 -translate-x-1/2"
       >
         <button
@@ -542,7 +348,7 @@ export function ChatMessages({ messages, status }: ChatMessagesProps) {
           className="ui-pressable ui-surface-lift inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface-2/70 px-3 py-1 ui-meta-text text-muted-foreground"
         >
           <ArrowDown size={11} />
-          New messages
+          {scrollIndicator === "new" ? "New messages" : "Scroll to bottom"}
         </button>
       </div>
     </div>

@@ -522,7 +522,7 @@ export function SkillsPage() {
                 : "Select a project first to create a skill."
             }
           >
-            <Plus size={14} />
+            <Plus size={14} aria-hidden="true" />
             New skill
           </Button>
         }

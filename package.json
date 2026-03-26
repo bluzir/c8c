@@ -1,6 +1,6 @@
 {
   "name": "c8c",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -46,7 +46,6 @@
     "@anthropic-ai/claude-agent-sdk": "^0.2.45",
     "@c8c/workflow-runner": "workspace:*",
     "@claude-tools/mcp-search-proxy": "workspace:*",
-    "@claude-tools/runner": "workspace:*",
     "@mcpc-tech/acp-ai-provider": "^0.2.8",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -164,6 +163,9 @@
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "notarize": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",

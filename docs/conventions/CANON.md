@@ -409,8 +409,7 @@ Each domain maintains its own registry of router destinations.
 | Job entry              | Internal template             | When router selects it                                       |
 | ---------------------- | ----------------------------- | ------------------------------------------------------------ |
 | Watch trends           | `content-trend-watch`         | Needs evidence base before planning                          |
-| Plan content calendar  | `content-post-calendar`       | Has trends/context, needs a publishing plan                  |
-| Draft a post           | `content-draft-post`          | Has a specific topic or calendar slot, needs a draft         |
+| Draft posts            | `content-post-drafter`        | Has a source document, needs post drafts — one per topic     |
 | Review content quality | `content-qa-review`           | Has a draft, needs quality/tone/slop check                   |
 | Build content strategy | `content-pipeline`            | Needs full strategy from product brief → marketing outputs   |
 | Repurpose content      | `content-repurposing-factory` | Has existing material, needs it in different formats         |

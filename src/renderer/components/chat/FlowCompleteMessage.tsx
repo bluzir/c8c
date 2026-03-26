@@ -1,3 +1,4 @@
+import { CheckCircle2 } from "lucide-react"
 import { FlowResultCard, AllFilesButton } from "./FlowResultCard"
 import { FlowFollowUpList } from "./FlowFollowUpList"
 import type { CompleteContent, FlowFollowUp } from "@/lib/flow-chat-types"
@@ -18,42 +19,44 @@ export function FlowCompleteMessage({
   return (
     <div className="space-y-4">
       {/* Header — flow name as meta label */}
-      <p className="ui-meta-label text-muted-foreground">{flowName}</p>
+      <p className="ui-meta-label">{flowName}</p>
 
       {/* Summary */}
-      <p className="text-[15px] leading-relaxed text-foreground">
-        {data.summary}
-      </p>
+      <p className="text-body-lg text-foreground">{data.summary}</p>
 
       {/* Findings */}
       {data.findings.length > 0 && (
         <div>
-          <p className="ui-meta-label text-muted-foreground">What's inside</p>
+          <p className="ui-meta-label">What's inside</p>
           <ul className="mt-1 space-y-0.5">
             {data.findings.map((finding, i) => (
               <li
                 key={i}
-                className="text-[15px] leading-relaxed text-foreground"
+                className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
               >
-                • {finding}
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
+                {finding}
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Limitations — colored label, no background box */}
+      {/* Limitations */}
       {data.limitations.length > 0 && (
         <div>
           <p className="ui-meta-label text-status-warning">Limitations</p>
-          {data.limitations.map((limit, i) => (
-            <p
-              key={i}
-              className="mt-1 text-[15px] leading-relaxed text-foreground"
-            >
-              {limit}
-            </p>
-          ))}
+          <ul className="mt-1 space-y-0.5">
+            {data.limitations.map((limit, i) => (
+              <li
+                key={i}
+                className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
+              >
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
+                {limit}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -69,13 +72,22 @@ export function FlowCompleteMessage({
               onClick={() => onOpenReport?.(artifact.path)}
             />
           ))}
-          <AllFilesButton />
+          <AllFilesButton
+            onClick={() => {
+              const dir = data.artifacts[0]?.path?.replace(/\/[^/]+$/, "")
+              if (dir) onOpenReport?.(dir)
+            }}
+          />
         </div>
       )}
 
       {/* Metrics — single status signal for completion */}
-      <div className="flex items-center gap-2 ui-section-divider pt-2">
-        <span className="text-status-success">✓</span>
+      <div className="flex items-center gap-2 ui-section-divider">
+        <CheckCircle2
+          size={14}
+          className="text-status-success shrink-0"
+          aria-hidden="true"
+        />
         <span className="ui-meta-text text-muted-foreground">
           Completed · {data.metrics.duration} · {data.metrics.cost}
         </span>

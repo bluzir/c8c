@@ -16,6 +16,7 @@ export interface PromptComposerProps extends Omit<
   footerClassName?: string
   header?: React.ReactNode
   footer?: React.ReactNode
+  toolbar?: React.ReactNode
   action?: React.ReactNode
 }
 
@@ -32,6 +33,7 @@ export const PromptComposer = React.forwardRef<
       footerClassName,
       header,
       footer,
+      toolbar,
       action,
       maxHeight = 240,
       ...props
@@ -54,7 +56,8 @@ export const PromptComposer = React.forwardRef<
             ref={forwardedRef}
             maxHeight={maxHeight}
             className={cn(
-              "w-full min-h-28 resize-none border-0 bg-transparent px-5 pb-5 pt-4 pr-20 shadow-none hover:border-transparent hover:bg-transparent",
+              "w-full min-h-28 resize-none border-0 bg-transparent px-5 pt-4 pr-20 shadow-none hover:border-transparent hover:bg-transparent",
+              toolbar ? "pb-14" : "pb-5",
               header && "pt-3",
               "text-body-md leading-7 text-foreground placeholder:text-muted-foreground/74",
               "focus-visible:border-transparent focus-visible:ring-transparent",
@@ -62,6 +65,9 @@ export const PromptComposer = React.forwardRef<
               textareaClassName,
             )}
           />
+          {toolbar ? (
+            <div className="absolute bottom-3 left-3">{toolbar}</div>
+          ) : null}
           {action ? (
             <div className="absolute bottom-3 right-3">{action}</div>
           ) : null}

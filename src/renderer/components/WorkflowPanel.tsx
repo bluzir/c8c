@@ -862,7 +862,7 @@ export function WorkflowPanel() {
             ? routeAlternativeCatalogTemplates
             : packTemplates.length > 0
               ? packTemplates
-              : await window.api.listTemplates()
+              : await window.api.listTemplates(selectedProject)
         const nextTemplate =
           availableTemplates.find((template) => template.id === templateId) ||
           null
@@ -1097,7 +1097,17 @@ export function WorkflowPanel() {
           />
         ) : viewMode === "chat" ? (
           <SectionErrorBoundary sectionName="Flow chat">
-            <ChatPanel embedded onClose={() => setViewMode("list")} />
+            <ChatPanel
+              embedded
+              onClose={() => setViewMode("list")}
+              routeAlternatives={
+                canShowRouteAlternatives ? routeAlternativeOptions : undefined
+              }
+              pendingRouteAlternativeId={pendingRouteAlternativeTemplateId}
+              onSelectRouteAlternative={(templateId) => {
+                void handleSelectRouteAlternative(templateId)
+              }}
+            />
           </SectionErrorBoundary>
         ) : (
           <>

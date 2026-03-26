@@ -227,7 +227,7 @@ export function RuntimeNodeCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-1.5">
-              <div className="truncate ui-meta-label text-muted-foreground">
+              <div className="truncate ui-meta-label">
                 {`Step ${index + 1}`}
               </div>
               {runtimeStatusDotStyle.ring ? (
@@ -309,7 +309,7 @@ export function RuntimeNodeCard({
                 {getRuntimeRoleMonogram(runtimePresentation.title)}
               </span>
             ) : (
-              <Icon size={17} className="flex-shrink-0" />
+              <Icon size={17} className="shrink-0" aria-hidden="true" />
             )}
           </div>
 
@@ -369,7 +369,7 @@ export function RuntimeNodeCard({
         <div className="min-h-0 overflow-hidden">
           {runtimeBranchSummary?.previews?.length ? (
             <div className="space-y-1.5">
-              <div className="ui-meta-label text-muted-foreground">
+              <div className="ui-meta-label">
                 {node.type === "splitter" ? "Branches" : "Branch focus"}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -395,7 +395,7 @@ export function RuntimeNodeCard({
                     title={preview.detail || preview.label}
                   >
                     <span className="truncate">{preview.label}</span>
-                    <span className="opacity-70">
+                    <span className="text-muted-foreground">
                       {getPreviewStatusLabel(preview.status)}
                     </span>
                   </Badge>
@@ -430,7 +430,7 @@ export function RuntimeNodeCard({
             >
               {footerLabel}
             </div>
-            <span className="shrink-0 ui-meta-text text-muted-foreground transition-colors group-hover:text-foreground">
+            <span className="shrink-0 ui-meta-text text-muted-foreground ui-transition-colors group-hover:text-foreground">
               Inspect
             </span>
           </div>

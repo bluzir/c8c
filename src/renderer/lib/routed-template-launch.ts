@@ -95,9 +95,10 @@ export async function prepareRoutedTemplateLaunch({
       templateId: templateForWorkflowUse.id,
     },
   )
+  const workflowName = routeResult.suggestedTitle || templateForWorkflowUse.name
   const filePath = await window.api.createWorkflow(
     projectPath,
-    templateForWorkflowUse.name,
+    workflowName,
     nextWorkflow,
   )
   void window.api

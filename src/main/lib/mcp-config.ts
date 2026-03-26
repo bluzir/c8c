@@ -380,7 +380,13 @@ export async function prepareWorkspaceMcpConfig(
   )
   if (!config) return undefined
   await writeFileAtomic(workspaceMcpPath, JSON.stringify(config, null, 2))
-  mcpConfigCache.set(resolve(workspaceMcpPath), config)
+  const resolvedWs = resolve(workspaceMcpPath)
+  mcpConfigCache.set(resolvedWs, config)
+  try {
+    mcpConfigMtimes.set(resolvedWs, (await stat(workspaceMcpPath)).mtimeMs)
+  } catch {
+    // stat may fail if the file was immediately removed; cache still valid
+  }
   return workspaceMcpPath
 }
 
@@ -396,11 +402,18 @@ export async function prepareTemporaryMcpConfig(
   const tempDir = await mkdtemp(join(tmpdir(), "c8c-mcp-"))
   const mcpPath = join(tempDir, ".mcp.json")
   await writeFileAtomic(mcpPath, JSON.stringify(config, null, 2))
-  mcpConfigCache.set(resolve(mcpPath), config)
+  const resolvedTmp = resolve(mcpPath)
+  mcpConfigCache.set(resolvedTmp, config)
+  try {
+    mcpConfigMtimes.set(resolvedTmp, (await stat(mcpPath)).mtimeMs)
+  } catch {
+    // stat may fail if the file was immediately removed; cache still valid
+  }
   return {
     path: mcpPath,
     cleanup: async () => {
-      mcpConfigCache.delete(resolve(mcpPath))
+      mcpConfigCache.delete(resolvedTmp)
+      mcpConfigMtimes.delete(resolvedTmp)
       await rm(tempDir, { recursive: true, force: true })
     },
   }
