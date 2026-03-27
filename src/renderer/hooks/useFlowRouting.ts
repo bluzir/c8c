@@ -23,6 +23,7 @@ import {
   workflowQueuedAutoRunPathAtom,
   workflowSavedSnapshotAtom,
   workflowsAtom,
+  projectWorkflowsCacheAtom,
   selectedInboxTaskKeyAtom,
   setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowRequestedResultForKeyAtom,
@@ -151,6 +152,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
   const setSelectedProject = useSetAtom(selectedProjectAtom)
   const setSelectedResultModeId = useSetAtom(selectedResultModeIdAtom)
   const setWorkflows = useSetAtom(workflowsAtom)
+  const setProjectWorkflowsCache = useSetAtom(projectWorkflowsCacheAtom)
   const setSelectedWorkflowPath = useSetAtom(selectedWorkflowPathAtom)
   const setWorkflow = useSetAtom(currentWorkflowAtom)
   const setWorkflowSavedSnapshot = useSetAtom(workflowSavedSnapshotAtom)
@@ -241,6 +243,10 @@ export function useFlowRouting(): UseFlowRoutingReturn {
 
       setSelectedProject(projectPath)
       setWorkflows(refreshedWorkflows)
+      setProjectWorkflowsCache((prev) => ({
+        ...prev,
+        [projectPath]: refreshedWorkflows,
+      }))
       setSelectedWorkflowPath(filePath)
       setWorkflow(loadedWorkflow)
       setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
@@ -292,6 +298,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       setMainView,
       setPendingCreateEntry,
       setPendingCreateMessage,
+      setProjectWorkflowsCache,
       setQueuedAutoRunPath,
       setSelectedInboxTaskKey,
       setSelectedPastRun,

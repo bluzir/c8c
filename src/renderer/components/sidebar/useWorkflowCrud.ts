@@ -364,14 +364,16 @@ export function useWorkflowCrud({
 
       setMainView("thread")
       setViewMode("chat")
-      setWorkflows((prev) => [
-        {
-          name: loadedWorkflow.name || workflowNameFromPath,
-          path: filePath,
-          updatedAt: Date.now(),
-        },
+      const newEntry: WorkflowFile = {
+        name: loadedWorkflow.name || workflowNameFromPath,
+        path: filePath,
+        updatedAt: Date.now(),
+      }
+      setWorkflows((prev) => [newEntry, ...prev])
+      setProjectWorkflowsCache((prev) => ({
         ...prev,
-      ])
+        [projectPath]: [newEntry, ...(prev[projectPath] || [])],
+      }))
       applyLoadedWorkflow(
         filePath,
         loadedWorkflow,
@@ -538,6 +540,10 @@ export function useWorkflowCrud({
       try {
         const refreshed = await window.api.listProjectWorkflows(selectedProject)
         setWorkflows(refreshed)
+        setProjectWorkflowsCache((prev) => ({
+          ...prev,
+          [selectedProject]: refreshed,
+        }))
       } catch (error) {
         toastErrorFromCatch("Flow renamed but sidebar refresh failed", error)
       }
