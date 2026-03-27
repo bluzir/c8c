@@ -2,6 +2,7 @@ import { useCallback } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import {
   chatPendingRoutingPromptAtom,
+  chatRoutingProgressAtom,
   mainViewAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
@@ -48,6 +49,7 @@ interface ApplyWorkflowCreateNavigationParams {
   setWorkflowCreateSourceAttachments: (next: InputAttachment[]) => void
   setWorkflowEntryState: (next: null) => void
   clearReviewState: () => void
+  clearRoutingProgress: () => void
 }
 
 export function applyWorkflowCreateNavigationState({
@@ -63,7 +65,10 @@ export function applyWorkflowCreateNavigationState({
   setWorkflowCreateSourceAttachments,
   setWorkflowEntryState,
   clearReviewState,
+  clearRoutingProgress,
 }: ApplyWorkflowCreateNavigationParams): void {
+  clearRoutingProgress()
+
   const projectPath = Object.prototype.hasOwnProperty.call(
     options,
     "projectPath",
@@ -108,6 +113,7 @@ export function useWorkflowCreateNavigation() {
     workflowCreateSourceAttachmentsAtom,
   )
   const setChatPendingRoutingPrompt = useSetAtom(chatPendingRoutingPromptAtom)
+  const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
 
   const openWorkflowCreate = useCallback(
@@ -123,6 +129,7 @@ export function useWorkflowCreateNavigation() {
           ? (options.projectPath ?? null)
           : (selectedProject ?? null)
 
+        setChatRoutingProgress(null)
         if (options.modeId) {
           setSelectedResultModeId(options.modeId)
         }
@@ -159,11 +166,13 @@ export function useWorkflowCreateNavigation() {
           setSelectedInboxTaskKey(null)
           setSelectedPastRun(null)
         },
+        clearRoutingProgress: () => setChatRoutingProgress(null),
       })
     },
     [
       selectedProject,
       setChatPendingRoutingPrompt,
+      setChatRoutingProgress,
       setMainView,
       setSelectedWorkflowPath,
       setSelectedInboxTaskKey,

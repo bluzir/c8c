@@ -18,6 +18,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     const setWorkflowCreateSourceAttachments = vi.fn()
     const setWorkflowEntryState = vi.fn()
     const clearReviewState = vi.fn()
+    const clearRoutingProgress = vi.fn()
 
     applyWorkflowCreateNavigationState({
       options: {
@@ -37,6 +38,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       setWorkflowCreateSourceAttachments,
       setWorkflowEntryState,
       clearReviewState,
+      clearRoutingProgress,
     })
 
     expect(setSelectedResultModeId).toHaveBeenCalledWith("builder")
@@ -54,6 +56,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       sourceAttachments,
     )
     expect(clearReviewState).toHaveBeenCalledTimes(1)
+    expect(clearRoutingProgress).toHaveBeenCalledTimes(1)
     expect(setMainView).toHaveBeenCalledWith("thread")
     expect(setViewMode).toHaveBeenCalledWith("chat")
     expect(clearReviewState.mock.invocationCallOrder[0]).toBeLessThan(
@@ -72,6 +75,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     const setWorkflowCreateSourceAttachments = vi.fn()
     const setWorkflowEntryState = vi.fn()
     const clearReviewState = vi.fn()
+    const clearRoutingProgress = vi.fn()
 
     applyWorkflowCreateNavigationState({
       options: {
@@ -89,6 +93,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
       setWorkflowCreateSourceAttachments,
       setWorkflowEntryState,
       clearReviewState,
+      clearRoutingProgress,
     })
 
     expect(setSelectedResultModeId).not.toHaveBeenCalled()
@@ -100,6 +105,7 @@ describe("useWorkflowCreateNavigation helpers", () => {
     expect(setWorkflowCreateSourceArtifacts).toHaveBeenCalledWith([])
     expect(setWorkflowCreateSourceAttachments).toHaveBeenCalledWith([])
     expect(clearReviewState).toHaveBeenCalledTimes(1)
+    expect(clearRoutingProgress).toHaveBeenCalledTimes(1)
     expect(setMainView).toHaveBeenCalledWith("thread")
     expect(setViewMode).toHaveBeenCalledWith("chat")
   })
