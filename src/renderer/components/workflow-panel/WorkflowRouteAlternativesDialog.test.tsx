@@ -41,11 +41,11 @@ describe("WorkflowRouteAlternativesDialog", () => {
     )
 
     expect(screen.getByText("Other starts")).toBeTruthy()
-    expect(screen.getByText("Plan it · First step: Plan")).toBeTruthy()
+    expect(screen.getByText("Plan it · Starting point: Plan")).toBeTruthy()
 
     await user.click(
       screen.getByRole("button", {
-        name: "Plan the change Plan it · First step: Plan",
+        name: "Plan the change Plan it · Starting point: Plan",
       }),
     )
     expect(onSelect).toHaveBeenCalledWith("delivery-plan-phase")

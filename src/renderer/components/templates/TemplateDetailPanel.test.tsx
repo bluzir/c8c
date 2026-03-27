@@ -60,7 +60,7 @@ describe("TemplateDetailPanel", () => {
 
     expect(screen.getByText("Path")).toBeTruthy()
     expect(screen.getAllByText("Review it").length).toBeGreaterThan(0)
-    expect(screen.getByText("First step")).toBeTruthy()
+    expect(screen.getByText("Starting point")).toBeTruthy()
     expect(screen.getAllByText("Review").length).toBeGreaterThan(0)
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(screen.getByText("Understand")).toBeTruthy()

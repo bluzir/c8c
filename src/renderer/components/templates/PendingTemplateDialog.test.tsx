@@ -58,7 +58,7 @@ describe("PendingTemplateDialog", () => {
 
     expect(screen.getByText("Start Change the current app")).toBeTruthy()
     expect(screen.getByText("Path")).toBeTruthy()
-    expect(screen.getByText("First step")).toBeTruthy()
+    expect(screen.getByText("Starting point")).toBeTruthy()
     expect(screen.getByText("Steps")).toBeTruthy()
     expect(
       screen.getByRole("button", { name: "Execution details" }),
