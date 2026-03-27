@@ -209,6 +209,30 @@ export function buildProgressMessage(input: {
   }
 }
 
+export function buildTimeoutWarningMessage(input: {
+  workflowKey: string
+  flowName: string
+}): FlowChatMessage {
+  return {
+    id: `timeout-warning-${input.workflowKey}-${Date.now()}`,
+    flowName: input.flowName,
+    timestamp: Date.now(),
+    content: {
+      type: "error",
+      data: {
+        variant: "timeout",
+        tone: "warning",
+        flowName: input.flowName,
+        summary: "No updates in 10 minutes \u2014 the flow may be stuck.",
+        suggestions: [
+          "You can cancel and retry, or wait for the flow to resume.",
+        ],
+        actions: [],
+      },
+    },
+  }
+}
+
 interface ErrorInput {
   runId: string
   flowName: string

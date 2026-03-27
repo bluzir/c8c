@@ -21,6 +21,7 @@ const variantLabel: Record<ErrorContent["variant"], string> = {
   error: "Error",
   cancelled: "Stopped",
   interrupted: "Interrupted",
+  timeout: "Timeout",
 }
 
 const toneToBadgeVariant: Record<

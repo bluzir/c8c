@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { useAtomValue, useSetAtom } from "jotai"
+import { useAtomValue, useSetAtom, useStore } from "jotai"
 import {
   addFlowChatMessageAtom,
+  clearFlowChatMessagesAtom,
+  flowChatMessagesAtom,
   updateFlowProgressAtom,
 } from "./flow-chat-state"
 import { toast } from "sonner"
@@ -11,6 +13,7 @@ import { createWorkflowExecutionController } from "./controller"
 import type { WorkflowExecutionController } from "./controller"
 import { DEFAULT_EXECUTION_IPC_TIMEOUT_MS, withIpcTimeout } from "./commands"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
+import { buildTimeoutWarningMessage } from "@/lib/flow-chat-transformer"
 import type {
   ApprovalRequest,
   ExecutionRunStatus,
@@ -23,6 +26,7 @@ import type { WorkflowNode } from "@shared/types"
 import {
   hasCompletedFirstFlowAtom,
   inboxNotificationsAtom,
+  templatesCatalogAtom,
   workflowTemplateContextsAtom,
   type CreateInboxNotification,
 } from "@/lib/store"
@@ -197,24 +201,31 @@ export function useExecutionController({
   const { addNotification, removeByPersistentKeys } = useInboxNotifications()
   const inboxNotifications = useAtomValue(inboxNotificationsAtom)
   const workflowTemplateContexts = useAtomValue(workflowTemplateContextsAtom)
+  const templatesCatalog = useAtomValue(templatesCatalogAtom)
   const setHasCompletedFirstFlow = useSetAtom(hasCompletedFirstFlowAtom)
   const addFlowChatMessage = useSetAtom(addFlowChatMessageAtom)
+  const clearFlowChatMessages = useSetAtom(clearFlowChatMessagesAtom)
   const updateFlowProgress = useSetAtom(updateFlowProgressAtom)
+  const store = useStore()
   const commitExecutionStateRef = useRef(commitExecutionState)
   const updateApprovalRequestsRef = useRef(updateApprovalRequests)
   const setPastRunsRef = useRef(setPastRuns)
   const addNotificationRef = useRef(addNotification)
   const addFlowChatMessageRef = useRef(addFlowChatMessage)
+  const clearFlowChatMessagesRef = useRef(clearFlowChatMessages)
   const updateFlowProgressRef = useRef(updateFlowProgress)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
+  const templatesCatalogRef = useRef(templatesCatalog)
   const workflowExecutionStatesRef = useRef(workflowExecutionStates)
   commitExecutionStateRef.current = commitExecutionState
   updateApprovalRequestsRef.current = updateApprovalRequests
   setPastRunsRef.current = setPastRuns
   addNotificationRef.current = addNotification
   addFlowChatMessageRef.current = addFlowChatMessage
+  clearFlowChatMessagesRef.current = clearFlowChatMessages
   updateFlowProgressRef.current = updateFlowProgress
   workflowTemplateContextsRef.current = workflowTemplateContexts
+  templatesCatalogRef.current = templatesCatalog
   workflowExecutionStatesRef.current = workflowExecutionStates
 
   const pendingApprovalNotifications = useMemo(
@@ -271,6 +282,28 @@ export function useExecutionController({
 
         if (state.runOutcome === "completed") {
           setHasCompletedFirstFlow(true)
+        }
+
+        // Save chat timeline to workspace
+        if (
+          state.workspace &&
+          typeof window.api.saveRunChatTimeline === "function"
+        ) {
+          const allMessages = store.get(flowChatMessagesAtom)
+          const messages = allMessages[workflowKey] ?? []
+          if (messages.length > 0) {
+            void window.api
+              .saveRunChatTimeline(state.workspace, {
+                version: 1,
+                messages,
+              })
+              .catch((err) => {
+                console.error(
+                  "[useExecutionController] saveRunChatTimeline failed:",
+                  err,
+                )
+              })
+          }
         }
 
         if (
@@ -340,6 +373,11 @@ export function useExecutionController({
           })
       },
       onFlowChatMessage: ({ workflowKey, message }) => {
+        // Clear previous run's messages when a new run starts
+        if (message.content.type === "start") {
+          clearFlowChatMessagesRef.current(workflowKey)
+        }
+
         let enrichedMessage = message
 
         // Enrich Complete messages with follow-ups from template metadata
@@ -352,15 +390,24 @@ export function useExecutionController({
             recommendedNext.length > 0 &&
             message.content.data.followUps.length === 0
           ) {
-            const followUps = recommendedNext.map((templateId: string) => ({
-              label: templateId
-                .split("-")
-                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" "),
-              emoji: "\u2192",
-              source: "recommended_next" as const,
-              templateId,
-            }))
+            const catalogTemplatesById = new Map(
+              templatesCatalogRef.current.map((t) => [t.id, t]),
+            )
+            const followUps = recommendedNext.map((templateId: string) => {
+              const catalogTemplate = catalogTemplatesById.get(templateId)
+              const label =
+                catalogTemplate?.name ??
+                templateId
+                  .split("-")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")
+              return {
+                label,
+                emoji: catalogTemplate?.emoji ?? "\u2192",
+                source: "recommended_next" as const,
+                templateId,
+              }
+            })
 
             enrichedMessage = {
               ...message,
@@ -456,6 +503,33 @@ export function useExecutionController({
     return () => {
       cancelled = true
     }
+  }, [controller])
+
+  // Timeout warning: detect stale running workflows with no events for 10 minutes
+  useEffect(() => {
+    const TIMEOUT_MS = 10 * 60 * 1000
+    const CHECK_INTERVAL_MS = 60 * 1000
+
+    const interval = setInterval(() => {
+      const currentStates = workflowExecutionStatesRef.current
+      for (const [key, state] of Object.entries(currentStates)) {
+        if (state.runStatus !== "running") continue
+        const lastEvent = controller.getLastEventTimestamp(key)
+        if (lastEvent && Date.now() - lastEvent > TIMEOUT_MS) {
+          addFlowChatMessageRef.current({
+            workflowKey: key,
+            message: buildTimeoutWarningMessage({
+              workflowKey: key,
+              flowName: state.workflowName,
+            }),
+          })
+          // Reset timestamp so we don't spam warnings every 60s
+          controller.lastEventTimestamps.set(key, Date.now())
+        }
+      }
+    }, CHECK_INTERVAL_MS)
+
+    return () => clearInterval(interval)
   }, [controller])
 
   // Section 1: persist in-flight run manifest on close

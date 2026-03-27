@@ -49,11 +49,12 @@ export interface CompleteContent {
 }
 
 export interface ErrorContent {
-  variant: "error" | "cancelled" | "interrupted"
+  variant: "error" | "cancelled" | "interrupted" | "timeout"
   tone: "danger" | "warning" | "info"
   summary: string
   suggestions: string[]
   actions: FlowAction[]
+  flowName?: string
 }
 
 export interface StartContent {

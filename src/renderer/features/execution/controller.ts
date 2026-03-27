@@ -28,7 +28,14 @@ import {
   buildStartMessage,
   buildProgressMessage,
 } from "@/lib/flow-chat-transformer"
+import { buildProgressStepsFromSnapshot } from "@/lib/flow-chat-synthesis"
 import { formatElapsedCompact } from "@/components/output/outputFormatters"
+import {
+  addToolToDigest,
+  extractSearchQuery,
+  buildToolAction,
+  pushToolAction,
+} from "@/lib/tool-digest"
 import { toast } from "sonner"
 import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
 
@@ -112,6 +119,13 @@ export class WorkflowExecutionController {
   private readonly progressSteps = new Map<string, ProgressStep[]>()
   /** Tracks when the run started for elapsed calculation */
   private readonly progressStartTimes = new Map<string, number>()
+  /** Debounce timers for digest updates — avoids re-render storms during rapid tool calls */
+  private readonly pendingDigestFlush = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >()
+  /** Tracks the last event timestamp per workflow key for timeout detection */
+  readonly lastEventTimestamps = new Map<string, number>()
   private nextStartAttemptId = 0
   private listRunsRequestId = 0
 
@@ -131,6 +145,10 @@ export class WorkflowExecutionController {
       this.workflowExecutionStates[workflowKey] ??
       createEmptyWorkflowExecutionState()
     )
+  }
+
+  getLastEventTimestamp(workflowKey: string): number | undefined {
+    return this.lastEventTimestamps.get(workflowKey)
   }
 
   updateExecutionForKey(
@@ -341,6 +359,39 @@ export class WorkflowExecutionController {
       lastError: previous.lastError,
     }))
     this.reconcileApprovalRequests()
+    this.synthesizeProgressFromSnapshot(workflowKey, snapshot)
+  }
+
+  /**
+   * Rebuild chat progress messages from a rehydrated snapshot so that
+   * the chat view shows correct statuses and nested branches even when
+   * the renderer was restarted mid-run.
+   */
+  private synthesizeProgressFromSnapshot(
+    workflowKey: string,
+    snapshot: ActiveWorkflowRun,
+  ) {
+    const flowName = snapshot.workflowName || "Flow"
+
+    const { steps, description } = buildProgressStepsFromSnapshot({
+      nodes: snapshot.runtimeNodes,
+      nodeStates: snapshot.nodeStates,
+      runtimeMeta: snapshot.runtimeMeta,
+    })
+
+    if (steps.length === 0) return
+
+    // Emit Start message
+    const startMsg = buildStartMessage({ flowName, description })
+    this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
+
+    // Emit Progress message
+    const startedAt = snapshot.startedAt ?? Date.now()
+    const progressMsg = buildProgressMessage({ flowName, steps, startedAt })
+    this.progressMessageIds.set(workflowKey, progressMsg.id)
+    this.progressSteps.set(workflowKey, steps)
+    this.progressStartTimes.set(workflowKey, startedAt)
+    this.deps.onFlowChatMessage?.({ workflowKey, message: progressMsg })
   }
 
   processWorkflowEvent(event: WorkflowEvent) {
@@ -349,6 +400,8 @@ export class WorkflowExecutionController {
       this.bufferWorkflowEvent(event)
       return
     }
+
+    this.lastEventTimestamps.set(workflowKey, Date.now())
 
     const workflowSnapshot = this.workflowSnapshots.get(workflowKey)
     const previousState = this.getExecutionState(workflowKey)
@@ -474,6 +527,7 @@ export class WorkflowExecutionController {
             variant,
             errorMessage: errorDetail,
             failedNodeLabel: failedNode?.[0],
+            failedNodeId: failedNode?.[0],
           })
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
           if (variant === "cancelled") {
@@ -495,6 +549,7 @@ export class WorkflowExecutionController {
       this.clearRunTracking(event.runId)
       this.previousExecutionSnapshots.delete(workflowKey)
       this.workflowSnapshots.delete(workflowKey)
+      this.lastEventTimestamps.delete(workflowKey)
       this.refreshPastRuns()
     }
   }
@@ -505,17 +560,6 @@ export class WorkflowExecutionController {
     state: WorkflowExecutionState,
   ) {
     const flowName = state.workflowName || "Flow"
-
-    // Determine which nodes are "trackable" (skip input/output/internal types)
-    const getTrackableNodes = (): WorkflowNode[] => {
-      const nodes =
-        state.runtimeNodes.length > 0
-          ? state.runtimeNodes
-          : (state.workflowSnapshot?.nodes ?? [])
-      return nodes.filter(
-        (n) => n.type !== "input" && n.type !== "output" && n.type !== "merger",
-      )
-    }
 
     const getNodeLabel = (nodeId: string): string => {
       const nodes =
@@ -537,28 +581,25 @@ export class WorkflowExecutionController {
       event.type === "node-start" &&
       !this.progressMessageIds.has(workflowKey)
     ) {
-      const trackableNodes = getTrackableNodes()
-      const initialSteps: ProgressStep[] = trackableNodes.map((node) => ({
-        nodeId: node.id,
-        label: getNodeLabel(node.id),
-        status: node.id === event.nodeId ? "running" : "pending",
-      }))
+      const allNodes =
+        state.runtimeNodes.length > 0
+          ? state.runtimeNodes
+          : (state.workflowSnapshot?.nodes ?? [])
 
-      // Build description from node labels
-      const stepLabels = trackableNodes
-        .map((n) => getNodeLabel(n.id).toLowerCase())
-        .slice(0, 4)
-      const description =
-        stepLabels.length <= 4
-          ? `I'll ${stepLabels.join(", then ")}.`
-          : `I'll ${stepLabels.slice(0, 3).join(", ")}, and ${trackableNodes.length - 3} more steps.`
+      const { steps: initialSteps, description } =
+        buildProgressStepsFromSnapshot({
+          nodes: allNodes,
+          nodeStates: state.nodeStates,
+          runtimeMeta: state.runtimeMeta,
+          activeNodeId: event.nodeId,
+        })
 
       // Emit Start message
       const startMsg = buildStartMessage({ flowName, description })
       this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
 
       // Emit initial Progress message
-      const startedAt = Date.now()
+      const startedAt = state.runStartedAt ?? Date.now()
       const progressMsg = buildProgressMessage({
         flowName,
         steps: initialSteps,
@@ -571,29 +612,115 @@ export class WorkflowExecutionController {
       return
     }
 
+    // Debug: log all node-log events
+    if (event.type === "node-log") {
+      console.log(
+        "[tool-digest] node-log event:",
+        event.nodeId,
+        event.entry.type,
+        "hasProgress:",
+        this.progressMessageIds.has(workflowKey),
+      )
+    }
+
+    // Accumulate tool digest + actions from node-log events
+    if (
+      event.type === "node-log" &&
+      this.progressMessageIds.has(workflowKey) &&
+      event.entry.type === "tool_use"
+    ) {
+      const steps = this.progressSteps.get(workflowKey) ?? []
+      const action = buildToolAction(event.entry.tool, event.entry.input)
+      console.log(
+        "[tool-digest] node-log tool_use:",
+        event.nodeId,
+        event.entry.tool,
+        action,
+        "steps:",
+        steps.map((s) => s.nodeId),
+        "sub-steps:",
+        steps.flatMap((s) => s.subSteps?.map((ss) => ss.key) ?? []),
+      )
+
+      // Try top-level step first
+      const step = steps.find((s) => s.nodeId === event.nodeId)
+      if (step) {
+        step.toolDigest = addToolToDigest(step.toolDigest, event.entry.tool)
+        step.toolActions = pushToolAction(step.toolActions, action)
+        const query = extractSearchQuery(event.entry.tool, event.entry.input)
+        if (query) {
+          if (!step.searchQueries) step.searchQueries = []
+          if (step.searchQueries.length < 5) step.searchQueries.push(query)
+        }
+        this.progressSteps.set(workflowKey, steps)
+        this.scheduleDigestFlush(workflowKey)
+        return
+      }
+
+      // Try sub-steps (splitter branches)
+      for (const parent of steps) {
+        const sub = parent.subSteps?.find((s) => s.key === event.nodeId)
+        if (sub) {
+          sub.toolDigest = addToolToDigest(sub.toolDigest, event.entry.tool)
+          sub.toolActions = pushToolAction(sub.toolActions, action)
+          const query = extractSearchQuery(event.entry.tool, event.entry.input)
+          if (query) {
+            if (!sub.searchQueries) sub.searchQueries = []
+            if (sub.searchQueries.length < 5) sub.searchQueries.push(query)
+          }
+          this.progressSteps.set(workflowKey, steps)
+          this.scheduleDigestFlush(workflowKey)
+          break
+        }
+      }
+      return
+    }
+
     // Update existing progress on node-start
     if (
       event.type === "node-start" &&
       this.progressMessageIds.has(workflowKey)
     ) {
+      this.flushDigestNow(workflowKey)
       const steps = this.progressSteps.get(workflowKey) ?? []
 
-      // If node not in the list yet (could happen from expansion), add it
-      const existingStep = steps.find((s) => s.nodeId === event.nodeId)
+      // Check if this node is a subStep of another step
+      const isSubStep = steps.some((s) =>
+        s.subSteps?.some((sub) => sub.key === event.nodeId),
+      )
       let updatedSteps: ProgressStep[]
-      if (existingStep) {
+      if (isSubStep) {
         updatedSteps = steps.map((s) =>
-          s.nodeId === event.nodeId ? { ...s, status: "running" as const } : s,
+          s.subSteps?.some((sub) => sub.key === event.nodeId)
+            ? {
+                ...s,
+                subSteps: s.subSteps.map((sub) =>
+                  sub.key === event.nodeId
+                    ? { ...sub, status: "running" as const }
+                    : sub,
+                ),
+              }
+            : s,
         )
       } else {
-        updatedSteps = [
-          ...steps,
-          {
-            nodeId: event.nodeId,
-            label: getNodeLabel(event.nodeId),
-            status: "running" as const,
-          },
-        ]
+        // If node not in the list yet (could happen from expansion), add it
+        const existingStep = steps.find((s) => s.nodeId === event.nodeId)
+        if (existingStep) {
+          updatedSteps = steps.map((s) =>
+            s.nodeId === event.nodeId
+              ? { ...s, status: "running" as const }
+              : s,
+          )
+        } else {
+          updatedSteps = [
+            ...steps,
+            {
+              nodeId: event.nodeId,
+              label: getNodeLabel(event.nodeId),
+              status: "running" as const,
+            },
+          ]
+        }
       }
 
       this.progressSteps.set(workflowKey, updatedSteps)
@@ -606,6 +733,7 @@ export class WorkflowExecutionController {
       event.type === "node-done" &&
       this.progressMessageIds.has(workflowKey)
     ) {
+      this.flushDigestNow(workflowKey)
       const steps = this.progressSteps.get(workflowKey) ?? []
       const outputContent =
         typeof event.output?.content === "string"
@@ -645,7 +773,9 @@ export class WorkflowExecutionController {
           return {
             ...s,
             subSteps: s.subSteps.map((sub) =>
-              sub.key === event.nodeId ? { ...sub, done: true } : sub,
+              sub.key === event.nodeId
+                ? { ...sub, done: true, status: "done" as const }
+                : sub,
             ),
           }
         }
@@ -663,9 +793,25 @@ export class WorkflowExecutionController {
       this.progressMessageIds.has(workflowKey)
     ) {
       const steps = this.progressSteps.get(workflowKey) ?? []
-      const updatedSteps = steps.map((s) =>
-        s.nodeId === event.nodeId ? { ...s, status: "failed" as const } : s,
+      const isSubStep = steps.some((s) =>
+        s.subSteps?.some((sub) => sub.key === event.nodeId),
       )
+      const updatedSteps = isSubStep
+        ? steps.map((s) =>
+            s.subSteps?.some((sub) => sub.key === event.nodeId)
+              ? {
+                  ...s,
+                  subSteps: s.subSteps.map((sub) =>
+                    sub.key === event.nodeId
+                      ? { ...sub, status: "failed" as const }
+                      : sub,
+                  ),
+                }
+              : s,
+          )
+        : steps.map((s) =>
+            s.nodeId === event.nodeId ? { ...s, status: "failed" as const } : s,
+          )
       this.progressSteps.set(workflowKey, updatedSteps)
       this.emitProgressUpdate(workflowKey, updatedSteps)
       return
@@ -713,6 +859,7 @@ export class WorkflowExecutionController {
                       key: nodeId,
                       label: getNodeLabel(nodeId),
                       done: false,
+                      status: "pending" as const,
                     })),
                   ],
                 }
@@ -778,6 +925,26 @@ export class WorkflowExecutionController {
     })
   }
 
+  /** Schedule a debounced progress emit for digest-only changes (500ms) */
+  private scheduleDigestFlush(workflowKey: string) {
+    if (this.pendingDigestFlush.has(workflowKey)) return
+    const timer = setTimeout(() => {
+      this.pendingDigestFlush.delete(workflowKey)
+      const steps = this.progressSteps.get(workflowKey)
+      if (steps) this.emitProgressUpdate(workflowKey, steps)
+    }, 500)
+    this.pendingDigestFlush.set(workflowKey, timer)
+  }
+
+  /** Immediately flush any pending digest update (called before node-start/node-done) */
+  private flushDigestNow(workflowKey: string) {
+    const timer = this.pendingDigestFlush.get(workflowKey)
+    if (timer) {
+      clearTimeout(timer)
+      this.pendingDigestFlush.delete(workflowKey)
+    }
+  }
+
   cancelExecution(
     workflowKey: string,
     runIdToClear: string | null | undefined,
@@ -799,9 +966,13 @@ export class WorkflowExecutionController {
     this.pendingStarts.delete(workflowKey)
     this.previousExecutionSnapshots.delete(workflowKey)
     this.workflowSnapshots.delete(workflowKey)
+    this.lastEventTimestamps.delete(workflowKey)
     this.progressMessageIds.delete(workflowKey)
     this.progressSteps.delete(workflowKey)
     this.progressStartTimes.delete(workflowKey)
+    const digestTimer = this.pendingDigestFlush.get(workflowKey)
+    if (digestTimer) clearTimeout(digestTimer)
+    this.pendingDigestFlush.delete(workflowKey)
     this.updateExecutionForKey(workflowKey, cancelledState)
     this.reconcileApprovalRequests()
 
