@@ -10,11 +10,12 @@ import {
 } from "@/lib/store"
 import { currentFlowChatMessagesAtom } from "@/features/execution/flow-chat-state"
 import {
-  selectedWorkflowExecutionAtom,
+  effectiveExecutionStateAtom,
   workflowHistoryRunsAtom,
 } from "@/features/execution/state"
 import { buildCompleteMessage } from "@/lib/flow-chat-transformer"
 import type { FlowChatMessage } from "@/lib/flow-chat-types"
+import { usePastRunTimeline } from "./usePastRunTimeline"
 
 export type TimelineEntry =
   | { kind: "chat"; message: ChatMessageDisplay }
@@ -27,7 +28,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
   const entryState = useAtomValue(workflowEntryStateAtom)
   const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
   const inputValue = useAtomValue(inputValueAtom)
-  const executionState = useAtomValue(selectedWorkflowExecutionAtom)
+  const executionState = useAtomValue(effectiveExecutionStateAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
 
   // Synthesize a Complete message for runs that finished before chat existed
@@ -71,51 +72,28 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     workflow?.name,
   ])
 
-  // Fallback: if no synthetic from execution state, try the latest past run
-  const latestPastRunMessage = useMemo<FlowChatMessage | null>(() => {
+  // Fallback: if no synthetic from execution state, load full timeline from disk
+  const latestEligibleRun = useMemo(() => {
     if (syntheticCompleteMessage) return null
     if (flowMessages.length > 0) return null
 
-    const eligible = workflowHistoryRuns
-      .filter(
-        (r) =>
-          r.status === "completed" ||
-          r.status === "failed" ||
-          r.status === "cancelled",
-      )
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+    return (
+      workflowHistoryRuns
+        .filter(
+          (r) =>
+            r.status === "completed" ||
+            r.status === "failed" ||
+            r.status === "cancelled",
+        )
+        .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))[0] ?? null
+    )
+  }, [syntheticCompleteMessage, flowMessages.length, workflowHistoryRuns])
 
-    const latest = eligible[0]
-    if (!latest) return null
-
-    const summary =
-      latest.status === "completed"
-        ? "Last run completed."
-        : latest.status === "failed"
-          ? "Last run failed."
-          : "Last run stopped."
-
-    return buildCompleteMessage({
-      runId: latest.runId,
-      flowName: latest.workflowName || workflow?.name || "Flow",
-      summary,
-      findings: [],
-      limitations: [],
-      artifacts: latest.reportPath
-        ? [{ name: "report.md", path: latest.reportPath, kind: "report" }]
-        : [],
-      followUps: [],
-      durationMs: latest.durationMs || 0,
-      costUsd: latest.totalCost || 0,
-    })
-  }, [
-    syntheticCompleteMessage,
-    flowMessages.length,
-    workflowHistoryRuns,
-    workflow?.name,
-  ])
-
-  const syntheticMessage = syntheticCompleteMessage ?? latestPastRunMessage
+  const pastRunMessages = usePastRunTimeline({
+    enabled: flowMessages.length === 0 && !syntheticCompleteMessage,
+    latestRun: latestEligibleRun,
+    flowName: workflow?.name || "Flow",
+  })
 
   // Synthesize a routing message from workflowEntryState when template was
   // routed. This surfaces the routing decision (selected starting point) as a
@@ -312,7 +290,9 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     const extraFlowMessages: FlowChatMessage[] = []
     if (liveRoutingMessage) extraFlowMessages.push(liveRoutingMessage)
     if (syntheticRoutingMessage) extraFlowMessages.push(syntheticRoutingMessage)
-    if (syntheticMessage) extraFlowMessages.push(syntheticMessage)
+    if (syntheticCompleteMessage)
+      extraFlowMessages.push(syntheticCompleteMessage)
+    extraFlowMessages.push(...pastRunMessages)
     const allFlowMessages =
       extraFlowMessages.length > 0
         ? [...flowMessages, ...extraFlowMessages]
@@ -330,7 +310,8 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     flowMessages,
     liveRoutingMessage,
     syntheticRoutingMessage,
-    syntheticMessage,
+    syntheticCompleteMessage,
+    pastRunMessages,
   ])
 
   return { timeline, flowMessages, entryState }

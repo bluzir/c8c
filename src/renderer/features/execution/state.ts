@@ -4,6 +4,7 @@ import {
   createEmptyWorkflowExecutionState,
   toWorkflowExecutionKey,
   type ApprovalRequest,
+  type ExecutionRunStatus,
   type WorkflowExecutionState,
 } from "@/lib/workflow-execution"
 import type { RunResult } from "@shared/types"
@@ -147,6 +148,29 @@ export const workspaceAtom =
 export const pastRunsAtom = atom<RunResult[]>([])
 export const selectedPastRunAtom =
   createSelectedWorkflowExecutionFieldAtom("selectedPastRun")
+
+/**
+ * Returns past-run-adjusted execution state when viewing history,
+ * otherwise the live execution state.
+ */
+export const effectiveExecutionStateAtom = atom((get) => {
+  const live = get(selectedWorkflowExecutionAtom)
+  const pastRun = get(selectedPastRunAtom)
+  if (!pastRun) return live
+
+  return {
+    ...live,
+    runStatus: "done" as ExecutionRunStatus,
+    runOutcome: pastRun.status,
+    runId: pastRun.runId,
+    runStartedAt: pastRun.startedAt,
+    completedAt: pastRun.completedAt,
+    reportPath: pastRun.reportPath,
+    workspace: pastRun.workspace,
+    workflowName: pastRun.workflowName,
+  }
+})
+
 export const runtimeNodesAtom =
   createSelectedWorkflowExecutionFieldAtom("runtimeNodes")
 export const runtimeEdgesAtom =

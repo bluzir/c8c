@@ -16,7 +16,7 @@ import {
 import { runStatusAtom } from "@/features/execution"
 import { currentFlowChatMessagesAtom } from "@/features/execution/flow-chat-state"
 import {
-  selectedWorkflowExecutionAtom,
+  effectiveExecutionStateAtom,
   workflowHistoryRunsAtom,
 } from "@/features/execution/state"
 import { getResultModeQuickStartOptions } from "@/lib/result-modes"
@@ -71,7 +71,7 @@ export function ChatPanel({
   const entryState = useAtomValue(workflowEntryStateAtom)
   const workflow = useAtomValue(currentWorkflowAtom)
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
-  const executionState = useAtomValue(selectedWorkflowExecutionAtom)
+  const executionState = useAtomValue(effectiveExecutionStateAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
   const selectedResultModeId = useAtomValue(selectedResultModeIdAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
