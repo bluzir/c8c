@@ -8,6 +8,7 @@ import {
   chatRoutingProgressAtom,
   currentWorkflowAtom,
   inputValueAtom,
+  mainViewAtom,
   selectedResultModeIdAtom,
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
@@ -62,6 +63,7 @@ export function ChatPanel({
   const setInputValue = useSetAtom(inputValueAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
+  const setMainView = useSetAtom(mainViewAtom)
   const { startRouting, selectClarification, resetRoutingState, submitting } =
     useFlowRouting()
   const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
@@ -349,6 +351,15 @@ export function ChatPanel({
                 </button>
               ))}
             </div>
+          )}
+          {!selectedWorkflowPath && (
+            <button
+              type="button"
+              onClick={() => setMainView("templates")}
+              className="mt-3 text-body-sm text-muted-foreground hover:text-foreground ui-motion-fast ui-transition-colors"
+            >
+              Browse starting points
+            </button>
           )}
           <div className="max-w-2xl w-full mt-6">
             <ChatInput
