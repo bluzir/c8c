@@ -59,7 +59,7 @@ export function FlowDecisionMessage({
       </Badge>
     ) : (
       <Badge variant="info" size="compact">
-        Approval
+        Awaiting approval
       </Badge>
     )
 
@@ -146,10 +146,11 @@ export function FlowDecisionMessage({
 
   return (
     <div className="space-y-4">
-      {/* Header: flow name + tone badge */}
+      {/* Header: flow name + tone badge + paused signal */}
       <div className="flex items-center gap-2">
         <span className="ui-meta-label truncate">{flowName}</span>
         {toneBadge}
+        <span className="ui-meta-text text-muted-foreground">Flow paused</span>
       </div>
 
       {/* Summary */}

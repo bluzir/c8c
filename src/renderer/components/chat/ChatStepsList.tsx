@@ -92,29 +92,21 @@ export function ChatStepsList({ data }: ChatStepsListProps) {
         runtimeMeta={adapted.runtimeMeta}
         activeNodeId={adapted.activeNodeId}
         variant="compact"
+        toolDigests={adapted.toolDigests}
+        toolActions={adapted.toolActions}
+        searchQueries={adapted.searchQueries}
       />
 
-      {/* Footer: step count + elapsed + cost + ETA */}
+      {/* Footer: single primary status line + optional cost */}
       <div className="flex items-center gap-2 ui-meta-text text-muted-foreground">
         <span>
-          {doneCount}/{totalCount} steps
+          {doneCount}/{totalCount} steps &middot; {displayElapsed ?? "0s"}
+          {estimatedRemaining ? ` \u00b7 ${estimatedRemaining} remaining` : ""}
         </span>
-        {displayElapsed && (
-          <>
-            <span aria-hidden="true">&middot;</span>
-            <span>{displayElapsed}</span>
-          </>
-        )}
         {cumulativeCost > 0 && (
           <>
             <span aria-hidden="true">&middot;</span>
             <span>{formatCost(cumulativeCost)}</span>
-          </>
-        )}
-        {estimatedRemaining && (
-          <>
-            <span aria-hidden="true">&middot;</span>
-            <span>{estimatedRemaining} remaining</span>
           </>
         )}
       </div>

@@ -215,6 +215,7 @@ interface ErrorInput {
   variant: "error" | "cancelled" | "interrupted"
   errorMessage?: string
   failedNodeLabel?: string
+  failedNodeId?: string
 }
 
 export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
@@ -231,9 +232,20 @@ export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
         "Check the step details for more information.",
         "Try running the flow again.",
       ]
+      if (input.failedNodeId) {
+        actions.push({
+          label: "Retry from failed step",
+          variant: "primary",
+          action: {
+            type: "retry",
+            runId: input.runId,
+            nodeId: input.failedNodeId,
+          },
+        })
+      }
       actions.push({
-        label: "Try again",
-        variant: "primary",
+        label: "Start fresh run",
+        variant: input.failedNodeId ? "secondary" : "primary",
         action: { type: "retry", runId: input.runId, nodeId: "" },
       })
       break
@@ -263,13 +275,25 @@ export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
       break
   }
 
+  const toneMap: Record<ErrorInput["variant"], ErrorContent["tone"]> = {
+    error: "danger",
+    cancelled: "warning",
+    interrupted: "info",
+  }
+
   return {
     id: crypto.randomUUID(),
     flowName: input.flowName,
     timestamp: Date.now(),
     content: {
       type: "error",
-      data: { variant: input.variant, summary, suggestions, actions },
+      data: {
+        variant: input.variant,
+        tone: toneMap[input.variant],
+        summary,
+        suggestions,
+        actions,
+      },
     },
   }
 }

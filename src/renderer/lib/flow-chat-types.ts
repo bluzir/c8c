@@ -50,6 +50,7 @@ export interface CompleteContent {
 
 export interface ErrorContent {
   variant: "error" | "cancelled" | "interrupted"
+  tone: "danger" | "warning" | "info"
   summary: string
   suggestions: string[]
   actions: FlowAction[]
@@ -59,6 +60,16 @@ export interface StartContent {
   description: string
 }
 
+export interface ToolDigestEntry {
+  tool: string // Normalized: "Read", "Bash", "web_search", etc.
+  count: number
+}
+
+export interface ToolActionEntry {
+  kind: "search" | "read" | "write" | "command" | "edit" | "browse" | "other"
+  label: string
+}
+
 export interface ProgressStep {
   nodeId: string
   label: string
@@ -66,7 +77,18 @@ export interface ProgressStep {
   summary?: string
   output?: string
   costUsd?: number
-  subSteps?: Array<{ key: string; label: string; done: boolean }>
+  toolDigest?: ToolDigestEntry[]
+  toolActions?: ToolActionEntry[]
+  searchQueries?: string[] // Human-readable query text, max 5
+  subSteps?: Array<{
+    key: string
+    label: string
+    done: boolean
+    status?: "pending" | "running" | "done" | "failed"
+    toolDigest?: ToolDigestEntry[]
+    toolActions?: ToolActionEntry[]
+    searchQueries?: string[]
+  }>
 }
 
 export interface ProgressContent {

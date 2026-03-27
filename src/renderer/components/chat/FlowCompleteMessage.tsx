@@ -37,7 +37,7 @@ export function FlowCompleteMessage({
             {data.findings.map((finding, i) => (
               <li
                 key={i}
-                className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
+                className="text-body-sm text-foreground-subtle flex items-start gap-1.5"
               >
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                 {finding}
@@ -55,7 +55,7 @@ export function FlowCompleteMessage({
             {data.limitations.map((limit, i) => (
               <li
                 key={i}
-                className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
+                className="text-body-sm text-foreground-subtle flex items-start gap-1.5"
               >
                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                 {limit}

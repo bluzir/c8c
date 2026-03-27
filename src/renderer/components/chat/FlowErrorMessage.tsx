@@ -7,7 +7,7 @@ import type { FlowAction, ErrorContent } from "@/lib/flow-chat-types"
 interface FlowErrorMessageProps {
   flowName: string
   data: ErrorContent
-  onRetry?: (runId: string) => void
+  onRetry?: (nodeId?: string) => void
 }
 
 function mapActionVariant(
@@ -17,22 +17,19 @@ function mapActionVariant(
   return variant
 }
 
-const variantBadge: Record<ErrorContent["variant"], React.ReactNode> = {
-  error: (
-    <Badge variant="destructive" size="compact">
-      Error
-    </Badge>
-  ),
-  cancelled: (
-    <Badge variant="secondary" size="compact">
-      Stopped
-    </Badge>
-  ),
-  interrupted: (
-    <Badge variant="warning" size="compact">
-      Interrupted
-    </Badge>
-  ),
+const variantLabel: Record<ErrorContent["variant"], string> = {
+  error: "Error",
+  cancelled: "Stopped",
+  interrupted: "Interrupted",
+}
+
+const toneToBadgeVariant: Record<
+  ErrorContent["tone"],
+  "destructive" | "warning" | "info"
+> = {
+  danger: "destructive",
+  warning: "warning",
+  info: "info",
 }
 
 export function FlowErrorMessage({
@@ -50,7 +47,7 @@ export function FlowErrorMessage({
     try {
       switch (action.action.type) {
         case "retry": {
-          onRetry?.(action.action.runId)
+          onRetry?.(action.action.nodeId || undefined)
           break
         }
         case "open-report": {
@@ -77,7 +74,9 @@ export function FlowErrorMessage({
       {/* Header: flow name + variant badge */}
       <div className="flex items-center gap-2">
         <span className="ui-meta-label truncate">{flowName}</span>
-        {variantBadge[data.variant]}
+        <Badge variant={toneToBadgeVariant[data.tone]} size="compact">
+          {variantLabel[data.variant]}
+        </Badge>
       </div>
 
       {/* Summary */}
