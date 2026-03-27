@@ -411,10 +411,32 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         intentValues: qs.intentValues,
         recommended: qs.recommended,
       }))
-      const routeOptions = filterDirectCreateEntryOptions(
+      let routeOptions = filterDirectCreateEntryOptions(
         selectedResultMode.id,
         basePrimaryOptions,
       )
+
+      // When a follow-up constrains to a specific template that lives in a
+      // different domain (e.g. Content Post Drafter while Research is active),
+      // inject it from the full catalog so the router can select it.
+      if (options?.templateConstraintId) {
+        const cid = options.templateConstraintId
+        if (!routeOptions.some((o) => o.templateId === cid)) {
+          const t = allTemplates.find((tpl) => tpl.id === cid)
+          if (t) {
+            routeOptions = [
+              ...routeOptions,
+              {
+                templateId: t.id,
+                label: t.name,
+                intentLabel: "",
+                intentValues: undefined,
+                recommended: undefined,
+              },
+            ]
+          }
+        }
+      }
 
       try {
         const intentSelectionEnabled = isIntentEnabledDomain(
