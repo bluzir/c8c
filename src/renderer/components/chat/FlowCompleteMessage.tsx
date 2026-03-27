@@ -1,20 +1,25 @@
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, RotateCcw } from "lucide-react"
 import { FlowResultCard, AllFilesButton } from "./FlowResultCard"
 import { FlowFollowUpList } from "./FlowFollowUpList"
+import { Button } from "@/components/ui/button"
 import type { CompleteContent, FlowFollowUp } from "@/lib/flow-chat-types"
 
 interface FlowCompleteMessageProps {
   flowName: string
   data: CompleteContent
   onFollowUp?: (followUp: FlowFollowUp) => void
+  followUpDisabled?: boolean
   onOpenReport?: (path: string) => void
+  onRunAgain?: () => void
 }
 
 export function FlowCompleteMessage({
   flowName,
   data,
   onFollowUp,
+  followUpDisabled,
   onOpenReport,
+  onRunAgain,
 }: FlowCompleteMessageProps) {
   return (
     <div className="space-y-4">
@@ -93,8 +98,20 @@ export function FlowCompleteMessage({
         </span>
       </div>
 
+      {/* Run again */}
+      {onRunAgain && (
+        <Button variant="secondary" size="sm" onClick={onRunAgain}>
+          <RotateCcw size={14} className="mr-1.5" />
+          Run again
+        </Button>
+      )}
+
       {/* Follow-ups */}
-      <FlowFollowUpList followUps={data.followUps} onSelect={onFollowUp} />
+      <FlowFollowUpList
+        followUps={data.followUps}
+        onSelect={onFollowUp}
+        disabled={followUpDisabled}
+      />
     </div>
   )
 }

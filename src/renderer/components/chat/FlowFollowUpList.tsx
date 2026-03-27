@@ -4,11 +4,13 @@ import type { FlowFollowUp } from "@/lib/flow-chat-types"
 interface FlowFollowUpListProps {
   followUps: FlowFollowUp[]
   onSelect?: (followUp: FlowFollowUp) => void
+  disabled?: boolean
 }
 
 export function FlowFollowUpList({
   followUps,
   onSelect,
+  disabled,
 }: FlowFollowUpListProps) {
   if (followUps.length === 0) return null
 
@@ -20,8 +22,9 @@ export function FlowFollowUpList({
           <button
             key={i}
             type="button"
+            disabled={disabled}
             onClick={() => onSelect?.(followUp)}
-            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left ui-motion-fast hover:bg-surface-2/30 ui-fade-slide-in"
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left ui-motion-fast hover:bg-surface-2/30 ui-fade-slide-in disabled:opacity-50 disabled:pointer-events-none"
             style={{
               animationDelay: `${i * 60}ms`,
               animationFillMode: "backwards",

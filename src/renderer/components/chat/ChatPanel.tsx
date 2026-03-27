@@ -40,6 +40,8 @@ interface ChatPanelProps {
   routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
   pendingRouteAlternativeId?: string | null
   onSelectRouteAlternative?: (templateId: string) => void
+  /** Attachments derived from the completed run's results — threaded to follow-up and post-completion sends. */
+  resultSourceAttachments?: import("@shared/types").InputAttachment[]
 }
 
 export function ChatPanel({
@@ -51,6 +53,7 @@ export function ChatPanel({
   routeAlternatives,
   pendingRouteAlternativeId,
   onSelectRouteAlternative,
+  resultSourceAttachments,
 }: ChatPanelProps) {
   const [panelWidth, setPanelWidth] = useAtom(chatPanelWidthAtom)
   const [resizing, setResizing] = useState(false)
@@ -88,6 +91,8 @@ export function ChatPanel({
 
   const isStreaming = status === "thinking" || status === "streaming"
   const isRouting = Boolean(chatRoutingProgress) || submitting
+  const followUpDisabled =
+    runStatus === "running" || runStatus === "starting" || isRouting
 
   const handleCancel = useCallback(() => {
     if (isRouting) {
@@ -113,12 +118,17 @@ export function ChatPanel({
     startRouting,
   ])
 
-  // True when the flow completed — either in-memory state or disk fallback.
+  // True when the flow completed — either in-memory state, disk fallback,
+  // or persisted entry state indicating a past run was started (covers the
+  // window between app restart and async pastRunsAtom load).
   const effectivelyDone =
     runStatus === "done" ||
     (runStatus === "idle" &&
       selectedWorkflowPath !== null &&
-      workflowHistoryRuns.some((r) => r.status === "completed"))
+      (workflowHistoryRuns.some((r) => r.status === "completed") ||
+        (flowMessages.length === 0 &&
+          entryState?.workflowPath === selectedWorkflowPath &&
+          entryState?.awaitingInput === false)))
 
   /**
    * Tri-mode send handler:
@@ -131,7 +141,7 @@ export function ChatPanel({
       if (runStatus === "idle" && selectedWorkflowPath && !effectivelyDone) {
         // Truly idle workflow — start the flow run.
         setInputValue(message)
-        setChatFlowInputRequest(message)
+        setChatFlowInputRequest({ kind: "run" })
         setWorkflowEntryState((prev) =>
           prev ? { ...prev, awaitingInput: false } : null,
         )
@@ -141,6 +151,9 @@ export function ChatPanel({
           helpModeOverride: helpModeHint,
           sourceArtifacts: effectivelyDone
             ? executionState.artifactRecords
+            : undefined,
+          sourceAttachments: effectivelyDone
+            ? resultSourceAttachments
             : undefined,
         })
       } else {
@@ -153,6 +166,7 @@ export function ChatPanel({
       selectedWorkflowPath,
       effectivelyDone,
       executionState.artifactRecords,
+      resultSourceAttachments,
       sendMessage,
       setChatFlowInputRequest,
       setInputValue,
@@ -163,13 +177,19 @@ export function ChatPanel({
 
   const handleFollowUp = useCallback(
     (followUp: { label: string; templateId?: string }) => {
-      if (!followUp.templateId) return
+      if (!followUp.templateId || isRouting) return
       void startRouting(followUp.label, {
         templateConstraintId: followUp.templateId,
         sourceArtifacts: executionState.artifactRecords,
+        sourceAttachments: resultSourceAttachments,
       })
     },
-    [startRouting, executionState.artifactRecords],
+    [
+      startRouting,
+      isRouting,
+      executionState.artifactRecords,
+      resultSourceAttachments,
+    ],
   )
 
   const handleClarificationSelect = useCallback(
@@ -337,6 +357,7 @@ export function ChatPanel({
               isStreaming={isStreaming}
               isCancellable={isStreaming || isRouting}
               autoFocus={!collapsed}
+              effectivelyDone={effectivelyDone}
             />
           </div>
         </div>
@@ -397,6 +418,7 @@ export function ChatPanel({
         status={status}
         onSelectClarification={handleClarificationSelect}
         onFollowUp={handleFollowUp}
+        followUpDisabled={followUpDisabled}
         routeAlternatives={routeAlternatives}
         pendingRouteAlternativeId={pendingRouteAlternativeId}
         onSelectRouteAlternative={onSelectRouteAlternative}

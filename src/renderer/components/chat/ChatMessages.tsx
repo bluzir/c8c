@@ -55,6 +55,7 @@ import {
   resolvedDecisionIdsAtom,
   resolveFlowChatDecisionAtom,
 } from "@/features/execution/flow-chat-state"
+import { workflowHistoryRunsAtom } from "@/features/execution/state"
 import type { FlowFollowUp } from "@/lib/flow-chat-types"
 import { useFlowChatTimeline } from "@/hooks/useFlowChatTimeline"
 
@@ -63,6 +64,7 @@ interface ChatMessagesProps {
   status: "idle" | "thinking" | "streaming" | "error"
   onSelectClarification?: (selection: ClarificationSelection) => void
   onFollowUp?: (followUp: FlowFollowUp) => void
+  followUpDisabled?: boolean
   routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
   pendingRouteAlternativeId?: string | null
   onSelectRouteAlternative?: (templateId: string) => void
@@ -73,6 +75,7 @@ export function ChatMessages({
   status,
   onSelectClarification,
   onFollowUp,
+  followUpDisabled,
   routeAlternatives,
   pendingRouteAlternativeId,
   onSelectRouteAlternative,
@@ -93,15 +96,32 @@ export function ChatMessages({
 
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
   const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
+  const historyRuns = useAtomValue(workflowHistoryRunsAtom)
 
   const { timeline, flowMessages, entryState } = useFlowChatTimeline(messages)
 
   const handleRunFromRouting = useCallback(() => {
-    setChatFlowInputRequest("run")
+    setChatFlowInputRequest({ kind: "run" })
   }, [setChatFlowInputRequest])
-  const handleRetry = useCallback(() => {
-    setChatFlowInputRequest("run")
-  }, [setChatFlowInputRequest])
+  const handleRetry = useCallback(
+    (nodeId?: string) => {
+      if (nodeId) {
+        // Recover workspace from history runs (needed after app restart when
+        // the in-memory workspace atom is empty).
+        const latestTerminalRun = historyRuns.find(
+          (r) => r.status === "failed" || r.status === "completed",
+        )
+        setChatFlowInputRequest({
+          kind: "rerun",
+          fromNodeId: nodeId,
+          workspace: latestTerminalRun?.workspace ?? null,
+        })
+      } else {
+        setChatFlowInputRequest({ kind: "run" })
+      }
+    },
+    [setChatFlowInputRequest, historyRuns],
+  )
   const handleRetryRouting = useCallback(() => {
     setChatRoutingProgress(null)
   }, [setChatRoutingProgress])
@@ -247,7 +267,9 @@ export function ChatMessages({
                     flowName={flowMsg.flowName}
                     data={flowMsg.content.data}
                     onFollowUp={onFollowUp}
+                    followUpDisabled={followUpDisabled}
                     onOpenReport={(path) => window.api.openPath(path)}
+                    onRunAgain={() => handleRetry()}
                   />
                 )
               } else if (flowMsg.content.type === "error") {
