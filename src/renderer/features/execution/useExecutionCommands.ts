@@ -491,6 +491,7 @@ export function useExecutionCommands({
         }
         toastError("Could not restart from selected node")
         recordExecutionError("Could not restart from selected node")
+        controller.rollbackExecutionStart(startHandle)
       } catch (error) {
         console.error("[useChainExecution] rerunFrom failed:", error)
         toastErrorFromCatch("Could not restart from selected node", error)
@@ -498,11 +499,10 @@ export function useExecutionCommands({
           "Could not restart from selected node",
           errorToUserMessage(error),
         )
+        controller.rollbackExecutionStart(startHandle)
       } finally {
         runStartingRef.current = false
       }
-
-      controller.rollbackExecutionStart(startHandle)
     },
     [
       controller,
@@ -624,6 +624,8 @@ export function useExecutionCommands({
           "Could not continue run",
           errorMessage || undefined,
         )
+        controller.rollbackExecutionStart(startHandle)
+        return false
       } catch (error) {
         console.error("[useChainExecution] continueRun failed:", error)
         toastErrorFromCatch("Could not continue run", error)
@@ -631,12 +633,11 @@ export function useExecutionCommands({
           "Could not continue run",
           errorToUserMessage(error),
         )
+        controller.rollbackExecutionStart(startHandle)
+        return false
       } finally {
         runStartingRef.current = false
       }
-
-      controller.rollbackExecutionStart(startHandle)
-      return false
     },
     [
       controller,
