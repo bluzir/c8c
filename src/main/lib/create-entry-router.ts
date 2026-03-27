@@ -303,6 +303,7 @@ function buildRouterPrompt(
     helpModeHint: input.helpModeHint || null,
     modeConfig: input.modeConfig || {},
     promptScaffold: input.promptScaffold || {},
+    ...(input.sourceContext ? { sourceContext: input.sourceContext } : {}),
   }
 
   const allowedOptionSummary = allowedOptions
@@ -361,6 +362,7 @@ function buildContentRouterPrompt(
     draftPrompt: normalize(input.draftPrompt),
     requestedResult: normalize(input.requestedResult),
     helpModeHint: input.helpModeHint || null,
+    ...(input.sourceContext ? { sourceContext: input.sourceContext } : {}),
   }
 
   const allowedOptionSummary = allowedOptions
@@ -419,6 +421,7 @@ function buildResearchRouterPrompt(
     draftPrompt: normalize(input.draftPrompt),
     requestedResult: normalize(input.requestedResult),
     helpModeHint: input.helpModeHint || null,
+    ...(input.sourceContext ? { sourceContext: input.sourceContext } : {}),
   }
 
   const allowedOptionSummary = allowedOptions
@@ -471,6 +474,7 @@ function buildMarketingRouterPrompt(
     draftPrompt: normalize(input.draftPrompt),
     requestedResult: normalize(input.requestedResult),
     helpModeHint: input.helpModeHint || null,
+    ...(input.sourceContext ? { sourceContext: input.sourceContext } : {}),
   }
 
   const allowedOptionSummary = allowedOptions

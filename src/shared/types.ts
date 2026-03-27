@@ -768,6 +768,7 @@ export interface CreateEntryRouteInput {
   allowedOptions?: CreateEntryRouteOption[]
   contentContext?: ContentDomainContext
   webSearchBackend?: "builtin" | "exa"
+  sourceContext?: string
 }
 
 export interface CreateEntryHelpModeClarificationOption {
@@ -1295,6 +1296,7 @@ export interface RunResult {
   totalTokensOut?: number
   evalScores?: Record<string, number>
   durationMs?: number
+  failedNodeId?: string
 }
 
 export interface PersistedRunSnapshot {
@@ -1338,6 +1340,11 @@ export interface RunWorkspaceCleanupResult {
   reclaimedBytes: number
   retainedRuns: number
   deletedRunIds: string[]
+}
+
+export interface PersistedChatTimeline {
+  version: 1
+  messages: unknown[] // FlowChatMessage[] — opaque at the IPC boundary
 }
 
 // ── Batch Runs ────────────────────────────────────────

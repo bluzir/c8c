@@ -28,6 +28,7 @@ import {
   setWorkflowRequestedResultForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
   chatRoutingProgressAtom,
+  templatesCatalogAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
@@ -117,6 +118,7 @@ export interface UseFlowRoutingReturn extends FlowRoutingState {
       useCurrentHelpMode?: boolean
       awaitingInput?: boolean
       sourceArtifacts?: ArtifactRecord[]
+      sourceAttachments?: InputAttachment[]
     },
   ) => Promise<void>
   selectClarification: (selection: RouteClarificationSelection) => void
@@ -172,6 +174,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
   const setWorkflowTemplateContextForKey = useSetAtom(
     setWorkflowTemplateContextForKeyAtom,
   )
+  const setTemplatesCatalog = useSetAtom(templatesCatalogAtom)
   const setDraftPrompt = useSetAtom(workflowCreateDraftPromptAtom)
   const setPromptScaffold = useSetAtom(workflowCreatePromptScaffoldAtom)
   const setSourceArtifacts = useSetAtom(workflowCreateSourceArtifactsAtom)
@@ -314,13 +317,14 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         useCurrentHelpMode?: boolean
         awaitingInput?: boolean
         sourceArtifacts?: ArtifactRecord[]
+        sourceAttachments?: InputAttachment[]
       },
     ) => {
       if (!message || submitting) return
 
       const sessionId = ++routingSessionRef.current
 
-      const targetProjectPath = createContext.projectPath
+      const targetProjectPath = createContext.projectPath || selectedProject
       if (!targetProjectPath) {
         const errorMessage = "Choose a project before starting a new flow."
         setSubmitError(errorMessage)
@@ -363,11 +367,33 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       )
       const currentPromptScaffold = promptScaffold
       const currentSourceArtifacts = options?.sourceArtifacts ?? sourceArtifacts
-      const currentSourceAttachments = sourceAttachments
+      const currentSourceAttachments =
+        options?.sourceAttachments ?? sourceAttachments
+
+      const sourceContext =
+        currentSourceArtifacts.length > 0
+          ? (() => {
+              const flowName =
+                currentSourceArtifacts[0]?.workflowName ||
+                currentSourceArtifacts[0]?.templateName ||
+                "flow"
+              const maxItems = 10
+              const items = currentSourceArtifacts.slice(0, maxItems)
+              const list = items
+                .map((a) => `${a.relativePath} (${a.title})`)
+                .join(", ")
+              const suffix =
+                currentSourceArtifacts.length > maxItems
+                  ? ` and ${currentSourceArtifacts.length - maxItems} more`
+                  : ""
+              return `Previous run completed: ${flowName} — produced ${list}${suffix}`
+            })()
+          : undefined
 
       // Compute route options from available templates
       const allTemplates = await window.api.listTemplates(targetProjectPath)
       if (routingSessionRef.current !== sessionId) return
+      if (allTemplates.length > 0) setTemplatesCatalog(allTemplates)
       const availableTemplateIds = new Set(allTemplates.map((t) => t.id))
       const routeDestinations = getResultModeRouteDestinations(
         selectedResultMode.id,
@@ -427,6 +453,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
               promptScaffold: currentPromptScaffold,
               allowedOptions: routeOptions,
               webSearchBackend,
+              sourceContext,
             })
           : null
         if (routingSessionRef.current !== sessionId) return
@@ -457,6 +484,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
           allTemplates.length > 0
             ? allTemplates
             : await window.api.listTemplates(targetProjectPath)
+        if (catalog.length > 0) setTemplatesCatalog(catalog)
         const startTemplate =
           (routeResult
             ? catalog.find(
