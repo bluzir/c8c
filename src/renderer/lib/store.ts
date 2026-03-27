@@ -256,11 +256,16 @@ export const validationNavigationTargetAtom =
 // Input
 export const inputValueAtom = atom("")
 /**
- * When the chat input wants to start a flow run, it sets this atom to the
- * user's message text. WorkflowPanel picks it up on the next render (after
- * inputValueAtom has propagated) and calls handleRunRequest().
+ * When the chat input wants to start a flow run, it sets this atom.
+ * WorkflowPanel picks it up on the next render and dispatches accordingly.
+ * - `{ kind: "run" }` — fresh run
+ * - `{ kind: "rerun"; fromNodeId: string }` — retry from a specific node
  */
-export const chatFlowInputRequestAtom = atom<string | null>(null)
+export type ChatFlowInputRequest =
+  | { kind: "run" }
+  | { kind: "rerun"; fromNodeId: string; workspace?: string | null }
+  | null
+export const chatFlowInputRequestAtom = atom<ChatFlowInputRequest>(null)
 
 /**
  * In-progress routing state driven by useFlowRouting hook.
@@ -283,6 +288,12 @@ export const chatRoutingProgressAtom = atom<ChatRoutingProgress | null>(null)
  * directly to thread+chat and triggers routing instead of showing the create page.
  */
 export const chatPendingRoutingPromptAtom = atom<string | null>(null)
+
+/** Write-only atom that clears all routing/creation state in one shot. */
+export const clearAllRoutingStateAtom = atom(null, (_get, set) => {
+  set(chatRoutingProgressAtom, null)
+  set(chatPendingRoutingPromptAtom, null)
+})
 
 export const inputAttachmentsAtom = atom<InputAttachment[]>([])
 export const selectedNodeIdAtom = atom<string | null>(null)
@@ -969,6 +980,15 @@ export const batchProgressAtom = atom<{
   total: 0,
   running: 0,
 })
+
+// ── Templates Catalog Cache ──────────────────────────────
+
+/**
+ * Cached list of all known templates, populated whenever `listTemplates()`
+ * is called in the renderer. Used by the execution controller to resolve
+ * template names for follow-up labels instead of deriving from IDs.
+ */
+export const templatesCatalogAtom = atom<WorkflowTemplate[]>([])
 
 // ── Deep Link Templates ─────────────────────────────────
 

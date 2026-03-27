@@ -26,6 +26,7 @@ import {
   workflowSidebarSeenRunIdsAtom,
   markWorkflowSidebarRunSeenAtom,
   multiRunDashboardOpenAtom,
+  clearAllRoutingStateAtom,
 } from "@/lib/store"
 import {
   clearWorkflowExecutionStateAtom,
@@ -130,6 +131,7 @@ export function ProjectSidebar({
     clearWorkflowTemplateContextForKeyAtom,
   )
   const markWorkflowSidebarRunSeen = useSetAtom(markWorkflowSidebarRunSeenAtom)
+  const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState("")
   const [expandedWorkflowLists, setExpandedWorkflowLists] = useState<
@@ -387,6 +389,7 @@ export function ProjectSidebar({
         }}
         onOpenCreate={() => handleOpenWorkflowCreate()}
         onOpenStartingPoints={() => {
+          clearAllRoutingState()
           if (mainView === "workflow_create") {
             setTemplateLibraryContext({
               projectPath: workflowCreateContext.projectPath,
@@ -397,9 +400,18 @@ export function ProjectSidebar({
           }
           setMainView("templates")
         }}
-        onOpenArtifacts={() => setMainView("artifacts")}
-        onOpenSkills={() => setMainView("skills")}
-        onOpenInbox={() => setMainView("inbox")}
+        onOpenArtifacts={() => {
+          clearAllRoutingState()
+          setMainView("artifacts")
+        }}
+        onOpenSkills={() => {
+          clearAllRoutingState()
+          setMainView("skills")
+        }}
+        onOpenInbox={() => {
+          clearAllRoutingState()
+          setMainView("inbox")
+        }}
         onOpenRunsDashboard={() => setMultiRunDashboardOpen(true)}
         onAddProject={() => {
           void addProject()
@@ -759,7 +771,10 @@ export function ProjectSidebar({
           icon={Settings}
           label="Settings"
           active={mainView === "settings"}
-          onClick={() => setMainView("settings")}
+          onClick={() => {
+            clearAllRoutingState()
+            setMainView("settings")
+          }}
         />
       </div>
 

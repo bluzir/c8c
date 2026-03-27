@@ -1,18 +1,28 @@
 import { useRef, useState, type Dispatch, type SetStateAction } from "react"
-import { useSetAtom } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import type { MainView } from "@/lib/store"
-import { viewModeAtom } from "@/lib/store"
+import {
+  inputValueAtom,
+  viewModeAtom,
+  workflowContinuationEntryStatesAtom,
+  workflowEntryStateAtom,
+} from "@/lib/store"
 import type { RunResult, Workflow, WorkflowFile } from "@shared/types"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
 import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
-import { selectedInboxTaskKeyAtom, workflowOpenStateAtom } from "@/lib/store"
+import {
+  clearAllRoutingStateAtom,
+  selectedInboxTaskKeyAtom,
+  workflowOpenStateAtom,
+} from "@/lib/store"
 import {
   selectedPastRunAtom,
   toWorkflowExecutionKey,
 } from "@/features/execution"
+import { getRequestedResultFromEntryState } from "@/lib/workflow-entry"
 
 interface UseWorkflowCrudParams {
   selectedProject: string | null
@@ -154,8 +164,14 @@ export function useWorkflowCrud({
   const selectSequenceRef = useRef(0)
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
+  const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
   const setViewMode = useSetAtom(viewModeAtom)
+  const setInputValue = useSetAtom(inputValueAtom)
+  const entryState = useAtomValue(workflowEntryStateAtom)
+  const continuationEntryStates = useAtomValue(
+    workflowContinuationEntryStatesAtom,
+  )
   const [pendingRenameWorkflow, setPendingRenameWorkflow] =
     useState<WorkflowFile | null>(null)
   const [renameInput, setRenameInput] = useState("")
@@ -168,6 +184,23 @@ export function useWorkflowCrud({
   const clearReviewState = () => {
     setSelectedInboxTaskKey(null)
     setSelectedPastRun(null)
+  }
+
+  /**
+   * After loading a workflow, restore inputValueAtom from the persisted
+   * entry state so the composer isn't confusingly blank after app restart.
+   * Checks the per-workflow continuation entry state first, then falls back
+   * to the global entry state if its workflowPath matches.
+   */
+  const restoreInputValueFromEntryState = (workflowPath: string) => {
+    const wfKey = toWorkflowExecutionKey(workflowPath)
+    const persisted =
+      continuationEntryStates[wfKey] ??
+      (entryState?.workflowPath === workflowPath ? entryState : null)
+    const restoredInput = getRequestedResultFromEntryState(persisted)
+    if (restoredInput) {
+      setInputValue(restoredInput)
+    }
   }
 
   const addProject = async () => {
@@ -255,6 +288,8 @@ export function useWorkflowCrud({
       return
     }
 
+    clearAllRoutingState()
+
     if (projectPath && selectedProject !== projectPath) {
       setSelectedProject(projectPath)
     }
@@ -288,6 +323,9 @@ export function useWorkflowCrud({
         setWorkflowSavedSnapshot,
         clearReviewState,
       )
+      // Restore inputValueAtom from persisted entry state so the composer
+      // shows the original input after an app restart.
+      restoreInputValueFromEntryState(workflow.path)
       if (reviewRun) {
         setSelectedPastRun(reviewRun)
       }
@@ -420,6 +458,7 @@ export function useWorkflowCrud({
         setWorkflowSavedSnapshot,
         clearReviewState,
       )
+      restoreInputValueFromEntryState(workflow.path)
       if (reviewRun) {
         setSelectedPastRun(reviewRun)
       }
