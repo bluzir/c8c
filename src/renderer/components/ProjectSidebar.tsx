@@ -334,8 +334,7 @@ export function ProjectSidebar({
   }, [latestRunsByWorkflow, selectedProject, setProjectLatestRunsCache])
 
   useEffect(() => {
-    if (mainView !== "thread" || !selectedProject || !selectedWorkflowPath)
-      return
+    if (!selectedProject || !selectedWorkflowPath) return
     const latestRun =
       projectLatestRunsCache[selectedProject]?.[selectedWorkflowPath]
     if (!latestRun?.runId) return
@@ -344,7 +343,6 @@ export function ProjectSidebar({
       runId: latestRun.runId,
     })
   }, [
-    mainView,
     markWorkflowSidebarRunSeen,
     projectLatestRunsCache,
     selectedProject,

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { CheckCircle2, RotateCcw } from "lucide-react"
 import { FlowResultCard, AllFilesButton } from "./FlowResultCard"
 import { FlowFollowUpList } from "./FlowFollowUpList"
@@ -21,6 +22,8 @@ export function FlowCompleteMessage({
   onOpenReport,
   onRunAgain,
 }: FlowCompleteMessageProps) {
+  const [runAgainClicked, setRunAgainClicked] = useState(false)
+
   return (
     <div className="space-y-4">
       {/* Header — flow name as meta label */}
@@ -79,7 +82,7 @@ export function FlowCompleteMessage({
           ))}
           <AllFilesButton
             onClick={() => {
-              const dir = data.artifacts[0]?.path?.replace(/\/[^/]+$/, "")
+              const dir = data.artifacts[0]?.path?.replace(/[/\\][^/\\]+$/, "")
               if (dir) onOpenReport?.(dir)
             }}
           />
@@ -100,7 +103,15 @@ export function FlowCompleteMessage({
 
       {/* Run again */}
       {onRunAgain && (
-        <Button variant="secondary" size="sm" onClick={onRunAgain}>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={runAgainClicked}
+          onClick={() => {
+            setRunAgainClicked(true)
+            onRunAgain()
+          }}
+        >
           <RotateCcw size={14} className="mr-1.5" />
           Run again
         </Button>

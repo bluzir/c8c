@@ -375,7 +375,10 @@ export function SettingsExecutionDefaultsSection({
                 onChange={(e) => {
                   const v = parseInt(e.target.value, 10)
                   if (!isNaN(v) && v >= 1)
-                    setExecDefaults((prev) => ({ ...prev, maxTurns: v }))
+                    setExecDefaults((prev) => ({
+                      ...prev,
+                      maxTurns: Math.min(v, 1000),
+                    }))
                 }}
               />
               <p className="ui-meta-text text-muted-foreground">
@@ -401,7 +404,7 @@ export function SettingsExecutionDefaultsSection({
                   if (!isNaN(v) && v >= 1)
                     setExecDefaults((prev) => ({
                       ...prev,
-                      timeout_minutes: v,
+                      timeout_minutes: Math.min(v, 480),
                     }))
                 }}
               />
@@ -426,7 +429,10 @@ export function SettingsExecutionDefaultsSection({
                 onChange={(e) => {
                   const v = parseInt(e.target.value, 10)
                   if (!isNaN(v) && v >= 1)
-                    setExecDefaults((prev) => ({ ...prev, maxParallel: v }))
+                    setExecDefaults((prev) => ({
+                      ...prev,
+                      maxParallel: Math.min(v, 32),
+                    }))
                 }}
               />
               <p className="ui-meta-text text-muted-foreground">
