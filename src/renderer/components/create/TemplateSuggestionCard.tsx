@@ -85,7 +85,9 @@ export function PendingTemplateDetails({
           ) : null}
           {startStageLabel ? (
             <div className="space-y-1">
-              <p className="ui-meta-text text-muted-foreground">First step</p>
+              <p className="ui-meta-text text-muted-foreground">
+                Starting point
+              </p>
               <p className="text-body-sm text-foreground">{startStageLabel}</p>
             </div>
           ) : null}

@@ -91,7 +91,7 @@ export function FlowDecisionMessage({
             "Approval timed out. Try again, or restart the app if the problem continues.",
           )
           if (!ok) {
-            toastError("Could not approve step: this flow is no longer active")
+            toastError("Could not approve: this flow is no longer active")
             break
           }
           toast.success("Accepted \u2014 flow continuing.")
@@ -107,9 +107,7 @@ export function FlowDecisionMessage({
             "Override timed out. Try again, or restart the app if the problem continues.",
           )
           if (!ok) {
-            toastError(
-              "Could not override check: this flow is no longer active",
-            )
+            toastError("Could not override: this flow is no longer active")
             break
           }
           toast.success("Accepted \u2014 flow continuing.")
@@ -211,11 +209,11 @@ export function FlowDecisionMessage({
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
             rows={8}
-            aria-label="Edit step output before continuing"
+            aria-label="Edit output before continuing"
             className="font-mono text-body-sm"
           />
           <p className="ui-meta-text text-muted-foreground">
-            Your edits will be used as the step output when approved.
+            Your edits will be used as the output when approved.
           </p>
         </div>
       )}

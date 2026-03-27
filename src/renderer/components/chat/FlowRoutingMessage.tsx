@@ -239,7 +239,7 @@ export function FlowRoutingMessage({
                           </span>
                           {alt.stageLabel && (
                             <span className="block ui-meta-text text-muted-foreground">
-                              First step: {alt.stageLabel}
+                              Starting point: {alt.stageLabel}
                             </span>
                           )}
                         </div>

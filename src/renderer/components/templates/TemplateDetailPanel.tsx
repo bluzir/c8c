@@ -143,7 +143,7 @@ export function TemplateDetailPanel({
                 {routingPreview?.stageLabel ? (
                   <div>
                     <span className="ui-meta-label text-muted-foreground">
-                      First step
+                      Starting point
                     </span>
                     <p className="mt-1 text-body-sm text-foreground">
                       {routingPreview.stageLabel}

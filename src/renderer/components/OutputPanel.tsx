@@ -55,7 +55,7 @@ function deriveFailureRecovery(
   ) {
     return {
       categoryLabel: "Authentication issue",
-      hint: "Check provider login or API key in Settings, then retry the failing step.",
+      hint: "Check provider login or API key in Settings, then retry the failed action.",
     }
   }
 
@@ -70,7 +70,7 @@ function deriveFailureRecovery(
   ) {
     return {
       categoryLabel: "Rate limit",
-      hint: "The API is temporarily limiting requests. Wait a few minutes, then retry the failing step.",
+      hint: "The API is temporarily limiting requests. Wait a few minutes, then retry the failed action.",
     }
   }
 
@@ -81,7 +81,7 @@ function deriveFailureRecovery(
   ) {
     return {
       categoryLabel: "Timeout",
-      hint: "Retry the step or raise the timeout if this work usually runs longer.",
+      hint: "Retry or raise the timeout if this work usually runs longer.",
     }
   }
 
@@ -95,7 +95,7 @@ function deriveFailureRecovery(
   ) {
     return {
       categoryLabel: "Connection lost",
-      hint: "Check your connection. This step will retry automatically when the connection restores, or you can retry manually.",
+      hint: "Check your connection. This will retry automatically when the connection restores, or you can retry manually.",
     }
   }
 
@@ -106,27 +106,27 @@ function deriveFailureRecovery(
   ) {
     return {
       categoryLabel: "Flow rule block",
-      hint: "Review the active rules or approval policy, then retry the blocked step.",
+      hint: "Review the active flow rules, then retry the blocked action.",
     }
   }
 
   if (errorKind === "tool" || normalized.includes("tool")) {
     return {
       categoryLabel: "Tool failure",
-      hint: "Inspect the step log for the failing tool call, then retry this step.",
+      hint: "Inspect the activity log for the failing tool call, then retry.",
     }
   }
 
   if (errorKind === "model") {
     return {
       categoryLabel: "Model error",
-      hint: "Retry the step. If it repeats, inspect the prompt or provider state.",
+      hint: "Retry. If it repeats, inspect the prompt or provider state.",
     }
   }
 
   return {
     categoryLabel: "Execution error",
-    hint: "Inspect the failing step, then retry from there if the issue looks transient.",
+    hint: "Inspect the failure, then retry from there if the issue looks transient.",
   }
 }
 
@@ -527,7 +527,7 @@ export function OutputPanel({
           level: "warning",
           title: "Saved snapshot missing",
           description:
-            "This saved run still has its final result, but the full step snapshot is unavailable.",
+            "This saved run still has its final result, but the full run snapshot is unavailable.",
           actionLabel: "",
           actionTarget: "result",
         }}
@@ -544,10 +544,10 @@ export function OutputPanel({
           title: "Run failed",
           description:
             failedNodeErrors.length === 0
-              ? "Inspect the activity log for the failing step or the last interrupted step."
+              ? "Inspect the activity log for details on the failure or last interrupted action."
               : `${failureRecovery.categoryLabel}. ${failureRecovery.hint}`,
           actionLabel: canInspectFailureLog
-            ? "Inspect step log"
+            ? "Inspect activity log"
             : "Inspect summary",
           actionTarget: "activity",
         }}

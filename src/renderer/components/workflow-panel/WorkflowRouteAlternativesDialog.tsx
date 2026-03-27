@@ -44,7 +44,7 @@ export function WorkflowRouteAlternativesDialog({
             const metaText = [
               option.helpModeLabel?.trim() || null,
               option.stageLabel?.trim()
-                ? `First step: ${option.stageLabel.trim()}`
+                ? `Starting point: ${option.stageLabel.trim()}`
                 : null,
             ]
               .filter(Boolean)
