@@ -119,6 +119,31 @@ describe("buildCompleteMessage", () => {
     expect(data.followUps[0].source).toBe("contextual")
   })
 
+  it("caps follow-ups at 2 when ≥2 artifacts present", () => {
+    const msg = buildCompleteMessage({
+      runId: "run-1",
+      flowName: "Test",
+      summary: "Done",
+      findings: [],
+      limitations: [],
+      artifacts: [
+        { name: "a.md", path: "/workspace/a.md", kind: "report" },
+        { name: "b.md", path: "/workspace/b.md", kind: "report" },
+      ],
+      followUps: [
+        { label: "A", emoji: "1", source: "contextual" as const },
+        { label: "B", emoji: "2", source: "recommended_next" as const },
+        { label: "C", emoji: "3", source: "recommended_next" as const },
+        { label: "D", emoji: "4", source: "recommended_next" as const },
+      ],
+      durationMs: 60000,
+      costUsd: 0.01,
+    })
+
+    const data = msg.content.data as CompleteContent
+    expect(data.followUps).toHaveLength(2)
+  })
+
   it("caps artifacts at 3", () => {
     const msg = buildCompleteMessage({
       runId: "run-1",
@@ -158,9 +183,26 @@ describe("buildErrorMessage", () => {
     expect(data.summary).toContain("Rate limit exceeded")
     expect(data.suggestions).toHaveLength(2)
     expect(data.actions).toHaveLength(1)
-    expect(data.actions[0].label).toBe("Try again")
+    expect(data.actions[0].label).toBe("Start fresh run")
     expect(data.actions[0].variant).toBe("primary")
     expect(msg.id).toBeTruthy()
+  })
+
+  it("creates error variant with retry-from-failed when failedNodeId provided", () => {
+    const msg = buildErrorMessage({
+      runId: "run-1",
+      flowName: "Deep Research",
+      variant: "error",
+      errorMessage: "Rate limit exceeded",
+      failedNodeLabel: "gather-sources",
+      failedNodeId: "gather-sources",
+    })
+    const data = msg.content.data as ErrorContent
+    expect(data.actions).toHaveLength(2)
+    expect(data.actions[0].label).toBe("Retry from failed step")
+    expect(data.actions[0].variant).toBe("primary")
+    expect(data.actions[1].label).toBe("Start fresh run")
+    expect(data.actions[1].variant).toBe("secondary")
   })
 
   it("creates error variant without node label", () => {

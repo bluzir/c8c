@@ -146,6 +146,9 @@ export function buildDecisionMessage(input: DecisionInput): FlowChatMessage {
 }
 
 export function buildCompleteMessage(input: CompleteInput): FlowChatMessage {
+  // Reduce follow-up cap when many artifacts push visible action count toward ≤5 limit
+  const effectiveMaxFollowUps = input.artifacts.length >= 2 ? 2 : MAX_FOLLOW_UPS
+
   // Prioritize: contextual first (up to 1), then recommended_next
   const contextual = input.followUps.filter((f) => f.source === "contextual")
   const template = input.followUps.filter(
@@ -153,8 +156,11 @@ export function buildCompleteMessage(input: CompleteInput): FlowChatMessage {
   )
   const cappedFollowUps = [
     ...contextual.slice(0, 1),
-    ...template.slice(0, MAX_FOLLOW_UPS - Math.min(contextual.length, 1)),
-  ].slice(0, MAX_FOLLOW_UPS)
+    ...template.slice(
+      0,
+      effectiveMaxFollowUps - Math.min(contextual.length, 1),
+    ),
+  ].slice(0, effectiveMaxFollowUps)
 
   const data: CompleteContent = {
     summary: input.summary,
