@@ -89,7 +89,7 @@ import {
   getRequestedResultFromEntryState,
   type WorkflowEntryState,
 } from "@/lib/workflow-entry"
-import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
+import { isRunInFlight, toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import { Tabs } from "@/components/ui/tabs"
 import { buildCreateEntryRouteSeed } from "@shared/create-entry-routing"
 import type {
@@ -394,15 +394,21 @@ export function WorkflowPanel() {
   )
   useEffect(() => {
     if (!chatFlowInputRequest) return
-    if (runStatus !== "idle") {
+    if (isRunInFlight(runStatus)) {
       setChatFlowInputRequest(null)
       return
     }
+    const request = chatFlowInputRequest
     setChatFlowInputRequest(null)
-    void handleRunRequest()
+    if (request.kind === "rerun" && request.fromNodeId) {
+      void rerunFrom(request.fromNodeId, { workspace: request.workspace })
+    } else {
+      void handleRunRequest()
+    }
   }, [
     chatFlowInputRequest,
     handleRunRequest,
+    rerunFrom,
     runStatus,
     setChatFlowInputRequest,
   ])
@@ -1064,7 +1070,11 @@ export function WorkflowPanel() {
     )
   }
 
-  if (!selectedWorkflowPath && !hasMeaningfulContent) {
+  if (
+    !selectedWorkflowPath &&
+    !hasMeaningfulContent &&
+    viewMode !== "settings"
+  ) {
     return (
       <EmptyProjectState
         onOpenTemplates={() => setMainView("templates")}
@@ -1107,6 +1117,7 @@ export function WorkflowPanel() {
               onSelectRouteAlternative={(templateId) => {
                 void handleSelectRouteAlternative(templateId)
               }}
+              resultSourceAttachments={resultSourceAttachments}
             />
           </SectionErrorBoundary>
         ) : (
