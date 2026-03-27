@@ -121,6 +121,15 @@ export function buildTemplateStartStateFromRoute({
   source?: Extract<WorkflowEntrySource, "template" | "template_customize">
   sourceArtifacts?: ArtifactRecord[]
 }) {
+  // When source artifacts satisfy the template's contractIn, the artifact
+  // content IS the primary input — not the follow-up label.  Clear the seed
+  // input value so the assembled attachment content becomes the effective input.
+  const hasContractMatchedArtifacts =
+    sourceArtifacts &&
+    sourceArtifacts.length > 0 &&
+    template.contractIn &&
+    template.contractIn.length > 0
+
   const templateStartState = buildTemplateStartState({
     template,
     workflowPath,
@@ -129,7 +138,9 @@ export function buildTemplateStartStateFromRoute({
     source,
     sourceArtifacts,
     seedOverride: {
-      initialInputValue: routeResult.seed.primaryInputValue,
+      initialInputValue: hasContractMatchedArtifacts
+        ? ""
+        : routeResult.seed.primaryInputValue,
       initialAttachments: routeResult.seed.attachments,
     },
   })

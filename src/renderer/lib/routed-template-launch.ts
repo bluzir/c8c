@@ -11,6 +11,7 @@ import {
   resolveTemplateWorkflow,
   type WebSearchBackend,
 } from "@/lib/web-search-backend"
+import { selectArtifactsForTemplateContracts } from "@/lib/workflow-entry"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 
 export function buildRoutedTemplateResultForTemplate({
@@ -96,10 +97,14 @@ export async function prepareRoutedTemplateLaunch({
     },
   )
   const workflowName = routeResult.suggestedTitle || templateForWorkflowUse.name
+  const namedWorkflow =
+    workflowName !== nextWorkflow.name
+      ? { ...nextWorkflow, name: workflowName }
+      : nextWorkflow
   const filePath = await window.api.createWorkflow(
     projectPath,
     workflowName,
-    nextWorkflow,
+    namedWorkflow,
   )
   void window.api
     .recordProjectTemplateUsage(projectPath, templateForWorkflowUse.id)
@@ -119,6 +124,15 @@ export async function prepareRoutedTemplateLaunch({
     alternateTemplateIds,
   })
 
+  // When the template declares contractIn and source artifacts satisfy it,
+  // filter artifacts via contract matching so only relevant ones are attached.
+  // This mirrors the factory-launch path used by "Use in new flow".
+  const contractIn = hydratedTemplate.contractIn ?? template.contractIn
+  const selectedArtifacts =
+    contractIn && contractIn.length > 0 && sourceArtifacts?.length
+      ? selectArtifactsForTemplateContracts(contractIn, sourceArtifacts)
+      : sourceArtifacts
+
   return {
     filePath,
     loadedWorkflow,
@@ -129,7 +143,7 @@ export async function prepareRoutedTemplateLaunch({
       projectPath,
       requestedResult,
       routeResult: hydratedRouteResult,
-      sourceArtifacts,
+      sourceArtifacts: selectedArtifacts,
     }),
     savedSnapshot: workflowSnapshot(loadedWorkflow),
   }

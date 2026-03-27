@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type {
+  ArtifactRecord,
   CreateEntryRouteResult,
   ProjectInspectionSummary,
   Workflow,
@@ -174,6 +175,81 @@ describe("prepareRoutedTemplateLaunch", () => {
       "Plan the change",
     )
     expect(launch.savedSnapshot).toBe(workflowSnapshot(loadedWorkflow))
+  })
+
+  it("applies contract matching when template has contractIn and sourceArtifacts are provided", async () => {
+    const loadedWorkflow = createWorkflow("Post Drafter")
+    const api = {
+      fetchHubTemplate: vi.fn(),
+      createWorkflow: vi
+        .fn()
+        .mockResolvedValue("/tmp/project/post-drafter.flow.yaml"),
+      loadWorkflow: vi.fn().mockResolvedValue(loadedWorkflow),
+      listProjectWorkflows: vi.fn().mockResolvedValue([]),
+      recordProjectTemplateUsage: vi.fn().mockResolvedValue(undefined),
+    }
+    vi.stubGlobal("window", { api })
+
+    const sourceArtifacts: ArtifactRecord[] = [
+      {
+        id: "art-1",
+        kind: "trend_digest",
+        title: "Trend Digest",
+        relativePath: "artifacts/trend-digest.md",
+        contentPath: "/tmp/workspace/artifacts/trend-digest.md",
+        metadataPath: "/tmp/workspace/artifacts/trend-digest.meta.json",
+        projectPath: "/tmp/project",
+        workspace: "/tmp/workspace",
+        runId: "run-1",
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+      {
+        id: "art-2",
+        kind: "report",
+        title: "Full Report",
+        relativePath: "artifacts/report.md",
+        contentPath: "/tmp/workspace/artifacts/report.md",
+        metadataPath: "/tmp/workspace/artifacts/report.meta.json",
+        projectPath: "/tmp/project",
+        workspace: "/tmp/workspace",
+        runId: "run-1",
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+    ]
+
+    const launch = await prepareRoutedTemplateLaunch({
+      projectPath: "/tmp/project",
+      template: createTemplate({
+        id: "content-post-drafter",
+        name: "Post Drafter",
+        contractIn: [{ kind: "trend_digest", title: "Trend digest" }],
+      }),
+      webSearchBackend: "builtin",
+      routeResult: createRouteResult({
+        recommendedTemplateId: "content-post-drafter",
+        seed: {
+          primaryInputMode: "text",
+          primaryInputValue: "Content Post Drafter",
+          attachments: [],
+        },
+      }),
+      requestedResult: "Content Post Drafter",
+      sourceArtifacts,
+    })
+
+    // Contract matching should select only the trend_digest artifact (not the report)
+    const attachments = launch.templateStartState.initialAttachments
+    expect(attachments).toHaveLength(1)
+    expect(attachments[0]).toMatchObject({
+      kind: "file",
+      name: "Trend Digest",
+    })
+
+    // When contracts are matched, initialInputValue should be empty
+    // (artifact content becomes primary input via attachment, not the follow-up label)
+    expect(launch.templateStartState.initialInputValue).toBe("")
   })
 
   it("preserves reroute metadata in the resulting template start state", async () => {
