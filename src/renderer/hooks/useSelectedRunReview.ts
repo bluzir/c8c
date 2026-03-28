@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
-import { useAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import {
   runStatusAtom,
   selectedPastRunAtom,
   workflowHistoryRunsAtom,
 } from "@/features/execution"
+import { updateWorkflowExecutionStateAtom } from "@/features/execution/state"
+import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
 import type { LoadedRunResult, RunResult } from "@shared/types"
 
 export function useSelectedRunReview(enabled: boolean) {
@@ -15,6 +17,7 @@ export function useSelectedRunReview(enabled: boolean) {
     useState<LoadedRunResult | null>(null)
   const [reviewedRunLoading, setReviewedRunLoading] = useState(false)
   const [reviewedRunError, setReviewedRunError] = useState<string | null>(null)
+  const updateExecutionState = useSetAtom(updateWorkflowExecutionStateAtom)
 
   const reviewedRun: RunResult | null = selectedPastRun || pastRuns[0] || null
 
@@ -30,6 +33,10 @@ export function useSelectedRunReview(enabled: boolean) {
     setReviewedRunLoading(true)
     setReviewedRunError(null)
 
+    const workflowExecutionKey = toWorkflowExecutionKey(
+      reviewedRun.workflowPath ?? null,
+    )
+
     window.api
       .loadRunResult(reviewedRun.workspace)
       .then((result) => {
@@ -42,6 +49,21 @@ export function useSelectedRunReview(enabled: boolean) {
           return
         }
         setReviewedRunDetails(result)
+        if (result.snapshot) {
+          updateExecutionState({
+            key: workflowExecutionKey,
+            update: (prev) => ({
+              ...prev,
+              nodeStates: result.snapshot!.nodeStates ?? prev.nodeStates,
+              runtimeNodes:
+                result.snapshot!.runtimeNodes ?? prev.runtimeNodes,
+              runtimeEdges:
+                result.snapshot!.runtimeEdges ?? prev.runtimeEdges,
+              runtimeMeta: result.snapshot!.runtimeMeta ?? prev.runtimeMeta,
+              evalResults: result.snapshot!.evalResults ?? prev.evalResults,
+            }),
+          })
+        }
       })
       .catch((error) => {
         if (cancelled) return
