@@ -26,6 +26,7 @@ import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
 import { useChatSession } from "@/hooks/useChatSession"
 import { useFlowRouting } from "@/hooks/useFlowRouting"
+import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
 import { cn } from "@/lib/cn"
 
 const MIN_PANEL_WIDTH = 280
@@ -66,6 +67,7 @@ export function ChatPanel({
   const setMainView = useSetAtom(mainViewAtom)
   const { startRouting, selectClarification, resetRoutingState, submitting } =
     useFlowRouting()
+  const { openWorkflowCreate } = useWorkflowCreateNavigation()
   const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
   const [chatRoutingProgress, setChatRoutingProgress] = useAtom(
     chatRoutingProgressAtom,
@@ -193,6 +195,12 @@ export function ChatPanel({
       resultSourceAttachments,
     ],
   )
+
+  const handleUseInNewFlow = useCallback(() => {
+    openWorkflowCreate({
+      sourceArtifacts: executionState.artifactRecords,
+    })
+  }, [openWorkflowCreate, executionState.artifactRecords])
 
   const handleClarificationSelect = useCallback(
     (selection: { kind: string; value: string; templateId?: string }) => {
@@ -429,6 +437,7 @@ export function ChatPanel({
         status={status}
         onSelectClarification={handleClarificationSelect}
         onFollowUp={handleFollowUp}
+        onUseInNewFlow={handleUseInNewFlow}
         followUpDisabled={followUpDisabled}
         routeAlternatives={routeAlternatives}
         pendingRouteAlternativeId={pendingRouteAlternativeId}

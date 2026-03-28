@@ -64,6 +64,7 @@ interface ChatMessagesProps {
   status: "idle" | "thinking" | "streaming" | "error"
   onSelectClarification?: (selection: ClarificationSelection) => void
   onFollowUp?: (followUp: FlowFollowUp) => void
+  onUseInNewFlow?: () => void
   followUpDisabled?: boolean
   routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
   pendingRouteAlternativeId?: string | null
@@ -75,6 +76,7 @@ export function ChatMessages({
   status,
   onSelectClarification,
   onFollowUp,
+  onUseInNewFlow,
   followUpDisabled,
   routeAlternatives,
   pendingRouteAlternativeId,
@@ -270,6 +272,7 @@ export function ChatMessages({
                     followUpDisabled={followUpDisabled}
                     onOpenReport={(path) => window.api.openPath(path)}
                     onRunAgain={() => handleRetry()}
+                    onUseInNewFlow={onUseInNewFlow}
                   />
                 )
               } else if (flowMsg.content.type === "error") {

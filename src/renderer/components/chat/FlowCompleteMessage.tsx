@@ -12,6 +12,7 @@ interface FlowCompleteMessageProps {
   followUpDisabled?: boolean
   onOpenReport?: (path: string) => void
   onRunAgain?: () => void
+  onUseInNewFlow?: () => void
 }
 
 export function FlowCompleteMessage({
@@ -21,6 +22,7 @@ export function FlowCompleteMessage({
   followUpDisabled,
   onOpenReport,
   onRunAgain,
+  onUseInNewFlow,
 }: FlowCompleteMessageProps) {
   const [runAgainClicked, setRunAgainClicked] = useState(false)
 
@@ -99,6 +101,15 @@ export function FlowCompleteMessage({
         <span className="ui-meta-text text-muted-foreground">
           Completed · {data.metrics.duration} · {data.metrics.cost}
         </span>
+        {data.artifacts.length > 0 && onUseInNewFlow && (
+          <button
+            type="button"
+            className="ml-auto ui-pressable text-body-sm text-muted-foreground hover:text-foreground ui-motion-fast"
+            onClick={onUseInNewFlow}
+          >
+            Use in new flow →
+          </button>
+        )}
       </div>
 
       {/* Run again */}
