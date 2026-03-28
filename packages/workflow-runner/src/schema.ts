@@ -516,7 +516,7 @@ export type WorkflowEvent =
   | { type: "node-start"; runId: string; nodeId: string }
   | { type: "node-log"; runId: string; nodeId: string; entry: LogEntry }
   | { type: "node-done"; runId: string; nodeId: string; output: NodeInput }
-  | { type: "node-error"; runId: string; nodeId: string; error: string }
+  | { type: "node-error"; runId: string; nodeId: string; error: string; errorKind?: string }
   | {
       type: "node-warning"
       runId: string

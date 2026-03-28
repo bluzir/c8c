@@ -1,5 +1,6 @@
 import type {
   ArtifactRecord,
+  ErrorKind,
   EvaluationResult,
   InputAttachment,
   LoadedRunResult,
@@ -504,6 +505,7 @@ export function reduceWorkflowExecutionEvent(
               ...getNodeState(previousState, event.nodeId),
               status: "failed",
               error: event.error,
+              errorKind: event.errorKind as ErrorKind | undefined,
             },
           },
         },

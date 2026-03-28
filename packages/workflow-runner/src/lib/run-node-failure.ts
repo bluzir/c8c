@@ -324,6 +324,7 @@ export async function handleNodeExecutionFailure(
       runId,
       nodeId: node.id,
       error: errorText,
+      errorKind: state.errorKind,
     })
     return
   }
@@ -360,5 +361,6 @@ export async function handleNodeExecutionFailure(
     runId,
     nodeId: node.id,
     error: errorText,
+    errorKind: state.errorKind,
   })
 }

@@ -528,6 +528,7 @@ export class WorkflowExecutionController {
             errorMessage: errorDetail,
             failedNodeLabel: failedNode?.[0],
             failedNodeId: failedNode?.[0],
+            errorKind: failedNode?.[1]?.errorKind,
           })
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
           if (variant === "cancelled") {
