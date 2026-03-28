@@ -15,7 +15,7 @@ interface ApprovalResolve {
 }
 
 interface EvalOverrideResolve {
-  resolve: (overridden: boolean) => void
+  resolve: (overridden: string | boolean) => void
 }
 
 export function approvalDecisionPath(
@@ -146,11 +146,11 @@ export function createRunInterruptRegistry() {
       runId: string,
       nodeId: string,
       signal: AbortSignal,
-    ): Promise<boolean> {
+    ): Promise<string | boolean> {
       const key = `${runId}:${nodeId}`
-      return new Promise<boolean>((resolve) => {
+      return new Promise<string | boolean>((resolve) => {
         let settled = false
-        const finish = (overridden: boolean) => {
+        const finish = (overridden: string | boolean) => {
           if (settled) return
           settled = true
           pendingEvalOverrides.delete(key)
@@ -183,11 +183,11 @@ export function createRunInterruptRegistry() {
       return true
     },
 
-    resolveEvalOverride(runId: string, nodeId: string): boolean {
+    resolveEvalOverride(runId: string, nodeId: string, editedContent?: string): boolean {
       const key = `${runId}:${nodeId}`
       const pending = pendingEvalOverrides.get(key)
       if (!pending) return false
-      pending.resolve(true)
+      pending.resolve(editedContent ?? true)
       pendingEvalOverrides.delete(key)
       return true
     },

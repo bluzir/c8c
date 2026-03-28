@@ -229,7 +229,7 @@ export interface RunNodeExecutionContext {
     runId: string,
     nodeId: string,
     signal: AbortSignal,
-  ) => Promise<boolean>
+  ) => Promise<string | boolean>
   helpers: RunNodeExecutorHelpers
 }
 
@@ -942,9 +942,10 @@ async function executeEvaluatorNode(
       runId: context.runId,
       nodeId: node.id,
     })
+    const overrideContent = typeof overridden === "string" ? overridden : context.incomingContent
     const output = context.helpers.createNodeOutput(
       node,
-      context.incomingContent,
+      overrideContent,
       {
         ...evalMetadata,
         overridden: true,

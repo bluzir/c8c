@@ -1550,7 +1550,7 @@ export function registerExecutorHandlers() {
 
   ipcMain.handle(
     "executor:override-evaluator",
-    async (event, runId: string, nodeId: string) => {
+    async (event, runId: string, nodeId: string, editedContent?: string) => {
       if (
         !assertWindowCanMutateExecution(
           event,
@@ -1560,7 +1560,7 @@ export function registerExecutorHandlers() {
         )
       )
         return false
-      return resolveEvalOverride(runId, nodeId)
+      return resolveEvalOverride(runId, nodeId, editedContent)
     },
   )
 

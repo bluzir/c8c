@@ -460,11 +460,12 @@ const api: C8cApi = {
     ),
   rejectNode: (runId: string, nodeId: string) =>
     invokeIpc<C8cApi["rejectNode"]>("executor:reject", runId, nodeId),
-  overrideEvaluator: (runId: string, nodeId: string) =>
+  overrideEvaluator: (runId: string, nodeId: string, editedContent?: string) =>
     invokeIpc<C8cApi["overrideEvaluator"]>(
       "executor:override-evaluator",
       runId,
       nodeId,
+      editedContent,
     ),
   listHumanTasks: (projectPath?: string) =>
     invokeIpc<C8cApi["listHumanTasks"]>(
