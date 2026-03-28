@@ -204,6 +204,7 @@ export interface WorkflowRunHandle {
 export interface EvalOverrideDecision {
   runId: string
   nodeId: string
+  editedContent?: string
 }
 
 export interface WorkflowRunner {
@@ -1330,7 +1331,7 @@ export function createWorkflowRunner(deps: WorkflowRunnerDeps): WorkflowRunner {
     async resolveEvalOverride(
       decision: EvalOverrideDecision,
     ): Promise<boolean> {
-      if (interrupts.resolveEvalOverride(decision.runId, decision.nodeId)) {
+      if (interrupts.resolveEvalOverride(decision.runId, decision.nodeId, decision.editedContent)) {
         return true
       }
       return false

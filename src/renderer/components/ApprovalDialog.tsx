@@ -335,7 +335,7 @@ export function ApprovalDialog() {
       let ok: boolean
       if (isEvalOverride) {
         ok = await withIpcTimeout(
-          window.api.overrideEvaluator(request.runId, request.nodeId),
+          window.api.overrideEvaluator(request.runId, request.nodeId, content),
           DEFAULT_EXECUTION_IPC_TIMEOUT_MS,
           "Override timed out. Try again, or restart the app if the problem continues.",
         )

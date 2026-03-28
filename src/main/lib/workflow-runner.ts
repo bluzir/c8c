@@ -135,8 +135,9 @@ export async function resolveApproval(
 export async function resolveEvalOverride(
   runId: string,
   nodeId: string,
+  editedContent?: string,
 ): Promise<boolean> {
-  return workflowRunner.resolveEvalOverride({ runId, nodeId })
+  return workflowRunner.resolveEvalOverride({ runId, nodeId, editedContent })
 }
 
 export function hasActiveRuns(): boolean {

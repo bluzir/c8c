@@ -263,7 +263,7 @@ export interface C8cApi {
     editedContent?: string,
   ) => Promise<boolean>
   rejectNode: (runId: string, nodeId: string) => Promise<boolean>
-  overrideEvaluator: (runId: string, nodeId: string) => Promise<boolean>
+  overrideEvaluator: (runId: string, nodeId: string, editedContent?: string) => Promise<boolean>
   listHumanTasks: (projectPath?: string) => Promise<HumanTaskSummary[]>
   loadHumanTask: (
     taskId: string,
