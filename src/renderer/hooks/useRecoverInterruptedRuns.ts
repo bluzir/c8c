@@ -93,6 +93,11 @@ export function useRecoverInterruptedRuns(): void {
           }
 
           if (snapshot.status === "completed") {
+            // P0-4 fix: getTerminalRunSnapshot only returns metadata for completed runs.
+            // Load the full snapshot from disk to get nodeStates (so StepsList shows actual step status).
+            const loaded = await window.api.loadRunResult(entry.workspace)
+            const snap = loaded?.snapshot
+
             updateExecutionState({
               key,
               update: {
@@ -104,6 +109,11 @@ export function useRecoverInterruptedRuns(): void {
                 runWorkflowPath: entry.workflowPath,
                 workflowName: entry.workflowName,
                 reportPath: snapshot.result.reportPath || null,
+                nodeStates: snap?.nodeStates ?? {},
+                runtimeNodes: snap?.runtimeNodes ?? [],
+                runtimeEdges: snap?.runtimeEdges ?? [],
+                runtimeMeta: snap?.runtimeMeta ?? {},
+                evalResults: snap?.evalResults ?? {},
               },
             })
             recoveredKeys.push(key)
