@@ -34,6 +34,12 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
   const syntheticCompleteMessage = useMemo<FlowChatMessage | null>(() => {
     if (flowMessages.length > 0) return null
     if (executionState.runOutcome !== "completed") return null
+    // P0-5 fix: prefer disk timeline when a past run workspace is available
+    // (disk timeline has full progress, findings, follow-ups; synthetic is minimal)
+    const hasEligiblePastRun = workflowHistoryRuns.some(
+      (r) => r.status === "completed" && r.workspace,
+    )
+    if (hasEligiblePastRun) return null
 
     const durationMs =
       executionState.completedAt && executionState.runStartedAt
@@ -69,6 +75,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     executionState.runId,
     executionState.workflowName,
     workflow?.name,
+    workflowHistoryRuns,
   ])
 
   // Fallback: if no synthetic from execution state, try the latest past run
