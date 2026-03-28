@@ -265,6 +265,7 @@ export function ChatMessages({
                     data={flowMsg.content.data}
                     resolved={resolvedIds.has(flowMsg.id)}
                     onResolved={() => resolveDecision(flowMsg.id)}
+                    onRetry={handleRetry}
                   />
                 )
               } else if (flowMsg.content.type === "routing") {
