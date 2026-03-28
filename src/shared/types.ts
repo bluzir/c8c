@@ -1755,3 +1755,64 @@ export interface McpProvider {
     projectPath?: string,
   ): Promise<McpToolInfo[]>
 }
+
+// ── Workflow Entry ───────────────────────────────────────
+
+export type WorkflowEntrySource =
+  | "generated"
+  | "agent_create"
+  | "template"
+  | "template_customize"
+
+export interface WorkflowEntryState {
+  workflowPath: string | null
+  workflowName: string
+  source: WorkflowEntrySource
+  title: string
+  summary: string
+  contractLabel: string
+  contractText: string
+  inputText: string
+  outputText: string
+  readinessText: string
+  awaitingInput?: boolean
+  routing?: {
+    source: "agent"
+    reason?: string
+    confidence?: number
+    domainMode?: ResultModeId
+    alternateTemplateIds?: string[]
+    projectInspection?: ProjectInspectionSummary
+  }
+}
+
+export interface WorkflowTemplateRunContext {
+  templateId: string
+  templateName: string
+  workflowPath: string | null
+  workflowName: string
+  source: Extract<WorkflowEntrySource, "template" | "template_customize">
+  recommendedNext?: string[]
+  suggestedTools?: WorkflowTemplateSuggestedTool[]
+  useWhen?: string
+  inputText?: string
+  outputText?: string
+  factoryId?: string
+  factoryLabel?: string
+  caseId?: string
+  caseLabel?: string
+  sourceArtifactIds?: string[]
+  pack?: WorkflowTemplatePackMetadata
+  contractIn?: ArtifactContract[]
+  contractOut?: ArtifactContract[]
+  executionPolicy?: WorkflowExecutionPolicyProfile
+}
+
+export type {
+  RoutingIntent,
+  RunEnvelope,
+  RoutingEvent,
+  RoutingPhase,
+  ContractWarning,
+  RoutingHandle,
+} from "./routing-types"
