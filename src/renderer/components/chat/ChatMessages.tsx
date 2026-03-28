@@ -63,6 +63,7 @@ interface ChatMessagesProps {
   status: "idle" | "thinking" | "streaming" | "error"
   onSelectClarification?: (selection: ClarificationSelection) => void
   onFollowUp?: (followUp: FlowFollowUp) => void
+  onUseInNewFlow?: () => void
   routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
   pendingRouteAlternativeId?: string | null
   onSelectRouteAlternative?: (templateId: string) => void
@@ -73,6 +74,7 @@ export function ChatMessages({
   status,
   onSelectClarification,
   onFollowUp,
+  onUseInNewFlow,
   routeAlternatives,
   pendingRouteAlternativeId,
   onSelectRouteAlternative,
@@ -248,6 +250,7 @@ export function ChatMessages({
                     data={flowMsg.content.data}
                     onFollowUp={onFollowUp}
                     onOpenReport={(path) => window.api.openPath(path)}
+                    onUseInNewFlow={onUseInNewFlow}
                   />
                 )
               } else if (flowMsg.content.type === "error") {

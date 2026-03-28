@@ -8,6 +8,7 @@ interface FlowCompleteMessageProps {
   data: CompleteContent
   onFollowUp?: (followUp: FlowFollowUp) => void
   onOpenReport?: (path: string) => void
+  onUseInNewFlow?: () => void
 }
 
 export function FlowCompleteMessage({
@@ -15,6 +16,7 @@ export function FlowCompleteMessage({
   data,
   onFollowUp,
   onOpenReport,
+  onUseInNewFlow,
 }: FlowCompleteMessageProps) {
   return (
     <div className="space-y-4">
@@ -91,6 +93,15 @@ export function FlowCompleteMessage({
         <span className="ui-meta-text text-muted-foreground">
           Completed · {data.metrics.duration} · {data.metrics.cost}
         </span>
+        {data.artifacts.length > 0 && onUseInNewFlow && (
+          <button
+            type="button"
+            className="ml-auto ui-pressable text-body-sm text-muted-foreground hover:text-foreground ui-motion-fast"
+            onClick={onUseInNewFlow}
+          >
+            Use in new flow →
+          </button>
+        )}
       </div>
 
       {/* Follow-ups */}
