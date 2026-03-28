@@ -16,6 +16,7 @@ interface FlowDecisionMessageProps {
   data: DecisionContent
   resolved?: boolean
   onResolved?: () => void
+  onRetry?: (nodeId?: string) => void
 }
 
 function mapActionVariant(
@@ -30,6 +31,7 @@ export function FlowDecisionMessage({
   data,
   resolved = false,
   onResolved,
+  onRetry,
 }: FlowDecisionMessageProps) {
   const [pendingAction, setPendingAction] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -124,6 +126,10 @@ export function FlowDecisionMessage({
             break
           }
           toast.success("Flow stopped.")
+          break
+        }
+        case "retry": {
+          onRetry?.(action.action.nodeId || undefined)
           break
         }
         default:
