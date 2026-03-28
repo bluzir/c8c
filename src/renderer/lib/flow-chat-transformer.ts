@@ -215,6 +215,7 @@ interface ErrorInput {
   variant: "error" | "cancelled" | "interrupted"
   errorMessage?: string
   failedNodeLabel?: string
+  errorKind?: string
 }
 
 export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
@@ -227,10 +228,25 @@ export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
       summary = input.failedNodeLabel
         ? `Step "${input.failedNodeLabel}" couldn't complete${input.errorMessage ? `: ${input.errorMessage}` : "."}`
         : input.errorMessage || "Flow encountered an error."
-      suggestions = [
-        "Check the step details for more information.",
-        "Try running the flow again.",
-      ]
+      if (input.errorKind === "network") {
+        suggestions = [
+          "Check your internet connection.",
+          "The AI provider may be temporarily unavailable. Try again in a minute.",
+        ]
+      } else if (input.errorKind === "timeout") {
+        suggestions = [
+          "The step took too long. Consider simplifying the input or splitting the task.",
+        ]
+      } else if (input.errorKind === "process_killed") {
+        suggestions = [
+          "The process ran out of memory. Try a shorter input or fewer parallel branches.",
+        ]
+      } else {
+        suggestions = [
+          "Check the step details for more information.",
+          "Try running the flow again.",
+        ]
+      }
       actions.push({
         label: "Try again",
         variant: "primary",
