@@ -684,6 +684,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         setSubmitting(false)
         if (!clarificationActiveRef.current) {
           setChatRoutingProgress(null)
+          setRoutingPreview(null)
         }
       }
     },
