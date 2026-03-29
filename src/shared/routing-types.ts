@@ -1,5 +1,6 @@
 import type {
   ArtifactRecord,
+  ChatRunHistory,
   CreateEntryRouteClarification,
   CreateEntryRouteResult,
   InputAttachment,
@@ -21,10 +22,13 @@ export interface RoutingIntent {
   modeConfig?: Record<string, string> | null
   detailBudget?: number | null
   webSearchBackend?: "builtin" | "exa"
+  chatId?: string
 }
 
 export interface RunEnvelope {
   intent: RoutingIntent
+  chatId?: string
+  chatRunHistory?: ChatRunHistory
   workflow: Workflow
   workflowPath: string
   input: WorkflowInput

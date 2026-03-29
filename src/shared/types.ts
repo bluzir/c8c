@@ -998,6 +998,7 @@ export type ErrorKind =
   | "policy"
   | "auth"
   | "network"
+  | "process_killed"
   | "unknown"
 
 export interface NodeMetrics {
@@ -1806,6 +1807,53 @@ export interface WorkflowTemplateRunContext {
   contractIn?: ArtifactContract[]
   contractOut?: ArtifactContract[]
   executionPolicy?: WorkflowExecutionPolicyProfile
+}
+
+/** A chat groups sequential flow runs under a shared context */
+export interface Chat {
+  id: string
+  name: string
+  projectPath: string
+  createdAt: number
+  lastActivityAt: number
+  archived: boolean
+  runs: ChatRun[]
+  artifactPool: string[]
+}
+
+/** One flow run within a chat */
+export interface ChatRun {
+  runId: string
+  templateId: string
+  templateName: string
+  workflowPath: string
+  workspace: string
+  startedAt: number
+  completedAt?: number
+  status: "running" | "completed" | "failed" | "cancelled"
+  summary?: string
+  userPrompt: string
+}
+
+/** Structured history passed to subsequent runs for context */
+export interface ChatRunHistory {
+  runs: Array<{
+    templateName: string
+    userPrompt: string
+    summary: string
+    artifactIds: string[]
+  }>
+}
+
+/** Lightweight summary for sidebar listing (no full runs array) */
+export interface ChatSummary {
+  id: string
+  name: string
+  createdAt: number
+  lastActivityAt: number
+  archived: boolean
+  runCount: number
+  latestRunStatus: ChatRun["status"] | null
 }
 
 export type {

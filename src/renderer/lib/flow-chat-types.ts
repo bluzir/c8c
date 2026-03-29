@@ -6,10 +6,12 @@ export interface FlowAction {
     | { type: "override"; runId: string; nodeId: string }
     | { type: "reject"; runId: string; nodeId: string }
     | { type: "retry"; runId: string; nodeId: string }
+    | { type: "continue"; runId: string }
     | { type: "expand-details" }
     | { type: "follow-up"; templateId: string }
     | { type: "open-report"; path: string }
     | { type: "open-all-files" }
+    | { type: "cancel" }
 }
 
 export interface FlowResultFile {
@@ -46,6 +48,8 @@ export interface CompleteContent {
   followUps: FlowFollowUp[]
   metrics: { duration: string; cost: string }
   runId: string
+  /** Derived tone: success (clean), warning (has limitations), neutral (has findings only) */
+  tone?: "success" | "warning" | "neutral"
 }
 
 export interface ErrorContent {
@@ -71,6 +75,12 @@ export interface ToolActionEntry {
   label: string
 }
 
+export interface RetryInfo {
+  attempt: number
+  maxAttempts: number
+  kind: "network" | "rate-limit" | "eval" | "other"
+}
+
 export interface ProgressStep {
   nodeId: string
   label: string
@@ -78,6 +88,7 @@ export interface ProgressStep {
   summary?: string
   output?: string
   costUsd?: number
+  retryInfo?: RetryInfo
   toolDigest?: ToolDigestEntry[]
   toolActions?: ToolActionEntry[]
   searchQueries?: string[] // Human-readable query text, max 5
@@ -137,4 +148,5 @@ export interface FlowChatMessage {
   flowName: string
   timestamp: number
   content: FlowChatMessageContent
+  runIndex?: number | null
 }
