@@ -7,6 +7,7 @@ import {
   chatPendingRoutingPromptAtom,
   chatRoutingProgressAtom,
   currentWorkflowAtom,
+  followUpLabelAtom,
   inputValueAtom,
   mainViewAtom,
   selectedChatIdAtom,
@@ -96,6 +97,7 @@ export function ChatPanel({
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
   )
+  const setFollowUpLabel = useSetAtom(followUpLabelAtom)
 
   const {
     messages,
@@ -163,6 +165,9 @@ export function ChatPanel({
    */
   const handleSend = useCallback(
     async (message: string, helpModeHint?: CreateEntryHelpModeHint | null) => {
+      // Clear any stale follow-up label — the user typed a fresh message.
+      setFollowUpLabel(null)
+
       if (runStatus === "idle" && selectedWorkflowPath && !effectivelyDone) {
         // Truly idle workflow — start the flow run.
         setInputValue(message)
@@ -226,6 +231,7 @@ export function ChatPanel({
       resultSourceAttachments,
       sendMessage,
       setChatFlowInputRequest,
+      setFollowUpLabel,
       setInputValue,
       setSelectedChatId,
       setWorkflowEntryState,
@@ -237,6 +243,10 @@ export function ChatPanel({
   const handleFollowUp = useCallback(
     (followUp: { label: string; templateId?: string }) => {
       if (!followUp.templateId || isRouting) return
+
+      // Persist the follow-up label so the timeline can show a user bubble
+      // that survives routing completion (chatRoutingProgressAtom is transient).
+      setFollowUpLabel(followUp.label)
 
       // Build a self-contained RoutingIntent — the runner resolves artifacts
       // from disk via sourceArtifactIds, so no ambient state reads needed.
@@ -260,6 +270,7 @@ export function ChatPanel({
     [
       dispatchRouting,
       isRouting,
+      setFollowUpLabel,
       selectedChatId,
       selectedProject,
       executionState.artifactRecords,

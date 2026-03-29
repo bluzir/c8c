@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import {
   chatRoutingProgressAtom,
   currentWorkflowAtom,
+  followUpLabelAtom,
   inputValueAtom,
   selectedWorkflowPathAtom,
   workflowEntryStateAtom,
@@ -27,6 +28,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
   const workflow = useAtomValue(currentWorkflowAtom)
   const entryState = useAtomValue(workflowEntryStateAtom)
   const chatRoutingProgress = useAtomValue(chatRoutingProgressAtom)
+  const followUpLabel = useAtomValue(followUpLabelAtom)
   const inputValue = useAtomValue(inputValueAtom)
   const executionState = useAtomValue(effectiveExecutionStateAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
@@ -260,6 +262,19 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
         timestamp: Date.now() - 2000, // before routing message
       }
     }
+    // Follow-up click — the label persists after routing completes (unlike
+    // chatRoutingProgressAtom which is cleared). Shows the clicked action
+    // as a user bubble so there's narrative continuity in multi-run chats.
+    if (followUpLabel && messages.length === 0) {
+      const firstFlowTs =
+        flowMessages.length > 0 ? flowMessages[0].timestamp : Date.now()
+      return {
+        id: "synthetic-user-followup",
+        role: "user",
+        content: followUpLabel,
+        timestamp: firstFlowTs - 2000, // before any flow messages
+      }
+    }
     // After routing completed — show the input value if we have a routing entry
     // and no real user messages exist yet
     if (
@@ -279,6 +294,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     return null
   }, [
     chatRoutingProgress?.userRequest,
+    followUpLabel,
     entryState?.routing?.source,
     inputValue,
     messages.length,
@@ -321,5 +337,14 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     pastRunMessages,
   ])
 
-  return { timeline, flowMessages, entryState }
+  // Expose past-run metadata so the UI can render a "Viewing past run" indicator
+  const pastRunMeta = useMemo(() => {
+    if (pastRunMessages.length === 0 || !latestEligibleRun) return null
+    return {
+      completedAt: latestEligibleRun.completedAt,
+      durationMs: latestEligibleRun.durationMs ?? null,
+    }
+  }, [pastRunMessages.length, latestEligibleRun])
+
+  return { timeline, flowMessages, entryState, pastRunMeta }
 }

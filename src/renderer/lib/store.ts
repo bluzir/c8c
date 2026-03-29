@@ -291,6 +291,15 @@ export interface ChatRoutingProgress {
 export const chatRoutingProgressAtom = atom<ChatRoutingProgress | null>(null)
 
 /**
+ * Stores the human-readable label the user clicked when triggering a follow-up.
+ * Unlike chatRoutingProgressAtom (cleared on routing completion), this persists
+ * so the timeline can show a user bubble after routing finishes and the new flow
+ * starts running. Cleared when a fresh routing starts or the user sends a new
+ * manual message.
+ */
+export const followUpLabelAtom = atom<string | null>(null)
+
+/**
  * When set, the chat panel auto-triggers routing with this prompt on mount.
  * Used by useWorkflowCreateNavigation when a prompt is provided — navigates
  * directly to thread+chat and triggers routing instead of showing the create page.
@@ -301,6 +310,7 @@ export const chatPendingRoutingPromptAtom = atom<string | null>(null)
 export const clearAllRoutingStateAtom = atom(null, (_get, set) => {
   set(chatRoutingProgressAtom, null)
   set(chatPendingRoutingPromptAtom, null)
+  set(followUpLabelAtom, null)
 })
 
 export const inputAttachmentsAtom = atom<InputAttachment[]>([])
