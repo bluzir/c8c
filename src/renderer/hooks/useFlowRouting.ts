@@ -30,6 +30,7 @@ import {
   setWorkflowTemplateContextForKeyAtom,
   chatRoutingProgressAtom,
   templatesCatalogAtom,
+  selectedChatIdAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
 import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "@/lib/workflow-create-prompt"
@@ -132,6 +133,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
   const setWorkflows = useSetAtom(workflowsAtom)
   const setProjectWorkflowsCache = useSetAtom(projectWorkflowsCacheAtom)
   const setSelectedWorkflowPath = useSetAtom(selectedWorkflowPathAtom)
+  const setSelectedChatId = useSetAtom(selectedChatIdAtom)
   const setWorkflow = useSetAtom(currentWorkflowAtom)
   const setWorkflowSavedSnapshot = useSetAtom(workflowSavedSnapshotAtom)
   const setMainView = useSetAtom(mainViewAtom)
@@ -203,6 +205,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         initialInputValue?: string
         initialAttachments?: InputAttachment[]
         autoRunIfAllowed?: boolean
+        chatId?: string
       },
     ) => {
       const loadedWorkflow = await window.api.loadWorkflow(filePath)
@@ -226,6 +229,9 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         [projectPath]: refreshedWorkflows,
       }))
       setSelectedWorkflowPath(filePath)
+      if (options?.chatId) {
+        setSelectedChatId(options.chatId)
+      }
       setWorkflow(loadedWorkflow)
       setWorkflowSavedSnapshot(workflowSnapshot(loadedWorkflow))
       setSelectedPastRun(null)
@@ -280,6 +286,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       setQueuedAutoRunPath,
       setSelectedInboxTaskKey,
       setSelectedPastRun,
+      setSelectedChatId,
       setSelectedProject,
       setSelectedWorkflowPath,
       setViewMode,
@@ -545,7 +552,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
           await openWorkflowFile(
             result.filePath,
             result.projectPath,
-            result.openOptions,
+            { ...result.openOptions, chatId: options?.chatId },
           )
           routingSucceeded = true
           return
@@ -568,7 +575,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         await openWorkflowFile(
           blankResult.filePath,
           blankResult.projectPath,
-          blankResult.openOptions,
+          { ...blankResult.openOptions, chatId: options?.chatId },
         )
         routingSucceeded = true
       } catch (error) {
