@@ -688,6 +688,21 @@ export function ProjectSidebar({
                               )
                             : []
 
+                        // Collect workflow paths owned by chats to filter
+                        // them out of the standalone workflow list
+                        const chatOwnedPaths = new Set<string>()
+                        if (isSelectedProject) {
+                          for (const chat of Object.values(chatRegistry)) {
+                            if (chat.projectPath !== projectPath) continue
+                            for (const run of chat.runs) {
+                              if (run.workflowPath) chatOwnedPaths.add(run.workflowPath)
+                            }
+                          }
+                        }
+                        const unclaimedWorkflows = chatOwnedPaths.size > 0
+                          ? projectWorkflows.filter((w) => !chatOwnedPaths.has(w.path))
+                          : projectWorkflows
+
                         return (
                           <>
                             {projectChats.length > 0 && (
@@ -709,7 +724,7 @@ export function ProjectSidebar({
                           <SidebarProjectWorkflowList
                             projectPath={projectPath}
                             projectLabel={projectFolderName(projectPath)}
-                            projectWorkflows={projectWorkflows}
+                            projectWorkflows={unclaimedWorkflows}
                             isProjectLoading={isProjectLoading}
                             workflowSearchQuery={workflowSearchQuery}
                             isWorkflowListExpanded={isWorkflowListExpanded}
