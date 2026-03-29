@@ -4,6 +4,7 @@ import {
   addFlowChatMessageAtom,
   clearFlowChatMessagesAtom,
   flowChatMessagesAtom,
+  replaceFlowChatMessagesAtom,
   updateFlowProgressAtom,
 } from "./flow-chat-state"
 import { toast } from "sonner"
@@ -24,14 +25,21 @@ import { isRunInFlight } from "@/lib/workflow-execution"
 import type { InFlightManifestEntry } from "@shared/types"
 import type { WorkflowNode } from "@shared/types"
 import {
+  chatRegistryAtom,
+  chatRoutingProgressAtom,
   hasCompletedFirstFlowAtom,
   inboxNotificationsAtom,
+  selectedChatIdAtom,
   templatesCatalogAtom,
+  updateChatInRegistryAtom,
+  workflowRequestedResultsAtom,
   workflowTemplateContextsAtom,
   type CreateInboxNotification,
 } from "@/lib/store"
 import type {
   ActiveExecutionSnapshot,
+  Chat,
+  ChatRun,
   RunResult,
   WorkflowEvent,
 } from "@shared/types"
@@ -205,7 +213,13 @@ export function useExecutionController({
   const setHasCompletedFirstFlow = useSetAtom(hasCompletedFirstFlowAtom)
   const addFlowChatMessage = useSetAtom(addFlowChatMessageAtom)
   const clearFlowChatMessages = useSetAtom(clearFlowChatMessagesAtom)
+  const replaceFlowChatMessages = useSetAtom(replaceFlowChatMessagesAtom)
+  const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const updateFlowProgress = useSetAtom(updateFlowProgressAtom)
+  const selectedChatId = useAtomValue(selectedChatIdAtom)
+  const chatRegistry = useAtomValue(chatRegistryAtom)
+  const workflowRequestedResults = useAtomValue(workflowRequestedResultsAtom)
+  const updateChatInRegistry = useSetAtom(updateChatInRegistryAtom)
   const store = useStore()
   const commitExecutionStateRef = useRef(commitExecutionState)
   const updateApprovalRequestsRef = useRef(updateApprovalRequests)
@@ -213,20 +227,34 @@ export function useExecutionController({
   const addNotificationRef = useRef(addNotification)
   const addFlowChatMessageRef = useRef(addFlowChatMessage)
   const clearFlowChatMessagesRef = useRef(clearFlowChatMessages)
+  const replaceFlowChatMessagesRef = useRef(replaceFlowChatMessages)
+  const setChatRoutingProgressRef = useRef(setChatRoutingProgress)
   const updateFlowProgressRef = useRef(updateFlowProgress)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
   const templatesCatalogRef = useRef(templatesCatalog)
   const workflowExecutionStatesRef = useRef(workflowExecutionStates)
+  const selectedChatIdRef = useRef(selectedChatId)
+  const chatRegistryRef = useRef(chatRegistry)
+  const workflowRequestedResultsRef = useRef(workflowRequestedResults)
+  const updateChatInRegistryRef = useRef(updateChatInRegistry)
+  const selectedProjectRef = useRef(selectedProject)
   commitExecutionStateRef.current = commitExecutionState
   updateApprovalRequestsRef.current = updateApprovalRequests
   setPastRunsRef.current = setPastRuns
   addNotificationRef.current = addNotification
   addFlowChatMessageRef.current = addFlowChatMessage
   clearFlowChatMessagesRef.current = clearFlowChatMessages
+  replaceFlowChatMessagesRef.current = replaceFlowChatMessages
+  setChatRoutingProgressRef.current = setChatRoutingProgress
   updateFlowProgressRef.current = updateFlowProgress
   workflowTemplateContextsRef.current = workflowTemplateContexts
   templatesCatalogRef.current = templatesCatalog
   workflowExecutionStatesRef.current = workflowExecutionStates
+  selectedChatIdRef.current = selectedChatId
+  chatRegistryRef.current = chatRegistry
+  workflowRequestedResultsRef.current = workflowRequestedResults
+  updateChatInRegistryRef.current = updateChatInRegistry
+  selectedProjectRef.current = selectedProject
 
   const pendingApprovalNotifications = useMemo(
     () => buildPendingApprovalNotifications(workflowExecutionStates),
@@ -306,6 +334,48 @@ export function useExecutionController({
           }
         }
 
+        // Append ChatRun to the active chat
+        const chatId = selectedChatIdRef.current
+        const chatProject = selectedProjectRef.current
+        if (chatId && chatProject) {
+          const registry = chatRegistryRef.current
+          const chat = registry[chatId]
+          if (chat) {
+            const userPrompt =
+              workflowRequestedResultsRef.current[workflowKey] ?? ""
+            const newRun: ChatRun = {
+              runId: state.runId ?? "",
+              templateId: templateContext?.templateId ?? "",
+              templateName: templateContext?.templateName ?? "",
+              workflowPath: state.runWorkflowPath ?? "",
+              workspace: state.workspace ?? "",
+              startedAt: state.runStartedAt ?? Date.now(),
+              completedAt: Date.now(),
+              status:
+                state.runOutcome === "completed"
+                  ? "completed"
+                  : state.runOutcome === "cancelled"
+                    ? "cancelled"
+                    : "failed",
+              userPrompt,
+            }
+            const updatedChat: Chat = {
+              ...chat,
+              runs: [...chat.runs, newRun],
+              lastActivityAt: Date.now(),
+            }
+            updateChatInRegistryRef.current(updatedChat)
+            void window.api
+              .saveChat(chatProject, updatedChat)
+              .catch((err: unknown) => {
+                console.error(
+                  "[useExecutionController] saveChat failed:",
+                  err,
+                )
+              })
+          }
+        }
+
         if (
           state.runOutcome !== "completed" ||
           !state.projectPath ||
@@ -353,6 +423,35 @@ export function useExecutionController({
                 artifactPersistenceError: null,
               }),
             )
+
+            // Append new artifact IDs to the chat's artifact pool
+            const artifactChatId = selectedChatIdRef.current
+            const artifactProject = selectedProjectRef.current
+            if (
+              artifactChatId &&
+              artifactProject &&
+              result.artifacts.length > 0
+            ) {
+              const latestRegistry = chatRegistryRef.current
+              const latestChat = latestRegistry[artifactChatId]
+              if (latestChat) {
+                const newIds = result.artifacts.map((a) => a.id)
+                const updatedPool = [...latestChat.artifactPool, ...newIds]
+                const chatWithArtifacts: Chat = {
+                  ...latestChat,
+                  artifactPool: updatedPool,
+                }
+                updateChatInRegistryRef.current(chatWithArtifacts)
+                void window.api
+                  .saveChat(artifactProject, chatWithArtifacts)
+                  .catch((err: unknown) => {
+                    console.error(
+                      "[useExecutionController] saveChat (artifact pool) failed:",
+                      err,
+                    )
+                  })
+              }
+            }
           })
           .catch((error) => {
             const message = errorToUserMessage(error)
@@ -373,11 +472,6 @@ export function useExecutionController({
           })
       },
       onFlowChatMessage: ({ workflowKey, message }) => {
-        // Clear previous run's messages when a new run starts
-        if (message.content.type === "start") {
-          clearFlowChatMessagesRef.current(workflowKey)
-        }
-
         let enrichedMessage = message
 
         // Enrich Complete messages with follow-ups from template metadata
@@ -422,10 +516,20 @@ export function useExecutionController({
           }
         }
 
-        addFlowChatMessageRef.current({
-          workflowKey,
-          message: enrichedMessage,
-        })
+        if (message.content.type === "start") {
+          // Atomic replace: clear old messages + insert start in one render
+          // Also clear routing progress now that execution has started
+          setChatRoutingProgressRef.current(null)
+          replaceFlowChatMessagesRef.current({
+            workflowKey,
+            message: enrichedMessage,
+          })
+        } else {
+          addFlowChatMessageRef.current({
+            workflowKey,
+            message: enrichedMessage,
+          })
+        }
       },
       onFlowChatProgressUpdate: ({ workflowKey, messageId, data }) => {
         updateFlowProgressRef.current({ workflowKey, messageId, data })
