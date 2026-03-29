@@ -212,6 +212,7 @@ These are the ONLY product terms a user should encounter in the interface:
 | **check**              | An automated decision point (system decided)                                | Runtime shell, step status                                                                                      |
 | **approval**           | A human decision point (user must decide)                                   | Approval cards, runtime shell                                                                                   |
 | **flow rules**         | User-readable policy governing a flow                                       | Pre-launch preview, settings                                                                                    |
+| **thread**             | A conversation grouping that owns one or more flow runs                     | Sidebar, headers, panel toggles                                                                                 |
 | **run**                | One execution of a flow                                                     | Status indicators, history, sidebar                                                                             |
 | **result** (with type) | The output of a completed step — always with type name in specific contexts | Result surface, continuation cards. Generic: "result". Specific: "Review findings", "Codebase map"              |
 
@@ -232,6 +233,9 @@ These exist in code, specs, and developer conversations. They must not appear in
 | gate                  | check or approval  | Depends on outcome type (see Section 1.1)                                                             |
 | evaluator             | check              | The node type that performs automated quality decisions                                               |
 | artifact              | result (with type) | Results carry visible type info: "Review findings", "Verification report" — never the word "artifact" |
+| chat                  | thread             | Internal entity (Chat, ChatRun, chatId); UI always says "thread"                                      |
+| session               | thread             | Never shipped; use "thread"                                                                           |
+| conversation          | thread             | Never shipped; use "thread"                                                                           |
 | policy                | flow rules         | Preset rule sets governing automation and approval                                                    |
 | `auto` (helpModeHint) | (no UI label)      | Internal enum value meaning "no mode selected"; UI shows no-selection state, not the word "Auto"      |
 
@@ -239,7 +243,7 @@ These exist in code, specs, and developer conversations. They must not appear in
 
 The following terms must not appear in any user-facing surface (labels, headers, tooltips, placeholder text, status messages):
 
-`workflow`, `template`, `process`, `stage`, `phase`, `factory`, `case`, `chain`, `capability`, `spine`, `delivery pack`, `gate`, `artifact`, `pipeline`, `orchestration`, `engine`, `autonomy level`, `trust score`
+`workflow`, `template`, `process`, `stage`, `phase`, `factory`, `case`, `chain`, `capability`, `spine`, `delivery pack`, `gate`, `artifact`, `pipeline`, `orchestration`, `engine`, `autonomy level`, `trust score`, `chat`, `session`, `conversation`
 
 ### 1.4 Typed results
 

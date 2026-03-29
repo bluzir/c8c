@@ -5,6 +5,7 @@ import {
   chatPanelWidthAtom,
   chatFlowInputRequestAtom,
   chatPendingRoutingPromptAtom,
+  chatRegistryAtom,
   chatRoutingProgressAtom,
   currentWorkflowAtom,
   followUpLabelAtom,
@@ -95,6 +96,7 @@ export function ChatPanel({
   const selectedResultModeId = useAtomValue(selectedResultModeIdAtom)
   const [selectedChatId, setSelectedChatId] = useAtom(selectedChatIdAtom)
   const selectedChat = useAtomValue(selectedChatAtom)
+  const [chatRegistry, setChatRegistry] = useAtom(chatRegistryAtom)
   const updateChatInRegistry = useSetAtom(updateChatInRegistryAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
@@ -118,6 +120,17 @@ export function ChatPanel({
     runStatus === "running" || runStatus === "starting" || isRouting
 
   const handleCancel = useCallback(() => {
+    // Clean up orphaned empty chat if routing was cancelled before first run
+    if (selectedChatId && selectedProject) {
+      const chat = chatRegistry[selectedChatId]
+      if (chat && chat.runs.length === 0) {
+        const { [selectedChatId]: _, ...rest } = chatRegistry
+        setChatRegistry(rest)
+        setSelectedChatId(null)
+        void window.api.deleteChat(selectedProject, selectedChatId)
+      }
+    }
+
     if (routingDispatching) {
       cancelRouting()
     } else if (isRouting) {
@@ -126,7 +139,7 @@ export function ChatPanel({
     } else {
       cancel()
     }
-  }, [routingDispatching, cancelRouting, isRouting, resetRoutingState, setChatRoutingProgress, cancel])
+  }, [selectedChatId, selectedProject, chatRegistry, setChatRegistry, setSelectedChatId, routingDispatching, cancelRouting, isRouting, resetRoutingState, setChatRoutingProgress, cancel])
 
   // Auto-trigger routing when navigated here with a pending prompt
   // (e.g. from useWorkflowCreateNavigation with a prompt option).

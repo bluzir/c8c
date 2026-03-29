@@ -28,7 +28,7 @@ export function ChatHeader({
   messageCount,
   status,
   activeToolName,
-  title = "Chat",
+  title = "Thread",
   showClose = true,
 }: ChatHeaderProps) {
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
@@ -95,13 +95,13 @@ export function ChatHeader({
             type="button"
             onClick={() => setConfirmClearOpen(true)}
             disabled={!canClearAction}
-            aria-label="Clear chat history"
+            aria-label="Clear thread history"
             className="ui-icon-button"
           >
             <Trash2 size={13} />
           </button>
         </TooltipTrigger>
-        <TooltipContent>Clear chat history</TooltipContent>
+        <TooltipContent>Clear thread history</TooltipContent>
       </Tooltip>
 
       {showClose && (
@@ -123,11 +123,11 @@ export function ChatHeader({
       <SingleDecisionDialog
         open={confirmClearOpen}
         onOpenChange={setConfirmClearOpen}
-        title="Clear chat history?"
+        title="Clear thread history?"
         description={
           messageCount > 0
             ? `Clear ${messageCount} message${messageCount === 1 ? "" : "s"}?`
-            : "Clear the current conversation?"
+            : "Clear the current thread?"
         }
         note="This cannot be undone."
         noteTone="danger"

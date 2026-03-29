@@ -22,6 +22,7 @@ Canonical product decisions live in `docs/conventions/CANON.md`. When writing or
 | **approval**                     | gate (human decision)        | gate                          |
 | **flow rules**                   | policy                       | policy, autonomy, trust score |
 | typed result ("Review findings") | artifact                     | artifact                      |
+| **thread**                       | chat                         | chat, session, conversation   |
 
 Internal code (variable names, types, file names) keeps existing vocabulary. Only user-facing strings (JSX text, placeholders, labels, tooltips, toasts, errors) must follow this table.
 

@@ -400,17 +400,42 @@ export function WorkflowPanel() {
     }
     const request = chatFlowInputRequest
     setChatFlowInputRequest(null)
-    if (request.kind === "rerun" && request.fromNodeId) {
+    if (request.kind === "continue") {
+      // Find the interrupted run from history or build a minimal RunResult from state
+      const historyRun = workflowPastRuns.find(
+        (r) => r.runId === request.runId && r.workspace,
+      )
+      if (historyRun) {
+        void continueRun(historyRun)
+      } else if (workspace) {
+        // Fallback: build minimal RunResult from current execution state
+        void continueRun({
+          runId: request.runId,
+          status: "interrupted",
+          workflowName: workflow.name || "Flow",
+          workflowPath: selectedWorkflowPath ?? undefined,
+          startedAt: Date.now(),
+          completedAt: Date.now(),
+          reportPath: "",
+          workspace,
+        })
+      }
+    } else if (request.kind === "rerun" && request.fromNodeId) {
       void rerunFrom(request.fromNodeId, { workspace: request.workspace })
     } else {
       void handleRunRequest()
     }
   }, [
     chatFlowInputRequest,
+    continueRun,
     handleRunRequest,
     rerunFrom,
     runStatus,
+    selectedWorkflowPath,
     setChatFlowInputRequest,
+    workspace,
+    workflow.name,
+    workflowPastRuns,
   ])
 
   const {
@@ -1053,7 +1078,7 @@ export function WorkflowPanel() {
   if (viewMode === "chat" && !selectedWorkflowPath) {
     return (
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <SectionErrorBoundary sectionName="Flow chat">
+        <SectionErrorBoundary sectionName="Flow thread">
           <ChatPanel embedded onClose={() => setViewMode("list")} />
         </SectionErrorBoundary>
       </div>
@@ -1106,7 +1131,7 @@ export function WorkflowPanel() {
             flowLabel={workflowTitleFromPath(workflowOpenState.targetPath)}
           />
         ) : viewMode === "chat" ? (
-          <SectionErrorBoundary sectionName="Flow chat">
+          <SectionErrorBoundary sectionName="Flow thread">
             <ChatPanel
               embedded
               onClose={() => setViewMode("list")}

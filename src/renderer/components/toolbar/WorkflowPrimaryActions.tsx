@@ -106,7 +106,7 @@ export function WorkflowPrimaryActions({
             size="sm"
             className="gap-1.5 text-muted-foreground hover:border-transparent hover:bg-surface-2/55"
             onClick={onToggleChat}
-            aria-label={chatOpen ? "Show flow editor" : "Show chat"}
+            aria-label={chatOpen ? "Show flow editor" : "Show thread"}
             aria-pressed={chatOpen}
           >
             {chatOpen ? (
@@ -117,13 +117,13 @@ export function WorkflowPrimaryActions({
             ) : (
               <>
                 <MessageSquare size={14} />
-                Chat
+                Thread
               </>
             )}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          {chatOpen ? "Show flow editor" : "Show chat"} ({chatShortcutLabel})
+          {chatOpen ? "Show flow editor" : "Show thread"} ({chatShortcutLabel})
         </TooltipContent>
       </Tooltip>
 
