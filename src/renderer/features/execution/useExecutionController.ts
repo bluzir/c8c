@@ -372,6 +372,18 @@ export function useExecutionController({
           if (chat) {
             const userPrompt =
               workflowRequestedResultsRef.current[workflowKey] ?? ""
+            // Extract summary from completion message
+            const flowMsgs =
+              store.get(flowChatMessagesAtom)[workflowKey] ?? []
+            const completeMsg = [...flowMsgs]
+              .reverse()
+              .find((m) => m.content.type === "complete")
+            const summary =
+              completeMsg?.content.type === "complete"
+                ? (completeMsg.content.data as { summary?: string }).summary ??
+                  ""
+                : ""
+
             const newRun: ChatRun = {
               runId: state.runId ?? "",
               templateId: templateContext?.templateId ?? "",
@@ -387,6 +399,7 @@ export function useExecutionController({
                     ? "cancelled"
                     : "failed",
               userPrompt,
+              summary,
             }
             const updatedChat: Chat = {
               ...chat,

@@ -4,15 +4,29 @@ import type { Chat, ChatRun, ChatSummary } from "@shared/types"
 import { errorCode, errorMessage } from "./error-utils"
 import { logWarn } from "./structured-log"
 import { writeFileAtomic } from "./atomic-write"
+import { assertWithinRoots, allowedReportRoots } from "./security-paths"
 
 const CHATS_DIR = "chats"
 const COMPONENT = "chat-store"
+
+function assertSafeChatId(chatId: string): string {
+  if (
+    !chatId ||
+    chatId.includes("..") ||
+    chatId.includes("/") ||
+    chatId.includes("\\")
+  ) {
+    throw new Error(`Invalid chat ID: ${chatId}`)
+  }
+  return chatId
+}
 
 function chatsDir(projectPath: string): string {
   return join(resolve(projectPath), ".c8c", CHATS_DIR)
 }
 
 function chatFilePath(projectPath: string, chatId: string): string {
+  assertSafeChatId(chatId)
   return join(chatsDir(projectPath), `${chatId}.json`)
 }
 
@@ -170,10 +184,16 @@ export async function deleteChat(
   if (options?.deleteRunWorkspaces) {
     const chat = await loadChat(projectPath, chatId)
     if (chat) {
+      const roots = await allowedReportRoots()
       for (const run of chat.runs) {
         if (run.workspace) {
           try {
-            await rm(run.workspace, { recursive: true, force: true })
+            const safePath = assertWithinRoots(
+              resolve(run.workspace),
+              roots,
+              "Run workspace",
+            )
+            await rm(safePath, { recursive: true, force: true })
           } catch (error) {
             logWarn(COMPONENT, "delete_run_workspace_failed", {
               chatId,

@@ -17,7 +17,20 @@ import { errorCode, errorMessage } from "../lib/error-utils"
 
 const COMPONENT = "chats-ipc"
 
+function assertSafeChatId(chatId: string): string {
+  if (
+    !chatId ||
+    chatId.includes("..") ||
+    chatId.includes("/") ||
+    chatId.includes("\\")
+  ) {
+    throw new Error(`Invalid chat ID: ${chatId}`)
+  }
+  return chatId
+}
+
 function timelinePath(projectPath: string, chatId: string): string {
+  assertSafeChatId(chatId)
   return join(resolve(projectPath), ".c8c", "chats", `${chatId}-timeline.json`)
 }
 
