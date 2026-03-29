@@ -1,5 +1,6 @@
 import type {
   ArtifactRecord,
+  ChatRunHistory,
   CreateEntryRouteInput,
   CreateEntryRouteResult,
   InputAttachment,
@@ -37,6 +38,10 @@ export interface RoutingRunnerDeps extends InputAssemblerDeps {
     workflow: Workflow,
   ) => Promise<string>
   loadWorkflow: (filePath: string) => Promise<Workflow>
+  loadChatRunHistory?: (
+    chatId: string,
+    projectPath: string,
+  ) => Promise<ChatRunHistory | undefined>
 }
 
 // ── Generator ───────────────────────────────────────────
@@ -209,6 +214,20 @@ async function* routeIntentGenerator(
     return
   }
 
+  // Step 4b: Load chat run history (if available)
+  let chatRunHistory: ChatRunHistory | undefined
+  if (intent.chatId && deps.loadChatRunHistory) {
+    try {
+      chatRunHistory = await deps.loadChatRunHistory(
+        intent.chatId,
+        intent.projectPath,
+      )
+      if (isCancelled()) return
+    } catch {
+      chatRunHistory = undefined
+    }
+  }
+
   // Step 5: Assemble input
   let assembledValue: string
   let attachments: InputAttachment[] = []
@@ -242,6 +261,7 @@ async function* routeIntentGenerator(
       allAttachments,
       intent.projectPath,
       deps,
+      chatRunHistory,
     )
     if (isCancelled()) return
 
@@ -311,6 +331,7 @@ async function* routeIntentGenerator(
   const envelope: RunEnvelope = {
     intent,
     chatId: intent.chatId,
+    chatRunHistory,
     workflow,
     workflowPath,
     input,

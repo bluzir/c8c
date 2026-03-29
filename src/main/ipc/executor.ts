@@ -17,11 +17,13 @@ import {
 } from "../lib/workflow-runner"
 import {
   approvalTaskId,
+  createRoutingRunner,
   findResumeNodeId,
   getWorkflowHilTask,
   listProjectImprovementRecommendations,
   listWorkflowHilTasks,
   writeWorkflowHilTaskResponse,
+  type RoutingRunnerDeps,
 } from "@c8c/workflow-runner"
 import {
   runBatch,
@@ -66,6 +68,7 @@ import type {
   RunResult,
 } from "@shared/types"
 import type { ExecutionStartError } from "@shared/c8c-api"
+import type { RoutingIntent, RoutingHandle } from "@shared/routing-types"
 import { workflowRequiresProvider } from "@shared/provider-metadata"
 import {
   allowedProjectRoots,
@@ -95,9 +98,18 @@ import {
   listProjectRunResults,
   readRunResultRecord,
 } from "../lib/run-workspace-store"
+import { listTemplates } from "../lib/templates"
+import { routeCreateEntry } from "../lib/create-entry-router"
+import { inspectProjectForCreateEntry } from "../lib/create-entry-inspection"
+import { loadChain, saveChain } from "../lib/chain-io"
+import {
+  normalizeWorkflowTitle,
+  toWorkflowFileStem,
+} from "@shared/workflow-name"
 
 let runCounter = 0
 let batchCounter = 0
+const activeRoutingHandles = new Map<string, RoutingHandle>()
 const activeWindowExecutions = new Map<number, Set<string>>()
 const windowLifecycleBindings = new Set<number>()
 const HUMAN_TASK_STATUSES = new Set([
@@ -1285,6 +1297,68 @@ export function registerExecutorHandlers() {
   })
 
   ipcMain.handle(
+    "executor:save-run-chat-timeline",
+    async (_e, workspace: string, timeline: unknown): Promise<void> => {
+      try {
+        const safeWorkspace = await assertRunWorkspacePath(workspace)
+        if (
+          !timeline ||
+          typeof timeline !== "object" ||
+          (timeline as { version?: unknown }).version !== 1 ||
+          !Array.isArray((timeline as { messages?: unknown }).messages)
+        ) {
+          logWarn("executor-ipc", "save_run_chat_timeline_invalid_payload", {
+            workspace: safeWorkspace,
+          })
+          return
+        }
+        const { writeFile } = await import("node:fs/promises")
+        await writeFile(
+          join(safeWorkspace, "chat-timeline.json"),
+          JSON.stringify(timeline),
+          "utf-8",
+        )
+      } catch (error) {
+        logWarn("executor-ipc", "save_run_chat_timeline_failed", {
+          workspace,
+          error: errorMessage(error),
+        })
+      }
+    },
+  )
+
+  ipcMain.handle(
+    "executor:load-run-chat-timeline",
+    async (_e, workspace: string) => {
+      try {
+        const safeWorkspace = await assertRunWorkspacePath(workspace)
+        const raw = await readFile(
+          join(safeWorkspace, "chat-timeline.json"),
+          "utf-8",
+        )
+        const parsed = JSON.parse(raw)
+        if (
+          !parsed ||
+          typeof parsed !== "object" ||
+          parsed.version !== 1 ||
+          !Array.isArray(parsed.messages)
+        ) {
+          return null
+        }
+        return parsed
+      } catch (error) {
+        if (errorCode(error) !== "ENOENT") {
+          logWarn("executor-ipc", "load_run_chat_timeline_failed", {
+            workspace,
+            error: errorMessage(error),
+          })
+        }
+        return null
+      }
+    },
+  )
+
+  ipcMain.handle(
     "executor:get-terminal-run-snapshot",
     async (_e, workspace: string): Promise<TerminalRunSnapshot | null> => {
       try {
@@ -1733,6 +1807,141 @@ export function registerExecutorHandlers() {
           error: errorMessage(error),
         })
         return false
+      }
+    },
+  )
+
+  // ── Routing ──────────────────────────────────────────────
+
+  ipcMain.handle(
+    "routing:route-intent",
+    async (event, intent: RoutingIntent, options?: { sessionId: string }) => {
+      const sessionId = options?.sessionId || `routing-${Date.now()}`
+      const window = resolveWindowFromEvent(event)
+      if (!window) throw new Error("No window available for routing")
+
+      const safeProjectPath = await assertProjectPath(intent.projectPath)
+
+      const deps: RoutingRunnerDeps = {
+        listTemplates: (projectPath) => listTemplates(projectPath),
+        listProjectArtifacts: (projectPath) =>
+          listProjectArtifacts(projectPath),
+        routeCreateEntry: async (input) => {
+          const inspection = await inspectProjectForCreateEntry(
+            input.projectPath,
+          )
+          const templates = await listTemplates(input.projectPath)
+          return routeCreateEntry(input, inspection, templates)
+        },
+        createWorkflow: async (projectPath, name, workflow) => {
+          const { mkdir } = await import("node:fs/promises")
+          const dir = join(projectPath, ".c8c")
+          await mkdir(dir, { recursive: true })
+          const normalizedTitle = normalizeWorkflowTitle(
+            workflow.name || name,
+          )
+          const fileStem = toWorkflowFileStem(name || normalizedTitle)
+          const filePath = join(dir, `${fileStem || "flow"}.chain`)
+          await saveChain(filePath, {
+            ...workflow,
+            name: normalizedTitle || workflow.name || name,
+          })
+          return filePath
+        },
+        loadWorkflow: (filePath) => loadChain(filePath),
+        loadChatRunHistory: async (chatId, projectPath) => {
+          const { loadChat } = await import("../lib/chat-store")
+          const chat = await loadChat(projectPath, chatId)
+          if (!chat || chat.runs.length === 0) return undefined
+          return {
+            runs: chat.runs
+              .filter((r) => r.status === "completed")
+              .map((r) => ({
+                templateName: r.templateName,
+                userPrompt: r.userPrompt,
+                summary: r.summary || "",
+                artifactIds: [],
+              })),
+          }
+        },
+        readFileContent: async (path, projectPath) => {
+          try {
+            const base = projectPath || safeProjectPath
+            const resolvedFile = resolve(base, path)
+            assertWithinRoots(resolvedFile, [base], "File path")
+            const raw = await readFile(resolvedFile, "utf-8")
+            const MAX_CONTENT = 100 * 1024
+            const truncated = raw.length > MAX_CONTENT
+            return {
+              content: truncated ? raw.slice(0, MAX_CONTENT) : raw,
+              truncated,
+            }
+          } catch {
+            return { content: "", truncated: false }
+          }
+        },
+        loadRunResult: async (workspace) => {
+          try {
+            const safeWorkspace = await assertRunWorkspacePath(workspace)
+            const meta = await readRunResultRecord(safeWorkspace)
+            if (!meta) return null
+            let reportContent = ""
+            if (meta.reportPath) {
+              try {
+                const safeReportPath = await assertReportPath(meta.reportPath)
+                reportContent = await readFile(safeReportPath, "utf-8")
+              } catch {
+                // Report file may not exist
+              }
+            }
+            return { reportContent }
+          } catch {
+            return null
+          }
+        },
+      }
+
+      const runner = createRoutingRunner(deps)
+      const handle = runner.routeIntent(
+        { ...intent, projectPath: safeProjectPath },
+        { sessionId },
+      )
+      activeRoutingHandles.set(sessionId, handle)
+
+      // Stream events to renderer
+      void (async () => {
+        try {
+          for await (const routingEvent of handle.events) {
+            if (window && !window.isDestroyed()) {
+              window.webContents.send("routing:event", routingEvent)
+            }
+          }
+        } catch (error) {
+          logError("executor-ipc", "routing_event_stream_failed", {
+            sessionId,
+            error: errorMessage(error),
+          })
+        } finally {
+          activeRoutingHandles.delete(sessionId)
+        }
+      })()
+
+      try {
+        return await handle.envelope
+      } finally {
+        activeRoutingHandles.delete(sessionId)
+      }
+    },
+  )
+
+  ipcMain.handle(
+    "routing:cancel",
+    async (_event, sessionId: string) => {
+      const handle = activeRoutingHandles.get(sessionId)
+      if (handle) {
+        handle.cancel()
+        activeRoutingHandles.delete(sessionId)
+        logInfo("executor-ipc", "routing_cancelled", { sessionId })
       }
     },
   )
