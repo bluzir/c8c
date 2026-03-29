@@ -427,13 +427,17 @@ export function ProjectSidebar({
   // selectedChatId in sync.  The forward direction (chat → workflowPath) is
   // handled by handleChatSelect above.
   useEffect(() => {
+    // Don't sync while registry is still loading — empty registry makes
+    // chatIdForPath return null, which would incorrectly clear selectedChatId
+    if (Object.keys(chatRegistry).length === 0) return
+
     if (chatIdForPath && chatIdForPath !== selectedChatId) {
       setSelectedChatId(chatIdForPath)
     }
     if (!chatIdForPath && selectedChatId) {
       setSelectedChatId(null)
     }
-  }, [chatIdForPath, selectedChatId, setSelectedChatId])
+  }, [chatIdForPath, selectedChatId, chatRegistry, setSelectedChatId])
 
   const handleChatSelect = useCallback(
     (chatId: string) => {
@@ -721,20 +725,20 @@ export function ProjectSidebar({
                               )
                             : []
 
-                        // Collect workflow paths owned by chats to filter
-                        // them out of the standalone workflow list
+                        // Collect workflow paths owned by ANY chat (including
+                        // archived) to filter them from the standalone list.
+                        // No isSelectedProject guard — chatRegistry already
+                        // filters by projectPath so this is safe for all projects.
                         const chatOwnedPaths = new Set<string>()
-                        if (isSelectedProject) {
-                          for (const chat of Object.values(chatRegistry)) {
-                            if (chat.projectPath !== projectPath) continue
-                            for (const run of chat.runs) {
-                              if (run.workflowPath) chatOwnedPaths.add(run.workflowPath)
-                            }
+                        for (const chat of Object.values(chatRegistry)) {
+                          if (chat.projectPath !== projectPath) continue
+                          for (const run of chat.runs) {
+                            if (run.workflowPath) chatOwnedPaths.add(run.workflowPath)
                           }
                         }
-                        const unclaimedWorkflows = chatOwnedPaths.size > 0
-                          ? projectWorkflows.filter((w) => !chatOwnedPaths.has(w.path))
-                          : projectWorkflows
+                        const unclaimedWorkflows = projectWorkflows.filter(
+                          (w) => !chatOwnedPaths.has(w.path),
+                        )
 
                         return (
                           <>
