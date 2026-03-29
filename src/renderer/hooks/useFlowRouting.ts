@@ -32,9 +32,6 @@ import {
   templatesCatalogAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
-import { createEmptyWorkflow } from "@/lib/default-workflow"
-import { resolveTemplateWorkflow } from "@/lib/web-search-backend"
-import { applyWorkflowDetailBudget } from "@/lib/workflow-detail-budget"
 import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "@/lib/workflow-create-prompt"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { toast } from "sonner"
@@ -52,7 +49,6 @@ import {
   buildTemplateRunContext,
   getRequestedResultFromEntryState,
   hasSavedWorkContinuationContext,
-  mergeInputAttachments,
   type WorkflowEntryState,
 } from "@/lib/workflow-entry"
 import { normalizeResultModeConfig } from "@/lib/result-mode-config"
@@ -69,9 +65,7 @@ import {
 } from "@/lib/create-routing-preview"
 import { getWorkflowTemplateDisplayName } from "@/lib/template-display"
 import { toWorkflowExecutionKey } from "@/lib/workflow-execution"
-import { buildTemplateStartState } from "@/lib/template-start"
-import { prepareRoutedTemplateLaunch } from "@/lib/routed-template-launch"
-import { shouldAutoRunCreateStart } from "@/lib/workflow-create-start-policy"
+import { launchTemplate } from "@/lib/launch-template"
 import type { RouteClarificationSelection } from "@/components/create/WorkflowCreateDialogs"
 import { filterDirectCreateEntryOptions } from "@shared/create-entry-routing"
 
@@ -83,23 +77,6 @@ function waitForMs(ms: number) {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms)
   })
-}
-
-function normalizeTemplateForWorkflowUse(
-  template: WorkflowTemplate,
-): WorkflowTemplate {
-  const name = getWorkflowTemplateDisplayName(template)
-  if (name === template.name) return template
-  return { ...template, name }
-}
-
-async function resolveHubTemplate(
-  template: WorkflowTemplate,
-): Promise<WorkflowTemplate> {
-  if (template.source !== "hub" || template.workflow.nodes.length > 0)
-    return template
-  const full = await window.api.fetchHubTemplate(template.id)
-  return { ...template, ...full, source: "hub" }
 }
 
 export interface FlowRoutingState {
@@ -120,6 +97,7 @@ export interface UseFlowRoutingReturn extends FlowRoutingState {
       awaitingInput?: boolean
       sourceArtifacts?: ArtifactRecord[]
       sourceAttachments?: InputAttachment[]
+      chatId?: string
     },
   ) => Promise<void>
   selectClarification: (selection: RouteClarificationSelection) => void
@@ -325,6 +303,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         awaitingInput?: boolean
         sourceArtifacts?: ArtifactRecord[]
         sourceAttachments?: InputAttachment[]
+        chatId?: string
       },
     ) => {
       if (!message || submitting) return
@@ -445,6 +424,8 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         }
       }
 
+      let routingSucceeded = false
+
       try {
         const intentSelectionEnabled = isIntentEnabledDomain(
           selectedResultMode.id,
@@ -549,123 +530,47 @@ export function useFlowRouting(): UseFlowRoutingReturn {
               routeOptions,
             }),
           )
-          if (routeResult) {
-            const launch = await prepareRoutedTemplateLaunch({
-              projectPath: targetProjectPath,
-              template: startTemplate,
-              webSearchBackend,
-              routeResult,
-              requestedResult: message,
-              sourceArtifacts: currentSourceArtifacts,
-              detailBudget,
-            })
-            if (routingSessionRef.current !== sessionId) return
-            const awaitInput = options?.awaitingInput === true
-            const routedEntry = launch.templateStartState.entryState
-            await openWorkflowFile(launch.filePath, targetProjectPath, {
-              entryState: awaitInput
-                ? {
-                    ...routedEntry,
-                    awaitingInput: true,
-                    summary: routedEntry.inputText,
-                  }
-                : routedEntry,
-              templateContext: launch.templateStartState.templateContext,
-              initialInputValue: awaitInput
-                ? undefined
-                : launch.templateStartState.initialInputValue,
-              initialAttachments: mergeInputAttachments(
-                currentSourceAttachments,
-                launch.templateStartState.initialAttachments,
-              ),
-              autoRunIfAllowed: awaitInput
-                ? false
-                : shouldAutoRunCreateStart(routeResult, startTemplate),
-            })
-            return
-          }
-
-          const resolvedStartTemplate = await resolveHubTemplate(startTemplate)
-          if (routingSessionRef.current !== sessionId) return
-          const templateForWorkflowUse = normalizeTemplateForWorkflowUse(
-            resolvedStartTemplate,
-          )
-          const nextWorkflow = resolveTemplateWorkflow(
-            templateForWorkflowUse,
-            webSearchBackend,
-            {
-              detailBudget,
-              templateId: templateForWorkflowUse.id,
-            },
-          )
-          const filePath = await window.api.createWorkflow(
-            targetProjectPath,
-            templateForWorkflowUse.name,
-            nextWorkflow,
-          )
-          if (routingSessionRef.current !== sessionId) return
-          const template = {
-            ...templateForWorkflowUse,
-            workflow: nextWorkflow,
-          }
-          const templateStartState = buildTemplateStartState({
-            template,
-            workflowPath: filePath,
+          const result = await launchTemplate({
             projectPath: targetProjectPath,
+            template: startTemplate,
             requestedResult: message,
             sourceArtifacts: currentSourceArtifacts,
+            sourceAttachments: currentSourceAttachments,
+            routeResult: routeResult ?? null,
+            detailBudget,
+            webSearchBackend,
+            awaitingInput: options?.awaitingInput,
           })
-
-          await window.api
-            .recordProjectTemplateUsage(targetProjectPath, startTemplate.id)
-            .catch(() => undefined)
           if (routingSessionRef.current !== sessionId) return
-          const awaitInput2 = options?.awaitingInput === true
-          const tplEntry = templateStartState.entryState
-          await openWorkflowFile(filePath, targetProjectPath, {
-            entryState: awaitInput2
-              ? {
-                  ...tplEntry,
-                  awaitingInput: true,
-                  summary: tplEntry.inputText,
-                }
-              : tplEntry,
-            templateContext: templateStartState.templateContext,
-            initialInputValue: awaitInput2
-              ? undefined
-              : templateStartState.initialInputValue,
-            initialAttachments: mergeInputAttachments(
-              currentSourceAttachments,
-              templateStartState.initialAttachments,
-            ),
-            autoRunIfAllowed: awaitInput2
-              ? false
-              : shouldAutoRunCreateStart(routeResult, template),
-          })
+          await openWorkflowFile(
+            result.filePath,
+            result.projectPath,
+            result.openOptions,
+          )
+          routingSucceeded = true
           return
         }
 
         // No template found — create a blank workflow
-        const draftWorkflow = applyWorkflowDetailBudget(
-          createEmptyWorkflow(),
-          detailBudget,
-        )
         if (isGuidedRouting) {
           setRoutingPhase("opening")
           setChatRoutingProgress({ phase: "opening", userRequest: message })
         }
-        const filePath = await window.api.createWorkflow(
-          targetProjectPath,
-          "new-flow",
-          draftWorkflow,
-        )
-        if (routingSessionRef.current !== sessionId) return
-        await openWorkflowFile(filePath, targetProjectPath, {
-          pendingMessage: message,
-          pendingEntryRequest: message,
-          initialInputValue: message,
-          initialAttachments: currentSourceAttachments,
+        const blankResult = await launchTemplate({
+          projectPath: targetProjectPath,
+          template: null,
+          requestedResult: message,
+          sourceAttachments: currentSourceAttachments,
+          detailBudget,
+          webSearchBackend,
         })
+        if (routingSessionRef.current !== sessionId) return
+        await openWorkflowFile(
+          blankResult.filePath,
+          blankResult.projectPath,
+          blankResult.openOptions,
+        )
+        routingSucceeded = true
       } catch (error) {
         await ensureMinimumRoutingVisibility()
         const userMessage = errorToUserMessage(error).replace(
@@ -682,7 +587,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         clarificationActiveRef.current = true // prevent finally from clearing
       } finally {
         setSubmitting(false)
-        if (!clarificationActiveRef.current) {
+        if (!clarificationActiveRef.current && !routingSucceeded) {
           setChatRoutingProgress(null)
           setRoutingPreview(null)
         }

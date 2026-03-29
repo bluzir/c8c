@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import type { CreateEntryHelpModeHint } from "@shared/types"
+import type { Chat, CreateEntryHelpModeHint } from "@shared/types"
 import {
   chatPanelWidthAtom,
   chatFlowInputRequestAtom,
@@ -14,6 +14,7 @@ import {
   selectedResultModeIdAtom,
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
+  updateChatInRegistryAtom,
   workflowCreateSourceArtifactsAtom,
   workflowEntryStateAtom,
 } from "@/lib/store"
@@ -90,7 +91,8 @@ export function ChatPanel({
     workflowCreateSourceArtifactsAtom,
   )
   const selectedResultModeId = useAtomValue(selectedResultModeIdAtom)
-  const selectedChatId = useAtomValue(selectedChatIdAtom)
+  const [selectedChatId, setSelectedChatId] = useAtom(selectedChatIdAtom)
+  const updateChatInRegistry = useSetAtom(updateChatInRegistryAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
   )
@@ -170,6 +172,25 @@ export function ChatPanel({
         )
       } else if (!selectedWorkflowPath || effectivelyDone) {
         // No workflow yet, or flow completed — route to a new flow.
+        // Ensure a Chat entity exists so the run is tracked.
+        let chatId = selectedChatId
+        if (!chatId && selectedProject) {
+          chatId = crypto.randomUUID()
+          const newChat: Chat = {
+            id: chatId,
+            name: message.slice(0, 60),
+            projectPath: selectedProject,
+            createdAt: Date.now(),
+            lastActivityAt: Date.now(),
+            archived: false,
+            runs: [],
+            artifactPool: [],
+          }
+          void window.api.createChat(selectedProject, newChat)
+          setSelectedChatId(chatId)
+          updateChatInRegistry(newChat)
+        }
+
         // After app restart, in-memory artifactRecords may be empty even though
         // persisted project artifacts exist.  Load from disk as a fallback.
         let artifacts = effectivelyDone
@@ -183,6 +204,7 @@ export function ChatPanel({
           }
         }
         void startRouting(message, {
+          chatId: chatId ?? undefined,
           helpModeOverride: helpModeHint,
           sourceArtifacts: artifacts,
           sourceAttachments: effectivelyDone
@@ -198,14 +220,17 @@ export function ChatPanel({
       runStatus,
       selectedWorkflowPath,
       selectedProject,
+      selectedChatId,
       effectivelyDone,
       executionState.artifactRecords,
       resultSourceAttachments,
       sendMessage,
       setChatFlowInputRequest,
       setInputValue,
+      setSelectedChatId,
       setWorkflowEntryState,
       startRouting,
+      updateChatInRegistry,
     ],
   )
 
