@@ -90,13 +90,20 @@ export type {
   ExecutionRunStatus,
   WorkflowExecutionState,
 } from "./workflow-execution"
-export {
+import {
   chatRegistryAtom,
   selectedChatIdAtom,
   selectedChatAtom,
   derivedWorkflowPathAtom,
   updateChatInRegistryAtom,
 } from "./chat-atoms"
+export {
+  chatRegistryAtom,
+  selectedChatIdAtom,
+  selectedChatAtom,
+  derivedWorkflowPathAtom,
+  updateChatInRegistryAtom,
+}
 
 // ── Local Types ──────────────────────────────────────────
 
@@ -189,6 +196,20 @@ export const selectedWorkflowPathAtom = atomWithStorage<string | null>(
   "c8c:selectedWorkflowPath",
   null,
 )
+
+/** Reverse-lookup: find chat ID that owns the currently selected workflow path */
+export const chatIdForWorkflowPathAtom = atom<string | null>((get) => {
+  const workflowPath = get(selectedWorkflowPathAtom)
+  if (!workflowPath) return null
+  const registry = get(chatRegistryAtom)
+  for (const chat of Object.values(registry)) {
+    if (chat.runs.some((r) => r.workflowPath === workflowPath)) {
+      return chat.id
+    }
+  }
+  return null
+})
+
 export const projectSidebarWidthAtom = atomWithStorage<number>(
   "c8c:sidebar-width",
   SIDEBAR_DEFAULT_WIDTH,

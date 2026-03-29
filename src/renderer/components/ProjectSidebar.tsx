@@ -31,6 +31,7 @@ import {
   clearAllRoutingStateAtom,
   chatRegistryAtom,
   selectedChatIdAtom,
+  chatIdForWorkflowPathAtom,
 } from "@/lib/store"
 import {
   clearWorkflowExecutionStateAtom,
@@ -145,6 +146,7 @@ export function ProjectSidebar({
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
   const [chatRegistry, setChatRegistry] = useAtom(chatRegistryAtom)
   const [selectedChatId, setSelectedChatId] = useAtom(selectedChatIdAtom)
+  const chatIdForPath = useAtomValue(chatIdForWorkflowPathAtom)
   const [chatSummaries, setChatSummaries] = useState<ChatSummary[]>([])
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState("")
   const [expandedWorkflowLists, setExpandedWorkflowLists] = useState<
@@ -419,6 +421,19 @@ export function ProjectSidebar({
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
     setChatSummaries(summaries)
   }, [chatRegistry, selectedProject])
+
+  // Reverse sync: when a workflow is selected directly (e.g. clicking a legacy
+  // workflow row or opening a file), find the chat that owns it and keep
+  // selectedChatId in sync.  The forward direction (chat → workflowPath) is
+  // handled by handleChatSelect above.
+  useEffect(() => {
+    if (chatIdForPath && chatIdForPath !== selectedChatId) {
+      setSelectedChatId(chatIdForPath)
+    }
+    if (!chatIdForPath && selectedChatId) {
+      setSelectedChatId(null)
+    }
+  }, [chatIdForPath, selectedChatId, setSelectedChatId])
 
   const handleChatSelect = useCallback(
     (chatId: string) => {

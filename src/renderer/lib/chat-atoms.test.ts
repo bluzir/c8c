@@ -7,6 +7,10 @@ import {
   derivedWorkflowPathAtom,
   updateChatInRegistryAtom,
 } from "./chat-atoms"
+import {
+  chatIdForWorkflowPathAtom,
+  selectedWorkflowPathAtom,
+} from "./store"
 import type { Chat } from "@shared/types"
 
 function buildChat(id: string, overrides?: Partial<Chat>): Chat {
@@ -104,5 +108,40 @@ describe("chat atoms", () => {
     store.set(chatRegistryAtom, { c1: buildChat("c1"), c2: buildChat("c2") })
     store.set(updateChatInRegistryAtom, { ...buildChat("c1"), name: "Changed" })
     expect(store.get(chatRegistryAtom)["c2"].name).toBe("Chat c2")
+  })
+
+  it("chatIdForWorkflowPathAtom finds chat by workflowPath", () => {
+    const store = createStore()
+    const chat = buildChat("c1", {
+      runs: [
+        {
+          runId: "r1",
+          templateId: "t1",
+          templateName: "T1",
+          workflowPath: "/path/a.chain",
+          workspace: "/ws/r1",
+          startedAt: 1000,
+          status: "completed",
+          userPrompt: "test",
+        },
+      ],
+    })
+    store.set(chatRegistryAtom, { c1: chat })
+    store.set(selectedWorkflowPathAtom, "/path/a.chain")
+    expect(store.get(chatIdForWorkflowPathAtom)).toBe("c1")
+  })
+
+  it("chatIdForWorkflowPathAtom returns null for unclaimed workflow", () => {
+    const store = createStore()
+    store.set(chatRegistryAtom, {})
+    store.set(selectedWorkflowPathAtom, "/path/orphan.chain")
+    expect(store.get(chatIdForWorkflowPathAtom)).toBeNull()
+  })
+
+  it("chatIdForWorkflowPathAtom returns null when no workflow selected", () => {
+    const store = createStore()
+    store.set(chatRegistryAtom, { c1: buildChat("c1") })
+    store.set(selectedWorkflowPathAtom, null)
+    expect(store.get(chatIdForWorkflowPathAtom)).toBeNull()
   })
 })
