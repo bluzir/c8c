@@ -27,6 +27,8 @@ import {
   markWorkflowSidebarRunSeenAtom,
   multiRunDashboardOpenAtom,
   clearAllRoutingStateAtom,
+  chatRegistryAtom,
+  selectedChatIdAtom,
 } from "@/lib/store"
 import {
   clearWorkflowExecutionStateAtom,
@@ -35,6 +37,7 @@ import {
   toWorkflowExecutionKey,
   workflowExecutionStatesAtom,
 } from "@/features/execution"
+import type { Chat, ChatSummary } from "@shared/types"
 import { cn } from "@/lib/cn"
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "@/lib/sidebar-layout"
 import { FolderOpen, Settings, ChevronRight, Plus } from "lucide-react"
@@ -62,11 +65,13 @@ import {
   SidebarWorkflowDialogs,
   type SidebarContextMenuState,
 } from "@/components/sidebar/SidebarWorkflowDialogs"
+import { SidebarChatRow } from "@/components/sidebar/SidebarChatRow"
 import { SidebarGlobalWorkflowRow } from "@/components/sidebar/SidebarGlobalWorkflowRow"
 import { SidebarProjectWorkflowList } from "@/components/sidebar/SidebarProjectWorkflowList"
 import { ProjectSidebarChrome } from "@/components/sidebar/ProjectSidebarChrome"
 import { SidebarNavItem } from "@/components/sidebar/SidebarNavItem"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
+import { commitNavigationAtom } from "@/lib/navigation"
 import { Button } from "@/components/ui/button"
 import { resolveProjectRequiredContract } from "@/lib/entry-state-contracts"
 
@@ -132,7 +137,11 @@ export function ProjectSidebar({
   )
   const markWorkflowSidebarRunSeen = useSetAtom(markWorkflowSidebarRunSeenAtom)
   const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
+  const commitNavigation = useSetAtom(commitNavigationAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
+  const [chatRegistry, setChatRegistry] = useAtom(chatRegistryAtom)
+  const [selectedChatId, setSelectedChatId] = useAtom(selectedChatIdAtom)
+  const [chatSummaries, setChatSummaries] = useState<ChatSummary[]>([])
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState("")
   const [expandedWorkflowLists, setExpandedWorkflowLists] = useState<
     Record<string, boolean>
@@ -349,6 +358,45 @@ export function ProjectSidebar({
     selectedWorkflowPath,
   ])
 
+  // Load chats when the selected project changes (migration runs server-side)
+  useEffect(() => {
+    if (!selectedProject) {
+      setChatSummaries([])
+      setChatRegistry({})
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const summaries = await window.api.listProjectChats(selectedProject)
+      if (cancelled) return
+      setChatSummaries(summaries)
+      // Load full Chat records into the registry
+      const registry: Record<string, Chat> = {}
+      for (const s of summaries) {
+        const chat = await window.api.loadChat(selectedProject, s.id)
+        if (cancelled) return
+        if (chat) registry[chat.id] = chat
+      }
+      setChatRegistry(registry)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedProject, setChatRegistry])
+
+  const handleChatSelect = useCallback(
+    (chatId: string) => {
+      setSelectedChatId(chatId)
+      const chat = chatRegistry[chatId]
+      if (chat && chat.runs.length > 0) {
+        const latestRun = chat.runs[chat.runs.length - 1]
+        setSelectedWorkflowPath(latestRun.workflowPath)
+      }
+      setMainView("thread")
+    },
+    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView],
+  )
+
   const removingSelectedDirtyProject =
     pendingRemoveProject !== null &&
     pendingRemoveProject === selectedProject &&
@@ -387,7 +435,6 @@ export function ProjectSidebar({
         }}
         onOpenCreate={() => handleOpenWorkflowCreate()}
         onOpenStartingPoints={() => {
-          clearAllRoutingState()
           if (mainView === "workflow_create") {
             setTemplateLibraryContext({
               projectPath: workflowCreateContext.projectPath,
@@ -396,19 +443,16 @@ export function ProjectSidebar({
           } else {
             setTemplateLibraryContext(null)
           }
-          setMainView("templates")
+          commitNavigation({ kind: "view", view: "templates" })
         }}
         onOpenArtifacts={() => {
-          clearAllRoutingState()
-          setMainView("artifacts")
+          commitNavigation({ kind: "view", view: "artifacts" })
         }}
         onOpenSkills={() => {
-          clearAllRoutingState()
-          setMainView("skills")
+          commitNavigation({ kind: "view", view: "skills" })
         }}
         onOpenInbox={() => {
-          clearAllRoutingState()
-          setMainView("inbox")
+          commitNavigation({ kind: "view", view: "inbox" })
         }}
         onOpenRunsDashboard={() => setMultiRunDashboardOpen(true)}
         onAddProject={() => {
@@ -490,22 +534,12 @@ export function ProjectSidebar({
                 projectWorkflows,
               )
               const projectRollupMeta =
-                projectRollup.blockedCount > 0
+                projectRollup.activeCount > 0
                   ? {
-                      dotClass: "bg-status-warning",
-                      title: `${projectRollup.blockedCount} flow${projectRollup.blockedCount === 1 ? "" : "s"} waiting for attention`,
+                      dotClass: "bg-status-info",
+                      title: `${projectRollup.activeCount} active flow${projectRollup.activeCount === 1 ? "" : "s"}`,
                     }
-                  : projectRollup.waitingCount > 0
-                    ? {
-                        dotClass: "bg-status-warning",
-                        title: `${projectRollup.waitingCount} waiting flow${projectRollup.waitingCount === 1 ? "" : "s"}`,
-                      }
-                    : projectRollup.activeCount > 0
-                      ? {
-                          dotClass: "bg-status-info",
-                          title: `${projectRollup.activeCount} active flow${projectRollup.activeCount === 1 ? "" : "s"}`,
-                        }
-                      : null
+                  : null
               const shouldShowProjectWorkflows =
                 hasWorkflowSearchQuery || isExpanded
 
@@ -624,8 +658,35 @@ export function ProjectSidebar({
                     ? (() => {
                         const isWorkflowListExpanded =
                           expandedWorkflowLists[projectPath] ?? false
+                        const projectChats =
+                          isSelectedProject
+                            ? chatSummaries.filter((c) =>
+                                hasWorkflowSearchQuery
+                                  ? c.name
+                                      .toLowerCase()
+                                      .includes(normalizedWorkflowSearchQuery)
+                                  : true,
+                              )
+                            : []
 
                         return (
+                          <>
+                            {projectChats.length > 0 && (
+                              <div
+                                className="mt-0.5 ml-7 space-y-px"
+                                role="list"
+                                aria-label={`${projectFolderName(projectPath)} chats`}
+                              >
+                                {projectChats.map((chat) => (
+                                  <SidebarChatRow
+                                    key={chat.id}
+                                    chat={chat}
+                                    isSelected={selectedChatId === chat.id}
+                                    onClick={() => handleChatSelect(chat.id)}
+                                  />
+                                ))}
+                              </div>
+                            )}
                           <SidebarProjectWorkflowList
                             projectPath={projectPath}
                             projectLabel={projectFolderName(projectPath)}
@@ -655,6 +716,7 @@ export function ProjectSidebar({
                               handleOpenWorkflowCreate(projectPath, true)
                             }
                           />
+                          </>
                         )
                       })()
                     : null}
@@ -770,8 +832,7 @@ export function ProjectSidebar({
           label="Settings"
           active={mainView === "settings"}
           onClick={() => {
-            clearAllRoutingState()
-            setMainView("settings")
+            commitNavigation({ kind: "view", view: "settings" })
           }}
         />
       </div>

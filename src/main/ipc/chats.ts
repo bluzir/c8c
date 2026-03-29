@@ -11,6 +11,7 @@ import {
   deleteChat,
 } from "../lib/chat-store"
 import { assertRegisteredProjectPath } from "../lib/security-paths"
+import { migrateProjectToChats } from "../lib/chat-migration"
 import { logInfo, logWarn } from "../lib/structured-log"
 import { errorCode, errorMessage } from "../lib/error-utils"
 
@@ -62,6 +63,8 @@ export function registerChatsHandlers(): void {
         projectPath: safePath,
         includeArchived: options?.includeArchived ?? false,
       })
+      // Run legacy migration (idempotent) before listing
+      await migrateProjectToChats(safePath)
       return listProjectChats(safePath, options)
     },
   )
