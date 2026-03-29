@@ -750,10 +750,6 @@ export function ProjectSidebar({
                         return (
                           <>
                             {projectChats.length > 0 && (
-                              <>
-                              <div className="px-2.5 pt-2 pb-0.5 section-kicker text-muted-foreground">
-                                Threads
-                              </div>
                               <div
                                 className="mt-0.5 ml-7 space-y-px"
                                 role="list"
@@ -786,12 +782,6 @@ export function ProjectSidebar({
                                     />
                                   )
                                 })}
-                              </div>
-                              </>
-                            )}
-                          {unclaimedWorkflows.length > 0 && (
-                              <div className="px-2.5 pt-2 pb-0.5 section-kicker text-muted-foreground">
-                                Flows
                               </div>
                             )}
                           <SidebarProjectWorkflowList
