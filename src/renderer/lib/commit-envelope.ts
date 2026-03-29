@@ -1,5 +1,5 @@
 import { atom } from "jotai"
-import type { ArtifactRecord, InputAttachment, Workflow, WorkflowInput } from "@shared/types"
+import type { RunEnvelope } from "@shared/types"
 import {
   selectedProjectAtom,
   selectedWorkflowPathAtom,
@@ -21,75 +21,37 @@ import {
   setWorkflowRequestedResultForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
 } from "./store"
-import { selectedPastRunAtom } from "@/features/execution/state"
+import {
+  pastRunSnapshotAtom,
+  selectedPastRunAtom,
+} from "@/features/execution/state"
+import { selectedChatIdAtom } from "./chat-atoms"
 import { workflowSnapshot } from "./workflow-snapshot"
 import { toWorkflowExecutionKey } from "./workflow-execution"
 import {
   getRequestedResultFromEntryState,
   hasSavedWorkContinuationContext,
-  type WorkflowEntryState,
-  type WorkflowTemplateRunContext,
 } from "./workflow-entry"
 import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "./workflow-create-prompt"
-
-// ── RunEnvelope ─────────────────────────────────────────
-//
-// A fully-resolved intent package produced by the routing layer.
-// commitEnvelopeAtom applies it to all UI atoms in one Jotai transaction,
-// eliminating the race window that existed with sequential set() calls.
-
-export type RunEnvelopeIntent =
-  | {
-      type: "new_workflow"
-      projectPath: string
-      requestedResult: string
-    }
-  | {
-      type: "follow_up"
-      projectPath: string
-      requestedResult: string
-    }
-  | {
-      type: "open_existing"
-      projectPath: string
-      requestedResult: string
-    }
-
-export interface RunEnvelope {
-  /** Resolved routing intent — what the user was trying to do */
-  intent: RunEnvelopeIntent
-  /** The workflow graph to load */
-  workflow: Workflow
-  /** Absolute path to the workflow file */
-  workflowPath: string
-  /** Pre-populated input value for the chat/run input field */
-  input: WorkflowInput
-  /** Artifacts resolved from prior runs, used as context */
-  resolvedArtifacts: ArtifactRecord[]
-  /** File/run/text attachments to pre-populate in the input panel */
-  attachments: InputAttachment[]
-  /** Entry state for the WorkflowResumeHeader / entry card */
-  entryState: WorkflowEntryState | null
-  /** Template context for continuation tracking */
-  templateContext: WorkflowTemplateRunContext | null
-  /** Raw route result from the agent, if applicable */
-  routeResult: unknown | null
-  /** If true, trigger an auto-run immediately after navigation */
-  autoRun: boolean
-  /** Non-fatal contract warnings surfaced to the user */
-  contractWarnings: string[]
-}
 
 // ── commitEnvelopeAtom ──────────────────────────────────
 //
 // Write-only atom. Applies all RunEnvelope fields to UI atoms in a single
 // Jotai write transaction — no intermediate renders, no partial state.
+// This replaces the 20+ sequential set() calls that caused flash during routing.
 
 export const commitEnvelopeAtom = atom(
   null,
-  (get, set, envelope: RunEnvelope) => {
-    const { workflowPath, workflow, intent, input, attachments, entryState, templateContext } =
-      envelope
+  (_get, set, envelope: RunEnvelope) => {
+    const {
+      workflowPath,
+      workflow,
+      intent,
+      input,
+      attachments,
+      entryState,
+      templateContext,
+    } = envelope
 
     // Project + workflow identity
     set(selectedProjectAtom, intent.projectPath)
@@ -99,6 +61,7 @@ export const commitEnvelopeAtom = atom(
 
     // Clear stale per-run state
     set(selectedPastRunAtom, null)
+    set(pastRunSnapshotAtom, null)
     set(selectedInboxTaskKeyAtom, null)
 
     // Input surface
@@ -131,6 +94,11 @@ export const commitEnvelopeAtom = atom(
     set(viewModeAtom, "chat")
     set(mainViewAtom, "thread")
     set(chatRoutingProgressAtom, null)
+
+    // Chat identity
+    if (envelope.chatId) {
+      set(selectedChatIdAtom, envelope.chatId)
+    }
 
     // Clear create-surface state so the composer starts fresh
     set(workflowCreateDraftPromptAtom, "")

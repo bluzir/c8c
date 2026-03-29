@@ -1,6 +1,6 @@
 import { createStore } from "jotai"
 import { describe, it, expect } from "vitest"
-import { commitEnvelopeAtom, type RunEnvelope } from "./commit-envelope"
+import { commitEnvelopeAtom } from "./commit-envelope"
 import {
   selectedProjectAtom,
   selectedWorkflowPathAtom,
@@ -18,8 +18,14 @@ import {
   workflowCreatePromptScaffoldAtom,
   workflowSavedSnapshotAtom,
 } from "./store"
-import type { Workflow } from "@shared/types"
-import type { WorkflowEntryState, WorkflowTemplateRunContext } from "./workflow-entry"
+import type {
+  Workflow,
+  RunEnvelope,
+  WorkflowEntryState,
+  WorkflowTemplateRunContext,
+  ChatRunHistory,
+} from "@shared/types"
+import { selectedChatIdAtom } from "./chat-atoms"
 import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "./workflow-create-prompt"
 import { workflowSnapshot } from "./workflow-snapshot"
 
@@ -29,7 +35,12 @@ function buildMockWorkflow(): Workflow {
     name: "Post Drafter",
     nodes: [],
     edges: [],
-    defaults: { model: "sonnet", maxTurns: 40, timeout_minutes: 30, maxParallel: 4 },
+    defaults: {
+      model: "sonnet",
+      maxTurns: 40,
+      timeout_minutes: 30,
+      maxParallel: 4,
+    },
   }
 }
 
@@ -48,7 +59,9 @@ function buildMockEntryState(workflowPath: string): WorkflowEntryState {
   }
 }
 
-function buildMockTemplateContext(workflowPath: string): WorkflowTemplateRunContext {
+function buildMockTemplateContext(
+  workflowPath: string,
+): WorkflowTemplateRunContext {
   return {
     templateId: "content-post-drafter",
     templateName: "Post Drafter",
@@ -58,7 +71,9 @@ function buildMockTemplateContext(workflowPath: string): WorkflowTemplateRunCont
   }
 }
 
-function buildMockEnvelope(overrides: Partial<RunEnvelope> = {}): RunEnvelope {
+function buildMockEnvelope(
+  overrides: Partial<RunEnvelope> = {},
+): RunEnvelope {
   const workflowPath = "/tmp/project/post-drafter.chain"
   return {
     intent: {
@@ -70,7 +85,9 @@ function buildMockEnvelope(overrides: Partial<RunEnvelope> = {}): RunEnvelope {
     workflowPath,
     input: { type: "text", value: "Trend digest content here..." },
     resolvedArtifacts: [],
-    attachments: [{ kind: "file", path: "artifacts/trend.md", name: "Trend Digest" }],
+    attachments: [
+      { kind: "file", path: "artifacts/trend.md", name: "Trend Digest" },
+    ],
     entryState: buildMockEntryState(workflowPath),
     templateContext: buildMockTemplateContext(workflowPath),
     routeResult: null,
@@ -88,15 +105,31 @@ describe("commitEnvelopeAtom", () => {
     store.set(commitEnvelopeAtom, envelope)
 
     expect(store.get(selectedProjectAtom)).toBe("/tmp/project")
-    expect(store.get(selectedWorkflowPathAtom)).toBe("/tmp/project/post-drafter.chain")
+    expect(store.get(selectedWorkflowPathAtom)).toBe(
+      "/tmp/project/post-drafter.chain",
+    )
     expect(store.get(currentWorkflowAtom)).toEqual(envelope.workflow)
-    expect(store.get(workflowSavedSnapshotAtom)).toBe(workflowSnapshot(envelope.workflow))
+    expect(store.get(workflowSavedSnapshotAtom)).toBe(
+      workflowSnapshot(envelope.workflow),
+    )
     expect(store.get(inputValueAtom)).toBe("Trend digest content here...")
     expect(store.get(inputAttachmentsAtom)).toEqual(envelope.attachments)
     expect(store.get(mainViewAtom)).toBe("thread")
     expect(store.get(viewModeAtom)).toBe("chat")
     expect(store.get(chatRoutingProgressAtom)).toBeNull()
     expect(store.get(workflowEntryStateAtom)).toEqual(envelope.entryState)
+  })
+
+  it("clears routing progress even when it was previously set", () => {
+    const store = createStore()
+    store.set(chatRoutingProgressAtom, {
+      phase: "inspecting",
+      userRequest: "test",
+    })
+
+    store.set(commitEnvelopeAtom, buildMockEnvelope())
+
+    expect(store.get(chatRoutingProgressAtom)).toBeNull()
   })
 
   it("sets autoRun path when autoRun is true", () => {
@@ -130,8 +163,10 @@ describe("commitEnvelopeAtom", () => {
         kind: "findings",
         title: "Test artifact",
         relativePath: "artifacts/test.md",
-        contentPath: "/tmp/project/workspaces/run-1/artifacts/test.md",
-        metadataPath: "/tmp/project/workspaces/run-1/artifacts/test.md.meta.json",
+        contentPath:
+          "/tmp/project/workspaces/run-1/artifacts/test.md",
+        metadataPath:
+          "/tmp/project/workspaces/run-1/artifacts/test.md.meta.json",
         projectPath: "/tmp/project",
         workspace: "/tmp/project/workspaces/run-1",
         runId: "run-1",
@@ -152,18 +187,18 @@ describe("commitEnvelopeAtom", () => {
     )
   })
 
-  it("handles null entryState gracefully", () => {
+  it("sets selectedChatIdAtom from envelope.chatId", () => {
     const store = createStore()
-    const envelope = buildMockEnvelope({ entryState: null })
-
-    expect(() => store.set(commitEnvelopeAtom, envelope)).not.toThrow()
-    expect(store.get(workflowEntryStateAtom)).toBeNull()
+    const envelope = buildMockEnvelope({ chatId: "chat-123" })
+    store.set(commitEnvelopeAtom, envelope)
+    expect(store.get(selectedChatIdAtom)).toBe("chat-123")
   })
 
-  it("handles null templateContext gracefully", () => {
+  it("does not change selectedChatIdAtom when chatId is undefined", () => {
     const store = createStore()
-    const envelope = buildMockEnvelope({ templateContext: null })
-
-    expect(() => store.set(commitEnvelopeAtom, envelope)).not.toThrow()
+    store.set(selectedChatIdAtom, "existing-chat")
+    const envelope = buildMockEnvelope() // no chatId
+    store.set(commitEnvelopeAtom, envelope)
+    expect(store.get(selectedChatIdAtom)).toBe("existing-chat")
   })
 })
