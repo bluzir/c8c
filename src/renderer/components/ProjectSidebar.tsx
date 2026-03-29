@@ -32,6 +32,7 @@ import {
   chatRegistryAtom,
   selectedChatIdAtom,
   chatIdForWorkflowPathAtom,
+  followUpLabelAtom,
 } from "@/lib/store"
 import {
   clearWorkflowExecutionStateAtom,
@@ -40,6 +41,7 @@ import {
   toWorkflowExecutionKey,
   workflowExecutionStatesAtom,
 } from "@/features/execution"
+import { currentRunIndexAtom } from "@/features/execution/flow-chat-state"
 import type { Chat, ChatSummary } from "@shared/types"
 import { cn } from "@/lib/cn"
 import { SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "@/lib/sidebar-layout"
@@ -142,6 +144,8 @@ export function ProjectSidebar({
   const [chatSidebarSeenRunIds] = useAtom(chatSidebarSeenRunIdsAtom)
   const markChatSidebarRunSeen = useSetAtom(markChatSidebarRunSeenAtom)
   const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
+  const setFollowUpLabel = useSetAtom(followUpLabelAtom)
+  const setCurrentRunIndex = useSetAtom(currentRunIndexAtom)
   const commitNavigation = useSetAtom(commitNavigationAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
   const [chatRegistry, setChatRegistry] = useAtom(chatRegistryAtom)
@@ -448,9 +452,12 @@ export function ProjectSidebar({
         setSelectedWorkflowPath(latestRun.workflowPath)
         markChatSidebarRunSeen({ chatId, runId: latestRun.runId })
       }
+      // Reset stale state from previous chat
+      setFollowUpLabel(null)
+      setCurrentRunIndex(chat?.runs.length ?? 0)
       setMainView("thread")
     },
-    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView, markChatSidebarRunSeen],
+    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView, markChatSidebarRunSeen, setFollowUpLabel, setCurrentRunIndex],
   )
 
   const removingSelectedDirtyProject =
