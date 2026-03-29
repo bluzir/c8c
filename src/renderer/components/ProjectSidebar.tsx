@@ -224,8 +224,13 @@ export function ProjectSidebar({
         workflow.name.toLowerCase().includes(normalizedWorkflowSearchQuery),
       ),
     )
+  const hasVisibleChatResults =
+    hasWorkflowSearchQuery &&
+    chatSummaries.some((c) =>
+      c.name.toLowerCase().includes(normalizedWorkflowSearchQuery),
+    )
   const hasSearchResults =
-    hasVisibleProjectResults || visibleGlobalWorkflows.length > 0
+    hasVisibleProjectResults || hasVisibleChatResults || visibleGlobalWorkflows.length > 0
   const sidebarContentState = !hasProjects
     ? "empty_projects"
     : hasWorkflowSearchQuery
@@ -363,21 +368,28 @@ export function ProjectSidebar({
     if (!selectedProject) {
       setChatSummaries([])
       setChatRegistry({})
+      setSelectedChatId(null)
       return
     }
+    // Clear stale chatId from a different project
+    setSelectedChatId(null)
     let cancelled = false
     void (async () => {
-      const summaries = await window.api.listProjectChats(selectedProject)
+      // Load ALL chats (including archived) into registry so the workflow
+      // filter can exclude workflows owned by archived chats too.
+      const allSummaries = await window.api.listProjectChats(selectedProject, {
+        includeArchived: true,
+      })
       if (cancelled) return
-      setChatSummaries(summaries)
-      // Load full Chat records into the registry
       const registry: Record<string, Chat> = {}
-      for (const s of summaries) {
+      for (const s of allSummaries) {
         const chat = await window.api.loadChat(selectedProject, s.id)
         if (cancelled) return
         if (chat) registry[chat.id] = chat
       }
       setChatRegistry(registry)
+      // chatSummaries (visible in sidebar) are derived reactively from
+      // chatRegistry in the effect below, filtered to non-archived only.
     })()
     return () => {
       cancelled = true
