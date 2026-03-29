@@ -9,9 +9,12 @@ import {
   currentWorkflowAtom,
   inputValueAtom,
   mainViewAtom,
+  selectedChatIdAtom,
+  selectedProjectAtom,
   selectedResultModeIdAtom,
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
+  workflowCreateSourceArtifactsAtom,
   workflowEntryStateAtom,
 } from "@/lib/store"
 import { runStatusAtom } from "@/features/execution"
@@ -24,9 +27,12 @@ import { getResultModeQuickStartOptions } from "@/lib/result-modes"
 import { ChatHeader } from "./ChatHeader"
 import { ChatMessages } from "./ChatMessages"
 import { ChatInput } from "./ChatInput"
+import { SourceArtifactChips } from "./SourceArtifactChips"
 import { useChatSession } from "@/hooks/useChatSession"
 import { useFlowRouting } from "@/hooks/useFlowRouting"
+import { useRoutingTransaction } from "@/hooks/useRoutingTransaction"
 import { useWorkflowCreateNavigation } from "@/hooks/useWorkflowCreateNavigation"
+import type { RoutingIntent } from "@shared/routing-types"
 import { cn } from "@/lib/cn"
 
 const MIN_PANEL_WIDTH = 280
@@ -60,6 +66,7 @@ export function ChatPanel({
   const [panelWidth, setPanelWidth] = useAtom(chatPanelWidthAtom)
   const [resizing, setResizing] = useState(false)
   const runStatus = useAtomValue(runStatusAtom)
+  const selectedProject = useAtomValue(selectedProjectAtom)
   const selectedWorkflowPath = useAtomValue(selectedWorkflowPathAtom)
   const setInputValue = useSetAtom(inputValueAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
@@ -67,6 +74,8 @@ export function ChatPanel({
   const setMainView = useSetAtom(mainViewAtom)
   const { startRouting, selectClarification, resetRoutingState, submitting } =
     useFlowRouting()
+  const { dispatch: dispatchRouting, cancel: cancelRouting, dispatching: routingDispatching } =
+    useRoutingTransaction()
   const { openWorkflowCreate } = useWorkflowCreateNavigation()
   const flowMessages = useAtomValue(currentFlowChatMessagesAtom)
   const [chatRoutingProgress, setChatRoutingProgress] = useAtom(
@@ -77,7 +86,11 @@ export function ChatPanel({
   const templateContext = useAtomValue(selectedWorkflowTemplateContextAtom)
   const executionState = useAtomValue(effectiveExecutionStateAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
+  const [createSourceArtifacts, setCreateSourceArtifacts] = useAtom(
+    workflowCreateSourceArtifactsAtom,
+  )
   const selectedResultModeId = useAtomValue(selectedResultModeIdAtom)
+  const selectedChatId = useAtomValue(selectedChatIdAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
   )
@@ -94,18 +107,20 @@ export function ChatPanel({
   } = useChatSession()
 
   const isStreaming = status === "thinking" || status === "streaming"
-  const isRouting = Boolean(chatRoutingProgress) || submitting
+  const isRouting = Boolean(chatRoutingProgress) || submitting || routingDispatching
   const followUpDisabled =
     runStatus === "running" || runStatus === "starting" || isRouting
 
   const handleCancel = useCallback(() => {
-    if (isRouting) {
+    if (routingDispatching) {
+      cancelRouting()
+    } else if (isRouting) {
       resetRoutingState()
       setChatRoutingProgress(null)
     } else {
       cancel()
     }
-  }, [isRouting, resetRoutingState, setChatRoutingProgress, cancel])
+  }, [routingDispatching, cancelRouting, isRouting, resetRoutingState, setChatRoutingProgress, cancel])
 
   // Auto-trigger routing when navigated here with a pending prompt
   // (e.g. from useWorkflowCreateNavigation with a prompt option).
@@ -122,11 +137,15 @@ export function ChatPanel({
     startRouting,
   ])
 
-  // True when the flow completed — either in-memory state, disk fallback,
-  // or persisted entry state indicating a past run was started (covers the
-  // window between app restart and async pastRunsAtom load).
+  // True when the flow completed or terminated — either in-memory state,
+  // disk fallback, or persisted entry state indicating a past run was started
+  // (covers the window between app restart and async pastRunsAtom load).
+  // "error" and "cancelling" are included so that a post-cancel or post-error
+  // send routes to a new flow instead of falling through to agent chat.
   const effectivelyDone =
     runStatus === "done" ||
+    runStatus === "error" ||
+    runStatus === "cancelling" ||
     (runStatus === "idle" &&
       selectedWorkflowPath !== null &&
       (workflowHistoryRuns.some((r) => r.status === "completed") ||
@@ -137,11 +156,11 @@ export function ChatPanel({
   /**
    * Tri-mode send handler:
    * 1. Idle + has workflow (no past runs) → start a flow run with this message as input
-   * 2. No workflow OR done/has past runs → route to pick a new starting point template
-   * 3. Flow running/error → send as agent chat message
+   * 2. No workflow OR done/error/cancelling → route to pick a new starting point template
+   * 3. Flow running/starting/paused → send as agent chat message
    */
   const handleSend = useCallback(
-    (message: string, helpModeHint?: CreateEntryHelpModeHint | null) => {
+    async (message: string, helpModeHint?: CreateEntryHelpModeHint | null) => {
       if (runStatus === "idle" && selectedWorkflowPath && !effectivelyDone) {
         // Truly idle workflow — start the flow run.
         setInputValue(message)
@@ -151,23 +170,34 @@ export function ChatPanel({
         )
       } else if (!selectedWorkflowPath || effectivelyDone) {
         // No workflow yet, or flow completed — route to a new flow.
+        // After app restart, in-memory artifactRecords may be empty even though
+        // persisted project artifacts exist.  Load from disk as a fallback.
+        let artifacts = effectivelyDone
+          ? executionState.artifactRecords
+          : undefined
+        if (artifacts && artifacts.length === 0 && selectedProject) {
+          try {
+            artifacts = await window.api.listProjectArtifacts(selectedProject)
+          } catch {
+            artifacts = []
+          }
+        }
         void startRouting(message, {
           helpModeOverride: helpModeHint,
-          sourceArtifacts: effectivelyDone
-            ? executionState.artifactRecords
-            : undefined,
+          sourceArtifacts: artifacts,
           sourceAttachments: effectivelyDone
             ? resultSourceAttachments
             : undefined,
         })
       } else {
-        // Flow is running/error — send as agent chat message.
+        // Flow is running/starting/paused — send as agent chat message.
         sendMessage(message)
       }
     },
     [
       runStatus,
       selectedWorkflowPath,
+      selectedProject,
       effectivelyDone,
       executionState.artifactRecords,
       resultSourceAttachments,
@@ -182,17 +212,35 @@ export function ChatPanel({
   const handleFollowUp = useCallback(
     (followUp: { label: string; templateId?: string }) => {
       if (!followUp.templateId || isRouting) return
-      void startRouting(followUp.label, {
+
+      // Build a self-contained RoutingIntent — the runner resolves artifacts
+      // from disk via sourceArtifactIds, so no ambient state reads needed.
+      const outputArtifactIds = executionState.artifactRecords.map((a) => a.id)
+
+      const intent: RoutingIntent = {
+        type: "follow_up",
+        projectPath: selectedProject ?? "",
+        requestedResult: followUp.label,
         templateConstraintId: followUp.templateId,
-        sourceArtifacts: executionState.artifactRecords,
-        sourceAttachments: resultSourceAttachments,
-      })
+        sourceRunId: executionState.runId ?? undefined,
+        sourceArtifactIds:
+          outputArtifactIds.length > 0
+            ? outputArtifactIds
+            : templateContext?.sourceArtifactIds,
+        sourceWorkflowKey: selectedWorkflowPath ?? undefined,
+        chatId: selectedChatId ?? undefined,
+      }
+      dispatchRouting(intent)
     },
     [
-      startRouting,
+      dispatchRouting,
       isRouting,
+      selectedChatId,
+      selectedProject,
       executionState.artifactRecords,
-      resultSourceAttachments,
+      executionState.runId,
+      templateContext?.sourceArtifactIds,
+      selectedWorkflowPath,
     ],
   )
 
@@ -201,6 +249,13 @@ export function ChatPanel({
       sourceArtifacts: executionState.artifactRecords,
     })
   }, [openWorkflowCreate, executionState.artifactRecords])
+
+  const handleRemoveSourceArtifact = useCallback(
+    (id: string) => {
+      setCreateSourceArtifacts((prev) => prev.filter((a) => a.id !== id))
+    },
+    [setCreateSourceArtifacts],
+  )
 
   const handleClarificationSelect = useCallback(
     (selection: { kind: string; value: string; templateId?: string }) => {
@@ -369,7 +424,11 @@ export function ChatPanel({
               Browse starting points
             </button>
           )}
-          <div className="max-w-2xl w-full mt-6">
+          <div className="max-w-2xl w-full mt-6 space-y-2">
+            <SourceArtifactChips
+              artifacts={createSourceArtifacts}
+              onRemove={handleRemoveSourceArtifact}
+            />
             <ChatInput
               onSend={handleSend}
               onCancel={handleCancel}
@@ -442,8 +501,15 @@ export function ChatPanel({
         routeAlternatives={routeAlternatives}
         pendingRouteAlternativeId={pendingRouteAlternativeId}
         onSelectRouteAlternative={onSelectRouteAlternative}
+        onCancel={handleCancel}
       />
 
+      <div className="max-w-3xl mx-auto w-full px-4">
+        <SourceArtifactChips
+          artifacts={createSourceArtifacts}
+          onRemove={handleRemoveSourceArtifact}
+        />
+      </div>
       <ChatInput
         onSend={handleSend}
         onCancel={handleCancel}
