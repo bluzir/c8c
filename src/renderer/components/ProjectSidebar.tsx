@@ -430,16 +430,16 @@ export function ProjectSidebar({
   // workflow row or opening a file), find the chat that owns it and keep
   // selectedChatId in sync.  The forward direction (chat → workflowPath) is
   // handled by handleChatSelect above.
+  //
+  // IMPORTANT: We only SET chatId when a match is found — never CLEAR it.
+  // Clearing would race with commitEnvelopeAtom during follow-ups: the new
+  // .chain file isn't in any chat's runs yet (run hasn't completed), so
+  // chatIdForPath returns null, which would incorrectly clear the chatId
+  // that commitEnvelopeAtom just set.
   useEffect(() => {
-    // Don't sync while registry is still loading — empty registry makes
-    // chatIdForPath return null, which would incorrectly clear selectedChatId
     if (Object.keys(chatRegistry).length === 0) return
-
     if (chatIdForPath && chatIdForPath !== selectedChatId) {
       setSelectedChatId(chatIdForPath)
-    }
-    if (!chatIdForPath && selectedChatId) {
-      setSelectedChatId(null)
     }
   }, [chatIdForPath, selectedChatId, chatRegistry, setSelectedChatId])
 
