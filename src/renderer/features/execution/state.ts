@@ -1,4 +1,5 @@
 import { atom } from "jotai"
+import { selectedChatAtom } from "@/lib/chat-atoms"
 import { currentWorkflowAtom, selectedWorkflowPathAtom } from "@/lib/store"
 import {
   createEmptyWorkflowExecutionState,
@@ -7,7 +8,7 @@ import {
   type ExecutionRunStatus,
   type WorkflowExecutionState,
 } from "@/lib/workflow-execution"
-import type { RunResult } from "@shared/types"
+import type { PersistedRunSnapshot, RunResult, RunStatus } from "@shared/types"
 
 type SetAtomValue<T> = T | ((prev: T) => T)
 
@@ -150,6 +151,13 @@ export const selectedPastRunAtom =
   createSelectedWorkflowExecutionFieldAtom("selectedPastRun")
 
 /**
+ * Holds the loaded snapshot for the currently selected past run.
+ * Written by useSelectedRunReview when it loads run data from disk.
+ * Read by effectiveExecutionStateAtom to merge nodeStates, runtimeNodes, etc.
+ */
+export const pastRunSnapshotAtom = atom<PersistedRunSnapshot | null>(null)
+
+/**
  * Returns past-run-adjusted execution state when viewing history,
  * otherwise the live execution state.
  */
@@ -157,6 +165,8 @@ export const effectiveExecutionStateAtom = atom((get) => {
   const live = get(selectedWorkflowExecutionAtom)
   const pastRun = get(selectedPastRunAtom)
   if (!pastRun) return live
+
+  const snapshot = get(pastRunSnapshotAtom)
 
   return {
     ...live,
@@ -168,6 +178,14 @@ export const effectiveExecutionStateAtom = atom((get) => {
     reportPath: pastRun.reportPath,
     workspace: pastRun.workspace,
     workflowName: pastRun.workflowName,
+    // Merge snapshot data when available so past-run viewers see real nodeStates
+    ...(snapshot && {
+      nodeStates: snapshot.nodeStates ?? live.nodeStates,
+      runtimeNodes: snapshot.runtimeNodes ?? live.runtimeNodes,
+      runtimeEdges: snapshot.runtimeEdges ?? live.runtimeEdges,
+      runtimeMeta: snapshot.runtimeMeta ?? live.runtimeMeta,
+      evalResults: snapshot.evalResults ?? live.evalResults,
+    }),
   }
 })
 
@@ -215,6 +233,29 @@ export function doesRunBelongToWorkflowHistory(
 }
 
 export const workflowHistoryRunsAtom = atom<RunResult[]>((get) => {
+  // If a chat is selected, derive from chat.runs
+  const chat = get(selectedChatAtom)
+  if (chat && chat.runs.length > 0) {
+    return chat.runs
+      .filter(
+        (r) =>
+          r.status === "completed" ||
+          r.status === "failed" ||
+          r.status === "cancelled",
+      )
+      .map((r) => ({
+        runId: r.runId,
+        status: r.status as RunStatus,
+        workflowName: r.templateName,
+        workflowPath: r.workflowPath,
+        startedAt: r.startedAt,
+        completedAt: r.completedAt ?? r.startedAt,
+        reportPath: "",
+        workspace: r.workspace,
+      }))
+  }
+
+  // Fallback: filter from pastRunsAtom (legacy behavior)
   const runs = get(pastRunsAtom)
   if (runs.length === 0) return []
 
