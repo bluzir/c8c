@@ -384,6 +384,25 @@ export function ProjectSidebar({
     }
   }, [selectedProject, setChatRegistry])
 
+  // Keep chatSummaries in sync when chatRegistry changes (e.g. new chat created
+  // by ChatPanel.handleSend while already in a project)
+  useEffect(() => {
+    if (!selectedProject) return
+    const summaries: ChatSummary[] = Object.values(chatRegistry)
+      .filter((c) => c.projectPath === selectedProject && !c.archived)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        createdAt: c.createdAt,
+        lastActivityAt: c.lastActivityAt,
+        archived: c.archived,
+        runCount: c.runs.length,
+        latestRunStatus: c.runs[c.runs.length - 1]?.status ?? null,
+      }))
+      .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+    setChatSummaries(summaries)
+  }, [chatRegistry, selectedProject])
+
   const handleChatSelect = useCallback(
     (chatId: string) => {
       setSelectedChatId(chatId)
