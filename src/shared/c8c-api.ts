@@ -3,9 +3,11 @@ import type {
   ArtifactRecord,
   BatchEvent,
   CaseStateRecord,
+  Chat,
   ChatConversation,
   ChatEvent,
   ChatSessionSnapshot,
+  ChatSummary,
   ClaudeCodeSubscriptionStatus,
   ConfigureMcpIntegrationInput,
   CreateEntryRouteInput,
@@ -27,6 +29,7 @@ import type {
   McpTestResult,
   McpToolInfo,
   LoadedRunResult,
+  PersistedChatTimeline,
   PluginMcpServerInfo,
   PersistArtifactsFromRunRequest,
   PersistArtifactsFromRunResult,
@@ -56,6 +59,11 @@ import type {
   DesktopCommandId,
   DesktopMenuState,
 } from "@shared/desktop-commands"
+import type {
+  RoutingIntent,
+  RunEnvelope,
+  RoutingEvent,
+} from "@shared/routing-types"
 import type { WorkflowConfigIssue } from "./workflow-config-validation"
 
 export interface ExecutionStartError {
@@ -223,6 +231,13 @@ export interface C8cApi {
     workflowName?: string | null,
   ) => Promise<FlowImprovementRecommendation[]>
   loadRunResult: (workspace: string) => Promise<LoadedRunResult | null>
+  saveRunChatTimeline: (
+    workspace: string,
+    timeline: PersistedChatTimeline,
+  ) => Promise<void>
+  loadRunChatTimeline: (
+    workspace: string,
+  ) => Promise<PersistedChatTimeline | null>
   getTerminalRunSnapshot: (
     workspace: string,
   ) => Promise<TerminalRunSnapshot | null>
@@ -245,6 +260,30 @@ export interface C8cApi {
   spawnFactoryCasesFromArtifact: (
     input: SpawnFactoryCasesFromArtifactInput,
   ) => Promise<SpawnFactoryCasesFromArtifactResult>
+  // Chat entity CRUD
+  createChat(projectPath: string, chat: Chat): Promise<void>
+  loadChat(projectPath: string, chatId: string): Promise<Chat | null>
+  saveChat(projectPath: string, chat: Chat): Promise<void>
+  listProjectChats(
+    projectPath: string,
+    options?: { includeArchived?: boolean },
+  ): Promise<ChatSummary[]>
+  archiveChat(projectPath: string, chatId: string): Promise<void>
+  deleteChat(
+    projectPath: string,
+    chatId: string,
+    options?: { deleteRunWorkspaces?: boolean },
+  ): Promise<void>
+  saveChatTimeline(
+    projectPath: string,
+    chatId: string,
+    timeline: unknown,
+  ): Promise<void>
+  loadChatTimeline(
+    projectPath: string,
+    chatId: string,
+  ): Promise<unknown | null>
+
   chatSendMessage: (
     workflowPath: string,
     message: string,
@@ -291,6 +330,12 @@ export interface C8cApi {
   cancelBatch: (batchId: string) => Promise<boolean>
   onBatchEvent: (callback: (event: BatchEvent) => void) => () => void
   onChatEvent: (callback: (event: ChatEvent) => void) => () => void
+  routeIntent: (
+    intent: RoutingIntent,
+    options?: { sessionId: string },
+  ) => Promise<RunEnvelope>
+  cancelRouting: (sessionId: string) => Promise<void>
+  onRoutingEvent: (callback: (event: RoutingEvent) => void) => () => void
   onWorkflowEvent: (callback: (event: WorkflowEvent) => void) => () => void
   onGenerateProgress: (
     callback: (progress: GenerationProgress) => void,

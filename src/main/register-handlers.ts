@@ -12,6 +12,7 @@ import {
   setDesktopRuntimeWindowProvider,
 } from "./ipc/system"
 import { registerChatHandlers } from "./ipc/chat"
+import { registerChatsHandlers } from "./ipc/chats"
 import { registerMcpHandlers } from "./ipc/mcp"
 import { registerFilesHandlers } from "./ipc/files"
 import { registerFactoryHandlers } from "./ipc/factory"
@@ -36,6 +37,7 @@ export function registerMainHandlers(
     ["templates", registerTemplateHandlers],
     ["system", registerSystemHandlers],
     ["chat", registerChatHandlers],
+    ["chats", registerChatsHandlers],
     ["mcp", registerMcpHandlers],
     ["files", registerFilesHandlers],
     ["factory", registerFactoryHandlers],

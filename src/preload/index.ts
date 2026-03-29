@@ -6,6 +6,8 @@ import type {
 } from "@shared/desktop-commands"
 import type {
   BatchEvent,
+  Chat,
+  ChatSummary,
   TelemetryUiEvent,
   ChatEvent,
   ConfigureMcpIntegrationInput,
@@ -14,6 +16,7 @@ import type {
   GenerationProgress,
   HumanTaskSubmitInput,
   McpServerInfo,
+  PersistedChatTimeline,
   PersistArtifactsFromRunRequest,
   SaveProjectFactoryBlueprintInput,
   SpawnFactoryCasesFromArtifactInput,
@@ -25,6 +28,7 @@ import type {
   WorkflowInput,
   WorkflowTemplate,
 } from "@shared/types"
+import type { RoutingIntent, RoutingEvent } from "@shared/routing-types"
 
 type Listener = (payload: unknown) => void
 type AsyncMethod = (...args: any[]) => Promise<unknown>
@@ -233,6 +237,17 @@ const api: C8cApi = {
     ),
   loadRunResult: (workspace: string) =>
     invokeIpc<C8cApi["loadRunResult"]>("executor:load-run-result", workspace),
+  saveRunChatTimeline: (workspace: string, timeline: PersistedChatTimeline) =>
+    invokeIpc<C8cApi["saveRunChatTimeline"]>(
+      "executor:save-run-chat-timeline",
+      workspace,
+      timeline,
+    ),
+  loadRunChatTimeline: (workspace: string) =>
+    invokeIpc<C8cApi["loadRunChatTimeline"]>(
+      "executor:load-run-chat-timeline",
+      workspace,
+    ),
   getTerminalRunSnapshot: (workspace: string) =>
     invokeIpc<C8cApi["getTerminalRunSnapshot"]>(
       "executor:get-terminal-run-snapshot",
@@ -280,6 +295,53 @@ const api: C8cApi = {
     invokeIpc<C8cApi["spawnFactoryCasesFromArtifact"]>(
       "factory:spawn-cases-from-artifact",
       input,
+    ),
+
+  // Chat entity CRUD
+  createChat: (projectPath: string, chat: Chat) =>
+    invokeIpc<C8cApi["createChat"]>("chats:create", projectPath, chat),
+  loadChat: (projectPath: string, chatId: string) =>
+    invokeIpc<C8cApi["loadChat"]>("chats:load", projectPath, chatId),
+  saveChat: (projectPath: string, chat: Chat) =>
+    invokeIpc<C8cApi["saveChat"]>("chats:save", projectPath, chat),
+  listProjectChats: (
+    projectPath: string,
+    options?: { includeArchived?: boolean },
+  ) =>
+    invokeIpc<C8cApi["listProjectChats"]>(
+      "chats:list-project",
+      projectPath,
+      options,
+    ),
+  archiveChat: (projectPath: string, chatId: string) =>
+    invokeIpc<C8cApi["archiveChat"]>("chats:archive", projectPath, chatId),
+  deleteChat: (
+    projectPath: string,
+    chatId: string,
+    options?: { deleteRunWorkspaces?: boolean },
+  ) =>
+    invokeIpc<C8cApi["deleteChat"]>(
+      "chats:delete",
+      projectPath,
+      chatId,
+      options,
+    ),
+  saveChatTimeline: (
+    projectPath: string,
+    chatId: string,
+    timeline: unknown,
+  ) =>
+    invokeIpc<C8cApi["saveChatTimeline"]>(
+      "chats:save-timeline",
+      projectPath,
+      chatId,
+      timeline,
+    ),
+  loadChatTimeline: (projectPath: string, chatId: string) =>
+    invokeIpc<C8cApi["loadChatTimeline"]>(
+      "chats:load-timeline",
+      projectPath,
+      chatId,
     ),
 
   // Libraries
@@ -525,6 +587,14 @@ const api: C8cApi = {
     invokeIpc<C8cApi["cancelBatch"]>("executor:cancel-batch", batchId),
   onBatchEvent: (callback: (event: BatchEvent) => void) =>
     subscribeIpcChannel<BatchEvent>("batch:event", callback),
+
+  // Routing
+  routeIntent: (intent: RoutingIntent, options?: { sessionId: string }) =>
+    invokeIpc<C8cApi["routeIntent"]>("routing:route-intent", intent, options),
+  cancelRouting: (sessionId: string) =>
+    invokeIpc<C8cApi["cancelRouting"]>("routing:cancel", sessionId),
+  onRoutingEvent: (callback: (event: RoutingEvent) => void) =>
+    subscribeIpcChannel<RoutingEvent>("routing:event", callback),
 
   // Workflow events listener (new graph-based execution)
   onWorkflowEvent: (callback: (event: WorkflowEvent) => void) =>
