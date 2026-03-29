@@ -52,6 +52,7 @@ import {
   viewModeAtom,
   flowSurfaceModeAtom,
   outputSurfaceCommandStateAtom,
+  selectedChatIdAtom,
 } from "@/lib/store"
 import { selectedPastRunAtom } from "@/features/execution"
 import {
@@ -119,6 +120,7 @@ export function Toolbar({
   const [workflowReviewMode] = useAtom(workflowReviewModeAtom)
   const [workflowRunBlockReason] = useAtom(workflowRunBlockReasonAtom)
   const [workflowPastRuns] = useAtom(workflowHistoryRunsAtom)
+  const selectedChatId = useAtomValue(selectedChatIdAtom)
   const setSelectedNodeId = useSetAtom(selectedNodeIdAtom)
   const setValidationNavigationTarget = useSetAtom(
     validationNavigationTargetAtom,
@@ -797,11 +799,11 @@ export function Toolbar({
               onSave={() => void handlePrimarySave()}
               onToggleChat={toggleChatPanel}
               onOpenRuns={
-                workflowPastRuns.length > 0
+                workflowPastRuns.length > 0 && !selectedChatId
                   ? () => setRunsDialogOpen(true)
                   : null
               }
-              pastRunsCount={workflowPastRuns.length}
+              pastRunsCount={selectedChatId ? 0 : workflowPastRuns.length}
               onActionMenu={(action) => {
                 void handleActionMenu(action)
               }}
