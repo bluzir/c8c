@@ -3,6 +3,7 @@ import { useAtomValue, useSetAtom, useStore } from "jotai"
 import {
   addFlowChatMessageAtom,
   clearFlowChatMessagesAtom,
+  currentRunIndexAtom,
   flowChatMessagesAtom,
   replaceFlowChatMessagesAtom,
   updateFlowProgressAtom,
@@ -238,6 +239,7 @@ export function useExecutionController({
   const workflowRequestedResultsRef = useRef(workflowRequestedResults)
   const updateChatInRegistryRef = useRef(updateChatInRegistry)
   const selectedProjectRef = useRef(selectedProject)
+  const currentRunIndexRef = useRef(0)
   commitExecutionStateRef.current = commitExecutionState
   updateApprovalRequestsRef.current = updateApprovalRequests
   setPastRunsRef.current = setPastRuns
@@ -331,6 +333,33 @@ export function useExecutionController({
                   err,
                 )
               })
+          }
+        }
+
+        // Save chat-level timeline (accumulates across runs)
+        {
+          const timelineChatId = selectedChatIdRef.current
+          const timelineChatProject = selectedProjectRef.current
+          if (timelineChatId && timelineChatProject) {
+            const allMessages = store.get(flowChatMessagesAtom)
+            const chatMessages = allMessages[workflowKey] ?? []
+            if (chatMessages.length > 0) {
+              void window.api
+                .saveChatTimeline(
+                  timelineChatProject,
+                  timelineChatId,
+                  {
+                    version: 2,
+                    messages: chatMessages,
+                  },
+                )
+                .catch((err) => {
+                  console.error(
+                    "[useExecutionController] saveChatTimeline failed:",
+                    err,
+                  )
+                })
+            }
           }
         }
 
@@ -514,6 +543,23 @@ export function useExecutionController({
               },
             }
           }
+        }
+
+        // On run start, derive runIndex from the chat's existing run count
+        if (message.content.type === "start") {
+          const chatId = selectedChatIdRef.current
+          const chat = chatId
+            ? chatRegistryRef.current[chatId]
+            : undefined
+          const runIndex = chat?.runs.length ?? 0
+          currentRunIndexRef.current = runIndex
+          store.set(currentRunIndexAtom, runIndex)
+        }
+
+        // Tag message with the current run index
+        enrichedMessage = {
+          ...enrichedMessage,
+          runIndex: currentRunIndexRef.current,
         }
 
         if (message.content.type === "start") {

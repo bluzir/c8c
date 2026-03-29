@@ -26,6 +26,33 @@ export const addFlowChatMessageAtom = atom(
   },
 )
 
+/** Clear flow chat messages for a given workflow key (used on new run start) */
+export const clearFlowChatMessagesAtom = atom(
+  null,
+  (get, set, workflowKey: string) => {
+    const prev = get(flowChatMessagesAtom)
+    if (!(workflowKey in prev)) return
+    const next = { ...prev }
+    delete next[workflowKey]
+    set(flowChatMessagesAtom, next)
+  },
+)
+
+/** Atomically replace all messages for a key with a single message (avoids empty-frame flash) */
+export const replaceFlowChatMessagesAtom = atom(
+  null,
+  (get, set, payload: { workflowKey: string; message: FlowChatMessage }) => {
+    const prev = get(flowChatMessagesAtom)
+    set(flowChatMessagesAtom, {
+      ...prev,
+      [payload.workflowKey]: [payload.message],
+    })
+  },
+)
+
+/** Current run index within the active chat (increments per run start) */
+export const currentRunIndexAtom = atom<number>(0)
+
 /** Set of resolved decision message IDs */
 export const resolvedDecisionIdsAtom = atom<Set<string>>(new Set<string>())
 
