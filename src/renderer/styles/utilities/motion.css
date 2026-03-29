@@ -292,7 +292,7 @@
 }
 
 .chat-message-enter {
-  animation: chat-fade-slide-in 200ms ease-out;
+  animation: chat-fade-slide-in var(--motion-base) var(--ease-emphasis);
 }
 
 /* Chat panel thin scrollbar */

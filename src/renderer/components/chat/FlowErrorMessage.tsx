@@ -1,13 +1,22 @@
 import { useState } from "react"
+import { MoreHorizontal } from "lucide-react"
 import { toastError } from "@/lib/toast-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import type { FlowAction, ErrorContent } from "@/lib/flow-chat-types"
 
 interface FlowErrorMessageProps {
   flowName: string
   data: ErrorContent
   onRetry?: (nodeId?: string) => void
+  onContinue?: (runId: string) => void
+  onCancel?: () => void
 }
 
 function mapActionVariant(
@@ -24,6 +33,8 @@ const variantLabel: Record<ErrorContent["variant"], string> = {
   timeout: "Timeout",
 }
 
+const MAX_VISIBLE_ACTIONS = 3
+
 const toneToBadgeVariant: Record<
   ErrorContent["tone"],
   "destructive" | "warning" | "info"
@@ -37,6 +48,8 @@ export function FlowErrorMessage({
   flowName,
   data,
   onRetry,
+  onContinue,
+  onCancel,
 }: FlowErrorMessageProps) {
   const [pendingAction, setPendingAction] = useState<string | null>(null)
 
@@ -51,12 +64,20 @@ export function FlowErrorMessage({
           onRetry?.(action.action.nodeId || undefined)
           break
         }
+        case "continue": {
+          onContinue?.(action.action.runId)
+          break
+        }
         case "open-report": {
           window.api.openPath(action.action.path)
           break
         }
         case "open-all-files": {
           // Handled by parent via AllFilesButton
+          break
+        }
+        case "cancel": {
+          onCancel?.()
           break
         }
         default:
@@ -98,10 +119,10 @@ export function FlowErrorMessage({
         </ul>
       )}
 
-      {/* Action buttons */}
+      {/* Action buttons — max 3 visible, rest in overflow dropdown */}
       {data.actions.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          {data.actions.map((action, i) => {
+          {data.actions.slice(0, MAX_VISIBLE_ACTIONS).map((action, i) => {
             const actionKey = `${action.action.type}-${action.label}`
             const isLoading = pendingAction === actionKey
             const isDisabled = pendingAction !== null
@@ -119,6 +140,31 @@ export function FlowErrorMessage({
               </Button>
             )
           })}
+          {data.actions.length > MAX_VISIBLE_ACTIONS && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="More actions"
+                  disabled={pendingAction !== null}
+                >
+                  <MoreHorizontal size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {data.actions.slice(MAX_VISIBLE_ACTIONS).map((action, i) => (
+                  <DropdownMenuItem
+                    key={i}
+                    onSelect={() => handleAction(action)}
+                  >
+                    {action.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       )}
     </div>

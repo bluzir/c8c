@@ -19,7 +19,7 @@ export function FlowResultCard({
       onClick={onClick}
       className="flex items-center gap-3 rounded-md border border-hairline bg-surface-1/40 px-3 py-2.5 text-left ui-motion-fast hover:bg-surface-2/30"
     >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md surface-info-soft">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-status-info/5">
         <FileText size={16} className="text-status-info" />
       </div>
       <div className="min-w-0">
