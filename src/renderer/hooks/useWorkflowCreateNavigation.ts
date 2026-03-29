@@ -6,6 +6,7 @@ import {
   mainViewAtom,
   selectedProjectAtom,
   selectedWorkflowPathAtom,
+  selectedChatIdAtom,
   selectedInboxTaskKeyAtom,
   selectedResultModeIdAtom,
   viewModeAtom,
@@ -17,6 +18,7 @@ import {
   type MainView,
   type ViewMode,
 } from "@/lib/store"
+import { commitNavigationAtom } from "@/lib/navigation"
 import { selectedPastRunAtom } from "@/features/execution"
 import type {
   ArtifactRecord,
@@ -115,75 +117,55 @@ export function useWorkflowCreateNavigation() {
   const setChatPendingRoutingPrompt = useSetAtom(chatPendingRoutingPromptAtom)
   const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
+  const setSelectedChatId = useSetAtom(selectedChatIdAtom)
+  const commitNavigation = useSetAtom(commitNavigationAtom)
 
   const openWorkflowCreate = useCallback(
     (options: OpenWorkflowCreateOptions = {}) => {
+      const projectPath = Object.prototype.hasOwnProperty.call(
+        options,
+        "projectPath",
+      )
+        ? (options.projectPath ?? null)
+        : (selectedProject ?? null)
+
+      // commitNavigation clears routing, review, and selection state
+      commitNavigation({ kind: "create" })
+
+      // Clear chat selection so the new flow starts fresh, not inside the
+      // previous chat's context. A new Chat will be created when the user
+      // sends their first prompt.
+      setSelectedChatId(null)
+
+      // Apply create-specific state on top
+      if (options.modeId) {
+        setSelectedResultModeId(options.modeId)
+      }
+      setWorkflowCreateContext({
+        projectPath,
+        locked: Boolean(options.locked && projectPath),
+      })
+      setWorkflowCreateDraftPrompt(options.prompt ?? "")
+      setWorkflowCreateSourceArtifacts(options.sourceArtifacts ?? [])
+      setWorkflowCreateSourceAttachments(options.initialAttachments ?? [])
+
       // When a prompt is provided, route directly from chat instead of
       // showing the create page. The chat panel picks up the pending prompt
       // and triggers routing via useFlowRouting.
       if (options.prompt) {
-        const projectPath = Object.prototype.hasOwnProperty.call(
-          options,
-          "projectPath",
-        )
-          ? (options.projectPath ?? null)
-          : (selectedProject ?? null)
-
-        setChatRoutingProgress(null)
-        if (options.modeId) {
-          setSelectedResultModeId(options.modeId)
-        }
-        setWorkflowCreateContext({
-          projectPath,
-          locked: Boolean(options.locked && projectPath),
-        })
-        setWorkflowCreateDraftPrompt(options.prompt)
-        setWorkflowCreateSourceArtifacts(options.sourceArtifacts ?? [])
-        setWorkflowCreateSourceAttachments(options.initialAttachments ?? [])
-        setSelectedWorkflowPath(null)
-        setSelectedInboxTaskKey(null)
-        setSelectedPastRun(null)
-        setWorkflowEntryState(null)
         setChatPendingRoutingPrompt(options.prompt)
-        setMainView("thread")
-        setViewMode("chat")
-        return
       }
-
-      applyWorkflowCreateNavigationState({
-        options,
-        selectedProject,
-        setMainView,
-        setViewMode,
-        setSelectedWorkflowPath,
-        setSelectedResultModeId,
-        setWorkflowCreateContext,
-        setWorkflowCreateDraftPrompt,
-        setWorkflowCreateSourceArtifacts,
-        setWorkflowCreateSourceAttachments,
-        setWorkflowEntryState,
-        clearReviewState: () => {
-          setSelectedInboxTaskKey(null)
-          setSelectedPastRun(null)
-        },
-        clearRoutingProgress: () => setChatRoutingProgress(null),
-      })
     },
     [
       selectedProject,
+      commitNavigation,
+      setSelectedChatId,
       setChatPendingRoutingPrompt,
-      setChatRoutingProgress,
-      setMainView,
-      setSelectedWorkflowPath,
-      setSelectedInboxTaskKey,
-      setSelectedPastRun,
       setSelectedResultModeId,
-      setViewMode,
       setWorkflowCreateContext,
       setWorkflowCreateDraftPrompt,
       setWorkflowCreateSourceArtifacts,
       setWorkflowCreateSourceAttachments,
-      setWorkflowEntryState,
     ],
   )
 
