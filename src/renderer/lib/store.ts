@@ -90,6 +90,13 @@ export type {
   ExecutionRunStatus,
   WorkflowExecutionState,
 } from "./workflow-execution"
+export {
+  chatRegistryAtom,
+  selectedChatIdAtom,
+  selectedChatAtom,
+  derivedWorkflowPathAtom,
+  updateChatInRegistryAtom,
+} from "./chat-atoms"
 
 // ── Local Types ──────────────────────────────────────────
 
@@ -264,6 +271,7 @@ export const inputValueAtom = atom("")
 export type ChatFlowInputRequest =
   | { kind: "run" }
   | { kind: "rerun"; fromNodeId: string; workspace?: string | null }
+  | { kind: "continue"; runId: string }
   | null
 export const chatFlowInputRequestAtom = atom<ChatFlowInputRequest>(null)
 
