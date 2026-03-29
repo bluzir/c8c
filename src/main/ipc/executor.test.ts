@@ -4,6 +4,11 @@ import { join } from "node:path"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Workflow, WorkflowInput } from "@shared/types"
 import type { ExecutionStartResult } from "@shared/c8c-api"
+import type {
+  RoutingIntent,
+  RoutingEvent,
+  RunEnvelope,
+} from "@shared/routing-types"
 
 const {
   ipcHandlers,
@@ -50,6 +55,14 @@ const {
   getWorkflowHilTaskMock,
   listWorkflowHilTasksMock,
   writeWorkflowHilTaskResponseMock,
+  createRoutingRunnerMock,
+  listTemplatesMock,
+  routeCreateEntryMock,
+  inspectProjectForCreateEntryMock,
+  loadChainMock,
+  saveChainMock,
+  normalizeWorkflowTitleMock,
+  toWorkflowFileStemMock,
 } = vi.hoisted(() => ({
   ipcHandlers: new Map<string, (...args: unknown[]) => unknown>(),
   windowBySender: new Map<object, unknown>(),
@@ -95,6 +108,14 @@ const {
   getWorkflowHilTaskMock: vi.fn(),
   listWorkflowHilTasksMock: vi.fn(),
   writeWorkflowHilTaskResponseMock: vi.fn(),
+  createRoutingRunnerMock: vi.fn(),
+  listTemplatesMock: vi.fn(),
+  routeCreateEntryMock: vi.fn(),
+  inspectProjectForCreateEntryMock: vi.fn(),
+  loadChainMock: vi.fn(),
+  saveChainMock: vi.fn(),
+  normalizeWorkflowTitleMock: vi.fn(),
+  toWorkflowFileStemMock: vi.fn(),
 }))
 
 vi.mock("electron", () => ({
@@ -130,6 +151,8 @@ vi.mock("../lib/workflow-runner", () => ({
 vi.mock("@c8c/workflow-runner", () => ({
   approvalTaskId: (nodeId: string) => `approval-${nodeId}`,
   findResumeNodeId: vi.fn(() => "output"),
+  createRoutingRunner: (...args: unknown[]) =>
+    createRoutingRunnerMock(...args),
   getWorkflowHilTask: (...args: unknown[]) => getWorkflowHilTaskMock(...args),
   listProjectImprovementRecommendations: (...args: unknown[]) =>
     listProjectImprovementRecommendationsMock(...args),
@@ -232,6 +255,32 @@ vi.mock("./run-snapshot", () => ({
     hydratePersistedRunSnapshotLogsMock(...args),
   readPersistedEventsTail: (...args: unknown[]) =>
     readPersistedEventsTailMock(...args),
+}))
+
+vi.mock("../lib/templates", () => ({
+  listTemplates: (...args: unknown[]) => listTemplatesMock(...args),
+}))
+
+vi.mock("../lib/create-entry-router", () => ({
+  routeCreateEntry: (...args: unknown[]) => routeCreateEntryMock(...args),
+}))
+
+vi.mock("../lib/create-entry-inspection", () => ({
+  inspectProjectForCreateEntry: (...args: unknown[]) =>
+    inspectProjectForCreateEntryMock(...args),
+}))
+
+vi.mock("../lib/chain-io", () => ({
+  loadChain: (...args: unknown[]) => loadChainMock(...args),
+  saveChain: (...args: unknown[]) => saveChainMock(...args),
+  listChainFiles: vi.fn(() => []),
+}))
+
+vi.mock("@shared/workflow-name", () => ({
+  normalizeWorkflowTitle: (...args: unknown[]) =>
+    normalizeWorkflowTitleMock(...args),
+  toWorkflowFileStem: (...args: unknown[]) =>
+    toWorkflowFileStemMock(...args),
 }))
 
 interface MockWindow {
@@ -372,6 +421,15 @@ describe("executor IPC", () => {
     getWorkflowHilTaskMock.mockResolvedValue(null)
     listWorkflowHilTasksMock.mockResolvedValue([])
     writeWorkflowHilTaskResponseMock.mockResolvedValue(true)
+    listTemplatesMock.mockResolvedValue([])
+    routeCreateEntryMock.mockResolvedValue({ type: "new", templateId: "t1" })
+    inspectProjectForCreateEntryMock.mockResolvedValue({})
+    loadChainMock.mockResolvedValue(TEST_WORKFLOW)
+    saveChainMock.mockResolvedValue(undefined)
+    normalizeWorkflowTitleMock.mockImplementation((t: string) => t)
+    toWorkflowFileStemMock.mockImplementation((t: string) =>
+      t.toLowerCase().replace(/\s+/g, "-"),
+    )
   })
 
   const startCases = [
@@ -701,7 +759,7 @@ describe("executor IPC", () => {
         return handler(event, runId, "node-1")
       },
       targetMock: resolveEvalOverrideMock,
-      expectedArgs: (runId: string) => [runId, "node-1"],
+      expectedArgs: (runId: string) => [runId, "node-1", undefined],
       expectedAuthorizedResult: true,
       action: "executor:override-evaluator",
     },
@@ -1095,6 +1153,250 @@ describe("executor IPC", () => {
       reclaimedBytes: 2048,
       retainedRuns: 18,
       deletedRunIds: ["run-1", "run-2"],
+    })
+  })
+
+  describe("routing IPC", () => {
+    const TEST_INTENT: RoutingIntent = {
+      type: "follow_up",
+      projectPath: "/safe/project",
+      requestedResult: "test result",
+    }
+
+    const MINIMAL_ENVELOPE: RunEnvelope = {
+      intent: TEST_INTENT,
+      workflow: TEST_WORKFLOW,
+      workflowPath: "/safe/project/.c8c/flow.chain",
+      input: { type: "text", value: "assembled input" },
+      resolvedArtifacts: [],
+      attachments: [],
+      entryState: { type: "new" },
+      templateContext: {},
+      routeResult: null,
+      autoRun: true,
+      contractWarnings: [],
+    } as unknown as RunEnvelope
+
+    function createMockRoutingHandle(
+      events: RoutingEvent[],
+      envelope: RunEnvelope,
+    ) {
+      return {
+        events: (async function* () {
+          for (const e of events) yield e
+        })(),
+        envelope: Promise.resolve(envelope),
+        cancel: vi.fn(),
+      }
+    }
+
+    it("routing:route-intent streams events and returns envelope", async () => {
+      const mockEvents: RoutingEvent[] = [
+        {
+          type: "routing_started",
+          sessionId: "s1",
+          intent: TEST_INTENT,
+        },
+        { type: "templates_loaded", sessionId: "s1", count: 3 },
+        {
+          type: "envelope_ready",
+          sessionId: "s1",
+          envelope: MINIMAL_ENVELOPE,
+        },
+      ]
+
+      const mockHandle = createMockRoutingHandle(mockEvents, MINIMAL_ENVELOPE)
+      createRoutingRunnerMock.mockReturnValue({
+        routeIntent: vi.fn(() => mockHandle),
+      })
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+
+      const { event, window } = createEvent(1)
+      const handler = getHandler<
+        (
+          event: unknown,
+          intent: RoutingIntent,
+          options?: { sessionId: string },
+        ) => Promise<RunEnvelope>
+      >("routing:route-intent")
+
+      const result = await handler(event, TEST_INTENT, { sessionId: "s1" })
+
+      expect(result).toEqual(MINIMAL_ENVELOPE)
+
+      // Allow the fire-and-forget event-streaming loop to flush
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(window.webContents.send).toHaveBeenCalledWith(
+        "routing:event",
+        expect.objectContaining({ type: "routing_started" }),
+      )
+      expect(window.webContents.send).toHaveBeenCalledWith(
+        "routing:event",
+        expect.objectContaining({ type: "templates_loaded" }),
+      )
+      expect(window.webContents.send).toHaveBeenCalledWith(
+        "routing:event",
+        expect.objectContaining({ type: "envelope_ready" }),
+      )
+    })
+
+    it("routing:route-intent validates project path", async () => {
+      createRoutingRunnerMock.mockReturnValue({
+        routeIntent: vi.fn(() =>
+          createMockRoutingHandle([], MINIMAL_ENVELOPE),
+        ),
+      })
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+
+      const { event } = createEvent(1)
+      const handler = getHandler<
+        (
+          event: unknown,
+          intent: RoutingIntent,
+          options?: { sessionId: string },
+        ) => Promise<RunEnvelope>
+      >("routing:route-intent")
+
+      const unsafeIntent: RoutingIntent = {
+        ...TEST_INTENT,
+        projectPath: "/unsafe/project",
+      }
+
+      await expect(
+        handler(event, unsafeIntent, { sessionId: "s2" }),
+      ).rejects.toThrow("Project path is outside allowed directories")
+    })
+
+    it("routing:cancel cancels active handle", async () => {
+      // Create a handle whose envelope never resolves until we cancel
+      const cancelFn = vi.fn()
+      let resolveEnvelope!: (env: RunEnvelope) => void
+      const envelopePromise = new Promise<RunEnvelope>((res) => {
+        resolveEnvelope = res
+      })
+      let resolveEvents!: () => void
+      const eventsComplete = new Promise<void>((res) => {
+        resolveEvents = res
+      })
+
+      const slowHandle = {
+        events: (async function* () {
+          yield {
+            type: "routing_started" as const,
+            sessionId: "s3",
+            intent: TEST_INTENT,
+          }
+          // Wait until told to complete
+          await eventsComplete
+        })(),
+        envelope: envelopePromise,
+        cancel: cancelFn,
+      }
+
+      createRoutingRunnerMock.mockReturnValue({
+        routeIntent: vi.fn(() => slowHandle),
+      })
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+
+      const { event } = createEvent(1)
+      const routeHandler = getHandler<
+        (
+          event: unknown,
+          intent: RoutingIntent,
+          options?: { sessionId: string },
+        ) => Promise<RunEnvelope>
+      >("routing:route-intent")
+      const cancelHandler = getHandler<
+        (event: unknown, sessionId: string) => Promise<void>
+      >("routing:cancel")
+
+      // Start routing (don't await — it won't resolve yet)
+      const routePromise = routeHandler(event, TEST_INTENT, {
+        sessionId: "s3",
+      })
+
+      // Give the event-streaming loop time to start
+      await new Promise((r) => setTimeout(r, 10))
+
+      // Cancel should call the handle's cancel function
+      await cancelHandler({} as never, "s3")
+      expect(cancelFn).toHaveBeenCalled()
+      expect(logInfoMock).toHaveBeenCalledWith(
+        "executor-ipc",
+        "routing_cancelled",
+        { sessionId: "s3" },
+      )
+
+      // Clean up: resolve the pending promises so the test exits cleanly
+      resolveEvents()
+      resolveEnvelope(MINIMAL_ENVELOPE)
+      await routePromise
+    })
+
+    it("routing:cancel is no-op for unknown session", async () => {
+      createRoutingRunnerMock.mockReturnValue({
+        routeIntent: vi.fn(() =>
+          createMockRoutingHandle([], MINIMAL_ENVELOPE),
+        ),
+      })
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+
+      const cancelHandler = getHandler<
+        (event: unknown, sessionId: string) => Promise<void>
+      >("routing:cancel")
+
+      // Should not throw
+      await cancelHandler({} as never, "nonexistent-session")
+      expect(logInfoMock).not.toHaveBeenCalledWith(
+        "executor-ipc",
+        "routing_cancelled",
+        expect.anything(),
+      )
+    })
+
+    it("routing:route-intent cleans up handle after envelope resolves", async () => {
+      const mockHandle = createMockRoutingHandle([], MINIMAL_ENVELOPE)
+      createRoutingRunnerMock.mockReturnValue({
+        routeIntent: vi.fn(() => mockHandle),
+      })
+
+      const { registerExecutorHandlers } = await import("./executor")
+      registerExecutorHandlers()
+
+      const { event } = createEvent(1)
+      const routeHandler = getHandler<
+        (
+          event: unknown,
+          intent: RoutingIntent,
+          options?: { sessionId: string },
+        ) => Promise<RunEnvelope>
+      >("routing:route-intent")
+      const cancelHandler = getHandler<
+        (event: unknown, sessionId: string) => Promise<void>
+      >("routing:cancel")
+
+      await routeHandler(event, TEST_INTENT, { sessionId: "s4" })
+
+      // Allow the fire-and-forget event loop to flush
+      await new Promise((r) => setTimeout(r, 10))
+
+      // After completion, cancel should be a no-op (handle removed)
+      logInfoMock.mockClear()
+      await cancelHandler({} as never, "s4")
+      expect(logInfoMock).not.toHaveBeenCalledWith(
+        "executor-ipc",
+        "routing_cancelled",
+        expect.anything(),
+      )
     })
   })
 })
