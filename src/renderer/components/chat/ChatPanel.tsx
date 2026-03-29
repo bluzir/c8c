@@ -10,6 +10,7 @@ import {
   followUpLabelAtom,
   inputValueAtom,
   mainViewAtom,
+  selectedChatAtom,
   selectedChatIdAtom,
   selectedProjectAtom,
   selectedResultModeIdAtom,
@@ -93,6 +94,7 @@ export function ChatPanel({
   )
   const selectedResultModeId = useAtomValue(selectedResultModeIdAtom)
   const [selectedChatId, setSelectedChatId] = useAtom(selectedChatIdAtom)
+  const selectedChat = useAtomValue(selectedChatAtom)
   const updateChatInRegistry = useSetAtom(updateChatInRegistryAtom)
   const [pendingRoutingPrompt, setPendingRoutingPrompt] = useAtom(
     chatPendingRoutingPromptAtom,
@@ -203,7 +205,17 @@ export function ChatPanel({
           : undefined
         if (artifacts && artifacts.length === 0 && selectedProject) {
           try {
-            artifacts = await window.api.listProjectArtifacts(selectedProject)
+            const allArtifacts =
+              await window.api.listProjectArtifacts(selectedProject)
+            if (
+              selectedChat &&
+              selectedChat.artifactPool.length > 0
+            ) {
+              const poolSet = new Set(selectedChat.artifactPool)
+              artifacts = allArtifacts.filter((a) => poolSet.has(a.id))
+            } else {
+              artifacts = allArtifacts
+            }
           } catch {
             artifacts = []
           }
@@ -225,6 +237,7 @@ export function ChatPanel({
       runStatus,
       selectedWorkflowPath,
       selectedProject,
+      selectedChat,
       selectedChatId,
       effectivelyDone,
       executionState.artifactRecords,
