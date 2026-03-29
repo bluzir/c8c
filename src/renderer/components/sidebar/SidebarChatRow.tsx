@@ -6,6 +6,7 @@ import { formatRelativeTime } from "./projectSidebarUtils"
 interface SidebarChatRowProps {
   chat: ChatSummary
   isSelected: boolean
+  hasNewRun?: boolean
   onClick: () => void
 }
 
@@ -27,6 +28,7 @@ function statusDotClass(status: ChatSummary["latestRunStatus"]): string | null {
 export function SidebarChatRow({
   chat,
   isSelected,
+  hasNewRun = false,
   onClick,
 }: SidebarChatRowProps) {
   const dot = statusDotClass(chat.latestRunStatus)
@@ -59,10 +61,17 @@ export function SidebarChatRow({
           <span className="min-w-0 flex-1 truncate text-sidebar-item">
             {chat.name}
           </span>
+          {hasNewRun && !dot && (
+            <span
+              role="img"
+              aria-label="New run result"
+              className="inline-flex h-2 w-2 shrink-0 rounded-full bg-status-info"
+            />
+          )}
           {dot && (
             <span
               role="img"
-              aria-label={`Status: ${chat.latestRunStatus}`}
+              aria-label={hasNewRun ? `New: ${chat.latestRunStatus}` : `Status: ${chat.latestRunStatus}`}
               className={cn(
                 "inline-flex h-2 w-2 shrink-0 rounded-full",
                 dot,

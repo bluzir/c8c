@@ -167,6 +167,24 @@ export const markWorkflowSidebarRunSeenAtom = atom(
     })
   },
 )
+
+/** Tracks the latest seen run ID per chat (for "new" badge in sidebar) */
+export const chatSidebarSeenRunIdsAtom = atomWithStorage<
+  Record<string, string>
+>("c8c:chat-sidebar-seen-run-ids", {})
+
+/** Mark a chat's latest run as seen */
+export const markChatSidebarRunSeenAtom = atom(
+  null,
+  (get, set, payload: { chatId: string; runId: string }) => {
+    const prev = get(chatSidebarSeenRunIdsAtom)
+    if (prev[payload.chatId] === payload.runId) return
+    set(chatSidebarSeenRunIdsAtom, {
+      ...prev,
+      [payload.chatId]: payload.runId,
+    })
+  },
+)
 export const selectedWorkflowPathAtom = atomWithStorage<string | null>(
   "c8c:selectedWorkflowPath",
   null,

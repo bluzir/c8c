@@ -55,6 +55,7 @@ function toSummary(chat: Chat): ChatSummary {
     lastActivityAt: chat.lastActivityAt,
     archived: chat.archived,
     runCount: chat.runs.length,
+    latestRunId: latestRun ? latestRun.runId : null,
     latestRunStatus: latestRun ? latestRun.status : null,
   }
 }

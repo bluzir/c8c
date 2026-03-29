@@ -25,6 +25,8 @@ import {
   unreadInboxCountAtom,
   workflowSidebarSeenRunIdsAtom,
   markWorkflowSidebarRunSeenAtom,
+  chatSidebarSeenRunIdsAtom,
+  markChatSidebarRunSeenAtom,
   multiRunDashboardOpenAtom,
   clearAllRoutingStateAtom,
   chatRegistryAtom,
@@ -136,6 +138,8 @@ export function ProjectSidebar({
     clearWorkflowTemplateContextForKeyAtom,
   )
   const markWorkflowSidebarRunSeen = useSetAtom(markWorkflowSidebarRunSeenAtom)
+  const [chatSidebarSeenRunIds] = useAtom(chatSidebarSeenRunIdsAtom)
+  const markChatSidebarRunSeen = useSetAtom(markChatSidebarRunSeenAtom)
   const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
   const commitNavigation = useSetAtom(commitNavigationAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
@@ -409,6 +413,7 @@ export function ProjectSidebar({
         lastActivityAt: c.lastActivityAt,
         archived: c.archived,
         runCount: c.runs.length,
+        latestRunId: c.runs[c.runs.length - 1]?.runId ?? null,
         latestRunStatus: c.runs[c.runs.length - 1]?.status ?? null,
       }))
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
@@ -422,10 +427,11 @@ export function ProjectSidebar({
       if (chat && chat.runs.length > 0) {
         const latestRun = chat.runs[chat.runs.length - 1]
         setSelectedWorkflowPath(latestRun.workflowPath)
+        markChatSidebarRunSeen({ chatId, runId: latestRun.runId })
       }
       setMainView("thread")
     },
-    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView],
+    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView, markChatSidebarRunSeen],
   )
 
   const removingSelectedDirtyProject =
@@ -723,14 +729,22 @@ export function ProjectSidebar({
                                 role="list"
                                 aria-label={`${projectFolderName(projectPath)} chats`}
                               >
-                                {projectChats.map((chat) => (
-                                  <SidebarChatRow
-                                    key={chat.id}
-                                    chat={chat}
-                                    isSelected={selectedChatId === chat.id}
-                                    onClick={() => handleChatSelect(chat.id)}
-                                  />
-                                ))}
+                                {projectChats.map((chat) => {
+                                  const isChatSelected = selectedChatId === chat.id
+                                  const hasNewRun =
+                                    !isChatSelected &&
+                                    !!chat.latestRunId &&
+                                    chat.latestRunId !== chatSidebarSeenRunIds[chat.id]
+                                  return (
+                                    <SidebarChatRow
+                                      key={chat.id}
+                                      chat={chat}
+                                      isSelected={isChatSelected}
+                                      hasNewRun={hasNewRun}
+                                      onClick={() => handleChatSelect(chat.id)}
+                                    />
+                                  )
+                                })}
                               </div>
                             )}
                           <SidebarProjectWorkflowList

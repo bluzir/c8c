@@ -1853,6 +1853,7 @@ export interface ChatSummary {
   lastActivityAt: number
   archived: boolean
   runCount: number
+  latestRunId: string | null
   latestRunStatus: ChatRun["status"] | null
 }
 
