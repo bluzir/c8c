@@ -750,10 +750,14 @@ export function ProjectSidebar({
                         return (
                           <>
                             {projectChats.length > 0 && (
+                              <>
+                              <div className="px-2.5 pt-2 pb-0.5 section-kicker text-muted-foreground">
+                                Threads
+                              </div>
                               <div
                                 className="mt-0.5 ml-7 space-y-px"
                                 role="list"
-                                aria-label={`${projectFolderName(projectPath)} chats`}
+                                aria-label={`${projectFolderName(projectPath)} threads`}
                               >
                                 {projectChats.map((chat) => {
                                   const isChatSelected = selectedChatId === chat.id
@@ -768,9 +772,26 @@ export function ProjectSidebar({
                                       isSelected={isChatSelected}
                                       hasNewRun={hasNewRun}
                                       onClick={() => handleChatSelect(chat.id)}
+                                      onContextMenu={(e) => {
+                                        e.preventDefault()
+                                        setSidebarContextMenu({
+                                          x: e.clientX,
+                                          y: e.clientY,
+                                          scope: "chat",
+                                          chatId: chat.id,
+                                          chatName: chat.name,
+                                          projectPath: projectPath,
+                                        })
+                                      }}
                                     />
                                   )
                                 })}
+                              </div>
+                              </>
+                            )}
+                          {unclaimedWorkflows.length > 0 && (
+                              <div className="px-2.5 pt-2 pb-0.5 section-kicker text-muted-foreground">
+                                Flows
                               </div>
                             )}
                           <SidebarProjectWorkflowList
@@ -908,6 +929,46 @@ export function ProjectSidebar({
         commitRemoveProject={commitRemoveProject}
         openProjectFlow={(projectPath) => {
           handleOpenWorkflowCreate(projectPath, true)
+        }}
+        onArchiveChat={(projectPath, chatId) => {
+          void (async () => {
+            await window.api.archiveChat(projectPath, chatId)
+            setChatRegistry((prev) => {
+              const next = { ...prev }
+              if (next[chatId]) {
+                next[chatId] = { ...next[chatId], archived: true }
+              }
+              return next
+            })
+            if (selectedChatId === chatId) {
+              setSelectedChatId(null)
+            }
+          })()
+        }}
+        onDeleteChat={(projectPath, chatId) => {
+          void (async () => {
+            await window.api.deleteChat(projectPath, chatId)
+            setChatRegistry((prev) => {
+              const next = { ...prev }
+              delete next[chatId]
+              return next
+            })
+            if (selectedChatId === chatId) {
+              setSelectedChatId(null)
+            }
+          })()
+        }}
+        onRenameChat={(projectPath, chatId, newName) => {
+          void (async () => {
+            const chat = chatRegistry[chatId]
+            if (!chat) return
+            const updated = { ...chat, name: newName }
+            await window.api.saveChat(projectPath, updated)
+            setChatRegistry((prev) => ({
+              ...prev,
+              [chatId]: updated,
+            }))
+          })()
         }}
       />
 

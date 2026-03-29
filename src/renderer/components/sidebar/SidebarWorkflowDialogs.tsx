@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useAtomValue } from "jotai"
 import type { WorkflowFile } from "@shared/types"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
@@ -26,6 +27,14 @@ export type SidebarContextMenuState =
       x: number
       y: number
       scope: "project"
+      projectPath: string
+    }
+  | {
+      x: number
+      y: number
+      scope: "chat"
+      chatId: string
+      chatName: string
       projectPath: string
     }
 
@@ -64,6 +73,13 @@ interface SidebarWorkflowDialogsProps {
   removingSelectedDirtyProject: boolean
   commitRemoveProject: () => Promise<void>
   openProjectFlow: (projectPath: string) => void
+  onArchiveChat: (projectPath: string, chatId: string) => void
+  onDeleteChat: (projectPath: string, chatId: string) => void
+  onRenameChat: (
+    projectPath: string,
+    chatId: string,
+    newName: string,
+  ) => void
 }
 
 export function SidebarWorkflowDialogs({
@@ -92,8 +108,21 @@ export function SidebarWorkflowDialogs({
   removingSelectedDirtyProject,
   commitRemoveProject,
   openProjectFlow,
+  onArchiveChat,
+  onDeleteChat,
+  onRenameChat,
 }: SidebarWorkflowDialogsProps) {
   const executionStates = useAtomValue(workflowExecutionStatesAtom)
+  const [pendingRenameChat, setPendingRenameChat] = useState<{
+    chatId: string
+    projectPath: string
+  } | null>(null)
+  const [chatRenameInput, setChatRenameInput] = useState("")
+  const [pendingDeleteChat, setPendingDeleteChat] = useState<{
+    chatId: string
+    chatName: string
+    projectPath: string
+  } | null>(null)
   const contextWorkflowPath =
     sidebarContextMenu?.scope === "workflow" ||
     sidebarContextMenu?.scope === "global_workflow"
@@ -260,6 +289,49 @@ export function SidebarWorkflowDialogs({
               </DropdownMenuItem>
             </>
           )}
+        {sidebarContextMenu?.scope === "chat" && (
+          <>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (sidebarContextMenu.scope !== "chat") return
+                setChatRenameInput(sidebarContextMenu.chatName)
+                setPendingRenameChat({
+                  chatId: sidebarContextMenu.chatId,
+                  projectPath: sidebarContextMenu.projectPath,
+                })
+                setSidebarContextMenu(null)
+              }}
+            >
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (sidebarContextMenu.scope !== "chat") return
+                onArchiveChat(
+                  sidebarContextMenu.projectPath,
+                  sidebarContextMenu.chatId,
+                )
+                setSidebarContextMenu(null)
+              }}
+            >
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-status-danger focus:text-status-danger"
+              onSelect={() => {
+                if (sidebarContextMenu.scope !== "chat") return
+                setPendingDeleteChat({
+                  chatId: sidebarContextMenu.chatId,
+                  chatName: sidebarContextMenu.chatName,
+                  projectPath: sidebarContextMenu.projectPath,
+                })
+                setSidebarContextMenu(null)
+              }}
+            >
+              Delete
+            </DropdownMenuItem>
+          </>
+        )}
       </CursorMenu>
 
       <FlowRenameDialog
@@ -311,6 +383,41 @@ export function SidebarWorkflowDialogs({
         })()}
         confirmLabel="Remove"
         onConfirm={() => void commitRemoveProject()}
+      />
+
+      <FlowRenameDialog
+        open={pendingRenameChat !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRenameChat(null)
+        }}
+        value={chatRenameInput}
+        onValueChange={setChatRenameInput}
+        onCommit={() => {
+          if (!pendingRenameChat || !chatRenameInput.trim()) return
+          onRenameChat(
+            pendingRenameChat.projectPath,
+            pendingRenameChat.chatId,
+            chatRenameInput.trim(),
+          )
+          setPendingRenameChat(null)
+        }}
+      />
+
+      <SidebarConfirmDialog
+        open={pendingDeleteChat !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteChat(null)
+        }}
+        title="Delete thread"
+        description={`Delete "${pendingDeleteChat?.chatName || "thread"}"? All runs and history will be permanently removed.`}
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+        note="This cannot be undone."
+        onConfirm={() => {
+          if (!pendingDeleteChat) return
+          onDeleteChat(pendingDeleteChat.projectPath, pendingDeleteChat.chatId)
+          setPendingDeleteChat(null)
+        }}
       />
     </>
   )

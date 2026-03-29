@@ -8,6 +8,7 @@ interface SidebarChatRowProps {
   isSelected: boolean
   hasNewRun?: boolean
   onClick: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }
 
 function statusDotClass(status: ChatSummary["latestRunStatus"]): string | null {
@@ -30,6 +31,7 @@ export function SidebarChatRow({
   isSelected,
   hasNewRun = false,
   onClick,
+  onContextMenu,
 }: SidebarChatRowProps) {
   const dot = statusDotClass(chat.latestRunStatus)
   const timeLabel = formatRelativeTime(chat.lastActivityAt)
@@ -46,6 +48,7 @@ export function SidebarChatRow({
         aria-current={isSelected ? "page" : undefined}
         data-sidebar-item="true"
         onClick={onClick}
+        onContextMenu={onContextMenu}
         className={cn(
           "ui-pressable min-w-0 w-full rounded-md px-1 py-0.5 text-left ui-transition-colors ui-motion-fast focus-visible:outline-none",
           isSelected
