@@ -5,6 +5,7 @@ import {
   currentWorkflowAtom,
   followUpLabelAtom,
   inputValueAtom,
+  selectedChatAtom,
   selectedWorkflowPathAtom,
   workflowEntryStateAtom,
   type ChatMessageDisplay,
@@ -32,6 +33,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
   const inputValue = useAtomValue(inputValueAtom)
   const executionState = useAtomValue(effectiveExecutionStateAtom)
   const workflowHistoryRuns = useAtomValue(workflowHistoryRunsAtom)
+  const selectedChat = useAtomValue(selectedChatAtom)
 
   // Synthesize a Complete message for runs that finished before chat existed
   const syntheticCompleteMessage = useMemo<FlowChatMessage | null>(() => {
@@ -102,6 +104,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
     enabled: flowMessages.length === 0 && !syntheticCompleteMessage,
     latestRun: latestEligibleRun,
     flowName: workflow?.name || "Flow",
+    chatRuns: selectedChat?.runs,
   })
 
   // Synthesize a routing message from workflowEntryState when template was
