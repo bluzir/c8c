@@ -12,7 +12,7 @@ import {
   type ClarificationSelection,
 } from "./FlowRoutingMessage"
 import { cn } from "@/lib/cn"
-import { ArrowDown } from "lucide-react"
+import { ArrowDown, Clock } from "lucide-react"
 import type { TimelineEntry } from "@/hooks/useFlowChatTimeline"
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
@@ -43,6 +43,15 @@ function formatTimeGap(ts: number): string {
     minute: "2-digit",
   })
 }
+
+function formatPastRunDuration(ms: number): string {
+  const seconds = Math.round(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`
+}
+
 import {
   chatFlowInputRequestAtom,
   chatRoutingProgressAtom,
@@ -69,6 +78,7 @@ interface ChatMessagesProps {
   routeAlternatives?: import("./FlowRoutingMessage").RouteAlternativeOption[]
   pendingRouteAlternativeId?: string | null
   onSelectRouteAlternative?: (templateId: string) => void
+  onCancel?: () => void
 }
 
 export function ChatMessages({
@@ -81,6 +91,7 @@ export function ChatMessages({
   routeAlternatives,
   pendingRouteAlternativeId,
   onSelectRouteAlternative,
+  onCancel,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isNearBottomRef = useRef(true)
@@ -100,7 +111,7 @@ export function ChatMessages({
   const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const historyRuns = useAtomValue(workflowHistoryRunsAtom)
 
-  const { timeline, flowMessages, entryState } = useFlowChatTimeline(messages)
+  const { timeline, flowMessages, entryState, pastRunMeta } = useFlowChatTimeline(messages)
 
   const handleRunFromRouting = useCallback(() => {
     setChatFlowInputRequest({ kind: "run" })
@@ -123,6 +134,12 @@ export function ChatMessages({
       }
     },
     [setChatFlowInputRequest, historyRuns],
+  )
+  const handleContinue = useCallback(
+    (runId: string) => {
+      setChatFlowInputRequest({ kind: "continue", runId })
+    },
+    [setChatFlowInputRequest],
   )
   const handleRetryRouting = useCallback(() => {
     setChatRoutingProgress(null)
@@ -205,9 +222,7 @@ export function ChatMessages({
     status,
   ])
 
-  if (timeline.length === 0) {
-    return null
-  }
+  const isEmpty = timeline.length === 0
 
   const scrollToBottom = () => {
     const el = containerRef.current
@@ -218,21 +233,60 @@ export function ChatMessages({
   }
 
   return (
-    <div className="relative flex-1 min-h-0">
+    <div className={cn("relative flex-1 min-h-0", isEmpty && "opacity-0 pointer-events-none")}>
       <div
         ref={containerRef}
         className="h-full overflow-y-auto ui-scroll-region"
         data-chat-panel=""
       >
         <div className="max-w-3xl mx-auto w-full px-4 py-4 space-y-2">
+          {/* Past run context strip */}
+          {pastRunMeta && (
+            <div className="ui-context-strip flex items-center gap-2 px-3 py-1.5 rounded-md">
+              <Clock size={12} className="text-muted-foreground shrink-0" aria-hidden="true" />
+              <span className="ui-meta-text text-muted-foreground">
+                Viewing past run
+                {pastRunMeta.completedAt
+                  ? ` · ${new Date(pastRunMeta.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                  : ""}
+                {pastRunMeta.durationMs
+                  ? ` · ${formatPastRunDuration(pastRunMeta.durationMs)}`
+                  : ""}
+              </span>
+            </div>
+          )}
           {timeline.map((entry, index) => {
-            // Time separator when gap > 5 minutes
+            // Detect run boundary between consecutive flow entries
             const prevEntry = index > 0 ? timeline[index - 1] : null
+            const currentRunIndex =
+              entry.kind === "flow" ? entry.message.runIndex : null
+            const prevRunIndex =
+              prevEntry?.kind === "flow" ? prevEntry.message.runIndex : null
+            const showRunBoundary =
+              currentRunIndex != null &&
+              prevRunIndex != null &&
+              currentRunIndex !== prevRunIndex &&
+              entry.kind === "flow" &&
+              entry.message.content.type === "start"
+
+            // Time separator when gap > 5 minutes (suppressed when run boundary shows)
             const showTimeSep =
+              !showRunBoundary &&
               prevEntry != null &&
               getEntryTimestamp(entry) - getEntryTimestamp(prevEntry) >
                 FIVE_MINUTES_MS
-            const timeSep = showTimeSep ? (
+            const separator = showRunBoundary ? (
+              <div
+                key={`run-boundary-${index}`}
+                className="flex items-center gap-3 pt-4 pb-1"
+              >
+                <div className="flex-1 border-t border-hairline" />
+                <span className="ui-meta-text text-muted-foreground/50 shrink-0">
+                  Next step
+                </span>
+                <div className="flex-1 border-t border-hairline" />
+              </div>
+            ) : showTimeSep ? (
               <div
                 key={`time-${index}`}
                 className="flex items-center gap-3 pt-3 pb-1"
@@ -281,6 +335,8 @@ export function ChatMessages({
                     flowName={flowMsg.flowName}
                     data={flowMsg.content.data}
                     onRetry={handleRetry}
+                    onContinue={handleContinue}
+                    onCancel={onCancel}
                   />
                 )
               } else if (flowMsg.content.type === "decision") {
@@ -342,7 +398,7 @@ export function ChatMessages({
               content = (
                 <ChatMessageBubble
                   message={msg}
-                  groupedWithPrevious={groupedWithPrevious && !showTimeSep}
+                  groupedWithPrevious={groupedWithPrevious && !showTimeSep && !showRunBoundary}
                   groupedWithNext={groupedWithNext}
                 />
               )
@@ -353,11 +409,11 @@ export function ChatMessages({
                 key={entryKey}
                 className={cn(
                   "chat-message-enter",
-                  showTimeSep ? "" : ptClass,
+                  showTimeSep || showRunBoundary ? "" : ptClass,
                   index === 0 && "pt-0",
                 )}
               >
-                {timeSep}
+                {separator}
                 {content}
               </div>
             )
