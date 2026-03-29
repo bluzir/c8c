@@ -134,6 +134,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
   const setProjectWorkflowsCache = useSetAtom(projectWorkflowsCacheAtom)
   const setSelectedWorkflowPath = useSetAtom(selectedWorkflowPathAtom)
   const setSelectedChatId = useSetAtom(selectedChatIdAtom)
+  const selectedChatId = useAtomValue(selectedChatIdAtom)
   const setWorkflow = useSetAtom(currentWorkflowAtom)
   const setWorkflowSavedSnapshot = useSetAtom(workflowSavedSnapshotAtom)
   const setMainView = useSetAtom(mainViewAtom)
@@ -636,6 +637,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
         void startRouting(message, {
           templateConstraintId: selection.templateId,
           useCurrentHelpMode: false,
+          chatId: selectedChatId ?? undefined,
         })
         return
       }
@@ -653,6 +655,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       )
       void startRouting(message, {
         helpModeOverride: selection.helpMode,
+        chatId: selectedChatId ?? undefined,
       })
     },
     [
@@ -661,6 +664,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       draftPrompt,
       promptScaffold,
       startRouting,
+      selectedChatId,
     ],
   )
 
