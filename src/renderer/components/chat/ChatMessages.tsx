@@ -11,6 +11,7 @@ import {
   FlowRoutingMessage,
   type ClarificationSelection,
 } from "./FlowRoutingMessage"
+import { StepNarrativeItem } from "./StepNarrativeItem"
 import { cn } from "@/lib/cn"
 import { ArrowDown, Clock } from "lucide-react"
 import type { TimelineEntry } from "@/hooks/useFlowChatTimeline"
@@ -371,6 +372,14 @@ export function ChatMessages({
                     }
                   />
                 )
+              } else if (flowMsg.content.type === "step-narrative") {
+                content = (
+                  <StepNarrativeItem
+                    data={flowMsg.content.data}
+                    onRetryFromStep={handleRetry ? (nodeId) => handleRetry(nodeId) : undefined}
+                  />
+                )
+                ptClass = "pt-1" // tight spacing for sequential narrative items
               }
               if (!content) return null
             } else {
