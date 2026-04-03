@@ -1,10 +1,11 @@
-import { ipcMain } from "electron"
+import { ipcMain, dialog, BrowserWindow } from "electron"
 import { readdir, readFile, stat } from "node:fs/promises"
 import { execFile } from "node:child_process"
-import { join, resolve, relative } from "node:path"
+import { join, resolve, relative, basename } from "node:path"
 import {
   assertRegisteredProjectPath,
   assertWithinRoots,
+  allowedReportRoots,
 } from "../lib/security-paths"
 
 const MAX_RESULTS = 500
@@ -70,6 +71,12 @@ async function walkDir(
   }
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return "< 1 KB"
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 function hasBinaryContent(buffer: Buffer): boolean {
   for (let i = 0; i < Math.min(buffer.length, 8192); i++) {
     if (buffer[i] === 0) return true
@@ -131,6 +138,64 @@ export function registerFilesHandlers() {
       }
 
       return { content: buf.toString("utf-8"), truncated }
+    },
+  )
+
+  ipcMain.handle(
+    "files:read-slice",
+    async (
+      _e,
+      filePath: string,
+      maxBytes: number,
+    ): Promise<string | null> => {
+      const resolvedFile = resolve(filePath)
+      const reportRoots = await allowedReportRoots()
+      assertWithinRoots(resolvedFile, reportRoots, "File slice path")
+
+      const clampedMax = Math.min(Math.max(0, maxBytes), MAX_FILE_SIZE)
+      try {
+        const info = await stat(resolvedFile)
+        const readSize = Math.min(info.size, clampedMax)
+        const buf = Buffer.alloc(readSize)
+        const { open } = await import("node:fs/promises")
+        const fh = await open(resolvedFile, "r")
+        try {
+          await fh.read(buf, 0, readSize, 0)
+        } finally {
+          await fh.close()
+        }
+        if (hasBinaryContent(buf)) return null
+        return buf.toString("utf-8")
+      } catch {
+        return null
+      }
+    },
+  )
+
+  ipcMain.handle(
+    "dialog:open-file",
+    async (): Promise<
+      Array<{ path: string; name: string; sizeLabel: string }>
+    > => {
+      const win = BrowserWindow.getFocusedWindow()
+      if (!win) return []
+
+      const result = await dialog.showOpenDialog(win, {
+        properties: ["openFile", "multiSelections"],
+      })
+
+      if (result.canceled || !result.filePaths.length) return []
+
+      return Promise.all(
+        result.filePaths.map(async (filePath) => {
+          const stats = await stat(filePath)
+          return {
+            path: filePath,
+            name: basename(filePath),
+            sizeLabel: formatFileSize(stats.size),
+          }
+        }),
+      )
     },
   )
 }

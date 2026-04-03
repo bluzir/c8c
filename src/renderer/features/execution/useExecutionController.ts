@@ -6,6 +6,7 @@ import {
   currentRunIndexAtom,
   flowChatMessagesAtom,
   replaceFlowChatMessagesAtom,
+  updateFlowCompleteAtom,
   updateFlowProgressAtom,
   updateFlowStepNarrativeAtom,
 } from "./flow-chat-state"
@@ -219,6 +220,7 @@ export function useExecutionController({
   const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const updateFlowProgress = useSetAtom(updateFlowProgressAtom)
   const setStepNarrative = useSetAtom(updateFlowStepNarrativeAtom)
+  const updateFlowComplete = useSetAtom(updateFlowCompleteAtom)
   const selectedChatId = useAtomValue(selectedChatIdAtom)
   const chatRegistry = useAtomValue(chatRegistryAtom)
   const workflowRequestedResults = useAtomValue(workflowRequestedResultsAtom)
@@ -234,6 +236,7 @@ export function useExecutionController({
   const setChatRoutingProgressRef = useRef(setChatRoutingProgress)
   const updateFlowProgressRef = useRef(updateFlowProgress)
   const setStepNarrativeRef = useRef(setStepNarrative)
+  const updateFlowCompleteRef = useRef(updateFlowComplete)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
   const templatesCatalogRef = useRef(templatesCatalog)
   const workflowExecutionStatesRef = useRef(workflowExecutionStates)
@@ -253,6 +256,7 @@ export function useExecutionController({
   setChatRoutingProgressRef.current = setChatRoutingProgress
   updateFlowProgressRef.current = updateFlowProgress
   setStepNarrativeRef.current = setStepNarrative
+  updateFlowCompleteRef.current = updateFlowComplete
   workflowTemplateContextsRef.current = workflowTemplateContexts
   templatesCatalogRef.current = templatesCatalog
   workflowExecutionStatesRef.current = workflowExecutionStates
@@ -599,6 +603,9 @@ export function useExecutionController({
       },
       onFlowChatStepUpdate: ({ workflowKey, messageId, data }) => {
         setStepNarrativeRef.current({ workflowKey, messageId, data })
+      },
+      onFlowChatCompleteEnrich: ({ workflowKey, messageId, patch }) => {
+        updateFlowCompleteRef.current({ workflowKey, messageId, patch })
       },
       onError: (scope, error) => {
         console.error(`[useChainExecution] ${scope} failed:`, error)

@@ -17,6 +17,7 @@ import type {
   WorkflowNode,
 } from "@shared/types"
 import type {
+  CompleteContent,
   FlowChatMessage,
   ProgressContent,
   ProgressStep,
@@ -88,6 +89,11 @@ interface WorkflowExecutionControllerDeps {
     workflowKey: string
     messageId: string
     data: StepNarrativeContent
+  }) => void
+  onFlowChatCompleteEnrich?: (args: {
+    workflowKey: string
+    messageId: string
+    patch: Partial<CompleteContent>
   }) => void
 }
 
@@ -556,6 +562,14 @@ export class WorkflowExecutionController {
         )
 
         if (finishedState.runOutcome === "completed") {
+          // Compute step count from tracked narratives
+          const narratives = this.stepNarratives.get(workflowKey)
+          const stepCount = narratives
+            ? [...narratives.values()].filter(
+                (n) => n.status === "done" || n.status === "failed",
+              ).length
+            : undefined
+
           const msg = buildCompleteMessage({
             runId: event.runId,
             flowName: finishedState.workflowName,
@@ -574,8 +588,18 @@ export class WorkflowExecutionController {
             followUps: [],
             durationMs,
             costUsd,
+            stepCount,
           })
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+
+          // Async: load hero artifact content for the verdict card
+          if (event.reportPath?.endsWith(".md")) {
+            this.loadHeroArtifactContent(
+              workflowKey,
+              msg.id,
+              event.reportPath,
+            )
+          }
           const duration = formatElapsedCompact(startedAt)
           toast.success("Flow completed", {
             description: `Duration: ${duration}`,
@@ -684,17 +708,6 @@ export class WorkflowExecutionController {
       return
     }
 
-    // Debug: log all node-log events
-    if (event.type === "node-log") {
-      console.log(
-        "[tool-digest] node-log event:",
-        event.nodeId,
-        event.entry.type,
-        "hasProgress:",
-        this.progressMessageIds.has(workflowKey),
-      )
-    }
-
     // Accumulate tool digest + actions from node-log events
     if (
       event.type === "node-log" &&
@@ -703,16 +716,6 @@ export class WorkflowExecutionController {
     ) {
       const steps = this.progressSteps.get(workflowKey) ?? []
       const action = buildToolAction(event.entry.tool, event.entry.input)
-      console.log(
-        "[tool-digest] node-log tool_use:",
-        event.nodeId,
-        event.entry.tool,
-        action,
-        "steps:",
-        steps.map((s) => s.nodeId),
-        "sub-steps:",
-        steps.flatMap((s) => s.subSteps?.map((ss) => ss.key) ?? []),
-      )
 
       // Try top-level step first
       const step = steps.find((s) => s.nodeId === event.nodeId)
@@ -1233,6 +1236,23 @@ export class WorkflowExecutionController {
       })
       if (result) {
         this.emitNarrativeUpdate(workflowKey, result.messageId, result.narrative)
+      } else {
+        // Dynamically discovered node — create and immediately complete
+        const narrative: StepNarrativeContent = {
+          nodeId: event.nodeId,
+          label: getNodeLabel(event.nodeId),
+          status: "done",
+          nodeType: "skill",
+          startedAt: Date.now(),
+          completedAt: Date.now(),
+          summary,
+          output: outputContent,
+          costUsd: nodeCostUsd,
+        }
+        const msg = buildStepNarrativeMessage({ flowName, data: narrative })
+        maps.narratives.set(event.nodeId, narrative)
+        maps.ids.set(event.nodeId, msg.id)
+        this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
       }
       return
     }
@@ -1279,9 +1299,16 @@ export class WorkflowExecutionController {
       !event.passed &&
       maps.narratives.size > 0
     ) {
+      // Read maxRetries from evaluator config (looked up below), fall back to attempt+1
+      const evaluatorNode = (state.workflowSnapshot?.nodes ?? []).find(
+        (n) => n.id === event.nodeId && n.type === "evaluator",
+      ) as import("@shared/types").EvaluatorWorkflowNode | undefined
+      const maxAttempts =
+        evaluatorNode?.config?.maxRetries ?? event.attempt + 1
+
       const evalResult = setNarrativeRetryInfo(maps, event.nodeId, {
         attempt: event.attempt,
-        maxAttempts: event.attempt + 1, // Best available info
+        maxAttempts,
         kind: "eval",
       })
       if (evalResult) {
@@ -1468,6 +1495,33 @@ export class WorkflowExecutionController {
     this.bufferedEvents.delete(runIdToClear)
   }
 
+  /**
+   * Async-load the first 2KB of a markdown artifact and patch the complete
+   * message with heroArtifactContent via the enrichment callback.
+   */
+  private loadHeroArtifactContent(
+    workflowKey: string,
+    messageId: string,
+    reportPath: string,
+  ) {
+    if (typeof window === "undefined" || !window.api?.readFileSlice) return
+    const MAX_HERO_BYTES = 2048
+    window.api
+      .readFileSlice(reportPath, MAX_HERO_BYTES)
+      .then((content) => {
+        if (content) {
+          this.deps.onFlowChatCompleteEnrich?.({
+            workflowKey,
+            messageId,
+            patch: { heroArtifactContent: content },
+          })
+        }
+      })
+      .catch(() => {
+        // Non-critical — verdict card renders fine without hero content
+      })
+  }
+
   private resolveWorkflowKeyForRun(runId: string): string | null {
     const mappedWorkflowKey = this.runWorkflowKeys.get(runId)
     if (
@@ -1537,6 +1591,24 @@ export class WorkflowExecutionController {
     if (previousSnapshot) {
       this.previousExecutionSnapshots.set(toKey, previousSnapshot)
       this.previousExecutionSnapshots.delete(fromKey)
+    }
+
+    // Migrate step narrative tracking
+    if (this.stepNarrativeIds.has(fromKey)) {
+      this.stepNarrativeIds.set(toKey, this.stepNarrativeIds.get(fromKey)!)
+      this.stepNarrativeIds.delete(fromKey)
+    }
+    if (this.stepNarratives.has(fromKey)) {
+      this.stepNarratives.set(toKey, this.stepNarratives.get(fromKey)!)
+      this.stepNarratives.delete(fromKey)
+    }
+    // Re-key pending digest flush timers
+    for (const [key, timer] of this.pendingNarrativeDigestFlush) {
+      if (key.startsWith(`${fromKey}::`)) {
+        const newKey = `${toKey}::${key.slice(fromKey.length + 2)}`
+        this.pendingNarrativeDigestFlush.set(newKey, timer)
+        this.pendingNarrativeDigestFlush.delete(key)
+      }
     }
   }
 

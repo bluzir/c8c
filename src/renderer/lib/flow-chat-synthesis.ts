@@ -141,12 +141,14 @@ export interface SynthesizeTimelineInput {
   runResult: RunResult
   flowName: string
   followUps?: FlowFollowUp[]
+  /** Full report text from LoadedRunResult.reportContent — used for hero preview */
+  reportContent?: string
 }
 
 export function synthesizeTimelineFromRun(
   input: SynthesizeTimelineInput,
 ): FlowChatMessage[] {
-  const { snapshot, runResult, flowName, followUps } = input
+  const { snapshot, runResult, flowName, followUps, reportContent } = input
   const messages: FlowChatMessage[] = []
 
   const nodes = snapshot.runtimeNodes ?? []
@@ -156,9 +158,27 @@ export function synthesizeTimelineFromRun(
     runtimeMeta: snapshot.runtimeMeta,
   })
 
+  // Compute step count from completed/failed nodes
+  const stepCount =
+    steps.length > 0
+      ? steps.filter((s) => s.status === "done" || s.status === "failed").length
+      : undefined
+
+  // Hero artifact preview: first 2KB of report content
+  const MAX_HERO_SLICE = 2048
+  const heroArtifactContent =
+    reportContent && runResult.reportPath?.endsWith(".md")
+      ? reportContent.slice(0, MAX_HERO_SLICE)
+      : undefined
+
   // No trackable steps → just emit the terminal message
   if (steps.length === 0 && description === "") {
-    return [buildTerminalMessage(runResult, flowName, followUps)]
+    return [
+      buildTerminalMessage(runResult, flowName, followUps, {
+        stepCount,
+        heroArtifactContent,
+      }),
+    ]
   }
 
   // Start message
@@ -168,38 +188,46 @@ export function synthesizeTimelineFromRun(
   messages.push(startMsg)
 
   // Progress message — collapsed with final elapsed time
-  const durationMs =
-    runResult.durationMs ?? runResult.completedAt - runResult.startedAt
-  const elapsed = formatDurationCompact(durationMs)
-  const doneCount = steps.filter((s) => s.status === "done").length
-  const totalCount = steps.length
+  // Only emit progress blob when snapshot was saved in progress format
+  // (step-narrative format uses individual step messages instead)
+  if (snapshot.chatMessageFormat !== "step-narrative") {
+    const durationMs =
+      runResult.durationMs ?? runResult.completedAt - runResult.startedAt
+    const elapsed = formatDurationCompact(durationMs)
+    const doneCount = steps.filter((s) => s.status === "done").length
+    const totalCount = steps.length
 
-  const collapsedLabel =
-    doneCount === totalCount
-      ? `All ${doneCount} steps completed \u00b7 ${elapsed}`
-      : `${doneCount}/${totalCount} steps completed \u00b7 ${elapsed}`
+    const collapsedLabel =
+      doneCount === totalCount
+        ? `All ${doneCount} steps completed \u00b7 ${elapsed}`
+        : `${doneCount}/${totalCount} steps completed \u00b7 ${elapsed}`
 
-  const progressMsg = buildProgressMessage({
-    flowName,
-    steps,
-    startedAt: runResult.startedAt,
-  })
-  progressMsg.timestamp = startTs + 1
-  // Override to collapsed state
-  progressMsg.content = {
-    type: "progress",
-    data: {
+    const progressMsg = buildProgressMessage({
+      flowName,
       steps,
       startedAt: runResult.startedAt,
-      collapsed: true,
-      collapsedLabel,
-      elapsed,
-    },
+    })
+    progressMsg.timestamp = startTs + 1
+    // Override to collapsed state
+    progressMsg.content = {
+      type: "progress",
+      data: {
+        steps,
+        startedAt: runResult.startedAt,
+        collapsed: true,
+        collapsedLabel,
+        elapsed,
+      },
+    }
+    messages.push(progressMsg)
   }
-  messages.push(progressMsg)
 
   // Terminal message (complete or error)
-  const terminalMsg = buildTerminalMessage(runResult, flowName, followUps)
+  // TODO: load rating from run-result.json into runRatingsAtom
+  const terminalMsg = buildTerminalMessage(runResult, flowName, followUps, {
+    stepCount,
+    heroArtifactContent,
+  })
   terminalMsg.timestamp = runResult.completedAt
   messages.push(terminalMsg)
 
@@ -210,6 +238,7 @@ function buildTerminalMessage(
   runResult: RunResult,
   flowName: string,
   followUps?: FlowFollowUp[],
+  extras?: { stepCount?: number; heroArtifactContent?: string },
 ): FlowChatMessage {
   if (runResult.status === "completed") {
     return buildCompleteMessage({
@@ -225,6 +254,8 @@ function buildTerminalMessage(
       durationMs:
         runResult.durationMs ?? runResult.completedAt - runResult.startedAt,
       costUsd: runResult.totalCost ?? 0,
+      stepCount: extras?.stepCount,
+      heroArtifactContent: extras?.heroArtifactContent,
     })
   }
 

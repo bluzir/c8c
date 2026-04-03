@@ -1417,10 +1417,18 @@ export function registerExecutorHandlers() {
   ipcMain.handle(
     "executor:rate-run",
     async (_e, workspacePath: string, rating: number) => {
+      if (typeof rating !== "number" || !Number.isFinite(rating) || rating < 0 || rating > 5) {
+        throw new Error("Invalid rating: must be a number between 0 and 5")
+      }
       const safe = await assertRunWorkspacePath(workspacePath)
       const resultPath = join(safe, "run-result.json")
-      const raw = await readFile(resultPath, "utf-8")
-      const existing = JSON.parse(raw)
+      let existing: Record<string, unknown> = {}
+      try {
+        const raw = await readFile(resultPath, "utf-8")
+        existing = JSON.parse(raw)
+      } catch {
+        // run-result.json may not exist yet — create with rating only
+      }
       existing.rating = rating
       await writeFileAtomic(resultPath, JSON.stringify(existing, null, 2))
     },

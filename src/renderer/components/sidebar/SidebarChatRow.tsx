@@ -76,8 +76,9 @@ export function SidebarChatRow({
               role="img"
               aria-label={hasNewRun ? `New: ${chat.latestRunStatus}` : `Status: ${chat.latestRunStatus}`}
               className={cn(
-                "inline-flex h-2 w-2 shrink-0 rounded-full",
+                "inline-flex h-2 w-2 shrink-0 rounded-full ui-transition-colors ui-motion-fast",
                 dot,
+                chat.latestRunStatus === "running" && "animate-pulse",
               )}
             />
           )}
@@ -98,6 +99,11 @@ export function SidebarChatRow({
             </span>
           )}
         </span>
+        {chat.projectName && (
+          <span className="ml-[18px] truncate text-sidebar-meta text-muted-foreground">
+            {chat.projectName}
+          </span>
+        )}
       </button>
     </div>
   )

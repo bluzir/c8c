@@ -95,7 +95,7 @@ export function FlowVerdictCard({
               {data.heroArtifactContent}
             </div>
             {!expanded && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[hsl(var(--bg-surface-1))] to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[hsl(var(--surface-1))] to-transparent" />
             )}
           </div>
           <button

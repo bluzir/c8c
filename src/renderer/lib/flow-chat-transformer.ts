@@ -35,6 +35,8 @@ interface CompleteInput {
   followUps: FlowFollowUp[]
   durationMs: number
   costUsd: number
+  stepCount?: number
+  heroArtifactContent?: string | null
 }
 
 interface ApprovalDecisionInput {
@@ -163,6 +165,13 @@ export function buildCompleteMessage(input: CompleteInput): FlowChatMessage {
     ),
   ].slice(0, effectiveMaxFollowUps)
 
+  const tone: CompleteContent["tone"] =
+    input.limitations.length > 0
+      ? "warning"
+      : input.findings.length > 0
+        ? "neutral"
+        : "success"
+
   const data: CompleteContent = {
     summary: input.summary,
     findings: input.findings,
@@ -174,6 +183,11 @@ export function buildCompleteMessage(input: CompleteInput): FlowChatMessage {
       cost: formatCost(input.costUsd),
     },
     runId: input.runId,
+    tone,
+    ...(input.stepCount != null ? { stepCount: input.stepCount } : {}),
+    ...(input.heroArtifactContent != null
+      ? { heroArtifactContent: input.heroArtifactContent }
+      : {}),
   }
 
   return {

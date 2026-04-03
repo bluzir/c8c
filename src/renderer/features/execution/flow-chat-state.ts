@@ -1,5 +1,6 @@
 import { atom } from "jotai"
 import type {
+  CompleteContent,
   FlowChatMessage,
   ProgressContent,
   StepNarrativeContent,
@@ -119,6 +120,37 @@ export const updateFlowStepNarrativeAtom = atom(
               content: {
                 type: "step-narrative" as const,
                 data: payload.data,
+              },
+            }
+          : msg,
+      ),
+    })
+  },
+)
+
+/** Update a complete message in-place — used for async hero artifact enrichment */
+export const updateFlowCompleteAtom = atom(
+  null,
+  (
+    get,
+    set,
+    payload: {
+      workflowKey: string
+      messageId: string
+      patch: Partial<CompleteContent>
+    },
+  ) => {
+    const prev = get(flowChatMessagesAtom)
+    const existing = prev[payload.workflowKey] ?? []
+    set(flowChatMessagesAtom, {
+      ...prev,
+      [payload.workflowKey]: existing.map((msg) =>
+        msg.id === payload.messageId && msg.content.type === "complete"
+          ? {
+              ...msg,
+              content: {
+                type: "complete" as const,
+                data: { ...msg.content.data, ...payload.patch },
               },
             }
           : msg,

@@ -171,6 +171,7 @@ export function usePastRunTimeline(
             snapshot: loaded.snapshot,
             runResult: latestRun,
             flowName,
+            reportContent: loaded.reportContent || undefined,
           })
 
           cachedKeyRef.current = cacheKey

@@ -1,10 +1,11 @@
 import { mkdir, readdir, readFile, rm, unlink } from "node:fs/promises"
-import { join, resolve } from "node:path"
+import { basename, join, resolve } from "node:path"
 import type { Chat, ChatRun, ChatSummary } from "@shared/types"
 import { errorCode, errorMessage } from "./error-utils"
 import { logWarn } from "./structured-log"
 import { writeFileAtomic } from "./atomic-write"
 import { assertWithinRoots, allowedReportRoots } from "./security-paths"
+import { resolveGlobalWorkspacePath } from "./yaml-io"
 
 const CHATS_DIR = "chats"
 const COMPONENT = "chat-store"
@@ -62,6 +63,7 @@ function parseChat(raw: unknown): Chat | null {
 function toSummary(chat: Chat): ChatSummary {
   const latestRun =
     chat.runs.length > 0 ? chat.runs[chat.runs.length - 1] : null
+  const globalPath = resolveGlobalWorkspacePath()
   return {
     id: chat.id,
     name: chat.name,
@@ -71,6 +73,8 @@ function toSummary(chat: Chat): ChatSummary {
     runCount: chat.runs.length,
     latestRunId: latestRun ? latestRun.runId : null,
     latestRunStatus: latestRun ? latestRun.status : null,
+    projectName:
+      chat.projectPath === globalPath ? null : basename(chat.projectPath),
   }
 }
 

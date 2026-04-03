@@ -185,6 +185,7 @@ export function ProjectSidebar({
     setProjectWorkflowsCache,
     setProjectLatestRunsCache,
     globalWorkflows,
+    globalChats,
     toggleProjectExpansion,
   } = useProjectSidebarData({
     projects,
@@ -407,10 +408,11 @@ export function ProjectSidebar({
   }, [selectedProject, setChatRegistry])
 
   // Keep chatSummaries in sync when chatRegistry changes (e.g. new chat created
-  // by ChatPanel.handleSend while already in a project)
+  // by ChatPanel.handleSend while already in a project).
+  // Merges project chats with global workspace chats into one chronological list.
   useEffect(() => {
     if (!selectedProject) return
-    const summaries: ChatSummary[] = Object.values(chatRegistry)
+    const projectSummaries: ChatSummary[] = Object.values(chatRegistry)
       .filter((c) => c.projectPath === selectedProject && !c.archived)
       .map((c) => ({
         id: c.id,
@@ -422,9 +424,10 @@ export function ProjectSidebar({
         latestRunId: c.runs[c.runs.length - 1]?.runId ?? null,
         latestRunStatus: c.runs[c.runs.length - 1]?.status ?? null,
       }))
+    const merged = [...projectSummaries, ...globalChats]
       .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
-    setChatSummaries(summaries)
-  }, [chatRegistry, selectedProject])
+    setChatSummaries(merged)
+  }, [chatRegistry, selectedProject, globalChats])
 
   // Reverse sync: when a workflow is selected directly (e.g. clicking a legacy
   // workflow row or opening a file), find the chat that owns it and keep

@@ -1,6 +1,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import type {
+  ChatSummary,
   DiscoveredSkill,
   RunResult,
   Workflow,
@@ -13,6 +14,7 @@ import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import {
   clearWorkflowContinuationEntryStateForKeyAtom,
   clearWorkflowTemplateContextForKeyAtom,
+  globalWorkspacePathAtom,
   projectLatestRunsCacheAtom,
   projectWorkflowsCacheAtom,
   projectWorkflowsLoadingAtom,
@@ -83,6 +85,8 @@ export function useProjectSidebarData({
     projectWorkflowsLoadingAtom,
   )
   const [globalWorkflows, setGlobalWorkflows] = useState<WorkflowFile[]>([])
+  const [globalChats, setGlobalChats] = useState<ChatSummary[]>([])
+  const globalWorkspacePath = useAtomValue(globalWorkspacePathAtom)
 
   const toLatestRunRecord = (runs: RunResult[]) => {
     const map = latestRunByWorkflowPath(runs)
@@ -225,6 +229,14 @@ export function useProjectSidebarData({
   }, [])
 
   useEffect(() => {
+    if (!globalWorkspacePath) return
+    window.api
+      .listProjectChats(globalWorkspacePath)
+      .then(setGlobalChats)
+      .catch(() => setGlobalChats([]))
+  }, [globalWorkspacePath])
+
+  useEffect(() => {
     if (!shouldRestoreSelectedWorkflow(selectedWorkflowPath, currentWorkflow))
       return
 
@@ -364,6 +376,7 @@ export function useProjectSidebarData({
     setProjectWorkflowsCache,
     setProjectLatestRunsCache,
     globalWorkflows,
+    globalChats,
     toggleProjectExpansion,
   }
 }
