@@ -7,6 +7,7 @@ import type {
   CompleteContent,
   ErrorContent,
   ProgressStep,
+  StepNarrativeContent,
 } from "./flow-chat-types"
 
 const MAX_FOLLOW_UPS = 3
@@ -341,5 +342,17 @@ export function buildErrorMessage(input: ErrorInput): FlowChatMessage {
         actions,
       },
     },
+  }
+}
+
+export function buildStepNarrativeMessage(input: {
+  flowName: string
+  data: StepNarrativeContent
+}): FlowChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    flowName: input.flowName,
+    timestamp: Date.now(),
+    content: { type: "step-narrative", data: input.data },
   }
 }

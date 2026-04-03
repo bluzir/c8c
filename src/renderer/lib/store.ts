@@ -1009,6 +1009,18 @@ export const chatPanelOpenAtom = atomWithStorage<boolean>(
   false,
 )
 export const chatPanelWidthAtom = atomWithStorage<number>("c8c:chat-width", 380)
+
+export const runRatingsAtom = atomWithStorage<Record<string, number>>(
+  "c8c:run-ratings",
+  {},
+)
+
+export const chatFilePicksAtom = atom<
+  Array<{ id: string; name: string; path: string; sizeLabel?: string }>
+>([])
+
+export const globalWorkspacePathAtom = atom<string>("")
+
 export const chatMessagesAtom = atom<ChatMessageDisplay[]>([])
 export const chatStatusAtom = atom<"idle" | "thinking" | "streaming" | "error">(
   "idle",

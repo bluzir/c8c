@@ -1,5 +1,9 @@
 import { atom } from "jotai"
-import type { FlowChatMessage, ProgressContent } from "@/lib/flow-chat-types"
+import type {
+  FlowChatMessage,
+  ProgressContent,
+  StepNarrativeContent,
+} from "@/lib/flow-chat-types"
 import { selectedWorkflowExecutionKeyAtom } from "./state"
 
 /** All flow chat messages across runs, keyed by workflow key */
@@ -85,6 +89,37 @@ export const updateFlowProgressAtom = atom(
           ? {
               ...msg,
               content: { type: "progress" as const, data: payload.data },
+            }
+          : msg,
+      ),
+    })
+  },
+)
+
+/** Update a step-narrative message in-place by ID */
+export const updateFlowStepNarrativeAtom = atom(
+  null,
+  (
+    get,
+    set,
+    payload: {
+      workflowKey: string
+      messageId: string
+      data: StepNarrativeContent
+    },
+  ) => {
+    const prev = get(flowChatMessagesAtom)
+    const existing = prev[payload.workflowKey] ?? []
+    set(flowChatMessagesAtom, {
+      ...prev,
+      [payload.workflowKey]: existing.map((msg) =>
+        msg.id === payload.messageId
+          ? {
+              ...msg,
+              content: {
+                type: "step-narrative" as const,
+                data: payload.data,
+              },
             }
           : msg,
       ),
