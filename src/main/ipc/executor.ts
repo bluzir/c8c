@@ -40,6 +40,7 @@ import {
 } from "../lib/artifact-store"
 import { listProjectCaseStates, upsertCaseState } from "../lib/case-store"
 import { readFile } from "node:fs/promises"
+import { writeFileAtomic } from "../lib/atomic-write"
 import { join, resolve } from "node:path"
 import type {
   ActiveBatchRun,
@@ -1406,6 +1407,18 @@ export function registerExecutorHandlers() {
         }
       }
       return deleteRunWorkspace(safeWorkspace)
+    },
+  )
+
+  ipcMain.handle(
+    "executor:rate-run",
+    async (_e, workspacePath: string, rating: number) => {
+      const safe = await assertRunWorkspacePath(workspacePath)
+      const resultPath = join(safe, "run-result.json")
+      const raw = await readFile(resultPath, "utf-8")
+      const existing = JSON.parse(raw)
+      existing.rating = rating
+      await writeFileAtomic(resultPath, JSON.stringify(existing, null, 2))
     },
   )
 

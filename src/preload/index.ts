@@ -222,6 +222,8 @@ const api: C8cApi = {
       workflowPath,
       webSearchBackend,
     ),
+  rateRun: (workspacePath: string, rating: number) =>
+    invokeIpc<C8cApi["rateRun"]>("executor:rate-run", workspacePath, rating),
   listRuns: (projectPath: string) =>
     invokeIpc<C8cApi["listRuns"]>("executor:list-runs", projectPath),
   listFlowImprovementRecommendations: (
@@ -627,6 +629,12 @@ const api: C8cApi = {
       "files:read-content",
       filePath,
       projectPath,
+    ),
+  readFileSlice: (filePath: string, maxBytes: number) =>
+    invokeIpc<C8cApi["readFileSlice"]>(
+      "files:read-slice",
+      filePath,
+      maxBytes,
     ),
 
   // MCP servers

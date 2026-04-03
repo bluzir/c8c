@@ -33,7 +33,9 @@ export function FlowCompleteMessage({
   const handleRate = (rating: number) => {
     if (!data.runId) return
     setRatings((prev) => ({ ...prev, [data.runId]: rating }))
-    // TODO: call window.api.rateRun(workspacePath, rating) once IPC is wired
+    // TODO: call window.api.rateRun(workspacePath, rating) — IPC exists, but
+    // CompleteContent doesn't carry workspacePath yet. Wire once workspace is
+    // threaded into the chat message model.
   }
 
   const handleRunAgain = () => {

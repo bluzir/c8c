@@ -224,6 +224,7 @@ export interface C8cApi {
     workflowPath?: string,
     webSearchBackend?: "builtin" | "exa",
   ) => Promise<ExecutionStartResult>
+  rateRun: (workspacePath: string, rating: number) => Promise<void>
   listRuns: (projectPath: string) => Promise<RunResult[]>
   listFlowImprovementRecommendations: (
     projectPath: string,
@@ -354,6 +355,10 @@ export interface C8cApi {
     filePath: string,
     projectPath: string,
   ) => Promise<{ content: string; truncated: boolean }>
+  readFileSlice: (
+    filePath: string,
+    maxBytes: number,
+  ) => Promise<string | null>
   mcpListServers: (
     provider: ProviderId,
     projectPath?: string,
