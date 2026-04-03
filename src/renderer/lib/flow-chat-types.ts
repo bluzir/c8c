@@ -50,6 +50,8 @@ export interface CompleteContent {
   runId: string
   /** Derived tone: success (clean), warning (has limitations), neutral (has findings only) */
   tone?: "success" | "warning" | "neutral"
+  stepCount?: number
+  heroArtifactContent?: string | null
 }
 
 export interface ErrorContent {
@@ -135,6 +137,34 @@ export interface RoutingContent {
   error?: string
 }
 
+export interface StepNarrativeContent {
+  nodeId: string
+  label: string
+  status: "pending" | "running" | "done" | "failed" | "skipped"
+  nodeType: "skill" | "evaluator" | "splitter" | "approval" | "merger" | "human"
+  summary?: string
+  output?: string
+  error?: string
+  toolDigest?: ToolDigestEntry[]
+  toolActions?: ToolActionEntry[]
+  searchQueries?: string[]
+  costUsd?: number
+  duration?: string
+  retryInfo?: RetryInfo
+  branches?: StepNarrativeBranch[]
+  startedAt?: number
+  completedAt?: number
+}
+
+export interface StepNarrativeBranch {
+  nodeId: string
+  label: string
+  status: "pending" | "running" | "done" | "failed" | "skipped"
+  toolDigest?: ToolDigestEntry[]
+  toolActions?: ToolActionEntry[]
+  summary?: string
+}
+
 export type FlowChatMessageContent =
   | { type: "start"; data: StartContent }
   | { type: "progress"; data: ProgressContent }
@@ -142,6 +172,7 @@ export type FlowChatMessageContent =
   | { type: "complete"; data: CompleteContent }
   | { type: "error"; data: ErrorContent }
   | { type: "routing"; data: RoutingContent }
+  | { type: "step-narrative"; data: StepNarrativeContent }
 
 export interface FlowChatMessage {
   id: string

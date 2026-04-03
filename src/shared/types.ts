@@ -1308,6 +1308,7 @@ export interface PersistedRunSnapshot {
   input?: WorkflowInput
   evalResults?: Record<string, EvaluationResult[]>
   humanTasks?: Record<string, HumanTaskPointer>
+  chatMessageFormat?: "progress" | "step-narrative"
 }
 
 export interface LoadedRunResult extends RunResult {
@@ -1855,6 +1856,11 @@ export interface ChatSummary {
   runCount: number
   latestRunId: string | null
   latestRunStatus: ChatRun["status"] | null
+  projectName?: string | null
+}
+
+export interface AppPaths {
+  globalWorkspacePath: string
 }
 
 export type {
