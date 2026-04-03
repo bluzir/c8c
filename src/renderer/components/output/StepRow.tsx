@@ -1,15 +1,10 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/cn"
-import {
-  CheckCircle2,
-  Circle,
-  XCircle,
-  Clock,
-  ChevronRight,
-} from "lucide-react"
+import { ChevronRight } from "lucide-react"
+import { StatusDot } from "./StatusDot"
+import type { StepStatus } from "./StatusDot"
 
 export type StepVariant = "full" | "compact"
-type StepStatus = "pending" | "running" | "done" | "failed" | "blocked"
 
 interface StepRowProps {
   name: string
@@ -106,48 +101,4 @@ export function StepRow({
       </div>
     </div>
   )
-}
-
-function StatusDot({ status }: { status: StepStatus }) {
-  switch (status) {
-    case "done":
-      return (
-        <CheckCircle2
-          size={14}
-          className="shrink-0 text-status-success"
-          aria-hidden="true"
-        />
-      )
-    case "running":
-      return (
-        <span className="ui-status-beacon shrink-0">
-          <span className="ui-status-beacon-ring bg-status-info/35" />
-          <span className="ui-status-beacon-core bg-status-info" />
-        </span>
-      )
-    case "failed":
-      return (
-        <XCircle
-          size={14}
-          className="shrink-0 text-status-danger"
-          aria-hidden="true"
-        />
-      )
-    case "blocked":
-      return (
-        <Clock
-          size={14}
-          className="shrink-0 text-status-warning"
-          aria-hidden="true"
-        />
-      )
-    case "pending":
-      return (
-        <Circle
-          size={12}
-          className="shrink-0 text-muted-foreground/30"
-          aria-hidden="true"
-        />
-      )
-  }
 }
