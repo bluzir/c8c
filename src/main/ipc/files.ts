@@ -148,6 +148,8 @@ export function registerFilesHandlers() {
       filePath: string,
       maxBytes: number,
     ): Promise<string | null> => {
+      if (typeof maxBytes !== "number" || !Number.isFinite(maxBytes))
+        return null
       const resolvedFile = resolve(filePath)
       const reportRoots = await allowedReportRoots()
       assertWithinRoots(resolvedFile, reportRoots, "File slice path")

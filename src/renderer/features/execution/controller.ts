@@ -1335,7 +1335,7 @@ export class WorkflowExecutionController {
     }
 
     // ── run-done → skip remaining pending, clean up ────────
-    if (event.type === "run-done" && maps.narratives.size > 0) {
+    if (event.type === "run-done") {
       // Mark pending steps as skipped if the run ended with error/cancelled
       if (event.status !== "completed") {
         const skipped = markPendingNarrativesSkipped(maps)
