@@ -7,6 +7,7 @@ import {
   flowChatMessagesAtom,
   replaceFlowChatMessagesAtom,
   updateFlowProgressAtom,
+  updateFlowStepNarrativeAtom,
 } from "./flow-chat-state"
 import { toast } from "sonner"
 import { errorToUserMessage } from "@/lib/error-message"
@@ -217,6 +218,7 @@ export function useExecutionController({
   const replaceFlowChatMessages = useSetAtom(replaceFlowChatMessagesAtom)
   const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const updateFlowProgress = useSetAtom(updateFlowProgressAtom)
+  const setStepNarrative = useSetAtom(updateFlowStepNarrativeAtom)
   const selectedChatId = useAtomValue(selectedChatIdAtom)
   const chatRegistry = useAtomValue(chatRegistryAtom)
   const workflowRequestedResults = useAtomValue(workflowRequestedResultsAtom)
@@ -231,6 +233,7 @@ export function useExecutionController({
   const replaceFlowChatMessagesRef = useRef(replaceFlowChatMessages)
   const setChatRoutingProgressRef = useRef(setChatRoutingProgress)
   const updateFlowProgressRef = useRef(updateFlowProgress)
+  const setStepNarrativeRef = useRef(setStepNarrative)
   const workflowTemplateContextsRef = useRef(workflowTemplateContexts)
   const templatesCatalogRef = useRef(templatesCatalog)
   const workflowExecutionStatesRef = useRef(workflowExecutionStates)
@@ -249,6 +252,7 @@ export function useExecutionController({
   replaceFlowChatMessagesRef.current = replaceFlowChatMessages
   setChatRoutingProgressRef.current = setChatRoutingProgress
   updateFlowProgressRef.current = updateFlowProgress
+  setStepNarrativeRef.current = setStepNarrative
   workflowTemplateContextsRef.current = workflowTemplateContexts
   templatesCatalogRef.current = templatesCatalog
   workflowExecutionStatesRef.current = workflowExecutionStates
@@ -592,6 +596,9 @@ export function useExecutionController({
       },
       onFlowChatProgressUpdate: ({ workflowKey, messageId, data }) => {
         updateFlowProgressRef.current({ workflowKey, messageId, data })
+      },
+      onFlowChatStepUpdate: ({ workflowKey, messageId, data }) => {
+        setStepNarrativeRef.current({ workflowKey, messageId, data })
       },
       onError: (scope, error) => {
         console.error(`[useChainExecution] ${scope} failed:`, error)

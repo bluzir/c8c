@@ -20,6 +20,7 @@ import type {
   FlowChatMessage,
   ProgressContent,
   ProgressStep,
+  StepNarrativeContent,
 } from "@/lib/flow-chat-types"
 import {
   buildDecisionMessage,
@@ -27,8 +28,21 @@ import {
   buildErrorMessage,
   buildStartMessage,
   buildProgressMessage,
+  buildStepNarrativeMessage,
 } from "@/lib/flow-chat-transformer"
 import { buildProgressStepsFromSnapshot } from "@/lib/flow-chat-synthesis"
+import {
+  seedStepNarratives,
+  seedNarrativesFromSnapshot,
+  updateNarrativeForNodeStart,
+  updateNarrativeForNodeDone,
+  updateNarrativeForNodeError,
+  markPendingNarrativesSkipped,
+  addBranchesToParentNarrative,
+  updateNarrativeToolDigest,
+  setNarrativeRetryInfo,
+  type StepNarrativeMaps,
+} from "./controller-narrative-helpers"
 import { formatElapsedCompact } from "@/components/output/outputFormatters"
 import {
   addToolToDigest,
@@ -70,6 +84,11 @@ interface WorkflowExecutionControllerDeps {
     messageId: string
     data: ProgressContent
   }) => void
+  onFlowChatStepUpdate?: (args: {
+    workflowKey: string
+    messageId: string
+    data: StepNarrativeContent
+  }) => void
 }
 
 interface SyncExecutionControllerArgs {
@@ -102,6 +121,8 @@ const MAX_BUFFERED_RUNS = 100
 const MAX_BUFFERED_EVENTS_PER_RUN = 500
 
 export class WorkflowExecutionController {
+  static readonly USE_STEP_NARRATIVES = true
+
   private workflowExecutionStates: Record<string, WorkflowExecutionState> = {}
   private selectedProject: string | null = null
   private approvalRequests: ApprovalRequest[] = []
@@ -126,6 +147,18 @@ export class WorkflowExecutionController {
   >()
   /** Tracks the last event timestamp per workflow key for timeout detection */
   readonly lastEventTimestamps = new Map<string, number>()
+  /** Step-narrative message IDs: workflowKey → (nodeId → messageId) */
+  private readonly stepNarrativeIds = new Map<string, Map<string, string>>()
+  /** Step-narrative contents: workflowKey → (nodeId → content) */
+  private readonly stepNarratives = new Map<
+    string,
+    Map<string, StepNarrativeContent>
+  >()
+  /** Debounce timers for step-narrative digest updates */
+  private readonly pendingNarrativeDigestFlush = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >()
   private nextStartAttemptId = 0
   private listRunsRequestId = 0
 
@@ -373,6 +406,39 @@ export class WorkflowExecutionController {
   ) {
     const flowName = snapshot.workflowName || "Flow"
 
+    if (WorkflowExecutionController.USE_STEP_NARRATIVES) {
+      // Step-narrative path: emit Start + individual step-narrative messages
+      const { description } = buildProgressStepsFromSnapshot({
+        nodes: snapshot.runtimeNodes,
+        nodeStates: snapshot.nodeStates,
+        runtimeMeta: snapshot.runtimeMeta,
+      })
+
+      // Emit Start message
+      const startMsg = buildStartMessage({ flowName, description })
+      this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
+
+      // Seed narratives from snapshot state
+      const workflowForSeed: Workflow = {
+        version: 1,
+        name: flowName,
+        nodes: snapshot.runtimeNodes,
+        edges: snapshot.runtimeEdges,
+      }
+      const maps = this.getOrCreateNarrativeMaps(workflowKey)
+      seedNarrativesFromSnapshot({
+        workflow: workflowForSeed,
+        flowName,
+        nodeStates: snapshot.nodeStates,
+        runtimeMeta: snapshot.runtimeMeta,
+        maps,
+        emitMessage: (msg) => {
+          this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+        },
+      })
+      return
+    }
+
     const { steps, description } = buildProgressStepsFromSnapshot({
       nodes: snapshot.runtimeNodes,
       nodeStates: snapshot.nodeStates,
@@ -560,6 +626,11 @@ export class WorkflowExecutionController {
     event: WorkflowEvent,
     state: WorkflowExecutionState,
   ) {
+    if (WorkflowExecutionController.USE_STEP_NARRATIVES) {
+      this.handleStepNarrativeEvent(workflowKey, event, state)
+      return
+    }
+
     const flowName = state.workflowName || "Flow"
 
     const getNodeLabel = (nodeId: string): string => {
@@ -946,6 +1017,396 @@ export class WorkflowExecutionController {
     }
   }
 
+  // ── Step-narrative event handler ─────────────────────────
+
+  private getOrCreateNarrativeMaps(workflowKey: string): StepNarrativeMaps {
+    let ids = this.stepNarrativeIds.get(workflowKey)
+    let narratives = this.stepNarratives.get(workflowKey)
+    if (!ids) {
+      ids = new Map()
+      this.stepNarrativeIds.set(workflowKey, ids)
+    }
+    if (!narratives) {
+      narratives = new Map()
+      this.stepNarratives.set(workflowKey, narratives)
+    }
+    return { ids, narratives }
+  }
+
+  private emitNarrativeUpdate(
+    workflowKey: string,
+    messageId: string,
+    data: StepNarrativeContent,
+  ) {
+    this.deps.onFlowChatStepUpdate?.({ workflowKey, messageId, data })
+  }
+
+  private scheduleNarrativeDigestFlush(workflowKey: string, nodeId: string) {
+    // Use a composite key so each node gets its own debounce timer
+    const flushKey = `${workflowKey}::${nodeId}`
+    if (this.pendingNarrativeDigestFlush.has(flushKey)) return
+    const timer = setTimeout(() => {
+      this.pendingNarrativeDigestFlush.delete(flushKey)
+      const maps = this.getOrCreateNarrativeMaps(workflowKey)
+      const messageId = maps.ids.get(nodeId)
+      const narrative = maps.narratives.get(nodeId)
+      if (messageId && narrative) {
+        this.emitNarrativeUpdate(workflowKey, messageId, narrative)
+      }
+    }, 500)
+    this.pendingNarrativeDigestFlush.set(flushKey, timer)
+  }
+
+  private flushNarrativeDigestNow(workflowKey: string, nodeId: string) {
+    const flushKey = `${workflowKey}::${nodeId}`
+    const timer = this.pendingNarrativeDigestFlush.get(flushKey)
+    if (timer) {
+      clearTimeout(timer)
+      this.pendingNarrativeDigestFlush.delete(flushKey)
+    }
+  }
+
+  private handleStepNarrativeEvent(
+    workflowKey: string,
+    event: WorkflowEvent,
+    state: WorkflowExecutionState,
+  ) {
+    const flowName = state.workflowName || "Flow"
+    const maps = this.getOrCreateNarrativeMaps(workflowKey)
+
+    const getNodeLabel = (nodeId: string): string => {
+      const nodes =
+        state.runtimeNodes.length > 0
+          ? state.runtimeNodes
+          : (state.workflowSnapshot?.nodes ?? [])
+      const node = nodes.find((n) => n.id === nodeId)
+      if (!node) return nodeId
+      return getRuntimeStagePresentation(node, { fallbackId: nodeId }).title
+    }
+
+    // ── First node-start: seed all narratives ──────────────
+    if (event.type === "node-start" && maps.narratives.size === 0) {
+      const workflowSnapshot = this.workflowSnapshots.get(workflowKey)
+      if (!workflowSnapshot) return
+
+      // Build description from buildProgressStepsFromSnapshot for the start message
+      const allNodes =
+        state.runtimeNodes.length > 0
+          ? state.runtimeNodes
+          : (workflowSnapshot.nodes ?? [])
+      const { description } = buildProgressStepsFromSnapshot({
+        nodes: allNodes,
+        nodeStates: state.nodeStates,
+        runtimeMeta: state.runtimeMeta,
+        activeNodeId: event.nodeId,
+      })
+
+      // Emit Start message
+      const startMsg = buildStartMessage({ flowName, description })
+      this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
+
+      // Seed step-narrative messages for all trackable nodes
+      seedStepNarratives({
+        workflow: workflowSnapshot,
+        workflowKey,
+        flowName,
+        activeNodeId: event.nodeId,
+        maps,
+        emitMessage: (msg) => {
+          this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+        },
+      })
+      return
+    }
+
+    // ── Subsequent node-start ──────────────────────────────
+    if (event.type === "node-start") {
+      this.flushNarrativeDigestNow(workflowKey, event.nodeId)
+
+      // Check if this is a branch node (update parent's branches instead)
+      const branchParentUpdate = this.updateBranchStatus(
+        workflowKey,
+        event.nodeId,
+        "running",
+        state,
+      )
+      if (branchParentUpdate) return
+
+      const result = updateNarrativeForNodeStart(maps, event.nodeId)
+      if (result) {
+        this.emitNarrativeUpdate(workflowKey, result.messageId, result.narrative)
+      } else {
+        // Dynamically discovered node — create a new narrative
+        const narrative: StepNarrativeContent = {
+          nodeId: event.nodeId,
+          label: getNodeLabel(event.nodeId),
+          status: "running",
+          nodeType: "skill",
+          startedAt: Date.now(),
+        }
+        const msg = buildStepNarrativeMessage({ flowName, data: narrative })
+        maps.ids.set(event.nodeId, msg.id)
+        maps.narratives.set(event.nodeId, narrative)
+        this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
+      }
+      return
+    }
+
+    // ── node-log (tool_use) → accumulate tool digest ───────
+    if (
+      event.type === "node-log" &&
+      event.entry.type === "tool_use" &&
+      maps.narratives.size > 0
+    ) {
+      const toolEntry = event.entry // Capture narrowed type
+      const action = buildToolAction(toolEntry.tool, toolEntry.input)
+
+      // Check if this is a branch node
+      const branchDigestUpdated = this.updateBranchToolDigest(
+        workflowKey,
+        event.nodeId,
+        toolEntry.tool,
+        action,
+        state,
+      )
+      if (branchDigestUpdated) return
+
+      const updated = updateNarrativeToolDigest(
+        maps,
+        event.nodeId,
+        (narrative) => ({
+          ...narrative,
+          toolDigest: addToolToDigest(narrative.toolDigest, toolEntry.tool),
+          toolActions: pushToolAction(narrative.toolActions, action),
+          searchQueries: (() => {
+            const query = extractSearchQuery(toolEntry.tool, toolEntry.input)
+            if (!query) return narrative.searchQueries
+            const queries = narrative.searchQueries
+              ? [...narrative.searchQueries]
+              : []
+            if (queries.length < 5) queries.push(query)
+            return queries
+          })(),
+        }),
+      )
+      if (updated) {
+        this.scheduleNarrativeDigestFlush(workflowKey, event.nodeId)
+      }
+      return
+    }
+
+    // ── node-done ──────────────────────────────────────────
+    if (event.type === "node-done" && maps.narratives.size > 0) {
+      this.flushNarrativeDigestNow(workflowKey, event.nodeId)
+
+      // Check if this is a branch node
+      const branchParentUpdate = this.updateBranchStatus(
+        workflowKey,
+        event.nodeId,
+        "done",
+        state,
+      )
+      if (branchParentUpdate) return
+
+      const outputContent =
+        typeof event.output?.content === "string"
+          ? event.output.content
+          : undefined
+
+      let summary: string | undefined
+      if (outputContent) {
+        const firstSentence = outputContent.split(/[.!?\n]/)[0]?.trim()
+        if (firstSentence) {
+          summary =
+            firstSentence.length > 120
+              ? firstSentence.slice(0, 117) + "..."
+              : firstSentence
+        }
+      }
+
+      const nodeCostUsd = state.nodeStates[event.nodeId]?.metrics?.cost_usd
+
+      const result = updateNarrativeForNodeDone(maps, event.nodeId, {
+        summary,
+        output: outputContent,
+        costUsd: nodeCostUsd,
+      })
+      if (result) {
+        this.emitNarrativeUpdate(workflowKey, result.messageId, result.narrative)
+      }
+      return
+    }
+
+    // ── node-error ─────────────────────────────────────────
+    if (event.type === "node-error" && maps.narratives.size > 0) {
+      // Check branch node
+      const branchParentUpdate = this.updateBranchStatus(
+        workflowKey,
+        event.nodeId,
+        "failed",
+        state,
+      )
+      if (branchParentUpdate) return
+
+      const result = updateNarrativeForNodeError(
+        maps,
+        event.nodeId,
+        event.error,
+      )
+      if (result) {
+        this.emitNarrativeUpdate(workflowKey, result.messageId, result.narrative)
+      }
+      return
+    }
+
+    // ── nodes-expanded → add branches to parent ────────────
+    if (event.type === "nodes-expanded" && maps.narratives.size > 0) {
+      const result = addBranchesToParentNarrative({
+        maps,
+        newNodeIds: event.newNodeIds,
+        runtimeMeta: event.runtimeMeta,
+        getNodeLabel,
+      })
+      if (result) {
+        this.emitNarrativeUpdate(workflowKey, result.messageId, result.narrative)
+      }
+      return
+    }
+
+    // ── eval-result (not passed) → set retry info ──────────
+    if (
+      event.type === "eval-result" &&
+      !event.passed &&
+      maps.narratives.size > 0
+    ) {
+      const evalResult = setNarrativeRetryInfo(maps, event.nodeId, {
+        attempt: event.attempt,
+        maxAttempts: event.attempt + 1, // Best available info
+        kind: "eval",
+      })
+      if (evalResult) {
+        this.emitNarrativeUpdate(
+          workflowKey,
+          evalResult.messageId,
+          evalResult.narrative,
+        )
+      }
+
+      // Find the retry-from node from evaluator config and reset its narrative
+      const evaluatorNode = (state.workflowSnapshot?.nodes ?? []).find(
+        (n) => n.id === event.nodeId && n.type === "evaluator",
+      ) as import("@shared/types").EvaluatorWorkflowNode | undefined
+      const retryFromId = evaluatorNode?.config?.retryFrom
+      if (retryFromId) {
+        const retryResult = updateNarrativeForNodeStart(maps, retryFromId)
+        if (retryResult) {
+          this.emitNarrativeUpdate(
+            workflowKey,
+            retryResult.messageId,
+            retryResult.narrative,
+          )
+        }
+      }
+      return
+    }
+
+    // ── run-done → skip remaining pending, clean up ────────
+    if (event.type === "run-done" && maps.narratives.size > 0) {
+      // Mark pending steps as skipped if the run ended with error/cancelled
+      if (event.status !== "completed") {
+        const skipped = markPendingNarrativesSkipped(maps)
+        for (const update of skipped) {
+          this.emitNarrativeUpdate(
+            workflowKey,
+            update.messageId,
+            update.narrative,
+          )
+        }
+      }
+
+      // Clean up tracking
+      this.stepNarrativeIds.delete(workflowKey)
+      this.stepNarratives.delete(workflowKey)
+      // Clean up debounce timers
+      for (const [key, timer] of this.pendingNarrativeDigestFlush) {
+        if (key.startsWith(`${workflowKey}::`)) {
+          clearTimeout(timer)
+          this.pendingNarrativeDigestFlush.delete(key)
+        }
+      }
+    }
+  }
+
+  /**
+   * Update a branch node's status on its parent narrative.
+   * Returns true if the node was found as a branch and the parent was updated.
+   */
+  private updateBranchStatus(
+    workflowKey: string,
+    nodeId: string,
+    status: "running" | "done" | "failed",
+    state: WorkflowExecutionState,
+  ): boolean {
+    const runtimeMeta = state.runtimeMeta
+    const meta = runtimeMeta?.[nodeId]
+    if (!meta?.splitterId) return false
+
+    const maps = this.getOrCreateNarrativeMaps(workflowKey)
+    const parentId = meta.splitterId
+    const messageId = maps.ids.get(parentId)
+    const parentNarrative = maps.narratives.get(parentId)
+    if (!messageId || !parentNarrative || !parentNarrative.branches) return false
+
+    const updatedBranches = parentNarrative.branches.map((b) =>
+      b.nodeId === nodeId ? { ...b, status } : b,
+    )
+    const updated: StepNarrativeContent = {
+      ...parentNarrative,
+      branches: updatedBranches,
+    }
+    maps.narratives.set(parentId, updated)
+    this.emitNarrativeUpdate(workflowKey, messageId, updated)
+    return true
+  }
+
+  /**
+   * Update tool digest on a branch node's parent narrative.
+   * Returns true if the node was found as a branch and the parent was updated.
+   */
+  private updateBranchToolDigest(
+    workflowKey: string,
+    nodeId: string,
+    toolName: string,
+    action: import("@/lib/flow-chat-types").ToolActionEntry,
+    state: WorkflowExecutionState,
+  ): boolean {
+    const meta = state.runtimeMeta?.[nodeId]
+    if (!meta?.splitterId) return false
+
+    const maps = this.getOrCreateNarrativeMaps(workflowKey)
+    const parentId = meta.splitterId
+    const messageId = maps.ids.get(parentId)
+    const parentNarrative = maps.narratives.get(parentId)
+    if (!messageId || !parentNarrative || !parentNarrative.branches) return false
+
+    const updatedBranches = parentNarrative.branches.map((b) =>
+      b.nodeId === nodeId
+        ? {
+            ...b,
+            toolDigest: addToolToDigest(b.toolDigest, toolName),
+            toolActions: pushToolAction(b.toolActions, action),
+          }
+        : b,
+    )
+    const updated: StepNarrativeContent = {
+      ...parentNarrative,
+      branches: updatedBranches,
+    }
+    maps.narratives.set(parentId, updated)
+    this.scheduleNarrativeDigestFlush(workflowKey, parentId)
+    return true
+  }
+
   cancelExecution(
     workflowKey: string,
     runIdToClear: string | null | undefined,
@@ -974,6 +1435,15 @@ export class WorkflowExecutionController {
     const digestTimer = this.pendingDigestFlush.get(workflowKey)
     if (digestTimer) clearTimeout(digestTimer)
     this.pendingDigestFlush.delete(workflowKey)
+    // Clean up step-narrative tracking
+    this.stepNarrativeIds.delete(workflowKey)
+    this.stepNarratives.delete(workflowKey)
+    for (const [key, timer] of this.pendingNarrativeDigestFlush) {
+      if (key.startsWith(`${workflowKey}::`)) {
+        clearTimeout(timer)
+        this.pendingNarrativeDigestFlush.delete(key)
+      }
+    }
     this.updateExecutionForKey(workflowKey, cancelledState)
     this.reconcileApprovalRequests()
 
