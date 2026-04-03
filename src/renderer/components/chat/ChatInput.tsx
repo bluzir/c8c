@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react"
 import { useAtom, useAtomValue } from "jotai"
-import { ChevronDown, Ellipsis, Folder, Send, Square } from "lucide-react"
+import { Ellipsis, Send, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PromptComposer } from "@/components/ui/prompt-composer"
 import {
@@ -17,14 +17,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   chatDraftByWorkflowAtom,
+  chatFilePicksAtom,
   currentWorkflowAtom,
   defaultProviderAtom,
   desktopRuntimeAtom,
   globalDetailBudgetAtom,
+  projectsAtom,
   providerSettingsAtom,
   selectedProjectAtom,
   selectedResultModeIdAtom,
@@ -42,16 +45,16 @@ import {
   isShortcutConsumed,
   matchesPrimaryShortcut,
 } from "@/lib/keyboard-shortcuts"
-import { ProviderSelect } from "@/components/provider-controls"
 import {
   applyWorkflowDetailBudget,
   DETAIL_BUDGET_PRESETS,
   getDetailBudgetPresetById,
   resolveDetailBudgetPreset,
 } from "@/lib/workflow-detail-budget"
-import type { CreateEntryHelpModeHint } from "@shared/types"
+import type { CreateEntryHelpModeHint, ProviderId } from "@shared/types"
 import { RESULT_MODES, getResultMode } from "@/lib/result-modes"
 import { projectFolderName } from "@/components/sidebar/projectSidebarUtils"
+import { InputActionBar } from "./InputActionBar"
 
 interface ChatInputProps {
   onSend: (
@@ -80,7 +83,9 @@ export function ChatInput({
   const [selectedResultModeId, setSelectedResultModeId] = useAtom(
     selectedResultModeIdAtom,
   )
-  const selectedProject = useAtomValue(selectedProjectAtom)
+  const [selectedProject, setSelectedProject] = useAtom(selectedProjectAtom)
+  const rawProjects = useAtomValue(projectsAtom)
+  const [attachedFiles, setAttachedFiles] = useAtom(chatFilePicksAtom)
   const [workflow, setWorkflow] = useAtom(currentWorkflowAtom)
   const [globalDetailBudget, setGlobalDetailBudget] = useAtom(
     globalDetailBudgetAtom,
@@ -135,6 +140,27 @@ export function ChatInput({
   const projectName = useMemo(
     () => (selectedProject ? projectFolderName(selectedProject) : null),
     [selectedProject],
+  )
+  const projectsList = useMemo(
+    () =>
+      rawProjects.map((p) => ({ path: p, name: projectFolderName(p) })),
+    [rawProjects],
+  )
+
+  const handleAttachFiles = useCallback(async () => {
+    const files = await window.api.showOpenFileDialog()
+    if (files.length === 0) return
+    setAttachedFiles((prev) => [
+      ...prev,
+      ...files.map((f) => ({ id: crypto.randomUUID(), ...f })),
+    ])
+  }, [setAttachedFiles])
+
+  const handleRemoveFile = useCallback(
+    (id: string) => {
+      setAttachedFiles((prev) => prev.filter((f) => f.id !== id))
+    },
+    [setAttachedFiles],
   )
 
   // Live elapsed timer for running state
@@ -225,8 +251,10 @@ export function ChatInput({
   const handleSend = useCallback(() => {
     const trimmed = value.trim()
     if (!trimmed || isStreaming || isCancellable) return
+    // TODO: wire attachedFiles through onSend to routing
     onSend(trimmed)
     setValue("")
+    setAttachedFiles([])
     if (selectedWorkflowPath) {
       setChatDraftByWorkflow((prev) => ({
         ...prev,
@@ -241,6 +269,7 @@ export function ChatInput({
     isStreaming,
     onSend,
     selectedWorkflowPath,
+    setAttachedFiles,
     setChatDraftByWorkflow,
     value,
   ])
@@ -307,6 +336,16 @@ export function ChatInput({
         maxHeight={200}
         shellClassName="rounded-2xl"
         textareaClassName="min-h-0"
+        header={
+          <InputActionBar
+            projectName={projectName}
+            projects={projectsList}
+            attachedFiles={attachedFiles}
+            onSelectProject={setSelectedProject}
+            onAttachFiles={handleAttachFiles}
+            onRemoveFile={handleRemoveFile}
+          />
+        }
         action={
           isStreaming || isCancellable ? (
             <button
@@ -341,14 +380,14 @@ export function ChatInput({
                   type="button"
                   variant="ghost"
                   size="xs"
-                  className="gap-1.5 text-muted-foreground"
+                  className="text-muted-foreground"
+                  aria-label="More options"
                 >
-                  <span aria-hidden>{selectedResultMode.emoji}</span>
-                  {selectedResultMode.label}
-                  <ChevronDown size={12} aria-hidden="true" />
+                  <Ellipsis size={15} aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
+                <DropdownMenuLabel>Result mode</DropdownMenuLabel>
                 {RESULT_MODES.map((mode) => (
                   <DropdownMenuItem
                     key={mode.id}
@@ -358,44 +397,36 @@ export function ChatInput({
                       {mode.emoji}
                     </span>
                     {mode.label}
+                    {mode.id === selectedResultModeId && (
+                      <span className="ml-auto text-muted-foreground">✓</span>
+                    )}
                   </DropdownMenuItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <ProviderSelect
-              value={activeProvider}
-              onValueChange={(provider) =>
-                setWorkflow((prev) => ({
-                  ...prev,
-                  defaults: {
-                    ...(prev.defaults || {}),
-                    provider,
-                  },
-                }))
-              }
-              codexEnabled={providerSettings.features.codexProvider}
-              labelMode="short"
-              className="h-control-sm w-32 rounded-md border-0 bg-surface-2 shadow-none"
-            />
-            {projectName && (
-              <span className="ui-meta-text flex items-center gap-1 text-muted-foreground truncate max-w-32">
-                <Folder size={11} className="shrink-0" aria-hidden="true" />
-                <span className="truncate">{projectName}</span>
-              </span>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  className="text-muted-foreground"
-                  aria-label="More options"
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Provider</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={activeProvider}
+                  onValueChange={(provider) =>
+                    setWorkflow((prev) => ({
+                      ...prev,
+                      defaults: {
+                        ...(prev.defaults || {}),
+                        provider: provider as ProviderId,
+                      },
+                    }))
+                  }
                 >
-                  <Ellipsis size={15} aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+                  <DropdownMenuRadioItem value="claude">
+                    Claude
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem
+                    value="codex"
+                    disabled={!providerSettings.features.codexProvider}
+                  >
+                    Codex
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel>Exploration depth</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={selectedDetailBudgetPreset.id}
