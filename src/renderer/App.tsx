@@ -51,6 +51,7 @@ import {
   desktopMenuStateAtom,
   outputSurfaceCommandStateAtom,
   multiRunDashboardOpenAtom,
+  globalWorkspacePathAtom,
 } from "@/lib/store"
 import { cn } from "@/lib/cn"
 import {
@@ -106,6 +107,7 @@ const AppShell = memo(function AppShell() {
   const [, setProviderAuthStatus] = useAtom(providerAuthStatusAtom)
   const [, openSkillPickerRequest] = useAtom(openSkillPickerAtom)
   const setMultiRunDashboardOpen = useSetAtom(multiRunDashboardOpenAtom)
+  const setGlobalWorkspacePath = useSetAtom(globalWorkspacePathAtom)
   const [sidebarOpen, setSidebarOpen] = useAtom(projectSidebarOpenAtom)
   const [sidebarWidth] = useAtom(projectSidebarWidthAtom)
   const [workflowExecutionStates] = useAtom(workflowExecutionStatesAtom)
@@ -283,6 +285,15 @@ const AppShell = memo(function AppShell() {
       unsubscribeRuntime()
     }
   }, [setDesktopRuntime])
+
+  useEffect(() => {
+    void window.api
+      .getPaths()
+      .then((paths) => {
+        setGlobalWorkspacePath(paths.globalWorkspacePath)
+      })
+      .catch(() => {})
+  }, [setGlobalWorkspacePath])
 
   useEffect(() => {
     void window.api.updateDesktopMenuState(desktopMenuState).catch(() => {})

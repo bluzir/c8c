@@ -9,6 +9,7 @@ import {
   selectedProjectAtom,
   selectedResultModeIdAtom,
   selectedWorkflowPathAtom,
+  globalWorkspacePathAtom,
   viewModeAtom,
   webSearchBackendAtom,
   workflowCreateContextAtom,
@@ -36,7 +37,6 @@ import { selectedPastRunAtom } from "@/features/execution"
 import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "@/lib/workflow-create-prompt"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import { toast } from "sonner"
-import { toastError } from "@/lib/toast-error"
 import { errorToUserMessage } from "@/lib/error-message"
 import type {
   ArtifactRecord,
@@ -121,6 +121,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
   const webSearchBackend = useAtomValue(webSearchBackendAtom)
   const detailBudget = useAtomValue(globalDetailBudgetAtom)
   const createContext = useAtomValue(workflowCreateContextAtom)
+  const globalWorkspacePath = useAtomValue(globalWorkspacePathAtom)
   const draftPrompt = useAtomValue(workflowCreateDraftPromptAtom)
   const modeConfigs = useAtomValue(workflowCreateModeConfigsAtom)
   const promptScaffold = useAtomValue(workflowCreatePromptScaffoldAtom)
@@ -318,13 +319,8 @@ export function useFlowRouting(): UseFlowRoutingReturn {
 
       const sessionId = ++routingSessionRef.current
 
-      const targetProjectPath = createContext.projectPath || selectedProject
-      if (!targetProjectPath) {
-        const errorMessage = "Choose a project before starting a new flow."
-        setSubmitError(errorMessage)
-        toastError(errorMessage)
-        return
-      }
+      const targetProjectPath =
+        createContext.projectPath || selectedProject || globalWorkspacePath
 
       setSubmitting(true)
       setSubmitError(null)
@@ -604,6 +600,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
     [
       submitting,
       createContext.projectPath,
+      globalWorkspacePath,
       selectedResultModeId,
       modeConfigs,
       promptScaffold,

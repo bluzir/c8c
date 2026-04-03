@@ -17,6 +17,7 @@ import {
   selectedResultModeIdAtom,
   selectedWorkflowPathAtom,
   selectedWorkflowTemplateContextAtom,
+  globalWorkspacePathAtom,
   updateChatInRegistryAtom,
   workflowCreateSourceArtifactsAtom,
   workflowEntryStateAtom,
@@ -71,6 +72,7 @@ export function ChatPanel({
   const [resizing, setResizing] = useState(false)
   const runStatus = useAtomValue(runStatusAtom)
   const selectedProject = useAtomValue(selectedProjectAtom)
+  const globalWorkspacePath = useAtomValue(globalWorkspacePathAtom)
   const selectedWorkflowPath = useAtomValue(selectedWorkflowPathAtom)
   const setInputValue = useSetAtom(inputValueAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
@@ -121,13 +123,14 @@ export function ChatPanel({
 
   const handleCancel = useCallback(() => {
     // Clean up orphaned empty chat if routing was cancelled before first run
-    if (selectedChatId && selectedProject) {
+    const cancelProjectPath = selectedProject || globalWorkspacePath
+    if (selectedChatId && cancelProjectPath) {
       const chat = chatRegistry[selectedChatId]
       if (chat && chat.runs.length === 0) {
         const { [selectedChatId]: _, ...rest } = chatRegistry
         setChatRegistry(rest)
         setSelectedChatId(null)
-        void window.api.deleteChat(selectedProject, selectedChatId)
+        void window.api.deleteChat(cancelProjectPath, selectedChatId)
       }
     }
 
@@ -139,7 +142,7 @@ export function ChatPanel({
     } else {
       cancel()
     }
-  }, [selectedChatId, selectedProject, chatRegistry, setChatRegistry, setSelectedChatId, routingDispatching, cancelRouting, isRouting, resetRoutingState, setChatRoutingProgress, cancel])
+  }, [selectedChatId, selectedProject, globalWorkspacePath, chatRegistry, setChatRegistry, setSelectedChatId, routingDispatching, cancelRouting, isRouting, resetRoutingState, setChatRoutingProgress, cancel])
 
   // Auto-trigger routing when navigated here with a pending prompt
   // (e.g. from useWorkflowCreateNavigation with a prompt option).
@@ -194,19 +197,20 @@ export function ChatPanel({
         // No workflow yet, or flow completed — route to a new flow.
         // Ensure a Chat entity exists so the run is tracked.
         let chatId = selectedChatId
-        if (!chatId && selectedProject) {
+        const effectiveProjectPath = selectedProject || globalWorkspacePath
+        if (!chatId && effectiveProjectPath) {
           chatId = crypto.randomUUID()
           const newChat: Chat = {
             id: chatId,
             name: message.slice(0, 60),
-            projectPath: selectedProject,
+            projectPath: effectiveProjectPath,
             createdAt: Date.now(),
             lastActivityAt: Date.now(),
             archived: false,
             runs: [],
             artifactPool: [],
           }
-          void window.api.createChat(selectedProject, newChat)
+          void window.api.createChat(effectiveProjectPath, newChat)
           setSelectedChatId(chatId)
           updateChatInRegistry(newChat)
         }
@@ -250,6 +254,7 @@ export function ChatPanel({
       runStatus,
       selectedWorkflowPath,
       selectedProject,
+      globalWorkspacePath,
       selectedChat,
       selectedChatId,
       effectivelyDone,
@@ -280,7 +285,7 @@ export function ChatPanel({
 
       const intent: RoutingIntent = {
         type: "follow_up",
-        projectPath: selectedProject ?? "",
+        projectPath: selectedProject || globalWorkspacePath || "",
         requestedResult: followUp.label,
         templateConstraintId: followUp.templateId,
         sourceRunId: executionState.runId ?? undefined,
@@ -299,6 +304,7 @@ export function ChatPanel({
       setFollowUpLabel,
       selectedChatId,
       selectedProject,
+      globalWorkspacePath,
       executionState.artifactRecords,
       executionState.runId,
       templateContext?.sourceArtifactIds,
