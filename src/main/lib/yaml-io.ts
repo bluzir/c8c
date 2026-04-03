@@ -21,6 +21,22 @@ export async function ensureChainsDir(): Promise<string> {
   return dir
 }
 
+/**
+ * Virtual project root for project-free flows.
+ * Existing path derivation (projectPath + ".c8c/…") produces correct paths
+ * e.g. ~/.c8c/workspace/.c8c/chats/, ~/.c8c/workspace/.c8c/runs/
+ */
+export function resolveGlobalWorkspacePath(): string {
+  return join(resolveAppHomeDir(), ".c8c", "workspace")
+}
+
+export async function ensureGlobalWorkspaceDirs(): Promise<void> {
+  const base = resolveGlobalWorkspacePath()
+  await mkdir(join(base, ".c8c", "chains"), { recursive: true })
+  await mkdir(join(base, ".c8c", "chats"), { recursive: true })
+  await mkdir(join(base, ".c8c", "runs"), { recursive: true })
+}
+
 export async function loadChainYaml(filePath: string): Promise<Workflow> {
   const content = await readFile(filePath, "utf-8")
   const parsed = YAML.parse(content)

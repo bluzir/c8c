@@ -421,6 +421,7 @@ const api: C8cApi = {
     invokeIpc<C8cApi["cancelGenerate"]>("templates:cancel-generate"),
 
   // System
+  getPaths: () => invokeIpc<C8cApi["getPaths"]>("app:get-paths"),
   getAppVersion: () =>
     invokeIpc<C8cApi["getAppVersion"]>("system:get-app-version"),
   getDesktopRuntime: () =>
@@ -636,6 +637,8 @@ const api: C8cApi = {
       filePath,
       maxBytes,
     ),
+  showOpenFileDialog: () =>
+    invokeIpc<C8cApi["showOpenFileDialog"]>("dialog:open-file"),
 
   // MCP servers
   mcpListServers: (provider: ProviderId, projectPath?: string) =>

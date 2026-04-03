@@ -424,6 +424,16 @@ app.whenReady().then(async () => {
   }
 
   initDomains()
+
+  try {
+    const { ensureGlobalWorkspaceDirs } = await import("./lib/yaml-io")
+    await ensureGlobalWorkspaceDirs()
+  } catch (error) {
+    logWarn("main", "global_workspace_init_failed", {
+      error: errorMessage(error),
+    })
+  }
+
   logInfo("main", "register_handlers_started")
   registerMainHandlers(() => mainWindow)
 

@@ -33,6 +33,7 @@ import {
 } from "../lib/security-paths"
 import { resolve } from "node:path"
 import { isTestMode } from "../lib/runtime-paths"
+import { resolveGlobalWorkspacePath } from "../lib/yaml-io"
 import {
   getTelemetrySettings,
   setTelemetryConsent,
@@ -508,6 +509,10 @@ function getTestSubscriptionStatus(): ClaudeCodeSubscriptionStatus {
 
 export function registerSystemHandlers() {
   refreshDesktopMenu()
+
+  ipcMain.handle("app:get-paths", () => ({
+    globalWorkspacePath: resolveGlobalWorkspacePath(),
+  }))
 
   ipcMain.handle("system:get-app-version", () => app.getVersion())
 

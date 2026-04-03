@@ -2,7 +2,7 @@ import { existsSync, realpathSync } from "node:fs"
 import { ensureLibrariesDir } from "./libraries"
 import { ensurePluginMarketplacesDir } from "./plugins"
 import { loadProjectsConfig } from "./projects-config"
-import { ensureChainsDir } from "./yaml-io"
+import { ensureChainsDir, resolveGlobalWorkspacePath } from "./yaml-io"
 import { basename, dirname, join, relative, resolve } from "node:path"
 
 function dedupeResolved(paths: string[]): string[] {
@@ -74,7 +74,8 @@ export async function assertRegisteredProjectPath(
 
 export async function allowedProjectRoots(): Promise<string[]> {
   const config = await loadProjectsConfig()
-  return dedupeResolved(config.projects)
+  const globalPath = resolveGlobalWorkspacePath()
+  return dedupeResolved([globalPath, ...config.projects])
 }
 
 export async function allowedWorkflowRoots(): Promise<string[]> {

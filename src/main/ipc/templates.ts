@@ -36,9 +36,13 @@ import {
   applyProviderFeatureFlags,
   startProviderTask,
 } from "../lib/provider-runtime"
-import { inspectProjectForCreateEntry } from "../lib/create-entry-inspection"
+import {
+  createGlobalWorkspaceInspection,
+  inspectProjectForCreateEntry,
+} from "../lib/create-entry-inspection"
 import { routeCreateEntry } from "../lib/create-entry-router"
 import { resolveAppHomeDir } from "../lib/runtime-paths"
+import { resolveGlobalWorkspacePath } from "../lib/yaml-io"
 import type {
   CreateEntryRouteInput,
   CreateEntryRouteResult,
@@ -154,6 +158,10 @@ export function registerTemplateHandlers() {
     "templates:inspect-project",
     async (_event, projectPath: string) => {
       const safeProjectPath = await resolveGenerateWorkdir(projectPath)
+      const globalPath = resolveGlobalWorkspacePath()
+      if (safeProjectPath === globalPath) {
+        return createGlobalWorkspaceInspection(globalPath)
+      }
       return inspectProjectForCreateEntry(safeProjectPath)
     },
   )
@@ -166,7 +174,11 @@ export function registerTemplateHandlers() {
     ): Promise<CreateEntryRouteResult> => {
       const safeProjectPath = await resolveGenerateWorkdir(input.projectPath)
       const templates = await listTemplateCatalog(safeProjectPath)
-      const inspection = await inspectProjectForCreateEntry(safeProjectPath)
+      const globalPath = resolveGlobalWorkspacePath()
+      const inspection =
+        safeProjectPath === globalPath
+          ? createGlobalWorkspaceInspection(globalPath)
+          : await inspectProjectForCreateEntry(safeProjectPath)
       return routeCreateEntry(
         {
           ...input,

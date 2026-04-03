@@ -101,7 +101,11 @@ import {
 } from "../lib/run-workspace-store"
 import { listTemplates } from "../lib/templates"
 import { routeCreateEntry } from "../lib/create-entry-router"
-import { inspectProjectForCreateEntry } from "../lib/create-entry-inspection"
+import {
+  createGlobalWorkspaceInspection,
+  inspectProjectForCreateEntry,
+} from "../lib/create-entry-inspection"
+import { resolveGlobalWorkspacePath } from "../lib/yaml-io"
 import { loadChain, saveChain } from "../lib/chain-io"
 import {
   normalizeWorkflowTitle,
@@ -1840,9 +1844,11 @@ export function registerExecutorHandlers() {
         listProjectArtifacts: (projectPath) =>
           listProjectArtifacts(projectPath),
         routeCreateEntry: async (input) => {
-          const inspection = await inspectProjectForCreateEntry(
-            input.projectPath,
-          )
+          const globalPath = resolveGlobalWorkspacePath()
+          const inspection =
+            input.projectPath === globalPath
+              ? createGlobalWorkspaceInspection(globalPath)
+              : await inspectProjectForCreateEntry(input.projectPath)
           const templates = await listTemplates(input.projectPath)
           return routeCreateEntry(input, inspection, templates)
         },

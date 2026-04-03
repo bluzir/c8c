@@ -150,6 +150,24 @@ function classifyProjectKind(input: {
   return "ambiguous"
 }
 
+/**
+ * Synthetic inspection for the global workspace virtual project.
+ * Skips filesystem inspection — the workspace is always "empty greenfield".
+ */
+export function createGlobalWorkspaceInspection(
+  globalPath: string,
+): ProjectInspectionSummary {
+  return {
+    projectPath: globalPath,
+    git: { isRepo: false, branch: null, hasUncommittedDiff: false },
+    manifests: [],
+    codeDirs: [],
+    fileDensity: "empty",
+    fileCountEstimate: 0,
+    projectKind: "greenfield_empty",
+  }
+}
+
 export async function inspectProjectForCreateEntry(
   projectPath: string,
 ): Promise<ProjectInspectionSummary> {

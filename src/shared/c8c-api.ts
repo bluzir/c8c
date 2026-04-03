@@ -1,5 +1,6 @@
 import type {
   ActiveExecutionSnapshot,
+  AppPaths,
   ArtifactRecord,
   BatchEvent,
   CaseStateRecord,
@@ -170,6 +171,7 @@ export interface C8cApi {
     projectPath?: string,
   ) => Promise<Workflow>
   cancelGenerate: () => Promise<void>
+  getPaths: () => Promise<AppPaths>
   getAppVersion: () => Promise<string>
   getDesktopRuntime: () => Promise<DesktopRuntimeInfo>
   onDesktopRuntimeChange: (
@@ -359,6 +361,9 @@ export interface C8cApi {
     filePath: string,
     maxBytes: number,
   ) => Promise<string | null>
+  showOpenFileDialog: () => Promise<
+    Array<{ path: string; name: string; sizeLabel: string }>
+  >
   mcpListServers: (
     provider: ProviderId,
     projectPath?: string,
