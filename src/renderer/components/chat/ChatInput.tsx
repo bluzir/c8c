@@ -36,6 +36,7 @@ import {
   runStatusAtom,
   selectedWorkflowExecutionAtom,
 } from "@/features/execution"
+import { WorkflowExecutionController } from "@/features/execution/controller"
 import { currentFlowChatMessagesAtom } from "@/features/execution/flow-chat-state"
 import {
   isShortcutConsumed,
@@ -281,11 +282,15 @@ export function ChatInput({
 
   return (
     <div className="max-w-3xl mx-auto w-full shrink-0 px-4 pb-4 pt-2">
-      {statusHeader && (
-        <div className="mb-1.5 ui-inset-well rounded-2xl px-4 py-2.5 ui-fade-slide-in">
-          {statusHeader}
-        </div>
-      )}
+      {statusHeader &&
+        !(
+          WorkflowExecutionController.USE_STEP_NARRATIVES &&
+          runStatus !== "idle"
+        ) && (
+          <div className="mb-1.5 ui-inset-well rounded-2xl px-4 py-2.5 ui-fade-slide-in">
+            {statusHeader}
+          </div>
+        )}
       <PromptComposer
         ref={textareaRef}
         id="chat-input"
