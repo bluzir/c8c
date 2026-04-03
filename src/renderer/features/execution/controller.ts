@@ -1320,9 +1320,6 @@ export class WorkflowExecutionController {
       }
 
       // Find the retry-from node from evaluator config and reset its narrative
-      const evaluatorNode = (state.workflowSnapshot?.nodes ?? []).find(
-        (n) => n.id === event.nodeId && n.type === "evaluator",
-      ) as import("@shared/types").EvaluatorWorkflowNode | undefined
       const retryFromId = evaluatorNode?.config?.retryFrom
       if (retryFromId) {
         const retryResult = updateNarrativeForNodeStart(maps, retryFromId)
