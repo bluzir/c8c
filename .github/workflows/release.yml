@@ -57,7 +57,11 @@ jobs:
           npm run lint
           npm run typecheck
           npm run test:coverage
-          npm run codex:download
+
+      - name: Download Codex binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run codex:download
 
       - name: Build release
         env:
