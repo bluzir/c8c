@@ -16,7 +16,11 @@ import {
   trackTelemetryEvent,
 } from "./lib/telemetry/service"
 import { logError, logInfo, logWarn } from "./lib/structured-log"
-import { initUpdater, shutdownUpdater } from "./lib/updater"
+import {
+  initUpdater,
+  isQuittingForUpdate,
+  shutdownUpdater,
+} from "./lib/updater"
 import { recoverBatchStates } from "./lib/batch-state"
 import { recoverRuntimeState } from "./lib/run-recovery"
 import { enforceRunWorkspaceRetention } from "./lib/run-workspace-store"
@@ -467,6 +471,9 @@ app.on("before-quit", (event) => {
   if (!suppressStartupSideEffects) {
     shutdownUpdater()
   }
+  // When autoUpdater.quitAndInstall() triggers quit, let it proceed
+  // immediately — the async telemetry flush breaks its install lifecycle.
+  if (isQuittingForUpdate()) return
   if (quitFlushStarted) return
   if (suppressStartupSideEffects) return
   quitFlushStarted = true

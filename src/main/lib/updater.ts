@@ -45,7 +45,17 @@ export async function checkForUpdate(): Promise<void> {
   }
 }
 
+/** Set by installUpdate() so the before-quit handler can skip the async
+ *  telemetry flush that would otherwise break autoUpdater's quit-and-install
+ *  lifecycle. */
+let isUpdaterQuitting = false
+
+export function isQuittingForUpdate(): boolean {
+  return isUpdaterQuitting
+}
+
 export function installUpdate(): void {
+  isUpdaterQuitting = true
   autoUpdater.quitAndInstall(false, true)
 }
 
