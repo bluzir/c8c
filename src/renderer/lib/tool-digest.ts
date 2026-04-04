@@ -148,6 +148,72 @@ export function buildToolActionsFromLog(
   return actions.length > 0 ? actions : undefined
 }
 
+/** Known browse/fetch tool names (after normalization) */
+const BROWSE_TOOLS = new Set([
+  "WebFetch",
+  "browse",
+  "Browser",
+  "crawling_exa",
+])
+
+export interface DigestKindPart {
+  kind: ToolActionEntry["kind"]
+  label: string // "5 searches", "3 reads", etc.
+}
+
+/** Map digest entries into kind-grouped parts for compact rendering */
+export function formatDigestKindParts(
+  digest: ToolDigestEntry[] | undefined,
+): DigestKindPart[] {
+  if (!digest || digest.length === 0) return []
+
+  const byKind: Record<string, number> = {}
+  for (const { tool, count } of digest) {
+    let kind: ToolActionEntry["kind"]
+    if (SEARCH_TOOLS.has(tool)) kind = "search"
+    else if (tool === "Read") kind = "read"
+    else if (tool === "Write") kind = "write"
+    else if (tool === "Edit") kind = "edit"
+    else if (tool === "Bash") kind = "command"
+    else if (BROWSE_TOOLS.has(tool)) kind = "browse"
+    else kind = "other"
+    byKind[kind] = (byKind[kind] || 0) + count
+  }
+
+  const kindLabels: Record<string, [string, string]> = {
+    search: ["search", "searches"],
+    read: ["read", "reads"],
+    write: ["write", "writes"],
+    edit: ["edit", "edits"],
+    command: ["command", "commands"],
+    browse: ["fetch", "fetches"],
+    other: ["tool", "tools"],
+  }
+
+  const order: ToolActionEntry["kind"][] = [
+    "search",
+    "read",
+    "browse",
+    "write",
+    "edit",
+    "command",
+    "other",
+  ]
+
+  const parts: DigestKindPart[] = []
+  for (const kind of order) {
+    const n = byKind[kind]
+    if (n) {
+      const [singular, plural] = kindLabels[kind]
+      parts.push({
+        kind: kind as ToolActionEntry["kind"],
+        label: `${n} ${n === 1 ? singular : plural}`,
+      })
+    }
+  }
+  return parts
+}
+
 /** Format digest entries into human-readable parts like "5 files read" */
 export function formatDigestParts(
   digest: ToolDigestEntry[] | undefined,

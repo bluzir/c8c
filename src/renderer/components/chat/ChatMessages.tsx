@@ -13,8 +13,10 @@ import {
 } from "./FlowRoutingMessage"
 import { StepNarrativeItem } from "./StepNarrativeItem"
 import { cn } from "@/lib/cn"
-import { ArrowDown, Clock } from "lucide-react"
+import { ArrowDown, CheckCircle2, Clock } from "lucide-react"
 import type { TimelineEntry } from "@/hooks/useFlowChatTimeline"
+import { toneToBadge } from "@/lib/surface-tokens"
+import type { CompleteContent } from "@/lib/flow-chat-types"
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
 
@@ -319,10 +321,16 @@ export function ChatMessages({
               } else if (flowMsg.content.type === "progress") {
                 content = <FlowProgressMessage data={flowMsg.content.data} />
               } else if (flowMsg.content.type === "complete") {
-                content = (
+                const completeData = flowMsg.content.data
+                content = completeData.compact ? (
+                  <CompactRunSummary
+                    flowName={flowMsg.flowName}
+                    data={completeData}
+                  />
+                ) : (
                   <FlowCompleteMessage
                     flowName={flowMsg.flowName}
-                    data={flowMsg.content.data}
+                    data={completeData}
                     onFollowUp={onFollowUp}
                     followUpDisabled={followUpDisabled}
                     onOpenReport={(path) => window.api.openPath(path)}
@@ -442,6 +450,36 @@ export function ChatMessages({
           {scrollIndicator === "new" ? "New messages" : "Scroll to bottom"}
         </button>
       </div>
+    </div>
+  )
+}
+
+/** Compact one-liner for past-run completions in multi-run threads */
+function CompactRunSummary({
+  flowName,
+  data,
+}: {
+  flowName: string
+  data: CompleteContent
+}) {
+  const tone = data.tone ?? "success"
+  const headline = data.artifacts?.[0]?.name
+  const metrics = [data.metrics.duration, data.metrics.cost]
+    .filter(Boolean)
+    .join(" · ")
+
+  return (
+    <div className="flex items-center gap-2 py-1.5">
+      <CheckCircle2 size={14} className="shrink-0 text-status-success" />
+      <span className="text-body-sm text-foreground-subtle truncate">
+        {flowName}
+        {headline ? ` — ${headline}` : ""}
+      </span>
+      {metrics && (
+        <span className="ui-meta-text text-muted-foreground shrink-0">
+          {metrics}
+        </span>
+      )}
     </div>
   )
 }

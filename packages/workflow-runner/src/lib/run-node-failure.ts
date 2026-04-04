@@ -1,6 +1,7 @@
 import { classifyError } from "./observability.js"
 import { getOutgoingEdges } from "./graph-engine.js"
 import type {
+  EdgeType,
   ErrorKind,
   LogEntry,
   NodeInput,
@@ -268,7 +269,7 @@ export async function handleNodeExecutionFailure(
   )
   const canRetry =
     effectiveRetryPolicy &&
-    state.retriesUsed! < effectiveRetryPolicy.maxTries - 1
+    (state.retriesUsed ?? 0) < effectiveRetryPolicy.maxTries - 1
   if (canRetry && effectiveRetryPolicy) {
     state.retriesUsed = (state.retriesUsed || 0) + 1
     const retryDelayMs = computeRetryDelayMs(
@@ -297,6 +298,58 @@ export async function handleNodeExecutionFailure(
     return retryNode(node.id)
   }
 
+  // ── Outcome edge routing ──────────────────────────────────────────
+  // If the node has on_timeout or on_error outgoing edges, route to them
+  // instead of applying the error policy. This lets flows define fallback
+  // paths for failure/timeout scenarios.
+  const outcomeEdgeType: EdgeType | null =
+    state.errorKind === "timeout" ? "on_timeout" : null
+  const outgoing = getOutgoingEdges(runtimeWorkflow, node.id)
+  const outcomeEdges = outgoing.filter(
+    (e) => e.type === outcomeEdgeType || e.type === "on_error",
+  )
+  // Prefer specific on_timeout edges when errorKind is timeout;
+  // fall back to on_error edges for any failure kind.
+  const edgesToActivate =
+    outcomeEdgeType && outcomeEdges.some((e) => e.type === outcomeEdgeType)
+      ? outcomeEdges.filter((e) => e.type === outcomeEdgeType)
+      : outcomeEdges.filter((e) => e.type === "on_error")
+
+  if (edgesToActivate.length > 0) {
+    const output = buildContinueOutput(node, incomingContent, partialOutput)
+    output.metadata.error_policy_applied = "continue"
+    output.metadata.partial_on_error = true
+    state.status = "completed"
+    state.output = output
+    state.policyApplied = "continue"
+    try {
+      await writeNodeOutputFile(workspace, node.id, output.content)
+    } catch (writeError) {
+      logger.warn?.("workflow-runner", "persist_outcome_output_failed", {
+        nodeId: node.id,
+        error: errorMessage(writeError),
+      })
+    }
+    for (const edge of edgesToActivate) {
+      context.activatedEdges.add(edge.id)
+    }
+    const routeLog: LogEntry = {
+      type: "text",
+      content: `[outcome-route] ${state.errorKind} → activated ${edgesToActivate.length} ${edgesToActivate[0]?.type ?? "unknown"} edge(s)\n`,
+      timestamp: Date.now(),
+    }
+    state.log.push(routeLog)
+    await emitEvent({
+      type: "node-log",
+      runId,
+      nodeId: node.id,
+      entry: routeLog,
+    })
+    await emitEvent({ type: "node-done", runId, nodeId: node.id, output })
+    return
+  }
+
+  // ── Standard error policy (no outcome edges) ───────────────────────
   const onError = runtimePolicy.onError
   state.policyApplied = onError
 

@@ -50,4 +50,16 @@ export {
   persistProjectImprovementEvidence,
 } from "./lib/improvement-store.js"
 export { findResumeNodeId } from "./lib/persisted-run-state.js"
+export {
+  createRoutingRunner,
+  type RoutingRunnerDeps,
+} from "./lib/routing-runner.js"
+export {
+  matchArtifactsToContracts,
+  type ArtifactResolutionResult,
+} from "./lib/artifact-resolver.js"
+export {
+  assembleInputWithAttachments,
+  type InputAssemblerDeps,
+} from "./lib/input-assembler.js"
 export * from "./schema.js"

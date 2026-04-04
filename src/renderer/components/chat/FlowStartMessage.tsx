@@ -9,7 +9,7 @@ export function FlowStartMessage({ flowName, data }: FlowStartMessageProps) {
   return (
     <div className="space-y-4">
       <p className="ui-meta-label">{flowName}</p>
-      <p className="text-body-lg text-foreground">{data.description}</p>
+      <p className="text-body-md text-foreground">{data.description}</p>
     </div>
   )
 }

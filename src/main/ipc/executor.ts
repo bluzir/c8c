@@ -1953,11 +1953,7 @@ export function registerExecutorHandlers() {
         }
       })()
 
-      try {
-        return await handle.envelope
-      } finally {
-        activeRoutingHandles.delete(sessionId)
-      }
+      return await handle.envelope
     },
   )
 

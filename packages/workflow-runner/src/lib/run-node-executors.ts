@@ -1,5 +1,7 @@
 import { basename, dirname, join } from "node:path"
+import { spawn } from "node:child_process"
 import type {
+  ActionNodeConfig,
   AgentExecutionSummary,
   AgentRunOptions,
   ApprovalNodeConfig,
@@ -288,6 +290,106 @@ async function executeOutputNode(
         ...context.helpers.pickPassThroughMetadata(context.incomingInput),
       },
     ),
+  }
+}
+
+const DEFAULT_ACTION_TIMEOUT_MS = 5 * 60_000 // 5 minutes
+
+async function executeActionNode(
+  context: RunNodeExecutionContext,
+): Promise<RunNodeExecutionResult> {
+  const { node, state, workspace } = context
+  const config = node.config as ActionNodeConfig
+  await context.beginNodeExecution()
+
+  if (config.kind !== "shell" || !config.shell) {
+    throw new Error(`Action node "${node.id}": unsupported kind "${config.kind}" or missing shell config`)
+  }
+
+  const { command, args = [], cwd, env } = config.shell
+  const timeoutMs = config.timeoutMs ?? DEFAULT_ACTION_TIMEOUT_MS
+  const workdir = cwd
+    ? join(context.projectPath || workspace, cwd)
+    : context.projectPath || workspace
+
+  const startLog: LogEntry = {
+    type: "text",
+    content: `[action] $ ${command} ${args.join(" ")}\n`,
+    timestamp: Date.now(),
+  }
+  state.log.push(startLog)
+  await context.runtime.emitEvent({
+    type: "node-log",
+    runId: context.runId,
+    nodeId: node.id,
+    entry: startLog,
+  })
+
+  const result = await new Promise<{ stdout: string; stderr: string; exitCode: number | null }>((resolve, reject) => {
+    const proc = spawn(command, args, {
+      cwd: workdir,
+      env: env ? { ...process.env, ...env } : process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: timeoutMs,
+    })
+
+    const stdoutChunks: Buffer[] = []
+    const stderrChunks: Buffer[] = []
+
+    proc.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk))
+    proc.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk))
+
+    const abortHandler = () => {
+      proc.kill("SIGTERM")
+    }
+    context.runtime.controller.signal.addEventListener("abort", abortHandler, { once: true })
+
+    proc.on("error", (err) => {
+      context.runtime.controller.signal.removeEventListener("abort", abortHandler)
+      reject(err)
+    })
+
+    proc.on("close", (code) => {
+      context.runtime.controller.signal.removeEventListener("abort", abortHandler)
+      resolve({
+        stdout: Buffer.concat(stdoutChunks).toString("utf-8"),
+        stderr: Buffer.concat(stderrChunks).toString("utf-8"),
+        exitCode: code,
+      })
+    })
+  })
+
+  if (result.stderr) {
+    const stderrLog: LogEntry = {
+      type: "error",
+      content: result.stderr,
+      timestamp: Date.now(),
+    }
+    state.log.push(stderrLog)
+    await context.runtime.emitEvent({
+      type: "node-log",
+      runId: context.runId,
+      nodeId: node.id,
+      entry: stderrLog,
+    })
+  }
+
+  if (result.exitCode !== 0) {
+    throw new RecoverableNodeExecutionError(
+      `Action "${command}" exited with code ${result.exitCode}`,
+      {
+        recoverOutputOnError: async () =>
+          result.stdout
+            ? context.helpers.createNodeOutput(node, result.stdout, {
+                partial_on_error: true,
+              })
+            : undefined,
+      },
+    )
+  }
+
+  return {
+    output: context.helpers.createNodeOutput(node, result.stdout),
   }
 }
 
@@ -1248,8 +1350,10 @@ async function executeSplitterNode(
     string,
     {
       subtaskKey: string
+      subtaskContent?: string
       branchIndex: number
       totalBranches: number
+      splitterId?: string
       templateId: string
     }
   > = {}
@@ -1264,8 +1368,10 @@ async function executeSplitterNode(
       if (expanded.runtimeMeta[runtimeNode.id]) {
         runtimeMeta[runtimeNode.id] = {
           subtaskKey: expanded.runtimeMeta[runtimeNode.id].subtaskKey,
+          subtaskContent: expanded.runtimeMeta[runtimeNode.id].subtaskContent,
           branchIndex: expanded.runtimeMeta[runtimeNode.id].branchIndex,
           totalBranches: expanded.runtimeMeta[runtimeNode.id].totalBranches,
+          splitterId: expanded.runtimeMeta[runtimeNode.id].splitterId,
           templateId: expanded.runtimeMeta[runtimeNode.id].templateId,
         }
       }
@@ -1779,6 +1885,8 @@ export async function executeNodeByType(
       return executeHumanNode(context)
     case "output":
       return executeOutputNode(context)
+    case "action":
+      return executeActionNode(context)
     default:
       throw new Error(
         `Node executor not yet extracted for ${(context.node as { type: string }).type}`,

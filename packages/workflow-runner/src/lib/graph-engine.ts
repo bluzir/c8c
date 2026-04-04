@@ -154,8 +154,10 @@ export function validateWorkflow(workflow: Workflow): string[] {
     seen.add(node.id)
   }
 
-  // Cycle detection via topological sort (ignoring evaluator fail edges)
-  const nonFailEdges = workflow.edges.filter((e) => e.type !== "fail")
+  // Cycle detection via topological sort (ignoring fail/outcome edges that form valid fallback paths)
+  const nonFailEdges = workflow.edges.filter(
+    (e) => e.type !== "fail" && e.type !== "on_timeout" && e.type !== "on_error",
+  )
   const inDegree = new Map<string, number>()
   const adjacency = new Map<string, string[]>()
   for (const node of workflow.nodes) {

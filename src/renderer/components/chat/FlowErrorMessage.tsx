@@ -102,7 +102,7 @@ export function FlowErrorMessage({
       </div>
 
       {/* Summary */}
-      <p className="text-body-lg text-foreground-subtle">{data.summary}</p>
+      <p className="text-body-md text-foreground-subtle">{data.summary}</p>
 
       {/* Suggestions */}
       {data.suggestions.length > 0 && (
@@ -110,7 +110,7 @@ export function FlowErrorMessage({
           {data.suggestions.map((suggestion, i) => (
             <li
               key={i}
-              className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
+              className="text-body-md text-foreground-subtle flex items-start gap-1.5"
             >
               <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
               {suggestion}

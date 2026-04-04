@@ -303,6 +303,162 @@ describe("run-node-failure", () => {
     )
   })
 
+  it("routes to on_error edges instead of applying error policy", async () => {
+    const workspace = await createWorkspace()
+    const node = createNode("audit")
+    const fallbackNode = createNode("fallback", "skill")
+    const workflow: RuntimeWorkflow = {
+      version: 1,
+      name: "Test flow",
+      nodes: [node, fallbackNode],
+      edges: [
+        { id: "e-err", source: node.id, target: fallbackNode.id, type: "on_error" },
+      ],
+      runtimeMeta: {},
+    }
+    const nodeState = state("running")
+    const activatedEdges = new Set<string>()
+    const emitEvent = vi.fn(async (_event: WorkflowEvent) => undefined)
+
+    await handleNodeExecutionFailure({
+      runId: "run-outcome",
+      node,
+      state: nodeState,
+      incomingContent: "input",
+      runtimePolicy: runtimePolicy({ onError: "stop" }),
+      runtimeWorkflow: workflow,
+      activatedEdges,
+      error: new Error("model failed"),
+      logger: { warn: vi.fn() },
+      emitEvent,
+      retryNode: vi.fn(async () => undefined),
+      workspace,
+    })
+
+    expect(nodeState.status).toBe("completed")
+    expect(nodeState.policyApplied).toBe("continue")
+    expect(activatedEdges).toEqual(new Set(["e-err"]))
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "node-done", nodeId: "audit" }),
+    )
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "node-log",
+        entry: expect.objectContaining({
+          content: expect.stringContaining("on_error"),
+        }),
+      }),
+    )
+  })
+
+  it("prefers on_timeout edges over on_error for timeout failures", async () => {
+    const workspace = await createWorkspace()
+    const node = createNode("audit")
+    const timeoutNode = createNode("escalate", "skill")
+    const errorNode = createNode("fallback", "skill")
+    const workflow: RuntimeWorkflow = {
+      version: 1,
+      name: "Test flow",
+      nodes: [node, timeoutNode, errorNode],
+      edges: [
+        { id: "e-timeout", source: node.id, target: timeoutNode.id, type: "on_timeout" },
+        { id: "e-err", source: node.id, target: errorNode.id, type: "on_error" },
+      ],
+      runtimeMeta: {},
+    }
+    const nodeState = state("running")
+    const activatedEdges = new Set<string>()
+    const emitEvent = vi.fn(async (_event: WorkflowEvent) => undefined)
+
+    await handleNodeExecutionFailure({
+      runId: "run-timeout",
+      node,
+      state: nodeState,
+      incomingContent: "input",
+      runtimePolicy: runtimePolicy(),
+      runtimeWorkflow: workflow,
+      activatedEdges,
+      error: new Error("operation timed out"),
+      logger: { warn: vi.fn() },
+      emitEvent,
+      retryNode: vi.fn(async () => undefined),
+      workspace,
+    })
+
+    expect(nodeState.status).toBe("completed")
+    expect(activatedEdges).toEqual(new Set(["e-timeout"]))
+    expect(emitEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "node-log",
+        entry: expect.objectContaining({
+          content: expect.stringContaining("on_timeout"),
+        }),
+      }),
+    )
+  })
+
+  it("falls back to on_error when timeout fails but no on_timeout edge exists", async () => {
+    const workspace = await createWorkspace()
+    const node = createNode("audit")
+    const fallbackNode = createNode("fallback", "skill")
+    const workflow: RuntimeWorkflow = {
+      version: 1,
+      name: "Test flow",
+      nodes: [node, fallbackNode],
+      edges: [
+        { id: "e-err", source: node.id, target: fallbackNode.id, type: "on_error" },
+      ],
+      runtimeMeta: {},
+    }
+    const nodeState = state("running")
+    const activatedEdges = new Set<string>()
+    const emitEvent = vi.fn(async (_event: WorkflowEvent) => undefined)
+
+    await handleNodeExecutionFailure({
+      runId: "run-timeout-fallback",
+      node,
+      state: nodeState,
+      incomingContent: "input",
+      runtimePolicy: runtimePolicy(),
+      runtimeWorkflow: workflow,
+      activatedEdges,
+      error: new Error("operation timed out"),
+      logger: { warn: vi.fn() },
+      emitEvent,
+      retryNode: vi.fn(async () => undefined),
+      workspace,
+    })
+
+    expect(nodeState.status).toBe("completed")
+    expect(activatedEdges).toEqual(new Set(["e-err"]))
+  })
+
+  it("falls through to error policy when no outcome edges exist", async () => {
+    const workspace = await createWorkspace()
+    const node = createNode("audit")
+    const workflow = createWorkflow(node)
+    const nodeState = state("running")
+    const emitEvent = vi.fn(async (_event: WorkflowEvent) => undefined)
+
+    await handleNodeExecutionFailure({
+      runId: "run-no-outcome",
+      node,
+      state: nodeState,
+      incomingContent: "input",
+      runtimePolicy: runtimePolicy({ onError: "stop" }),
+      runtimeWorkflow: workflow,
+      activatedEdges: new Set(),
+      error: new Error("model failed"),
+      logger: { warn: vi.fn() },
+      emitEvent,
+      retryNode: vi.fn(async () => undefined),
+      workspace,
+    })
+
+    expect(nodeState.status).toBe("failed")
+    expect(nodeState.policyApplied).toBe("stop")
+  })
+
   it("recovers max-turns skill failures when partial progress exists", async () => {
     const workspace = await createWorkspace()
     const node = createNode("audit")

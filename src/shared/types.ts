@@ -9,6 +9,7 @@ export type NodeType =
   | "output"
   | "approval"
   | "human"
+  | "action"
 
 export interface NodePosition {
   x: number
@@ -285,6 +286,22 @@ export interface OutputNodeConfig {
   runtime?: NodeRuntimeConfig
 }
 
+export type ActionKind = "shell"
+
+export interface ActionShellConfig {
+  command: string
+  args?: string[]
+  cwd?: string
+  env?: Record<string, string>
+}
+
+export interface ActionNodeConfig {
+  kind: ActionKind
+  shell?: ActionShellConfig
+  timeoutMs?: number
+  runtime?: NodeRuntimeConfig
+}
+
 interface BaseWorkflowNode<TType extends NodeType, TConfig> {
   id: string
   type: TType
@@ -309,6 +326,7 @@ export type ApprovalWorkflowNode = BaseWorkflowNode<
   ApprovalNodeConfig
 >
 export type HumanWorkflowNode = BaseWorkflowNode<"human", HumanNodeConfig>
+export type ActionWorkflowNode = BaseWorkflowNode<"action", ActionNodeConfig>
 
 export type WorkflowNode =
   | InputWorkflowNode
@@ -319,12 +337,13 @@ export type WorkflowNode =
   | OutputWorkflowNode
   | ApprovalWorkflowNode
   | HumanWorkflowNode
+  | ActionWorkflowNode
 
 export type NodeConfig = WorkflowNode["config"]
 
 // ── Edge Types ──────────────────────────────────────────
 
-export type EdgeType = "default" | "pass" | "fail"
+export type EdgeType = "default" | "pass" | "fail" | "on_timeout" | "on_error"
 
 export interface WorkflowEdge {
   id: string

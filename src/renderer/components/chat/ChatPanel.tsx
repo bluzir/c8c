@@ -210,9 +210,11 @@ export function ChatPanel({
             runs: [],
             artifactPool: [],
           }
-          void window.api.createChat(effectiveProjectPath, newChat)
           setSelectedChatId(chatId)
           updateChatInRegistry(newChat)
+          window.api.createChat(effectiveProjectPath, newChat).catch(() => {
+            // Non-critical: chat is in memory; next saveChat will persist it
+          })
         }
 
         // After app restart, in-memory artifactRecords may be empty even though
@@ -312,11 +314,20 @@ export function ChatPanel({
     ],
   )
 
-  const handleUseInNewFlow = useCallback(() => {
-    openWorkflowCreate({
-      sourceArtifacts: executionState.artifactRecords,
-    })
-  }, [openWorkflowCreate, executionState.artifactRecords])
+  const handleUseInNewFlow = useCallback(async () => {
+    let artifacts = executionState.artifactRecords
+    // After restart, in-memory records are empty — resolve from disk
+    if (artifacts.length === 0 && selectedChat?.artifactPool.length && selectedProject) {
+      try {
+        const all = await window.api.listProjectArtifacts(selectedProject)
+        const poolSet = new Set(selectedChat.artifactPool)
+        artifacts = all.filter((a) => poolSet.has(a.id))
+      } catch {
+        artifacts = []
+      }
+    }
+    openWorkflowCreate({ sourceArtifacts: artifacts })
+  }, [openWorkflowCreate, executionState.artifactRecords, selectedChat, selectedProject])
 
   const handleRemoveSourceArtifact = useCallback(
     (id: string) => {
@@ -457,7 +468,7 @@ export function ChatPanel({
               {(selectedWorkflowPath && workflow?.name) ||
                 "What can I do for you?"}
             </h1>
-            <p className="text-body-lg text-muted-foreground">
+            <p className="text-body-md text-muted-foreground">
               {templateContext?.useWhen ||
                 "Describe your goal \u2014 c8c builds a flow to solve it"}
             </p>

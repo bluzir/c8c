@@ -10,7 +10,15 @@ import type {
   FlowChatMessage,
 } from "@/lib/flow-chat-types"
 import { buildStepNarrativeMessage } from "@/lib/flow-chat-transformer"
-import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
+import {
+  getRuntimeStagePresentation,
+  getRuntimeBranchLabel,
+  getRuntimeBranchDetail,
+} from "@/lib/runtime-flow-labels"
+
+// ── Constants ────────────────────────────────────────────
+
+export const MAX_NARRATIVE_OUTPUT_CHARS = 4096
 
 // ── Types ────────────────────────────────────────────────
 
@@ -67,15 +75,20 @@ export interface SeedStepNarrativesInput {
   flowName: string
   activeNodeId: string
   maps: StepNarrativeMaps
+  runtimeMeta?: WorkflowRuntimeMeta
   emitMessage: (message: FlowChatMessage) => void
 }
 
 export function seedStepNarratives(input: SeedStepNarrativesInput): void {
-  const { workflow, flowName, activeNodeId, maps, emitMessage } = input
+  const { workflow, flowName, activeNodeId, maps, runtimeMeta, emitMessage } =
+    input
 
-  const trackableNodes = workflow.nodes.filter(
-    (n) => !EXCLUDED_NODE_TYPES.has(n.type),
-  )
+  const trackableNodes = workflow.nodes.filter((n) => {
+    if (EXCLUDED_NODE_TYPES.has(n.type)) return false
+    // Exclude branch nodes — they'll be added via nodes-expanded
+    if (runtimeMeta?.[n.id]?.splitterId) return false
+    return true
+  })
 
   for (const node of trackableNodes) {
     const isActive = node.id === activeNodeId
@@ -143,7 +156,9 @@ export function updateNarrativeForNodeDone(
     completedAt: now,
     ...(durationStr ? { duration: durationStr } : {}),
     ...(info.summary ? { summary: info.summary } : {}),
-    ...(info.output ? { output: info.output } : {}),
+    ...(info.output
+      ? { output: info.output.slice(0, MAX_NARRATIVE_OUTPUT_CHARS) }
+      : {}),
     ...(info.costUsd != null && info.costUsd > 0
       ? { costUsd: info.costUsd }
       : {}),
@@ -229,11 +244,18 @@ export function addBranchesToParentNarrative(
   const existing = maps.narratives.get(parentSplitterId)
   if (!messageId || !existing) return null
 
-  const newBranches: StepNarrativeBranch[] = newNodeIds.map((nodeId) => ({
-    nodeId,
-    label: getNodeLabel(nodeId),
-    status: "pending" as const,
-  }))
+  const newBranches: StepNarrativeBranch[] = newNodeIds.map((nodeId) => {
+    const meta = runtimeMeta[nodeId]
+    const label =
+      (meta && getRuntimeBranchDetail(meta)) ||
+      (meta && getRuntimeBranchLabel(meta.subtaskKey)) ||
+      getNodeLabel(nodeId)
+    return {
+      nodeId,
+      label,
+      status: "pending" as const,
+    }
+  })
 
   const updated: StepNarrativeContent = {
     ...existing,
@@ -336,13 +358,18 @@ export function seedNarrativesFromSnapshot(
       }
       if (childIds.length > 0) {
         narrative.branches = childIds.map((childId) => {
+          const childMeta = runtimeMeta![childId]
           const childNode = workflow.nodes.find((n) => n.id === childId)
           const childStatus = mapNodeStateToNarrativeStatus(
             nodeStates[childId]?.status,
           )
+          const label =
+            (childMeta && getRuntimeBranchDetail(childMeta)) ||
+            (childMeta && getRuntimeBranchLabel(childMeta.subtaskKey)) ||
+            (childNode ? getNodeLabel(childNode) : childId)
           return {
             nodeId: childId,
-            label: childNode ? getNodeLabel(childNode) : childId,
+            label,
             status: childStatus,
           }
         })

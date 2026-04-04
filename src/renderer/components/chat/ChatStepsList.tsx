@@ -92,9 +92,6 @@ export function ChatStepsList({ data }: ChatStepsListProps) {
         runtimeMeta={adapted.runtimeMeta}
         activeNodeId={adapted.activeNodeId}
         variant="compact"
-        toolDigests={adapted.toolDigests}
-        toolActions={adapted.toolActions}
-        searchQueries={adapted.searchQueries}
       />
 
       {/* Footer: single primary status line + optional cost */}

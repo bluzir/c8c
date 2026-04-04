@@ -80,8 +80,13 @@ export function validateWorkflowForExecution(
     }
   }
 
-  // Cycle detection ignores evaluator fail edges so retry loops remain valid.
-  const nonFailEdges = workflow.edges.filter((edge) => edge.type !== "fail")
+  // Cycle detection ignores fail/outcome edges so retry loops and fallback paths remain valid.
+  const nonFailEdges = workflow.edges.filter(
+    (edge) =>
+      edge.type !== "fail" &&
+      edge.type !== "on_timeout" &&
+      edge.type !== "on_error",
+  )
   const inDegree = new Map<string, number>()
   const adjacency = new Map<string, string[]>()
   for (const node of workflow.nodes) {

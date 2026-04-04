@@ -7,6 +7,7 @@ import {
   updateNarrativeForNodeDone,
   markPendingNarrativesSkipped,
   addBranchesToParentNarrative,
+  MAX_NARRATIVE_OUTPUT_CHARS,
   type StepNarrativeMaps,
 } from "./controller-narrative-helpers"
 
@@ -87,6 +88,75 @@ describe("seedStepNarratives", () => {
     const splitNarrative = maps.narratives.get("split-1")
     expect(splitNarrative).toBeDefined()
     expect(splitNarrative!.status).toBe("pending")
+  })
+
+  it("excludes branch nodes when runtimeMeta is provided", () => {
+    const workflow = makeWorkflow([
+      makeNode("skill-1", "skill"),
+      makeNode("split-1", "splitter"),
+      makeNode("branch-1", "skill"),
+      makeNode("branch-2", "skill"),
+      makeNode("eval-1", "evaluator"),
+    ])
+
+    const runtimeMeta: WorkflowRuntimeMeta = {
+      "branch-1": {
+        splitterId: "split-1",
+        subtaskKey: "task-1",
+        branchIndex: 0,
+        totalBranches: 2,
+        templateId: "t1",
+      },
+      "branch-2": {
+        splitterId: "split-1",
+        subtaskKey: "task-2",
+        branchIndex: 1,
+        totalBranches: 2,
+        templateId: "t1",
+      },
+    }
+
+    const messages: FlowChatMessage[] = []
+    const maps = createNarrativeMaps()
+
+    seedStepNarratives({
+      workflow,
+      workflowKey: "wf-1",
+      flowName: "Test Flow",
+      activeNodeId: "skill-1",
+      maps,
+      runtimeMeta,
+      emitMessage: (msg) => messages.push(msg),
+    })
+
+    // Should produce 3 narratives: skill-1, split-1, eval-1 (NOT branch-1, branch-2)
+    expect(maps.narratives.size).toBe(3)
+    expect(maps.ids.has("branch-1")).toBe(false)
+    expect(maps.ids.has("branch-2")).toBe(false)
+    expect(maps.ids.has("skill-1")).toBe(true)
+    expect(maps.ids.has("split-1")).toBe(true)
+    expect(maps.ids.has("eval-1")).toBe(true)
+  })
+
+  it("includes all nodes when runtimeMeta is not provided", () => {
+    const workflow = makeWorkflow([
+      makeNode("skill-1", "skill"),
+      makeNode("branch-1", "skill"),
+    ])
+
+    const maps = createNarrativeMaps()
+    seedStepNarratives({
+      workflow,
+      workflowKey: "wf-1",
+      flowName: "Test Flow",
+      activeNodeId: "skill-1",
+      maps,
+      emitMessage: () => {},
+    })
+
+    // Without runtimeMeta, both nodes are included
+    expect(maps.narratives.size).toBe(2)
+    expect(maps.ids.has("branch-1")).toBe(true)
   })
 
   it("assigns correct nodeType for each node", () => {
@@ -171,6 +241,27 @@ describe("updateNarrativeForNodeDone", () => {
     const maps = createNarrativeMaps()
     const result = updateNarrativeForNodeDone(maps, "unknown", {})
     expect(result).toBeNull()
+  })
+
+  it("caps output at MAX_NARRATIVE_OUTPUT_CHARS", () => {
+    const maps = createNarrativeMaps()
+    const narrative: StepNarrativeContent = {
+      nodeId: "skill-1",
+      label: "Research",
+      status: "running",
+      nodeType: "skill",
+      startedAt: Date.now() - 1000,
+    }
+    maps.ids.set("skill-1", "msg-1")
+    maps.narratives.set("skill-1", narrative)
+
+    const longOutput = "x".repeat(MAX_NARRATIVE_OUTPUT_CHARS + 1000)
+    const result = updateNarrativeForNodeDone(maps, "skill-1", {
+      output: longOutput,
+    })
+
+    expect(result).not.toBeNull()
+    expect(result!.narrative.output).toHaveLength(MAX_NARRATIVE_OUTPUT_CHARS)
   })
 })
 
@@ -267,6 +358,119 @@ describe("addBranchesToParentNarrative", () => {
     expect(result!.narrative.branches![0].status).toBe("pending")
     expect(result!.narrative.branches![1].nodeId).toBe("branch-2")
     expect(result!.messageId).toBe("msg-1")
+  })
+
+  it("uses subtaskContent for descriptive branch labels", () => {
+    const maps = createNarrativeMaps()
+    maps.ids.set("split-1", "msg-1")
+    maps.narratives.set("split-1", {
+      nodeId: "split-1",
+      label: "Split work",
+      status: "running",
+      nodeType: "splitter",
+    })
+
+    const runtimeMeta: WorkflowRuntimeMeta = {
+      "branch-1": {
+        splitterId: "split-1",
+        subtaskKey: "security-audit-findings",
+        subtaskContent: "Review all authentication endpoints for SQL injection vulnerabilities",
+        branchIndex: 0,
+        totalBranches: 2,
+        templateId: "t1",
+      },
+      "branch-2": {
+        splitterId: "split-1",
+        subtaskKey: "performance-bottleneck-analysis",
+        subtaskContent: "Profile database queries and identify N+1 patterns",
+        branchIndex: 1,
+        totalBranches: 2,
+        templateId: "t1",
+      },
+    }
+
+    const result = addBranchesToParentNarrative({
+      maps,
+      newNodeIds: ["branch-1", "branch-2"],
+      runtimeMeta,
+      getNodeLabel: () => "Researcher", // generic fallback should NOT be used
+    })
+
+    expect(result).not.toBeNull()
+    expect(result!.narrative.branches).toHaveLength(2)
+    // Should use subtaskContent (compacted), not the generic "Researcher" label
+    expect(result!.narrative.branches![0].label).toBe(
+      "Review all authentication endpoints for SQL injection vulnerabilities",
+    )
+    expect(result!.narrative.branches![1].label).toBe(
+      "Profile database queries and identify N+1 patterns",
+    )
+  })
+
+  it("falls back to humanized subtaskKey when subtaskContent is absent", () => {
+    const maps = createNarrativeMaps()
+    maps.ids.set("split-1", "msg-1")
+    maps.narratives.set("split-1", {
+      nodeId: "split-1",
+      label: "Split work",
+      status: "running",
+      nodeType: "splitter",
+    })
+
+    const runtimeMeta: WorkflowRuntimeMeta = {
+      "branch-1": {
+        splitterId: "split-1",
+        subtaskKey: "security-audit-findings",
+        branchIndex: 0,
+        totalBranches: 1,
+        templateId: "t1",
+      },
+    }
+
+    const result = addBranchesToParentNarrative({
+      maps,
+      newNodeIds: ["branch-1"],
+      runtimeMeta,
+      getNodeLabel: () => "Researcher",
+    })
+
+    expect(result).not.toBeNull()
+    // Should humanize the subtaskKey, not use "Researcher"
+    expect(result!.narrative.branches![0].label).toBe("Security Audit Findings")
+  })
+
+  it("falls back to getNodeLabel when no runtimeMeta for node", () => {
+    const maps = createNarrativeMaps()
+    maps.ids.set("split-1", "msg-1")
+    maps.narratives.set("split-1", {
+      nodeId: "split-1",
+      label: "Split work",
+      status: "running",
+      nodeType: "splitter",
+    })
+
+    const runtimeMeta: WorkflowRuntimeMeta = {
+      // branch-1 has meta with splitterId (needed to find parent), but branch-2 does not
+      "branch-1": {
+        splitterId: "split-1",
+        subtaskKey: "review-findings",
+        branchIndex: 0,
+        totalBranches: 2,
+        templateId: "t1",
+      },
+    }
+
+    const result = addBranchesToParentNarrative({
+      maps,
+      newNodeIds: ["branch-1", "branch-2"],
+      runtimeMeta,
+      getNodeLabel: (id) => `Fallback ${id}`,
+    })
+
+    expect(result).not.toBeNull()
+    expect(result!.narrative.branches![0].label).toBe("Review Findings")
+    // branch-2 has no meta, so falls back to getNodeLabel
+    expect(result!.narrative.branches![1].label).toBe("Fallback branch-2")
   })
 
   it("returns null when parent splitter is not found", () => {

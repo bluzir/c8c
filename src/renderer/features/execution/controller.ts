@@ -21,6 +21,7 @@ import type {
   FlowChatMessage,
   ProgressContent,
   ProgressStep,
+  StepNarrativeBranch,
   StepNarrativeContent,
 } from "@/lib/flow-chat-types"
 import {
@@ -42,6 +43,7 @@ import {
   addBranchesToParentNarrative,
   updateNarrativeToolDigest,
   setNarrativeRetryInfo,
+  MAX_NARRATIVE_OUTPUT_CHARS,
   type StepNarrativeMaps,
 } from "./controller-narrative-helpers"
 import { formatElapsedCompact } from "@/components/output/outputFormatters"
@@ -52,7 +54,11 @@ import {
   pushToolAction,
 } from "@/lib/tool-digest"
 import { toast } from "sonner"
-import { getRuntimeStagePresentation } from "@/lib/runtime-flow-labels"
+import {
+  getRuntimeStagePresentation,
+  getRuntimeBranchLabel,
+  getRuntimeBranchDetail,
+} from "@/lib/runtime-flow-labels"
 
 type UpdateValue<T> = T | ((prev: T) => T)
 
@@ -1078,6 +1084,14 @@ export class WorkflowExecutionController {
     const maps = this.getOrCreateNarrativeMaps(workflowKey)
 
     const getNodeLabel = (nodeId: string): string => {
+      // Check if this is a branch node with descriptive metadata
+      const branchMeta = state.runtimeMeta?.[nodeId]
+      if (branchMeta?.subtaskContent || branchMeta?.subtaskKey) {
+        return (
+          getRuntimeBranchDetail(branchMeta) ||
+          getRuntimeBranchLabel(branchMeta.subtaskKey)
+        )
+      }
       const nodes =
         state.runtimeNodes.length > 0
           ? state.runtimeNodes
@@ -1092,21 +1106,8 @@ export class WorkflowExecutionController {
       const workflowSnapshot = this.workflowSnapshots.get(workflowKey)
       if (!workflowSnapshot) return
 
-      // Build description from buildProgressStepsFromSnapshot for the start message
-      const allNodes =
-        state.runtimeNodes.length > 0
-          ? state.runtimeNodes
-          : (workflowSnapshot.nodes ?? [])
-      const { description } = buildProgressStepsFromSnapshot({
-        nodes: allNodes,
-        nodeStates: state.nodeStates,
-        runtimeMeta: state.runtimeMeta,
-        activeNodeId: event.nodeId,
-      })
-
-      // Emit Start message
-      const startMsg = buildStartMessage({ flowName, description })
-      this.deps.onFlowChatMessage?.({ workflowKey, message: startMsg })
+      // Step narratives replace the start message — no separate step-list needed
+      // (the individual narrative items ARE the step list)
 
       // Seed step-narrative messages for all trackable nodes
       seedStepNarratives({
@@ -1115,6 +1116,7 @@ export class WorkflowExecutionController {
         flowName,
         activeNodeId: event.nodeId,
         maps,
+        runtimeMeta: state.runtimeMeta,
         emitMessage: (msg) => {
           this.deps.onFlowChatMessage?.({ workflowKey, message: msg })
         },
@@ -1246,7 +1248,7 @@ export class WorkflowExecutionController {
           startedAt: Date.now(),
           completedAt: Date.now(),
           summary,
-          output: outputContent,
+          output: outputContent?.slice(0, MAX_NARRATIVE_OUTPUT_CHARS),
           costUsd: nodeCostUsd,
         }
         const msg = buildStepNarrativeMessage({ flowName, data: narrative })
@@ -1379,11 +1381,60 @@ export class WorkflowExecutionController {
     const parentId = meta.splitterId
     const messageId = maps.ids.get(parentId)
     const parentNarrative = maps.narratives.get(parentId)
-    if (!messageId || !parentNarrative || !parentNarrative.branches) return false
+    if (!messageId || !parentNarrative) return false
 
-    const updatedBranches = parentNarrative.branches.map((b) =>
-      b.nodeId === nodeId ? { ...b, status } : b,
-    )
+    // Extract summary and output for done branches
+    let branchSummary: string | undefined
+    let branchOutput: string | undefined
+    if (status === "done") {
+      const outputContent =
+        typeof state.nodeStates[nodeId]?.output?.content === "string"
+          ? (state.nodeStates[nodeId].output.content as string)
+          : undefined
+      if (outputContent) {
+        branchOutput = outputContent.slice(0, MAX_NARRATIVE_OUTPUT_CHARS)
+        const firstSentence = outputContent.split(/[.!?\n]/)[0]?.trim()
+        if (firstSentence) {
+          branchSummary =
+            firstSentence.length > 120
+              ? firstSentence.slice(0, 117) + "..."
+              : firstSentence
+        }
+      }
+    }
+
+    // If nodes-expanded hasn't fired yet, create the branch entry on-the-fly
+    const existingBranches = parentNarrative.branches ?? []
+    const branchExists = existingBranches.some((b) => b.nodeId === nodeId)
+
+    let updatedBranches: StepNarrativeBranch[]
+    if (branchExists) {
+      updatedBranches = existingBranches.map((b) =>
+        b.nodeId === nodeId
+          ? {
+              ...b,
+              status,
+              ...(branchSummary ? { summary: branchSummary } : {}),
+              ...(branchOutput ? { output: branchOutput } : {}),
+            }
+          : b,
+      )
+    } else {
+      const branchMeta = runtimeMeta?.[nodeId]
+      const label =
+        (branchMeta && getRuntimeBranchDetail(branchMeta)) ||
+        (branchMeta && getRuntimeBranchLabel(branchMeta.subtaskKey)) ||
+        this.getNodeLabelFromState(nodeId, state)
+      const newBranch: StepNarrativeBranch = {
+        nodeId,
+        label,
+        status,
+        ...(branchSummary ? { summary: branchSummary } : {}),
+        ...(branchOutput ? { output: branchOutput } : {}),
+      }
+      updatedBranches = [...existingBranches, newBranch]
+    }
+
     const updated: StepNarrativeContent = {
       ...parentNarrative,
       branches: updatedBranches,
@@ -1391,6 +1442,19 @@ export class WorkflowExecutionController {
     maps.narratives.set(parentId, updated)
     this.emitNarrativeUpdate(workflowKey, messageId, updated)
     return true
+  }
+
+  private getNodeLabelFromState(
+    nodeId: string,
+    state: WorkflowExecutionState,
+  ): string {
+    const nodes =
+      state.runtimeNodes.length > 0
+        ? state.runtimeNodes
+        : (state.workflowSnapshot?.nodes ?? [])
+    const node = nodes.find((n) => n.id === nodeId)
+    if (!node) return nodeId
+    return getRuntimeStagePresentation(node, { fallbackId: nodeId }).title
   }
 
   /**
@@ -1411,17 +1475,39 @@ export class WorkflowExecutionController {
     const parentId = meta.splitterId
     const messageId = maps.ids.get(parentId)
     const parentNarrative = maps.narratives.get(parentId)
-    if (!messageId || !parentNarrative || !parentNarrative.branches) return false
+    if (!messageId || !parentNarrative) return false
 
-    const updatedBranches = parentNarrative.branches.map((b) =>
-      b.nodeId === nodeId
-        ? {
-            ...b,
-            toolDigest: addToolToDigest(b.toolDigest, toolName),
-            toolActions: pushToolAction(b.toolActions, action),
-          }
-        : b,
-    )
+    // If nodes-expanded hasn't fired yet, create the branch entry on-the-fly
+    const existingBranches = parentNarrative.branches ?? []
+    const branchExists = existingBranches.some((b) => b.nodeId === nodeId)
+
+    let updatedBranches: StepNarrativeBranch[]
+    if (branchExists) {
+      updatedBranches = existingBranches.map((b) =>
+        b.nodeId === nodeId
+          ? {
+              ...b,
+              toolDigest: addToolToDigest(b.toolDigest, toolName),
+              toolActions: pushToolAction(b.toolActions, action),
+            }
+          : b,
+      )
+    } else {
+      const branchMeta = state.runtimeMeta?.[nodeId]
+      const label =
+        (branchMeta && getRuntimeBranchDetail(branchMeta)) ||
+        (branchMeta && getRuntimeBranchLabel(branchMeta.subtaskKey)) ||
+        this.getNodeLabelFromState(nodeId, state)
+      const newBranch: StepNarrativeBranch = {
+        nodeId,
+        label,
+        status: "running",
+        toolDigest: addToolToDigest(undefined, toolName),
+        toolActions: pushToolAction(undefined, action),
+      }
+      updatedBranches = [...existingBranches, newBranch]
+    }
+
     const updated: StepNarrativeContent = {
       ...parentNarrative,
       branches: updatedBranches,

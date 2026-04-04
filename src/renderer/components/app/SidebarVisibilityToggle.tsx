@@ -49,7 +49,7 @@ export function SidebarVisibilityToggle({
     : { top: 12, left: 12 }
 
   return (
-    <div className={cn("fixed z-[60]")} style={positionStyle}>
+    <div className={cn("fixed z-40")} style={positionStyle}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button

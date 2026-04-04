@@ -1,13 +1,14 @@
 import { useState } from "react"
 import { cn } from "@/lib/cn"
-import { ChevronRight, Circle, CheckCircle2, XCircle } from "lucide-react"
-import type {
-  StepNarrativeContent,
-  StepNarrativeBranch,
-  ToolActionEntry,
-  RetryInfo,
-} from "@/lib/flow-chat-types"
+import { ChevronRight } from "lucide-react"
+import type { StepNarrativeContent } from "@/lib/flow-chat-types"
 import { StatusDot } from "@/components/output/StatusDot"
+import {
+  ToolDigestLine,
+  RetryBadge,
+  BranchesList,
+} from "./StepNarrativeParts"
+import { StepOutputPreview } from "./StepOutputPreview"
 
 // ---------------------------------------------------------------------------
 // Props
@@ -17,26 +18,6 @@ interface StepNarrativeItemProps {
   data: StepNarrativeContent
   onRetryFromStep?: (nodeId: string) => void
 }
-
-// ---------------------------------------------------------------------------
-// Tool action icon mapping
-// ---------------------------------------------------------------------------
-
-const ACTION_ICONS: Record<ToolActionEntry["kind"], string> = {
-  search: "\uD83D\uDD0D",
-  read: "\uD83D\uDCD6",
-  write: "\uD83D\uDCDD",
-  edit: "\u270F\uFE0F",
-  command: "\u25B6",
-  browse: "\uD83C\uDF10",
-  other: "\u2022",
-}
-
-// ---------------------------------------------------------------------------
-// Max visible branches before "+N more"
-// ---------------------------------------------------------------------------
-
-const MAX_VISIBLE_BRANCHES = 5
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,145 +35,6 @@ function isInteractive(status: StepNarrativeContent["status"]): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// ToolActionChips
-// ---------------------------------------------------------------------------
-
-function ToolActionChips({ actions }: { actions: ToolActionEntry[] }) {
-  if (actions.length === 0) return null
-  return (
-    <div className="flex flex-wrap gap-1 pt-1">
-      {actions.map((action, i) => (
-        <span
-          key={`${action.kind}-${action.label}-${i}`}
-          className="inline-flex items-center gap-1 rounded bg-surface-2/40 px-1.5 py-0.5 text-[11px] text-muted-foreground"
-        >
-          <span aria-hidden="true">{ACTION_ICONS[action.kind]}</span>
-          {action.label}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// RetryBadge
-// ---------------------------------------------------------------------------
-
-function RetryBadge({ info }: { info: RetryInfo }) {
-  return (
-    <span className="ui-status-badge ui-status-badge-warning">
-      Attempt {info.attempt}/{info.maxAttempts}
-    </span>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// BranchRow — simplified branch rendering
-// ---------------------------------------------------------------------------
-
-function BranchRow({ branch }: { branch: StepNarrativeBranch }) {
-  return (
-    <div className="flex items-center gap-2 py-0.5">
-      <BranchStatusIcon status={branch.status} />
-      <span
-        className={cn(
-          "min-w-0 flex-1 truncate text-body-sm",
-          branch.status === "done" && "text-foreground",
-          branch.status === "running" && "text-foreground",
-          branch.status === "failed" && "text-status-danger",
-          (branch.status === "pending" || branch.status === "skipped") &&
-            "text-muted-foreground",
-          branch.status === "skipped" && "opacity-50",
-        )}
-      >
-        {branch.label}
-      </span>
-      {branch.status === "running" && (
-        <span className="ui-meta-text text-muted-foreground">running...</span>
-      )}
-      {branch.toolActions && branch.toolActions.length > 0 && (
-        <ToolActionChips actions={branch.toolActions} />
-      )}
-    </div>
-  )
-}
-
-function BranchStatusIcon({
-  status,
-}: {
-  status: StepNarrativeBranch["status"]
-}) {
-  switch (status) {
-    case "done":
-      return (
-        <CheckCircle2
-          size={12}
-          className="shrink-0 text-status-success"
-          aria-hidden="true"
-        />
-      )
-    case "running":
-      return (
-        <span className="ui-status-beacon shrink-0" aria-hidden="true">
-          <span className="ui-status-beacon-ring bg-status-info/35" />
-          <span className="ui-status-beacon-core bg-status-info" />
-        </span>
-      )
-    case "failed":
-      return (
-        <XCircle
-          size={12}
-          className="shrink-0 text-status-danger"
-          aria-hidden="true"
-        />
-      )
-    default:
-      return (
-        <Circle
-          size={10}
-          className={cn(
-            "shrink-0 text-muted-foreground/30",
-            status === "skipped" && "opacity-50",
-          )}
-          aria-hidden="true"
-        />
-      )
-  }
-}
-
-// ---------------------------------------------------------------------------
-// BranchesList — with cap at MAX_VISIBLE_BRANCHES
-// ---------------------------------------------------------------------------
-
-function BranchesList({ branches }: { branches: StepNarrativeBranch[] }) {
-  const [showAll, setShowAll] = useState(false)
-
-  if (branches.length === 0) return null
-
-  const visible = showAll
-    ? branches
-    : branches.slice(0, MAX_VISIBLE_BRANCHES)
-  const hiddenCount = branches.length - MAX_VISIBLE_BRANCHES
-
-  return (
-    <div className="border-l-2 border-hairline ml-1 pl-3 mt-1">
-      {visible.map((branch) => (
-        <BranchRow key={branch.nodeId} branch={branch} />
-      ))}
-      {!showAll && hiddenCount > 0 && (
-        <button
-          type="button"
-          className="text-body-sm text-muted-foreground ui-pressable pt-0.5"
-          onClick={() => setShowAll(true)}
-        >
-          +{hiddenCount} more
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // StepNarrativeItem
 // ---------------------------------------------------------------------------
 
@@ -202,6 +44,7 @@ export function StepNarrativeItem({
 }: StepNarrativeItemProps) {
   // Manual toggle: null = follow auto-expand logic
   const [manualToggle, setManualToggle] = useState<boolean | null>(null)
+  const [outputVisible, setOutputVisible] = useState(false)
 
   const autoExpanded = data.status === "running" || data.status === "failed"
   const expanded = manualToggle ?? autoExpanded
@@ -211,8 +54,9 @@ export function StepNarrativeItem({
   const hasExpandableContent =
     interactive &&
     (data.summary ||
+      data.output ||
       data.error ||
-      (data.toolActions && data.toolActions.length > 0) ||
+      (data.toolDigest && data.toolDigest.length > 0) ||
       hasBranches)
 
   // Meta parts: duration + cost
@@ -321,9 +165,33 @@ export function StepNarrativeItem({
               </p>
             )}
 
-            {/* Tool action chips */}
-            {data.toolActions && data.toolActions.length > 0 && (
-              <ToolActionChips actions={data.toolActions} />
+            {/* Output preview */}
+            {data.status === "done" && data.output && (
+              outputVisible ? (
+                <StepOutputPreview
+                  content={data.output}
+                  onHide={() => setOutputVisible(false)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="ui-pressable text-body-sm text-muted-foreground hover:text-foreground ui-motion-fast pt-1"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setOutputVisible(true)
+                  }}
+                >
+                  Show output
+                </button>
+              )
+            )}
+
+            {/* Tool digest */}
+            {data.toolDigest && data.toolDigest.length > 0 && (
+              <ToolDigestLine
+                digest={data.toolDigest}
+                searchQueries={data.searchQueries}
+              />
             )}
 
             {/* Branches */}

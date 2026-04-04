@@ -394,9 +394,13 @@ export function ProjectSidebar({
       if (cancelled) return
       const registry: Record<string, Chat> = {}
       for (const s of allSummaries) {
-        const chat = await window.api.loadChat(selectedProject, s.id)
-        if (cancelled) return
-        if (chat) registry[chat.id] = chat
+        try {
+          const chat = await window.api.loadChat(selectedProject, s.id)
+          if (cancelled) return
+          if (chat) registry[chat.id] = chat
+        } catch {
+          // Skip corrupted chat files — others still load
+        }
       }
       setChatRegistry(registry)
       // chatSummaries (visible in sidebar) are derived reactively from

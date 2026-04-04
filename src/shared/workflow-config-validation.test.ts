@@ -181,6 +181,101 @@ describe("validateWorkflowNodeConfig", () => {
     )
   })
 
+  it("requires action nodes to specify a valid kind and shell config", () => {
+    const noKindIssues = validateWorkflowNodeConfig(
+      createNode({
+        type: "action",
+        config: {},
+      }),
+    )
+    expect(noKindIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "config.kind",
+          message: "kind must be shell.",
+        }),
+      ]),
+    )
+
+    const noShellIssues = validateWorkflowNodeConfig(
+      createNode({
+        type: "action",
+        config: { kind: "shell" },
+      }),
+    )
+    expect(noShellIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "config.shell",
+          message: "shell config is required when kind is shell.",
+        }),
+      ]),
+    )
+
+    const emptyCommandIssues = validateWorkflowNodeConfig(
+      createNode({
+        type: "action",
+        config: { kind: "shell", shell: { command: "" } },
+      }),
+    )
+    expect(emptyCommandIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "config.shell.command",
+          message: "shell.command must be a non-empty string.",
+        }),
+      ]),
+    )
+
+    const badArgsIssues = validateWorkflowNodeConfig(
+      createNode({
+        type: "action",
+        config: { kind: "shell", shell: { command: "echo", args: [1] } },
+      }),
+    )
+    expect(badArgsIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "config.shell.args",
+          message: "shell.args must be an array of strings.",
+        }),
+      ]),
+    )
+
+    const badTimeoutIssues = validateWorkflowNodeConfig(
+      createNode({
+        type: "action",
+        config: {
+          kind: "shell",
+          shell: { command: "echo", args: ["hi"] },
+          timeoutMs: -1,
+        },
+      }),
+    )
+    expect(badTimeoutIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "config.timeoutMs",
+          message: "timeoutMs must be a positive number.",
+        }),
+      ]),
+    )
+  })
+
+  it("accepts a valid action node config", () => {
+    const issues = validateWorkflowNodeConfig(
+      createNode({
+        type: "action",
+        config: {
+          kind: "shell",
+          shell: { command: "npm", args: ["test"], cwd: "./packages" },
+          timeoutMs: 60_000,
+        },
+      }),
+    )
+    expect(issues).toEqual([])
+  })
+
   it("validates input and output enums", () => {
     const inputIssues = validateWorkflowNodeConfig(
       createNode({

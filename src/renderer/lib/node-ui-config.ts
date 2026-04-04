@@ -7,6 +7,7 @@ import {
   Hand,
   Merge,
   MessageSquare,
+  Terminal,
   type LucideIcon,
   Zap,
 } from "lucide-react"
@@ -20,6 +21,7 @@ export const NODE_ICONS: Record<NodeType, LucideIcon> = {
   merger: Merge,
   approval: Hand,
   human: MessageSquare,
+  action: Terminal,
 }
 
 export const NODE_LABELS: Record<NodeType, string> = {
@@ -31,6 +33,7 @@ export const NODE_LABELS: Record<NodeType, string> = {
   merger: "Merge",
   approval: "Approval",
   human: "Human input",
+  action: "Action",
 }
 
 export const NODE_ICON_TONES: Record<NodeType, string> = {
@@ -43,4 +46,5 @@ export const NODE_ICON_TONES: Record<NodeType, string> = {
   merger: "border-status-success/25 bg-status-success/8 text-status-success",
   approval: "border-status-danger/22 bg-status-danger/8 text-status-danger",
   human: "border-status-warning/30 bg-status-warning/10 text-status-warning",
+  action: "border-foreground/15 bg-foreground/5 text-foreground-subtle",
 }

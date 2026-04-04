@@ -83,6 +83,7 @@ export function usePastRunTimeline(
       const loadAllRuns = async () => {
         const allMessages: FlowChatMessage[] = []
 
+        const lastRunIndex = chatRuns.length - 1
         for (let i = 0; i < chatRuns.length; i++) {
           const run = chatRuns[i]
           if (!run.workspace) continue
@@ -100,10 +101,24 @@ export function usePastRunTimeline(
                 persisted.messages as FlowChatMessage[],
               )
               // Tag each message with runIndex matching its position in chatRuns
-              const tagged = processed.map((m) => ({
-                ...m,
-                runIndex: m.runIndex ?? i,
-              }))
+              // and mark earlier runs' completion as compact
+              const isPastRun = i < lastRunIndex
+              const tagged = processed.map((m) => {
+                const tagged = { ...m, runIndex: m.runIndex ?? i }
+                if (
+                  isPastRun &&
+                  tagged.content.type === "complete"
+                ) {
+                  return {
+                    ...tagged,
+                    content: {
+                      ...tagged.content,
+                      data: { ...tagged.content.data, compact: true },
+                    },
+                  }
+                }
+                return tagged
+              })
               allMessages.push(...tagged)
             }
             // If no persisted timeline, skip (don't synthesize for multi-run)

@@ -52,6 +52,8 @@ export interface CompleteContent {
   tone?: "success" | "warning" | "neutral"
   stepCount?: number
   heroArtifactContent?: string | null
+  /** When true, render as a compact one-liner (earlier run in a multi-run thread) */
+  compact?: boolean
 }
 
 export interface ErrorContent {
@@ -163,6 +165,7 @@ export interface StepNarrativeBranch {
   toolDigest?: ToolDigestEntry[]
   toolActions?: ToolActionEntry[]
   summary?: string
+  output?: string
 }
 
 export type FlowChatMessageContent =

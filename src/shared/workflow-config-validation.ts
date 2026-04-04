@@ -1,4 +1,4 @@
-import type { Workflow, WorkflowNode, PermissionMode } from "./types"
+import type { Workflow, WorkflowNode, PermissionMode, ActionKind } from "./types"
 
 export interface WorkflowConfigIssue {
   nodeId: string
@@ -28,6 +28,7 @@ const HUMAN_REJECT_ACTIONS = new Set([
   "fail_node",
   "complete_with_reject_response",
 ])
+const ACTION_KINDS = new Set<ActionKind>(["shell"])
 
 const ALLOWED_CONFIG_KEYS = {
   input: new Set([
@@ -80,6 +81,7 @@ const ALLOWED_CONFIG_KEYS = {
     "runtime",
   ]),
   output: new Set(["title", "format", "runtime"]),
+  action: new Set(["kind", "shell", "timeoutMs", "runtime"]),
 } as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -504,6 +506,85 @@ export function validateWorkflowNodeConfig(
           node.id,
           "config.format",
           "format must be markdown or text.",
+        )
+      }
+      break
+    }
+    case "action": {
+      if (!ACTION_KINDS.has(String(config.kind) as ActionKind)) {
+        pushIssue(
+          issues,
+          node.id,
+          "config.kind",
+          "kind must be shell.",
+        )
+      }
+      if (config.kind === "shell") {
+        if (!isRecord(config.shell)) {
+          pushIssue(
+            issues,
+            node.id,
+            "config.shell",
+            "shell config is required when kind is shell.",
+          )
+        } else {
+          if (
+            typeof config.shell.command !== "string" ||
+            (config.shell.command as string).trim().length === 0
+          ) {
+            pushIssue(
+              issues,
+              node.id,
+              "config.shell.command",
+              "shell.command must be a non-empty string.",
+            )
+          }
+          if (
+            hasOwn(config.shell as Record<string, unknown>, "args") &&
+            !isStringArray((config.shell as Record<string, unknown>).args)
+          ) {
+            pushIssue(
+              issues,
+              node.id,
+              "config.shell.args",
+              "shell.args must be an array of strings.",
+            )
+          }
+          if (
+            hasOwn(config.shell as Record<string, unknown>, "cwd") &&
+            typeof (config.shell as Record<string, unknown>).cwd !== "string"
+          ) {
+            pushIssue(
+              issues,
+              node.id,
+              "config.shell.cwd",
+              "shell.cwd must be a string.",
+            )
+          }
+          if (
+            hasOwn(config.shell as Record<string, unknown>, "env") &&
+            !isRecord((config.shell as Record<string, unknown>).env)
+          ) {
+            pushIssue(
+              issues,
+              node.id,
+              "config.shell.env",
+              "shell.env must be an object.",
+            )
+          }
+        }
+      }
+      if (
+        hasOwn(config, "timeoutMs") &&
+        (typeof config.timeoutMs !== "number" ||
+          !Number.isFinite(config.timeoutMs) ||
+          config.timeoutMs <= 0)
+      ) {
+        pushIssue(
+          issues,
+          node.id,
+          "config.timeoutMs",
+          "timeoutMs must be a positive number.",
         )
       }
       break

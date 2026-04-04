@@ -160,7 +160,7 @@ export function FlowDecisionMessage({
       </div>
 
       {/* Summary */}
-      <p className="text-body-lg text-foreground-subtle">{data.summary}</p>
+      <p className="text-body-md text-foreground-subtle">{data.summary}</p>
 
       {/* RESULT + ISSUES slab */}
       {hasResultOrIssues && (
@@ -174,7 +174,7 @@ export function FlowDecisionMessage({
                 {data.resultFacts.map((fact, i) => (
                   <li
                     key={i}
-                    className="text-body-lg text-foreground-subtle flex items-start gap-1.5"
+                    className="text-body-md text-foreground-subtle flex items-start gap-1.5"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                     {fact}
@@ -192,7 +192,7 @@ export function FlowDecisionMessage({
                 {data.issues.map((issue, i) => (
                   <li
                     key={i}
-                    className="text-body-lg text-status-warning flex items-start gap-1.5"
+                    className="text-body-md text-status-warning flex items-start gap-1.5"
                   >
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-status-warning/60" />
                     {issue}
