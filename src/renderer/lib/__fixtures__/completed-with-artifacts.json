@@ -1,0 +1,56 @@
+{
+  "input": {
+    "snapshot": {
+      "nodeStates": {
+        "research": { "status": "completed", "attempts": 1, "log": [] },
+        "write": { "status": "completed", "attempts": 1, "log": [] }
+      },
+      "runtimeNodes": [
+        { "id": "in", "type": "input", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "research", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "researcher", "prompt": "" } },
+        { "id": "write", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "writer", "prompt": "" } },
+        { "id": "out", "type": "output", "position": { "x": 0, "y": 0 }, "config": { "title": "Result" } }
+      ]
+    },
+    "runResult": {
+      "runId": "run-artifacts",
+      "status": "completed",
+      "workflowName": "Research Flow",
+      "startedAt": 1000000,
+      "completedAt": 1120000,
+      "reportPath": "/workspace/report.md",
+      "workspace": "/tmp/ws",
+      "durationMs": 120000,
+      "totalCost": 0.12
+    },
+    "flowName": "Research Flow",
+    "reportContent": "# Research Report\n\nKey findings from the analysis..."
+  },
+  "expected": {
+    "length": 3,
+    "messages": [
+      { "content": { "type": "start" } },
+      {
+        "content": {
+          "type": "progress",
+          "data": {
+            "collapsed": true,
+            "collapsedLabel": "All 2 steps completed · 2m"
+          }
+        }
+      },
+      {
+        "content": {
+          "type": "complete",
+          "data": {
+            "artifacts": [
+              { "name": "report.md", "path": "/workspace/report.md", "kind": "report" }
+            ],
+            "heroArtifactContent": "# Research Report\n\nKey findings from the analysis...",
+            "metrics": { "duration": "2 min", "cost": "$0.12" }
+          }
+        }
+      }
+    ]
+  }
+}

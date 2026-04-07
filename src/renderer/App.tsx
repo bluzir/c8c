@@ -499,8 +499,10 @@ const AppShell = memo(function AppShell() {
           applyDeepLinkTemplate()
         }}
       />
-      <ApprovalDialog />
-      {unsavedChangesDialog}
+      <SectionErrorBoundary sectionName="Dialogs">
+        <ApprovalDialog />
+        {unsavedChangesDialog}
+      </SectionErrorBoundary>
     </div>
   )
 })

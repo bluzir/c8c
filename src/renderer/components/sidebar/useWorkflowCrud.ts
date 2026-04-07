@@ -14,7 +14,6 @@ import { toastError, toastErrorFromCatch } from "@/lib/toast-error"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
 import {
-  clearAllRoutingStateAtom,
   selectedInboxTaskKeyAtom,
   workflowOpenStateAtom,
 } from "@/lib/store"
@@ -23,6 +22,7 @@ import {
   toWorkflowExecutionKey,
 } from "@/features/execution"
 import { getRequestedResultFromEntryState } from "@/lib/workflow-entry"
+import { commitNavigationAtom } from "@/lib/navigation"
 
 interface UseWorkflowCrudParams {
   selectedProject: string | null
@@ -164,7 +164,7 @@ export function useWorkflowCrud({
   const selectSequenceRef = useRef(0)
   const setWorkflowOpenState = useSetAtom(workflowOpenStateAtom)
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
-  const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
+  const commitNavigation = useSetAtom(commitNavigationAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
   const setViewMode = useSetAtom(viewModeAtom)
   const setInputValue = useSetAtom(inputValueAtom)
@@ -288,15 +288,13 @@ export function useWorkflowCrud({
       return
     }
 
-    clearAllRoutingState()
-
-    if (projectPath && selectedProject !== projectPath) {
-      setSelectedProject(projectPath)
-    }
+    commitNavigation({
+      kind: "workflow",
+      workflowPath: workflow.path,
+      projectPath: projectPath ?? selectedProject ?? "",
+    })
 
     const seq = ++selectSequenceRef.current
-    setMainView("thread")
-    setViewMode("chat")
     const loadingToastId = toast.loading("Opening flow...")
     setWorkflowOpenState({
       status: "loading",

@@ -94,6 +94,14 @@ export function workflowHasActiveRunStatus(status?: string): boolean {
   )
 }
 
+export function isActiveWorkflowBaseState(
+  baseState: SidebarWorkflowBaseState,
+): boolean {
+  return (
+    baseState === "running" || baseState === "paused" || baseState === "blocked"
+  )
+}
+
 export function latestRunByWorkflowPath(
   pastRuns: RunResult[],
 ): Map<string, RunResult> {

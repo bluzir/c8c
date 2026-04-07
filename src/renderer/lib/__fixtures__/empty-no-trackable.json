@@ -1,0 +1,32 @@
+{
+  "input": {
+    "snapshot": {
+      "nodeStates": {
+        "in": { "status": "completed", "attempts": 1, "log": [] },
+        "out": { "status": "completed", "attempts": 1, "log": [] }
+      },
+      "runtimeNodes": [
+        { "id": "in", "type": "input", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "out", "type": "output", "position": { "x": 0, "y": 0 }, "config": { "title": "Result" } }
+      ]
+    },
+    "runResult": {
+      "runId": "run-empty",
+      "status": "completed",
+      "workflowName": "Empty Flow",
+      "startedAt": 1000000,
+      "completedAt": 1005000,
+      "reportPath": "",
+      "workspace": "/tmp/ws",
+      "durationMs": 5000,
+      "totalCost": 0.001
+    },
+    "flowName": "Empty Flow"
+  },
+  "expected": {
+    "length": 1,
+    "messages": [
+      { "content": { "type": "complete" } }
+    ]
+  }
+}

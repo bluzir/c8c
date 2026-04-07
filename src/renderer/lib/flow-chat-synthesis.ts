@@ -44,7 +44,8 @@ export function buildProgressStepsFromSnapshot(
   const { nodes, nodeStates, runtimeMeta, activeNodeId } = input
 
   const trackableNodes = nodes.filter(
-    (n) => n.type !== "input" && n.type !== "output" && n.type !== "merger",
+    (n) =>
+      n.type && n.type !== "input" && n.type !== "output" && n.type !== "merger",
   )
 
   if (trackableNodes.length === 0) {

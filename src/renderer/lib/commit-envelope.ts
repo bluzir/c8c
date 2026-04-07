@@ -12,11 +12,6 @@ import {
   workflowEntryStateAtom,
   workflowQueuedAutoRunPathAtom,
   mainViewAtom,
-  chatRoutingProgressAtom,
-  workflowCreateDraftPromptAtom,
-  workflowCreatePromptScaffoldAtom,
-  workflowCreateSourceArtifactsAtom,
-  workflowCreateSourceAttachmentsAtom,
   setWorkflowContinuationEntryStateForKeyAtom,
   setWorkflowRequestedResultForKeyAtom,
   setWorkflowTemplateContextForKeyAtom,
@@ -25,14 +20,18 @@ import {
   pastRunSnapshotAtom,
   selectedPastRunAtom,
 } from "@/features/execution/state"
-import { selectedChatIdAtom } from "./chat-atoms"
+import {
+  chatRegistryAtom,
+  selectedChatIdAtom,
+  updateChatInRegistryAtom,
+} from "./chat-atoms"
 import { workflowSnapshot } from "./workflow-snapshot"
 import { toWorkflowExecutionKey } from "./workflow-execution"
 import {
   getRequestedResultFromEntryState,
   hasSavedWorkContinuationContext,
 } from "./workflow-entry"
-import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "./workflow-create-prompt"
+import { EPHEMERAL_RESETS } from "./navigation"
 
 // ── commitEnvelopeAtom ──────────────────────────────────
 //
@@ -42,7 +41,7 @@ import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "./workflow-create-prompt"
 
 export const commitEnvelopeAtom = atom(
   null,
-  (_get, set, envelope: RunEnvelope) => {
+  (get, set, envelope: RunEnvelope) => {
     const {
       workflowPath,
       workflow,
@@ -52,6 +51,9 @@ export const commitEnvelopeAtom = atom(
       entryState,
       templateContext,
     } = envelope
+
+    // Reset all ephemeral state (chat, routing, batch, create-surface)
+    for (const [a, v] of EPHEMERAL_RESETS) set(a, v)
 
     // Project + workflow identity
     set(selectedProjectAtom, intent.projectPath)
@@ -93,17 +95,16 @@ export const commitEnvelopeAtom = atom(
     // Navigation
     set(viewModeAtom, "chat")
     set(mainViewAtom, "thread")
-    set(chatRoutingProgressAtom, null)
 
-    // Chat identity
+    // Chat identity — also stamp workflowPath on the chat record so sidebar
+    // can navigate back even if the run never completes.
     if (envelope.chatId) {
       set(selectedChatIdAtom, envelope.chatId)
+      const registry = get(chatRegistryAtom)
+      const chat = registry[envelope.chatId]
+      if (chat && !chat.workflowPath) {
+        set(updateChatInRegistryAtom, { ...chat, workflowPath })
+      }
     }
-
-    // Clear create-surface state so the composer starts fresh
-    set(workflowCreateDraftPromptAtom, "")
-    set(workflowCreatePromptScaffoldAtom, EMPTY_WORKFLOW_CREATE_SCAFFOLD)
-    set(workflowCreateSourceArtifactsAtom, [])
-    set(workflowCreateSourceAttachmentsAtom, [])
   },
 )

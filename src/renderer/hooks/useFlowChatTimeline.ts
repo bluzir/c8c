@@ -262,7 +262,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
         id: "synthetic-user-routing",
         role: "user",
         content: routingRequest,
-        timestamp: Date.now() - 2000, // before routing message
+        timestamp: Date.now() - 5000, // before routing message
       }
     }
     // Follow-up click — the label persists after routing completes (unlike
@@ -275,7 +275,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
         id: "synthetic-user-followup",
         role: "user",
         content: followUpLabel,
-        timestamp: firstFlowTs - 2000, // before any flow messages
+        timestamp: firstFlowTs - 5000, // before any flow messages
       }
     }
     // After routing completed — show the input value if we have a routing entry
@@ -291,7 +291,7 @@ export function useFlowChatTimeline(messages: ChatMessageDisplay[]) {
         id: "synthetic-user-input",
         role: "user",
         content: inputValue.trim(),
-        timestamp: firstFlowTs - 2000, // before any flow messages
+        timestamp: firstFlowTs - 5000, // before any flow messages
       }
     }
     return null

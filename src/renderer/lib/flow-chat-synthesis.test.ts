@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "fs"
+import { join } from "path"
 import { describe, it, expect } from "vitest"
 import {
   buildProgressStepsFromSnapshot,
@@ -133,6 +135,20 @@ describe("buildProgressStepsFromSnapshot", () => {
 
     expect(result.steps).toHaveLength(0)
     expect(result.description).toBe("")
+  })
+
+  it("filters out nodes with undefined type", () => {
+    const nodes = [
+      makeSkillNode("s1", "worker"),
+      { id: "bad", position: { x: 0, y: 0 }, config: {} } as unknown as WorkflowNode,
+    ]
+    const nodeStates: Record<string, NodeState> = {
+      s1: { status: "completed", attempts: 1, log: [] },
+      bad: { status: "completed", attempts: 1, log: [] },
+    }
+    const result = buildProgressStepsFromSnapshot({ nodes, nodeStates })
+    expect(result.steps).toHaveLength(1)
+    expect(result.steps[0].nodeId).toBe("s1")
   })
 
   it("builds description with 'and N more' for >4 nodes", () => {
@@ -282,4 +298,23 @@ describe("synthesizeTimelineFromRun", () => {
     const progressData = messages[1].content.data as ProgressContent
     expect(progressData.collapsedLabel).toContain("1/2 steps completed")
   })
+})
+
+// ── Fixture-driven scenarios ─────────────────────────────
+
+describe("fixture scenarios", () => {
+  const dir = join(__dirname, "__fixtures__")
+  const files = readdirSync(dir).filter((f) => f.endsWith(".json"))
+
+  for (const file of files) {
+    it(`matches: ${file}`, () => {
+      const fixture = JSON.parse(readFileSync(join(dir, file), "utf-8"))
+      const result = synthesizeTimelineFromRun(fixture.input)
+
+      expect(result).toHaveLength(fixture.expected.length)
+      for (let i = 0; i < fixture.expected.messages.length; i++) {
+        expect(result[i]).toMatchObject(fixture.expected.messages[i])
+      }
+    })
+  }
 })

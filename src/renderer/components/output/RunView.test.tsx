@@ -2,9 +2,10 @@
 
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { WorkflowNode, NodeState } from "@shared/types"
+import type { NodeState } from "@shared/types"
 import type { VerdictData } from "@/components/output/useVerdictData"
 import type { RunViewProps } from "./RunView"
+import { makeSkillNode, makeNodeState } from "@/test-utils"
 
 // Mock child components to isolate RunView orchestration logic
 vi.mock("./StepsList", () => ({
@@ -27,25 +28,6 @@ vi.mock("./FinalResultSection", () => ({
 
 // Import after mocks are set up
 const { RunView } = await import("./RunView")
-
-function makeSkillNode(id: string): WorkflowNode {
-  return {
-    id,
-    type: "skill",
-    position: { x: 0, y: 0 },
-    config: { prompt: "Do something" },
-  } as WorkflowNode
-}
-
-function makeNodeState(
-  overrides: Partial<NodeState> & Pick<NodeState, "status">,
-): NodeState {
-  return {
-    attempts: 1,
-    log: [],
-    ...overrides,
-  }
-}
 
 function createVerdictData(overrides: Partial<VerdictData> = {}): VerdictData {
   return {

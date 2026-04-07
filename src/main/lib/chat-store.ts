@@ -48,7 +48,7 @@ function parseChat(raw: unknown): Chat | null {
     return null
   }
 
-  return {
+  const chat: Chat = {
     id: parsed.id,
     name: parsed.name,
     projectPath: parsed.projectPath,
@@ -58,6 +58,13 @@ function parseChat(raw: unknown): Chat | null {
     runs: parsed.runs as ChatRun[],
     artifactPool: parsed.artifactPool as string[],
   }
+  if (typeof parsed.workflowPath === "string") {
+    chat.workflowPath = parsed.workflowPath
+  }
+  if (typeof parsed.lastUserPrompt === "string") {
+    chat.lastUserPrompt = parsed.lastUserPrompt
+  }
+  return chat
 }
 
 function toSummary(chat: Chat): ChatSummary {

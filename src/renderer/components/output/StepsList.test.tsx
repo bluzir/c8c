@@ -5,39 +5,10 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { StepsList } from "./StepsList"
 import type {
-  WorkflowNode,
   NodeState,
   WorkflowRuntimeMeta,
-  EvaluationResult,
 } from "@shared/types"
-
-function makeSkillNode(id: string, prompt = "Do something"): WorkflowNode {
-  return {
-    id,
-    type: "skill",
-    position: { x: 0, y: 0 },
-    config: { prompt },
-  } as WorkflowNode
-}
-
-function makeSplitterNode(id: string): WorkflowNode {
-  return {
-    id,
-    type: "splitter",
-    position: { x: 0, y: 0 },
-    config: { strategy: "parallel", maxBranches: 5 },
-  } as WorkflowNode
-}
-
-function makeNodeState(
-  overrides: Partial<NodeState> & Pick<NodeState, "status">,
-): NodeState {
-  return {
-    attempts: 1,
-    log: [],
-    ...overrides,
-  }
-}
+import { makeSkillNode, makeSplitterNode, makeNodeState } from "@/test-utils"
 
 describe("StepsList", () => {
   afterEach(cleanup)

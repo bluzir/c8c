@@ -1,5 +1,5 @@
 import type { WorkflowFile } from "@shared/types"
-import { Loader2 } from "lucide-react"
+import { FileText, Loader2 } from "lucide-react"
 import { cn } from "@/lib/cn"
 import type { SidebarWorkflowNotificationTone } from "./projectSidebarUtils"
 
@@ -78,6 +78,11 @@ export function SidebarWorkflowRow({
           )}
         >
           <span className="flex min-w-0 items-center gap-1.5">
+            <FileText
+              size={12}
+              className="text-muted-foreground flex-shrink-0"
+              aria-hidden="true"
+            />
             <span
               className={cn(
                 "truncate flex-1 text-sidebar-item",

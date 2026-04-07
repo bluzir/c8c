@@ -1,0 +1,64 @@
+{
+  "input": {
+    "snapshot": {
+      "nodeStates": {
+        "split": { "status": "completed", "attempts": 1, "log": [] },
+        "branch-0": { "status": "completed", "attempts": 1, "log": [] },
+        "branch-1": { "status": "completed", "attempts": 1, "log": [] },
+        "branch-2": { "status": "completed", "attempts": 1, "log": [] }
+      },
+      "runtimeNodes": [
+        { "id": "in", "type": "input", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "split", "type": "splitter", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "branch-0", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "worker", "prompt": "" } },
+        { "id": "branch-1", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "worker", "prompt": "" } },
+        { "id": "branch-2", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "worker", "prompt": "" } },
+        { "id": "merge", "type": "merger", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "out", "type": "output", "position": { "x": 0, "y": 0 }, "config": { "title": "Result" } }
+      ],
+      "runtimeMeta": {
+        "branch-0": { "splitterId": "split", "subtaskKey": "b0", "branchIndex": 0, "totalBranches": 3, "templateId": "split" },
+        "branch-1": { "splitterId": "split", "subtaskKey": "b1", "branchIndex": 1, "totalBranches": 3, "templateId": "split" },
+        "branch-2": { "splitterId": "split", "subtaskKey": "b2", "branchIndex": 2, "totalBranches": 3, "templateId": "split" }
+      }
+    },
+    "runResult": {
+      "runId": "run-splitter",
+      "status": "completed",
+      "workflowName": "Parallel Flow",
+      "startedAt": 1000000,
+      "completedAt": 1090000,
+      "reportPath": "",
+      "workspace": "/tmp/ws",
+      "durationMs": 90000,
+      "totalCost": 0.09
+    },
+    "flowName": "Parallel Flow"
+  },
+  "expected": {
+    "length": 3,
+    "messages": [
+      { "content": { "type": "start" } },
+      {
+        "content": {
+          "type": "progress",
+          "data": {
+            "collapsed": true,
+            "steps": [
+              {
+                "nodeId": "split",
+                "status": "done",
+                "subSteps": [
+                  { "key": "branch-0", "done": true },
+                  { "key": "branch-1", "done": true },
+                  { "key": "branch-2", "done": true }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      { "content": { "type": "complete" } }
+    ]
+  }
+}

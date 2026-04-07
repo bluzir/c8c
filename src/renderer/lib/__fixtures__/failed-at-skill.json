@@ -1,0 +1,52 @@
+{
+  "input": {
+    "snapshot": {
+      "nodeStates": {
+        "research": { "status": "failed", "attempts": 1, "log": [] },
+        "write": { "status": "pending", "attempts": 0, "log": [] }
+      },
+      "runtimeNodes": [
+        { "id": "in", "type": "input", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "research", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "researcher", "prompt": "" } },
+        { "id": "write", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "writer", "prompt": "" } },
+        { "id": "out", "type": "output", "position": { "x": 0, "y": 0 }, "config": { "title": "Result" } }
+      ]
+    },
+    "runResult": {
+      "runId": "run-failed",
+      "status": "failed",
+      "workflowName": "Fail Flow",
+      "startedAt": 1000000,
+      "completedAt": 1030000,
+      "reportPath": "",
+      "workspace": "/tmp/ws",
+      "durationMs": 30000,
+      "totalCost": 0.01,
+      "failedNodeId": "research"
+    },
+    "flowName": "Fail Flow"
+  },
+  "expected": {
+    "length": 3,
+    "messages": [
+      { "content": { "type": "start" } },
+      {
+        "content": {
+          "type": "progress",
+          "data": {
+            "collapsed": true,
+            "collapsedLabel": "0/2 steps completed · 30s"
+          }
+        }
+      },
+      {
+        "content": {
+          "type": "error",
+          "data": {
+            "variant": "error"
+          }
+        }
+      }
+    ]
+  }
+}

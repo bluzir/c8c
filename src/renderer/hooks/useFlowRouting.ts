@@ -360,25 +360,7 @@ export function useFlowRouting(): UseFlowRoutingReturn {
       const currentSourceAttachments =
         options?.sourceAttachments ?? sourceAttachments
 
-      const sourceContext =
-        currentSourceArtifacts.length > 0
-          ? (() => {
-              const flowName =
-                currentSourceArtifacts[0]?.workflowName ||
-                currentSourceArtifacts[0]?.templateName ||
-                "flow"
-              const maxItems = 10
-              const items = currentSourceArtifacts.slice(0, maxItems)
-              const list = items
-                .map((a) => `${a.relativePath} (${a.title})`)
-                .join(", ")
-              const suffix =
-                currentSourceArtifacts.length > maxItems
-                  ? ` and ${currentSourceArtifacts.length - maxItems} more`
-                  : ""
-              return `Previous run completed: ${flowName} — produced ${list}${suffix}`
-            })()
-          : undefined
+      const sourceContext = buildSourceContext(currentSourceArtifacts)
 
       // Compute route options from available templates
       const allTemplates = await window.api.listTemplates(targetProjectPath)
@@ -499,16 +481,11 @@ export function useFlowRouting(): UseFlowRoutingReturn {
             ? allTemplates
             : await window.api.listTemplates(targetProjectPath)
         if (catalog.length > 0) setTemplatesCatalog(catalog)
-        const startTemplate =
-          (routeResult
-            ? catalog.find(
-                (template) => template.id === routeResult.recommendedTemplateId,
-              )
-            : null) ||
-          catalog.find(
-            (template) => template.id === selectedResultMode.startTemplateId,
-          ) ||
-          null
+        const startTemplate = resolveStartTemplate(
+          routeResult,
+          catalog,
+          selectedResultMode.startTemplateId,
+        )
 
         if (isGuidedRouting && startTemplate) {
           setChatRoutingProgress({
@@ -675,4 +652,48 @@ export function useFlowRouting(): UseFlowRoutingReturn {
     selectClarification,
     resetRoutingState,
   }
+}
+
+/**
+ * Resolve which template to start from, given a route result and a catalog.
+ * Priority: routeResult.recommendedTemplateId → startTemplateId fallback → null.
+ */
+export function resolveStartTemplate(
+  routeResult: { recommendedTemplateId?: string } | null,
+  catalog: WorkflowTemplate[],
+  startTemplateId: string | undefined,
+): WorkflowTemplate | null {
+  return (
+    (routeResult
+      ? catalog.find((t) => t.id === routeResult.recommendedTemplateId)
+      : null) ||
+    catalog.find((t) => t.id === startTemplateId) ||
+    null
+  )
+}
+
+/**
+ * Build a human-readable summary of previous run artifacts for the router's context.
+ */
+export function buildSourceContext(
+  sourceArtifacts: Pick<
+    ArtifactRecord,
+    "relativePath" | "title" | "workflowName" | "templateName"
+  >[],
+): string | undefined {
+  if (sourceArtifacts.length === 0) return undefined
+  const flowName =
+    sourceArtifacts[0]?.workflowName ||
+    sourceArtifacts[0]?.templateName ||
+    "flow"
+  const maxItems = 10
+  const items = sourceArtifacts.slice(0, maxItems)
+  const list = items
+    .map((a) => `${a.relativePath} (${a.title})`)
+    .join(", ")
+  const suffix =
+    sourceArtifacts.length > maxItems
+      ? ` and ${sourceArtifacts.length - maxItems} more`
+      : ""
+  return `Previous run completed: ${flowName} — produced ${list}${suffix}`
 }

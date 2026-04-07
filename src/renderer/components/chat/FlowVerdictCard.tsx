@@ -45,6 +45,7 @@ export function FlowVerdictCard({
   const headline = heroArtifact?.name ?? "Flow complete"
   const heroPath = heroArtifact?.path || null
   const hasHeroContent = !!data.heroArtifactContent
+  const canOpenViewer = !!(heroPath || hasHeroContent)
 
   const openViewer = useCallback(() => {
     if (!heroPath) return
@@ -73,8 +74,8 @@ export function FlowVerdictCard({
         <span className="ui-meta-text text-muted-foreground">{flowName}</span>
       </div>
 
-      {/* Headline — clickable when artifact has a path */}
-      {heroPath ? (
+      {/* Headline — clickable when we can open a viewer */}
+      {canOpenViewer ? (
         <button
           type="button"
           className="flex items-center gap-1.5 text-title-sm text-foreground hover:text-accent-foreground ui-pressable ui-motion-fast text-left"
@@ -186,7 +187,7 @@ export function FlowVerdictCard({
         </Button>
       </div>
 
-      {/* Inline result viewer dialog */}
+      {/* Inline result viewer dialog — only mount when a file path exists */}
       {heroPath && (
         <ContentDocViewer
           open={viewerOpen}
@@ -207,14 +208,16 @@ export function FlowVerdictCard({
                 <span className="ui-meta-text text-muted-foreground">
                   {flowName}
                 </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 ui-pressable ui-meta-text text-muted-foreground hover:text-foreground ui-motion-fast"
-                  onClick={() => onOpenReport?.(heroPath)}
-                >
-                  <ExternalLink size={10} />
-                  Open file
-                </button>
+                {heroPath && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 ui-pressable ui-meta-text text-muted-foreground hover:text-foreground ui-motion-fast"
+                    onClick={() => onOpenReport?.(heroPath)}
+                  >
+                    <ExternalLink size={10} />
+                    Open file
+                  </button>
+                )}
               </div>
             </ContentDocViewerHeader>
           }

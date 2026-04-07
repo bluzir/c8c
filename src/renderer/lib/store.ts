@@ -1,5 +1,6 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
+import { validatedAtomWithStorage } from "./validated-atom"
 import {
   createDefaultDesktopMenuState,
   type DesktopMenuState,
@@ -130,13 +131,25 @@ function defaultDesktopRuntime(): DesktopRuntimeInfo {
   }
 }
 
+// ── Shared Validators ────────────────────────────────────
+
+const isNullableString = (v: unknown): v is string | null =>
+  v === null || typeof v === 'string'
+
+const isStringRecord = (v: unknown): v is Record<string, string> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) &&
+  Object.values(v as Record<string, unknown>).every(val => typeof val === 'string')
+
+const isNumberRecord = (v: unknown): v is Record<string, number> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) &&
+  Object.values(v as Record<string, unknown>).every(val => typeof val === 'number')
+
 // ── Atoms ────────────────────────────────────────────────
 
 // Project management
 export const projectsAtom = atom<string[]>([])
-export const selectedProjectAtom = atomWithStorage<string | null>(
-  "c8c:selected-project",
-  null,
+export const selectedProjectAtom = validatedAtomWithStorage<string | null>(
+  "c8c:selected-project", null, isNullableString,
 )
 export const expandedProjectsAtom = atomWithStorage<string[]>(
   "c8c:expanded-projects",
@@ -192,9 +205,8 @@ export const markChatSidebarRunSeenAtom = atom(
     })
   },
 )
-export const selectedWorkflowPathAtom = atomWithStorage<string | null>(
-  "c8c:selectedWorkflowPath",
-  null,
+export const selectedWorkflowPathAtom = validatedAtomWithStorage<string | null>(
+  "c8c:selectedWorkflowPath", null, isNullableString,
 )
 
 /** Reverse-lookup: find chat ID that owns the currently selected workflow path */
@@ -345,12 +357,6 @@ export const followUpLabelAtom = atom<string | null>(null)
  */
 export const chatPendingRoutingPromptAtom = atom<string | null>(null)
 
-/** Write-only atom that clears all routing/creation state in one shot. */
-export const clearAllRoutingStateAtom = atom(null, (_get, set) => {
-  set(chatRoutingProgressAtom, null)
-  set(chatPendingRoutingPromptAtom, null)
-  set(followUpLabelAtom, null)
-})
 
 export const inputAttachmentsAtom = atom<InputAttachment[]>([])
 export const selectedNodeIdAtom = atom<string | null>(null)
@@ -367,17 +373,30 @@ export const outputSurfaceCommandStateAtom = atom<OutputSurfaceCommandState>(
 )
 
 // Global execution defaults (applied to new/generated workflows)
-export const globalExecutionDefaultsAtom = atomWithStorage<{
+interface ExecutionDefaults {
   model: string
   maxTurns: number
   timeout_minutes: number
   maxParallel: number
-}>("c8c:global-execution-defaults", {
-  model: "sonnet",
-  maxTurns: 120,
-  timeout_minutes: 30,
-  maxParallel: 8,
-})
+}
+
+function isExecutionDefaults(v: unknown): v is ExecutionDefaults {
+  if (typeof v !== "object" || v === null) return false
+  const o = v as Record<string, unknown>
+  return (
+    typeof o.model === "string" &&
+    typeof o.maxTurns === "number" &&
+    typeof o.timeout_minutes === "number" &&
+    typeof o.maxParallel === "number"
+  )
+}
+
+export const globalExecutionDefaultsAtom =
+  validatedAtomWithStorage<ExecutionDefaults>(
+    "c8c:global-execution-defaults",
+    { model: "sonnet", maxTurns: 120, timeout_minutes: 30, maxParallel: 8 },
+    isExecutionDefaults,
+  )
 export const globalDetailBudgetAtom = atomWithStorage<number>(
   "c8c:global-detail-budget",
   DEFAULT_DETAIL_BUDGET,
@@ -522,19 +541,16 @@ export type MainView =
   | "onboarding"
 export const mainViewAtom = atom<MainView>("thread")
 
-export const selectedFactoryCaseIdAtom = atomWithStorage<string | null>(
-  "c8c:selected-factory-case-id",
-  null,
+export const selectedFactoryCaseIdAtom = validatedAtomWithStorage<string | null>(
+  "c8c:selected-factory-case-id", null, isNullableString,
 )
 
-export const selectedFactoryIdAtom = atomWithStorage<string | null>(
-  "c8c:selected-factory-id",
-  null,
+export const selectedFactoryIdAtom = validatedAtomWithStorage<string | null>(
+  "c8c:selected-factory-id", null, isNullableString,
 )
 
-export const selectedInboxTaskKeyAtom = atomWithStorage<string | null>(
-  "c8c:selected-inbox-task-key",
-  null,
+export const selectedInboxTaskKeyAtom = validatedAtomWithStorage<string | null>(
+  "c8c:selected-inbox-task-key", null, isNullableString,
 )
 
 // ── Inbox / Notification Memory ───────────────────────
@@ -576,10 +592,26 @@ export type CreateInboxNotification = Omit<
 const MAX_INBOX_NOTIFICATIONS = 150
 const INBOX_DEDUPE_WINDOW_MS = 15_000
 
-export const inboxNotificationsAtom = atomWithStorage<InboxNotification[]>(
-  "c8c:inbox-notifications-v2",
-  [],
-)
+function isInboxNotificationArray(v: unknown): v is InboxNotification[] {
+  return (
+    Array.isArray(v) &&
+    v.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof (item as InboxNotification).id === "string" &&
+        typeof (item as InboxNotification).title === "string" &&
+        typeof (item as InboxNotification).createdAt === "number",
+    )
+  )
+}
+
+export const inboxNotificationsAtom =
+  validatedAtomWithStorage<InboxNotification[]>(
+    "c8c:inbox-notifications-v2",
+    [],
+    isInboxNotificationArray,
+  )
 
 function areInboxActionsEqual(
   left: InboxNotificationAction | undefined,
@@ -747,13 +779,20 @@ export const workflowCreateContextAtom = atom<{
 })
 export const templateLibraryContextAtom =
   atom<TemplateLibraryContextState | null>(null)
-export const selectedResultModeIdAtom = atomWithStorage<ResultModeId>(
+export const selectedResultModeIdAtom = validatedAtomWithStorage<ResultModeId>(
   "c8c:selected-result-mode-id",
   "development",
+  (v): v is ResultModeId => typeof v === 'string',
 )
-export const workflowCreateModeConfigsAtom = atomWithStorage<
+export const workflowCreateModeConfigsAtom = validatedAtomWithStorage<
   Record<string, Record<string, string>>
->("c8c:workflow-create-mode-configs", {})
+>(
+  "c8c:workflow-create-mode-configs",
+  {},
+  (v): v is Record<string, Record<string, string>> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v) &&
+    Object.values(v as Record<string, unknown>).every(isStringRecord),
+)
 export const workflowCreateDraftPromptAtom = atom("")
 export const workflowCreatePromptScaffoldAtom =
   atom<WorkflowCreatePromptScaffold>(EMPTY_WORKFLOW_CREATE_SCAFFOLD)
@@ -763,11 +802,28 @@ export const workflowCreatePendingMessageAtom = atom<Record<string, string>>({})
 export const workflowCreatePendingEntryAtom = atom<Record<string, string>>({})
 export const workflowQueuedAutoRunPathAtom = atom<string | null>(null)
 export const queuedFollowUpTemplateIdAtom = atom<string | null>(null)
-export const workflowEntryStateAtom =
-  atomWithStorage<WorkflowEntryState | null>("c8c:workflow-entry-state", null)
-export const workflowContinuationEntryStatesAtom = atomWithStorage<
-  Record<string, WorkflowEntryState>
->("c8c:workflow-continuation-entry-states", {})
+export const workflowEntryStateAtom = validatedAtomWithStorage<WorkflowEntryState | null>(
+  "c8c:workflow-entry-state",
+  null,
+  (v): v is WorkflowEntryState | null =>
+    v === null || (typeof v === 'object' && v !== null && 'workflowName' in v && 'source' in v),
+)
+function isWorkflowEntryStateRecord(
+  v: unknown,
+): v is Record<string, WorkflowEntryState> {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return false
+  return Object.values(v).every(
+    (entry) =>
+      typeof entry === "object" && entry !== null && "workflowPath" in entry,
+  )
+}
+
+export const workflowContinuationEntryStatesAtom =
+  validatedAtomWithStorage<Record<string, WorkflowEntryState>>(
+    "c8c:workflow-continuation-entry-states",
+    {},
+    isWorkflowEntryStateRecord,
+  )
 export const selectedWorkflowContinuationEntryStateAtom = atom(
   (get) =>
     get(workflowContinuationEntryStatesAtom)[
@@ -838,9 +894,9 @@ export const clearWorkflowContinuationEntryStateForKeyAtom = atom(
     set(workflowContinuationEntryStatesAtom, next)
   },
 )
-export const workflowRequestedResultsAtom = atomWithStorage<
-  Record<string, string>
->("c8c:workflow-requested-results", {})
+export const workflowRequestedResultsAtom = validatedAtomWithStorage<Record<string, string>>(
+  "c8c:workflow-requested-results", {}, isStringRecord,
+)
 export const requestedResultAtom = atom(
   (get) => {
     const workflowPath = get(selectedWorkflowPathAtom)
@@ -912,9 +968,17 @@ export const clearWorkflowRequestedResultForKeyAtom = atom(
     set(workflowRequestedResultsAtom, updated)
   },
 )
-export const workflowTemplateContextsAtom = atomWithStorage<
+export const workflowTemplateContextsAtom = validatedAtomWithStorage<
   Record<string, WorkflowTemplateRunContext>
->("c8c:workflow-template-contexts", {})
+>(
+  "c8c:workflow-template-contexts",
+  {},
+  (v): v is Record<string, WorkflowTemplateRunContext> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v) &&
+    Object.values(v as Record<string, unknown>).every(
+      (entry) => typeof entry === 'object' && entry !== null && 'templateId' in entry,
+    ),
+)
 export const selectedWorkflowTemplateContextAtom = atom(
   (get) =>
     get(workflowTemplateContextsAtom)[
@@ -1010,9 +1074,8 @@ export const chatPanelOpenAtom = atomWithStorage<boolean>(
 )
 export const chatPanelWidthAtom = atomWithStorage<number>("c8c:chat-width", 380)
 
-export const runRatingsAtom = atomWithStorage<Record<string, number>>(
-  "c8c:run-ratings",
-  {},
+export const runRatingsAtom = validatedAtomWithStorage<Record<string, number>>(
+  "c8c:run-ratings", {}, isNumberRecord,
 )
 
 export const chatFilePicksAtom = atom<

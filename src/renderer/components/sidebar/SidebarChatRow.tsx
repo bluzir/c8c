@@ -64,20 +64,13 @@ export function SidebarChatRow({
           <span className="min-w-0 flex-1 truncate text-sidebar-item">
             {chat.name}
           </span>
-          {hasNewRun && !dot && (
+          {hasNewRun && (
             <span
               role="img"
-              aria-label="New run result"
-              className="inline-flex h-2 w-2 shrink-0 rounded-full bg-status-info"
-            />
-          )}
-          {dot && (
-            <span
-              role="img"
-              aria-label={hasNewRun ? `New: ${chat.latestRunStatus}` : `Status: ${chat.latestRunStatus}`}
+              aria-label={`New: ${chat.latestRunStatus ?? "run"}`}
               className={cn(
                 "inline-flex h-2 w-2 shrink-0 rounded-full ui-transition-colors ui-motion-fast",
-                dot,
+                dot || "bg-status-info",
                 chat.latestRunStatus === "running" && "animate-pulse",
               )}
             />

@@ -486,3 +486,83 @@ describe("Group E: App Restart", () => {
     expect(store.get(selectedChatAtom)).toBeNull()
   })
 })
+
+// ── Group F: Chat Selection Pipeline ─────────────────────
+
+describe("Group F: Chat Selection Pipeline", () => {
+  it("F1: Chat with runs → sets workflowPath from latest run", () => {
+    const store = createStore()
+
+    const chat = buildChat("c1", {
+      runs: [
+        buildChatRun("r1", { workflowPath: "/test/.c8c/old.chain" }),
+        buildChatRun("r2", { workflowPath: "/test/.c8c/latest.chain" }),
+      ],
+    })
+    store.set(chatRegistryAtom, { c1: chat })
+
+    // Action: simulate handleChatSelect
+    store.set(selectedChatIdAtom, "c1")
+    const latestRun = chat.runs[chat.runs.length - 1]
+    store.set(selectedWorkflowPathAtom, latestRun.workflowPath)
+    store.set(mainViewAtom, "thread")
+    store.set(viewModeAtom, "chat")
+
+    // Assert
+    expect(store.get(selectedWorkflowPathAtom)).toBe(
+      "/test/.c8c/latest.chain",
+    )
+    expect(store.get(selectedChatIdAtom)).toBe("c1")
+    // derivedWorkflowPathAtom should agree
+    expect(store.get(derivedWorkflowPathAtom)).toBe(
+      "/test/.c8c/latest.chain",
+    )
+  })
+
+  it("F2: Chat with 0 runs + workflowPath → sets workflowPath from chat.workflowPath", () => {
+    const store = createStore()
+
+    const chat = buildChat("c1", {
+      runs: [],
+      workflowPath: "/test/.c8c/stamped.chain",
+    })
+    store.set(chatRegistryAtom, { c1: chat })
+
+    // Action: simulate handleChatSelect for interrupted chat
+    store.set(selectedChatIdAtom, "c1")
+    // With 0 runs, handleChatSelect uses chat.workflowPath
+    const workflowPath = chat.workflowPath ?? null
+    store.set(selectedWorkflowPathAtom, workflowPath)
+    store.set(mainViewAtom, "thread")
+    store.set(viewModeAtom, "chat")
+
+    // Assert
+    expect(store.get(selectedWorkflowPathAtom)).toBe(
+      "/test/.c8c/stamped.chain",
+    )
+    expect(store.get(derivedWorkflowPathAtom)).toBe(
+      "/test/.c8c/stamped.chain",
+    )
+  })
+
+  it("F3: Chat with 0 runs + no workflowPath → sets null", () => {
+    const store = createStore()
+
+    const chat = buildChat("c1", {
+      runs: [],
+      // no workflowPath
+    })
+    store.set(chatRegistryAtom, { c1: chat })
+
+    // Action: simulate handleChatSelect for empty chat
+    store.set(selectedChatIdAtom, "c1")
+    // With 0 runs and no chat.workflowPath, there's nothing to set
+    store.set(selectedWorkflowPathAtom, null)
+    store.set(mainViewAtom, "thread")
+    store.set(viewModeAtom, "chat")
+
+    // Assert
+    expect(store.get(selectedWorkflowPathAtom)).toBeNull()
+    expect(store.get(derivedWorkflowPathAtom)).toBeNull()
+  })
+})

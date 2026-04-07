@@ -81,7 +81,18 @@ describe("chat atoms", () => {
     expect(store.get(derivedWorkflowPathAtom)).toBe("/path/b.chain")
   })
 
-  it("derivedWorkflowPathAtom returns null when chat has no runs", () => {
+  it("derivedWorkflowPathAtom falls back to chat.workflowPath when runs is empty", () => {
+    const store = createStore()
+    const chat = buildChat("c1", {
+      runs: [],
+      workflowPath: "/path/foo.chain",
+    })
+    store.set(chatRegistryAtom, { c1: chat })
+    store.set(selectedChatIdAtom, "c1")
+    expect(store.get(derivedWorkflowPathAtom)).toBe("/path/foo.chain")
+  })
+
+  it("derivedWorkflowPathAtom returns null when chat has no runs and no workflowPath", () => {
     const store = createStore()
     store.set(chatRegistryAtom, { c1: buildChat("c1") })
     store.set(selectedChatIdAtom, "c1")

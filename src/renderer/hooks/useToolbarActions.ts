@@ -13,6 +13,7 @@ import {
   moveWorkflowTemplateContextAtom,
   selectedInboxTaskKeyAtom,
 } from "@/lib/store"
+import { resetEphemeralStateAtom } from "@/lib/navigation"
 import {
   clearWorkflowExecutionStateAtom,
   moveWorkflowExecutionStateAtom,
@@ -71,6 +72,7 @@ export function useToolbarActions({
   )
   const setSelectedInboxTaskKey = useSetAtom(selectedInboxTaskKeyAtom)
   const setSelectedPastRun = useSetAtom(selectedPastRunAtom)
+  const resetEphemeral = useSetAtom(resetEphemeralStateAtom)
   const refreshProjectData = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       if (!selectedProject) return
@@ -294,10 +296,9 @@ export function useToolbarActions({
       clearWorkflowRequestedResultForKey(
         toWorkflowExecutionKey(result.filePath),
       )
+      resetEphemeral()
       setCurrentWorkflow(result.chain)
       setSelectedWorkflowPath(null)
-      setSelectedInboxTaskKey(null)
-      setSelectedPastRun(null)
       setWorkflowSavedSnapshot(workflowSnapshot(createEmptyWorkflow()))
       clearWorkflowTemplateContextForKey(
         toWorkflowExecutionKey(result.filePath),
@@ -405,9 +406,8 @@ export function useToolbarActions({
       )
       clearWorkflowTemplateContextForKey(toWorkflowExecutionKey(workflowPath))
       clearWorkflowRequestedResultForKey(toWorkflowExecutionKey(workflowPath))
+      resetEphemeral()
       setSelectedWorkflowPath(null)
-      setSelectedInboxTaskKey(null)
-      setSelectedPastRun(null)
       setCurrentWorkflow(createEmptyWorkflow())
       setWorkflowSavedSnapshot(workflowSnapshot(createEmptyWorkflow()))
       await refreshProjectData({ silent: true })

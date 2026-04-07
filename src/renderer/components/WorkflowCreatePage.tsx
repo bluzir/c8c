@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button"
 import { ProcessSpine } from "@/components/ui/process-spine"
 import { PromptComposer } from "@/components/ui/prompt-composer"
 import { PageHeader, PageShell } from "@/components/ui/page-shell"
+import { SectionErrorBoundary } from "@/components/ui/error-boundary"
 import { useUnsavedChangesDialog } from "@/hooks/useUnsavedChangesDialog"
 import { selectedPastRunAtom } from "@/features/execution"
 import { createEmptyWorkflow } from "@/lib/default-workflow"
@@ -912,6 +913,7 @@ export function WorkflowCreatePage() {
   }
 
   return (
+    <SectionErrorBoundary sectionName="Create flow">
     <PageShell className="flex min-h-full flex-col space-y-6">
       <PageHeader
         title="Start a flow"
@@ -1168,5 +1170,6 @@ export function WorkflowCreatePage() {
         }}
       />
     </PageShell>
+    </SectionErrorBoundary>
   )
 }

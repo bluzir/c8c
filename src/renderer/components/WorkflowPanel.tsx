@@ -4,6 +4,7 @@ import { useWorkflowWithUndo } from "@/hooks/useWorkflowWithUndo"
 import {
   chatFlowInputRequestAtom,
   chatStatusAtom,
+  selectedChatIdAtom,
   selectedProjectAtom,
   selectedInboxTaskKeyAtom,
   selectedWorkflowPathAtom,
@@ -66,7 +67,6 @@ import {
   WorkflowOpenLoadingState,
 } from "./workflow-panel/WorkflowPanelChrome"
 import { workflowHasMeaningfulContent } from "@/lib/workflow-content"
-import { useWorkflowReset } from "@/hooks/useWorkflowReset"
 import { useExecutionReset } from "@/hooks/useExecutionReset"
 import { useWorkflowValidation } from "@/hooks/useWorkflowValidation"
 import { useUndoRedo } from "@/hooks/useUndoRedo"
@@ -132,6 +132,7 @@ function mergeTemplatesById(
 
 export function WorkflowPanel() {
   const [selectedProject] = useAtom(selectedProjectAtom)
+  const [selectedChatId] = useAtom(selectedChatIdAtom)
   const [selectedInboxTaskKey, setSelectedInboxTaskKey] = useAtom(
     selectedInboxTaskKeyAtom,
   )
@@ -289,7 +290,6 @@ export function WorkflowPanel() {
     idleReviewAutoScrollKeyRef,
   })
 
-  useWorkflowReset()
   useWorkflowValidation()
   useUndoRedo()
   const {
@@ -1097,6 +1097,7 @@ export function WorkflowPanel() {
 
   if (
     !selectedWorkflowPath &&
+    !selectedChatId &&
     !hasMeaningfulContent &&
     viewMode !== "settings"
   ) {
@@ -1155,6 +1156,7 @@ export function WorkflowPanel() {
               />
             )}
 
+            <SectionErrorBoundary sectionName="Flow steps">
             <Tabs
               value={viewMode}
               onValueChange={(next) => setViewMode(next as "list" | "settings")}
@@ -1241,10 +1243,13 @@ export function WorkflowPanel() {
                 outputPanelProps={sharedOutputPanelProps}
               />
             </Tabs>
+            </SectionErrorBoundary>
           </>
         )}
 
-        <BatchPanel />
+        <SectionErrorBoundary sectionName="Batch panel">
+          <BatchPanel />
+        </SectionErrorBoundary>
         <WorkflowPanelDialogs
           skillPickerStageLabel={
             effectiveResumeHeader && !showEntryEditor

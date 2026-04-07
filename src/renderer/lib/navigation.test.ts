@@ -7,8 +7,7 @@ import {
 
 function createOps() {
   return {
-    setChatRoutingProgress: vi.fn() as NavigationOps["setChatRoutingProgress"],
-    setChatPendingRoutingPrompt: vi.fn() as NavigationOps["setChatPendingRoutingPrompt"],
+    resetEphemeralState: vi.fn() as NavigationOps["resetEphemeralState"],
     setSelectedPastRun: vi.fn() as NavigationOps["setSelectedPastRun"],
     setSelectedInboxTaskKey: vi.fn() as NavigationOps["setSelectedInboxTaskKey"],
     setSelectedProject: vi.fn() as NavigationOps["setSelectedProject"],
@@ -37,8 +36,7 @@ describe("applyNavigation", () => {
 
         applyNavigation(target, ops)
 
-        expect(ops.setChatRoutingProgress).toHaveBeenCalledWith(null)
-        expect(ops.setChatPendingRoutingPrompt).toHaveBeenCalledWith(null)
+        expect(ops.resetEphemeralState).toHaveBeenCalled()
         expect(ops.setSelectedPastRun).toHaveBeenCalledWith(null)
         expect(ops.setSelectedInboxTaskKey).toHaveBeenCalledWith(null)
       })

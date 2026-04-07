@@ -1,0 +1,52 @@
+{
+  "input": {
+    "snapshot": {
+      "nodeStates": {
+        "research": { "status": "completed", "attempts": 1, "log": [] },
+        "check": { "status": "failed", "attempts": 3, "log": [] }
+      },
+      "runtimeNodes": [
+        { "id": "in", "type": "input", "position": { "x": 0, "y": 0 }, "config": {} },
+        { "id": "research", "type": "skill", "position": { "x": 0, "y": 0 }, "config": { "skillRef": "researcher", "prompt": "" } },
+        { "id": "check", "type": "evaluator", "position": { "x": 0, "y": 0 }, "config": { "criteria": "accuracy", "threshold": 7 } },
+        { "id": "out", "type": "output", "position": { "x": 0, "y": 0 }, "config": { "title": "Result" } }
+      ]
+    },
+    "runResult": {
+      "runId": "run-eval-retry",
+      "status": "failed",
+      "workflowName": "Eval Flow",
+      "startedAt": 1000000,
+      "completedAt": 1180000,
+      "reportPath": "",
+      "workspace": "/tmp/ws",
+      "durationMs": 180000,
+      "totalCost": 0.15,
+      "failedNodeId": "check"
+    },
+    "flowName": "Eval Flow"
+  },
+  "expected": {
+    "length": 3,
+    "messages": [
+      { "content": { "type": "start" } },
+      {
+        "content": {
+          "type": "progress",
+          "data": {
+            "collapsed": true,
+            "collapsedLabel": "1/2 steps completed · 3m"
+          }
+        }
+      },
+      {
+        "content": {
+          "type": "error",
+          "data": {
+            "variant": "error"
+          }
+        }
+      }
+    ]
+  }
+}

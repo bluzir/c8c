@@ -5,6 +5,7 @@ import {
   useState,
   type MutableRefObject,
 } from "react"
+import { useStableSubscription } from "./useStableSubscription"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import {
   chatMessagesAtom,
@@ -22,6 +23,7 @@ import {
   type ChatMessageDisplay,
 } from "@/lib/store"
 import { workflowSnapshot } from "@/lib/workflow-snapshot"
+import { selectedChatIdAtom } from "@/lib/chat-atoms"
 import type {
   ChatConversation,
   ChatSessionMessage,
@@ -209,6 +211,7 @@ export function useChatSession() {
   const setWorkflowSavedSnapshot = useSetAtom(workflowSavedSnapshotAtom)
   const [workflowPath] = useAtom(selectedWorkflowPathAtom)
   const [selectedProject] = useAtom(selectedProjectAtom)
+  const selectedChatId = useAtomValue(selectedChatIdAtom)
   const [pendingCreateEntry, setPendingCreateEntry] = useAtom(
     workflowCreatePendingEntryAtom,
   )
@@ -277,262 +280,245 @@ export function useChatSession() {
     )
   }, [setMessages])
 
-  // Subscribe to chat events
-  useEffect(() => {
-    const cleanup = window.api.onChatEvent((event) => {
-      const currentWorkflowPath = workflowPathRef.current
-      if (!currentWorkflowPath || event.workflowPath !== currentWorkflowPath)
-        return
+  // Subscribe to chat events — stable subscription avoids re-subscribe gaps
+  // during active streaming. Handler ref always has fresh closure values.
+  useStableSubscription(window.api.onChatEvent, (event) => {
+    const currentWorkflowPath = workflowPathRef.current
+    if (!currentWorkflowPath || event.workflowPath !== currentWorkflowPath)
+      return
 
-      const currentSessionId = sessionIdRef.current
+    const currentSessionId = sessionIdRef.current
 
-      if (currentSessionId) {
-        if (event.sessionId !== currentSessionId) return
-      } else {
-        const canAcceptSession =
-          statusRef.current === "thinking" || statusRef.current === "streaming"
-        if (!canAcceptSession) return
+    if (currentSessionId) {
+      if (event.sessionId !== currentSessionId) return
+    } else {
+      const canAcceptSession =
+        statusRef.current === "thinking" || statusRef.current === "streaming"
+      if (!canAcceptSession) return
 
-        const pendingSessionId = pendingSessionRef.current
-        if (pendingSessionId && pendingSessionId !== event.sessionId) return
+      const pendingSessionId = pendingSessionRef.current
+      if (pendingSessionId && pendingSessionId !== event.sessionId) return
 
-        if (!pendingSessionId) {
-          pendingSessionRef.current = event.sessionId
-          sessionIdRef.current = event.sessionId
-          setSessionId(event.sessionId)
-        }
+      if (!pendingSessionId) {
+        pendingSessionRef.current = event.sessionId
+        sessionIdRef.current = event.sessionId
+        setSessionId(event.sessionId)
+      }
+    }
+
+    switch (event.type) {
+      case "text-delta": {
+        streamingTextRef.current += event.content
+        setActiveToolName(null)
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          const displayContent = sanitizeAssistantText(
+            streamingTextRef.current,
+            { streaming: true },
+          )
+          if (last && last.role === "assistant" && last.streaming) {
+            return [
+              ...prev.slice(0, -1),
+              { ...last, content: displayContent },
+            ]
+          }
+          return prev
+        })
+        statusRef.current = "streaming"
+        setStatus("streaming")
+        break
       }
 
-      switch (event.type) {
-        case "text-delta": {
-          streamingTextRef.current += event.content
-          setActiveToolName(null)
-          setMessages((prev) => {
-            const last = prev[prev.length - 1]
-            const displayContent = sanitizeAssistantText(
-              streamingTextRef.current,
-              { streaming: true },
-            )
-            if (last && last.role === "assistant" && last.streaming) {
-              return [
-                ...prev.slice(0, -1),
-                { ...last, content: displayContent },
-              ]
-            }
-            return prev
-          })
-          statusRef.current = "streaming"
-          setStatus("streaming")
-          break
+      case "thinking": {
+        statusRef.current = "thinking"
+        setStatus("thinking")
+        break
+      }
+
+      case "tool-call": {
+        setActiveToolName(event.toolName)
+        const toolMsg: ChatMessageDisplay = {
+          id: nextLocalMessageId(`tc-${event.toolCallId}`),
+          role: "tool_call",
+          content: "",
+          timestamp: Date.now(),
+          toolName: event.toolName,
+          toolInput: event.toolInput,
+          toolCallId: event.toolCallId,
         }
+        setMessages((prev) => [...prev, toolMsg])
+        break
+      }
 
-        case "thinking": {
-          statusRef.current = "thinking"
-          setStatus("thinking")
-          break
+      case "tool-result": {
+        setActiveToolName(null)
+        const resultMsg: ChatMessageDisplay = {
+          id: nextLocalMessageId(`tr-${event.toolCallId}`),
+          role: "tool_result",
+          content: event.toolOutput || event.toolError || "",
+          timestamp: Date.now(),
+          toolName: event.toolName,
+          toolCallId: event.toolCallId,
+          toolOutput: event.toolOutput,
+          toolError: event.toolError,
         }
+        setMessages((prev) => [...prev, resultMsg])
+        break
+      }
 
-        case "tool-call": {
-          setActiveToolName(event.toolName)
-          const toolMsg: ChatMessageDisplay = {
-            id: nextLocalMessageId(`tc-${event.toolCallId}`),
-            role: "tool_call",
-            content: "",
-            timestamp: Date.now(),
-            toolName: event.toolName,
-            toolInput: event.toolInput,
-            toolCallId: event.toolCallId,
-          }
-          setMessages((prev) => [...prev, toolMsg])
-          break
-        }
-
-        case "tool-result": {
-          setActiveToolName(null)
-          const resultMsg: ChatMessageDisplay = {
-            id: nextLocalMessageId(`tr-${event.toolCallId}`),
-            role: "tool_result",
-            content: event.toolOutput || event.toolError || "",
-            timestamp: Date.now(),
-            toolName: event.toolName,
-            toolCallId: event.toolCallId,
-            toolOutput: event.toolOutput,
-            toolError: event.toolError,
-          }
-          setMessages((prev) => [...prev, resultMsg])
-          break
-        }
-
-        case "workflow-mutated": {
-          if (!isWorkflowPayload(event.workflow)) {
-            toastError("Received an invalid flow update from the Agent.")
-            addNotification({
-              title: "Agent sent an invalid flow update",
-              level: "error",
-              source: "agent",
-            })
-            break
-          }
-
-          const nextWorkflow = event.workflow
-          if (!workflowRef.current) {
-            applyPersistedWorkflow(nextWorkflow)
-            break
-          }
-
-          // Push current workflow to undo stack before applying mutation.
-          const snapshot = structuredClone(workflowRef.current)
-          setUndoStack((prev) => [...prev.slice(-19), snapshot])
-
-          applyPersistedWorkflow(nextWorkflow)
-
-          const mutationWorkflowPath = workflowPathRef.current
-          const pendingRequest = mutationWorkflowPath
-            ? pendingCreateEntry[mutationWorkflowPath]
-            : null
-          if (pendingRequest && mutationWorkflowPath) {
-            setWorkflowEntryState(
-              buildGeneratedWorkflowEntryState({
-                workflow: nextWorkflow,
-                workflowPath: mutationWorkflowPath,
-                request: pendingRequest,
-                source: "agent_create",
-              }),
-            )
-            setPendingCreateEntry((prev) => {
-              const next = { ...prev }
-              delete next[mutationWorkflowPath]
-              return next
-            })
-          }
-          toast.success("Flow updated from Agent", {
-            action: {
-              label: "Undo",
-              onClick: () => {
-                if (workflowPathRef.current !== mutationWorkflowPath) {
-                  toastError("Undo is only available for the current flow")
-                  return
-                }
-                setUndoStack((prev) => {
-                  if (prev.length === 0) return prev
-                  const last = prev[prev.length - 1]
-                  if (last !== snapshot) return prev
-                  restoreWorkflowFromUndo(last)
-                  return prev.slice(0, -1)
-                })
-              },
-            },
-            duration: 5000,
-          })
-          break
-        }
-
-        case "message-complete": {
-          streamingTextRef.current = ""
-          const content = sanitizeAssistantText(event.message.content)
-          setMessages((prev) => {
-            const filtered = prev.filter(
-              (m) => !(m.role === "assistant" && m.streaming),
-            )
-            if (!content.trim()) {
-              return filtered
-            }
-            return [
-              ...filtered,
-              {
-                id: event.message.id,
-                role: "assistant",
-                content,
-                timestamp: event.message.timestamp,
-              },
-            ]
-          })
-          break
-        }
-
-        case "turn-complete": {
-          if (isWorkflowPayload(event.workflow)) {
-            applyPersistedWorkflow(event.workflow)
-          }
-          const currentWorkflow = workflowPathRef.current
-          const pendingRequest = currentWorkflow
-            ? pendingCreateEntry[currentWorkflow]
-            : null
-          if (
-            currentWorkflow &&
-            pendingRequest &&
-            hasGeneratedWorkflowSteps(workflowRef.current)
-          ) {
-            setWorkflowEntryState(
-              buildGeneratedWorkflowEntryState({
-                workflow: workflowRef.current,
-                workflowPath: currentWorkflow,
-                request: pendingRequest,
-                source: "agent_create",
-              }),
-            )
-          }
-          if (currentWorkflow && pendingRequest) {
-            setPendingCreateEntry((prev) => {
-              const next = { ...prev }
-              delete next[currentWorkflow]
-              return next
-            })
-          }
-          removeStreamingPlaceholder()
-          resetLocalSessionState()
-          break
-        }
-
-        case "error": {
-          const currentWorkflow = workflowPathRef.current
-          if (currentWorkflow && pendingCreateEntry[currentWorkflow]) {
-            setPendingCreateEntry((prev) => {
-              const next = { ...prev }
-              delete next[currentWorkflow]
-              return next
-            })
-          }
-          removeStreamingPlaceholder()
-          resetLocalSessionState()
-          toastError(event.content || "Agent error")
+      case "workflow-mutated": {
+        if (!isWorkflowPayload(event.workflow)) {
+          toastError("Received an invalid flow update from the Agent.")
           addNotification({
-            title: "Agent error",
-            description: event.content || "Agent error",
+            title: "Agent sent an invalid flow update",
             level: "error",
             source: "agent",
           })
-          // Persist error in chat history as a system message
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `error-${Date.now()}`,
-              role: "assistant" as const,
-              content: `**Agent error:** ${event.content || "Agent error"}`,
-              timestamp: Date.now(),
-            },
-          ])
           break
         }
-      }
-    })
 
-    return cleanup
-  }, [
-    addNotification,
-    applyPersistedWorkflow,
-    nextLocalMessageId,
-    pendingCreateEntry,
-    removeStreamingPlaceholder,
-    resetLocalSessionState,
-    restoreWorkflowFromUndo,
-    setMessages,
-    setPendingCreateEntry,
-    setSessionId,
-    setStatus,
-    setUndoStack,
-    setWorkflowEntryState,
-  ])
+        const nextWorkflow = event.workflow
+        if (!workflowRef.current) {
+          applyPersistedWorkflow(nextWorkflow)
+          break
+        }
+
+        // Push current workflow to undo stack before applying mutation.
+        const snapshot = structuredClone(workflowRef.current)
+        setUndoStack((prev) => [...prev.slice(-19), snapshot])
+
+        applyPersistedWorkflow(nextWorkflow)
+
+        const mutationWorkflowPath = workflowPathRef.current
+        const pendingRequest = mutationWorkflowPath
+          ? pendingCreateEntry[mutationWorkflowPath]
+          : null
+        if (pendingRequest && mutationWorkflowPath) {
+          setWorkflowEntryState(
+            buildGeneratedWorkflowEntryState({
+              workflow: nextWorkflow,
+              workflowPath: mutationWorkflowPath,
+              request: pendingRequest,
+              source: "agent_create",
+            }),
+          )
+          setPendingCreateEntry((prev) => {
+            const next = { ...prev }
+            delete next[mutationWorkflowPath]
+            return next
+          })
+        }
+        toast.success("Flow updated from Agent", {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              if (workflowPathRef.current !== mutationWorkflowPath) {
+                toastError("Undo is only available for the current flow")
+                return
+              }
+              setUndoStack((prev) => {
+                if (prev.length === 0) return prev
+                const last = prev[prev.length - 1]
+                if (last !== snapshot) return prev
+                restoreWorkflowFromUndo(last)
+                return prev.slice(0, -1)
+              })
+            },
+          },
+          duration: 5000,
+        })
+        break
+      }
+
+      case "message-complete": {
+        streamingTextRef.current = ""
+        const content = sanitizeAssistantText(event.message.content)
+        setMessages((prev) => {
+          const filtered = prev.filter(
+            (m) => !(m.role === "assistant" && m.streaming),
+          )
+          if (!content.trim()) {
+            return filtered
+          }
+          return [
+            ...filtered,
+            {
+              id: event.message.id,
+              role: "assistant",
+              content,
+              timestamp: event.message.timestamp,
+            },
+          ]
+        })
+        break
+      }
+
+      case "turn-complete": {
+        if (isWorkflowPayload(event.workflow)) {
+          applyPersistedWorkflow(event.workflow)
+        }
+        const currentWorkflow = workflowPathRef.current
+        const pendingRequest = currentWorkflow
+          ? pendingCreateEntry[currentWorkflow]
+          : null
+        if (
+          currentWorkflow &&
+          pendingRequest &&
+          hasGeneratedWorkflowSteps(workflowRef.current)
+        ) {
+          setWorkflowEntryState(
+            buildGeneratedWorkflowEntryState({
+              workflow: workflowRef.current,
+              workflowPath: currentWorkflow,
+              request: pendingRequest,
+              source: "agent_create",
+            }),
+          )
+        }
+        if (currentWorkflow && pendingRequest) {
+          setPendingCreateEntry((prev) => {
+            const next = { ...prev }
+            delete next[currentWorkflow]
+            return next
+          })
+        }
+        removeStreamingPlaceholder()
+        resetLocalSessionState()
+        break
+      }
+
+      case "error": {
+        const currentWorkflow = workflowPathRef.current
+        if (currentWorkflow && pendingCreateEntry[currentWorkflow]) {
+          setPendingCreateEntry((prev) => {
+            const next = { ...prev }
+            delete next[currentWorkflow]
+            return next
+          })
+        }
+        removeStreamingPlaceholder()
+        resetLocalSessionState()
+        toastError(event.content || "Agent error")
+        addNotification({
+          title: "Agent error",
+          description: event.content || "Agent error",
+          level: "error",
+          source: "agent",
+        })
+        // Persist error in chat history as a system message
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            role: "assistant" as const,
+            content: `**Agent error:** ${event.content || "Agent error"}`,
+            timestamp: Date.now(),
+          },
+        ])
+        break
+      }
+    }
+  })
 
   // Load history when workflow changes
   useEffect(() => {
@@ -637,6 +623,7 @@ export function useChatSession() {
     applyPersistedWorkflow,
     pendingCreateEntry,
     resetLocalSessionState,
+    selectedChatId,
     setMessages,
     setPendingCreateEntry,
     setSessionId,

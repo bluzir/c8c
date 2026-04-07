@@ -1839,6 +1839,10 @@ export interface Chat {
   archived: boolean
   runs: ChatRun[]
   artifactPool: string[]
+  /** Primary workflow path — set when routing commits, before any run completes */
+  workflowPath?: string
+  /** The user prompt that created this chat — persisted so interrupted routing can resume */
+  lastUserPrompt?: string
 }
 
 /** One flow run within a chat */

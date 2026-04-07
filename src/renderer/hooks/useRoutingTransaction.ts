@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from "react"
-import { useSetAtom } from "jotai"
+import { useAtomValue, useSetAtom } from "jotai"
 import type { RoutingIntent, RoutingEvent } from "@shared/routing-types"
 import { commitEnvelopeAtom } from "@/lib/commit-envelope"
+import { chatRegistryAtom } from "@/lib/chat-atoms"
 import {
   chatRoutingProgressAtom,
   chatFlowInputRequestAtom,
@@ -22,6 +23,9 @@ function cleanIpcError(error: unknown): string {
 
 export function useRoutingTransaction() {
   const commitEnvelope = useSetAtom(commitEnvelopeAtom)
+  const chatRegistry = useAtomValue(chatRegistryAtom)
+  const chatRegistryRef = useRef(chatRegistry)
+  chatRegistryRef.current = chatRegistry
   const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const setChatFlowInputRequest = useSetAtom(chatFlowInputRequestAtom)
   const [dispatching, setDispatching] = useState(false)
@@ -79,6 +83,14 @@ export function useRoutingTransaction() {
           if (activeSessionRef.current !== sessionId) return
           // Atomic commit — sets all atoms at once
           commitEnvelope(envelope)
+          // Persist workflowPath on the chat record so it survives app restart
+          if (envelope.chatId && envelope.workflowPath) {
+            const chat = chatRegistryRef.current[envelope.chatId]
+            if (chat && !chat.workflowPath) {
+              const updated = { ...chat, workflowPath: envelope.workflowPath }
+              window.api.saveChat(intent.projectPath, updated).catch(() => {})
+            }
+          }
           // Auto-run if the envelope says so (follow-ups)
           if (envelope.autoRun) {
             setChatFlowInputRequest({ kind: "run" })

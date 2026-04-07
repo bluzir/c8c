@@ -25,7 +25,8 @@ import type {
   WorkflowTemplateRunContext,
   ChatRunHistory,
 } from "@shared/types"
-import { selectedChatIdAtom } from "./chat-atoms"
+import { selectedChatIdAtom, chatRegistryAtom } from "./chat-atoms"
+import type { Chat } from "@shared/types"
 import { EMPTY_WORKFLOW_CREATE_SCAFFOLD } from "./workflow-create-prompt"
 import { workflowSnapshot } from "./workflow-snapshot"
 
@@ -200,5 +201,49 @@ describe("commitEnvelopeAtom", () => {
     const envelope = buildMockEnvelope() // no chatId
     store.set(commitEnvelopeAtom, envelope)
     expect(store.get(selectedChatIdAtom)).toBe("existing-chat")
+  })
+
+  it("stamps workflowPath on chat when chatId matches registry entry", () => {
+    const store = createStore()
+    const chat: Chat = {
+      id: "chat-stamp-1",
+      name: "Test Chat",
+      projectPath: "/tmp/project",
+      createdAt: 1000,
+      lastActivityAt: 2000,
+      archived: false,
+      runs: [],
+      artifactPool: [],
+      // no workflowPath
+    }
+    store.set(chatRegistryAtom, { "chat-stamp-1": chat })
+
+    const envelope = buildMockEnvelope({ chatId: "chat-stamp-1" })
+    store.set(commitEnvelopeAtom, envelope)
+
+    const updated = store.get(chatRegistryAtom)["chat-stamp-1"]
+    expect(updated.workflowPath).toBe(envelope.workflowPath)
+  })
+
+  it("skips stamping when chat already has workflowPath", () => {
+    const store = createStore()
+    const chat: Chat = {
+      id: "chat-stamp-2",
+      name: "Test Chat",
+      projectPath: "/tmp/project",
+      createdAt: 1000,
+      lastActivityAt: 2000,
+      archived: false,
+      runs: [],
+      artifactPool: [],
+      workflowPath: "/existing/path.chain",
+    }
+    store.set(chatRegistryAtom, { "chat-stamp-2": chat })
+
+    const envelope = buildMockEnvelope({ chatId: "chat-stamp-2" })
+    store.set(commitEnvelopeAtom, envelope)
+
+    const updated = store.get(chatRegistryAtom)["chat-stamp-2"]
+    expect(updated.workflowPath).toBe("/existing/path.chain")
   })
 })

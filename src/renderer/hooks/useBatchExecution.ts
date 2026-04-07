@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from "react"
+import { useStableSubscription } from "./useStableSubscription"
 import { useAtom, useSetAtom } from "jotai"
 import {
   batchStatusAtom,
@@ -272,19 +273,15 @@ export function useBatchExecution() {
     ],
   )
 
-  useEffect(() => {
-    const unsubscribe = window.api.onBatchEvent((event: BatchEvent) => {
-      const currentBatchId = batchIdRef.current
-      if (currentBatchId) {
-        if (event.batchId !== currentBatchId) return
-        processBatchEvent(event)
-        return
-      }
-      if (pendingBatchRef.current) pendingBatchEventsRef.current.push(event)
-    })
-
-    return unsubscribe
-  }, [processBatchEvent])
+  useStableSubscription(window.api.onBatchEvent, (event: BatchEvent) => {
+    const currentBatchId = batchIdRef.current
+    if (currentBatchId) {
+      if (event.batchId !== currentBatchId) return
+      processBatchEvent(event)
+      return
+    }
+    if (pendingBatchRef.current) pendingBatchEventsRef.current.push(event)
+  })
 
   useEffect(() => {
     let cancelled = false

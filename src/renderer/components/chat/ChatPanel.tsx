@@ -209,6 +209,7 @@ export function ChatPanel({
             archived: false,
             runs: [],
             artifactPool: [],
+            lastUserPrompt: message,
           }
           setSelectedChatId(chatId)
           updateChatInRegistry(newChat)
@@ -462,62 +463,113 @@ export function ChatPanel({
           />
         )}
 
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="max-w-2xl w-full space-y-3 text-center">
-            <h1 className="text-title-lg text-foreground">
-              {(selectedWorkflowPath && workflow?.name) ||
-                "What can I do for you?"}
-            </h1>
-            <p className="text-body-md text-muted-foreground">
-              {templateContext?.useWhen ||
-                "Describe your goal \u2014 c8c builds a flow to solve it"}
-            </p>
-          </div>
-          {!selectedWorkflowPath && quickStarts.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl w-full">
-              {quickStarts.map((qs, i) => (
-                <button
-                  key={qs.templateId}
-                  type="button"
-                  onClick={() =>
-                    void startRouting(qs.label, { awaitingInput: true })
-                  }
-                  title={qs.summary}
-                  className="px-3 py-1.5 rounded-full border border-hairline text-body-sm text-foreground/80 hover:text-foreground hover:bg-surface-2/30 ui-motion-fast ui-transition-colors ui-fade-slide-in"
-                  style={{
-                    animationDelay: `${200 + i * 50}ms`,
-                    animationFillMode: "backwards",
-                  }}
-                >
-                  {qs.label}
-                </button>
-              ))}
+        {selectedChat && !selectedWorkflowPath &&
+         (selectedChat.lastUserPrompt || selectedChat.name) ? (
+          /* ── Interrupted thread: show saved prompt + retry ── */
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto ui-scroll-region p-4">
+              <div className="max-w-2xl mx-auto space-y-3">
+                <div className="flex justify-end">
+                  <div className="rounded-2xl rounded-tr-sm bg-surface-2 px-4 py-2.5 max-w-[85%]">
+                    <p className="text-body-sm text-foreground whitespace-pre-wrap">
+                      {selectedChat.lastUserPrompt || selectedChat.name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-sidebar-meta shrink-0">
+                    Routing didn&rsquo;t finish
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void handleSend(
+                        selectedChat.lastUserPrompt || selectedChat.name,
+                      )
+                    }
+                    className="px-4 py-1.5 rounded-full border border-hairline text-body-sm text-foreground/80 hover:text-foreground hover:bg-surface-2/30 ui-motion-fast ui-transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
-          {!selectedWorkflowPath && (
-            <button
-              type="button"
-              onClick={() => setMainView("templates")}
-              className="mt-3 text-body-sm text-muted-foreground hover:text-foreground ui-motion-fast ui-transition-colors"
-            >
-              Browse starting points
-            </button>
-          )}
-          <div className="max-w-2xl w-full mt-6 space-y-2">
-            <SourceArtifactChips
-              artifacts={createSourceArtifacts}
-              onRemove={handleRemoveSourceArtifact}
-            />
-            <ChatInput
-              onSend={handleSend}
-              onCancel={handleCancel}
-              isStreaming={isStreaming}
-              isCancellable={isStreaming || isRouting}
-              autoFocus={!collapsed}
-              effectivelyDone={effectivelyDone}
-            />
+            <div className="p-4 pt-0">
+              <div className="max-w-2xl mx-auto space-y-2">
+                <ChatInput
+                  onSend={handleSend}
+                  onCancel={handleCancel}
+                  isStreaming={isStreaming}
+                  isCancellable={isStreaming || isRouting}
+                  autoFocus={!collapsed}
+                  effectivelyDone={effectivelyDone}
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ── Fresh empty state (no prior context) ── */
+          <div className="flex-1 flex flex-col items-center justify-center p-8">
+            <div className="max-w-2xl w-full space-y-3 text-center">
+              <h1 className="text-title-lg text-foreground">
+                {(selectedWorkflowPath && workflow?.name) ||
+                  "What can I do for you?"}
+              </h1>
+              <p className="text-body-md text-muted-foreground">
+                {templateContext?.useWhen ||
+                  "Describe your goal \u2014 c8c builds a flow to solve it"}
+              </p>
+            </div>
+            {!selectedWorkflowPath && quickStarts.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-2xl w-full">
+                {quickStarts.map((qs, i) => (
+                  <button
+                    key={qs.templateId}
+                    type="button"
+                    onClick={() =>
+                      void startRouting(qs.label, { awaitingInput: true })
+                    }
+                    title={qs.summary}
+                    className="px-3 py-1.5 rounded-full border border-hairline text-body-sm text-foreground/80 hover:text-foreground hover:bg-surface-2/30 ui-motion-fast ui-transition-colors ui-fade-slide-in"
+                    style={{
+                      animationDelay: `${200 + i * 50}ms`,
+                      animationFillMode: "backwards",
+                    }}
+                  >
+                    {qs.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!selectedWorkflowPath && (
+              <button
+                type="button"
+                onClick={() => setMainView("templates")}
+                className="mt-3 text-body-sm text-muted-foreground hover:text-foreground ui-motion-fast ui-transition-colors"
+              >
+                Browse starting points
+              </button>
+            )}
+            <div className="max-w-2xl w-full mt-6 space-y-2">
+              <SourceArtifactChips
+                artifacts={createSourceArtifacts}
+                onRemove={handleRemoveSourceArtifact}
+              />
+              <ChatInput
+                onSend={handleSend}
+                onCancel={handleCancel}
+                isStreaming={isStreaming}
+                isCancellable={isStreaming || isRouting}
+                autoFocus={!collapsed}
+                effectivelyDone={effectivelyDone}
+              />
+            </div>
+          </div>
+        )}
       </div>
     )
   }

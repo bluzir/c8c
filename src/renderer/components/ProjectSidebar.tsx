@@ -28,10 +28,10 @@ import {
   chatSidebarSeenRunIdsAtom,
   markChatSidebarRunSeenAtom,
   multiRunDashboardOpenAtom,
-  clearAllRoutingStateAtom,
   chatRegistryAtom,
   selectedChatIdAtom,
   chatIdForWorkflowPathAtom,
+  chatRoutingProgressAtom,
   followUpLabelAtom,
 } from "@/lib/store"
 import {
@@ -143,8 +143,8 @@ export function ProjectSidebar({
   const markWorkflowSidebarRunSeen = useSetAtom(markWorkflowSidebarRunSeenAtom)
   const [chatSidebarSeenRunIds] = useAtom(chatSidebarSeenRunIdsAtom)
   const markChatSidebarRunSeen = useSetAtom(markChatSidebarRunSeenAtom)
-  const clearAllRoutingState = useSetAtom(clearAllRoutingStateAtom)
   const setFollowUpLabel = useSetAtom(followUpLabelAtom)
+  const setChatRoutingProgress = useSetAtom(chatRoutingProgressAtom)
   const setCurrentRunIndex = useSetAtom(currentRunIndexAtom)
   const commitNavigation = useSetAtom(commitNavigationAtom)
   const setWorkflowEntryState = useSetAtom(workflowEntryStateAtom)
@@ -458,13 +458,20 @@ export function ProjectSidebar({
         const latestRun = chat.runs[chat.runs.length - 1]
         setSelectedWorkflowPath(latestRun.workflowPath)
         markChatSidebarRunSeen({ chatId, runId: latestRun.runId })
+      } else if (chat?.workflowPath) {
+        // Chat has a workflowPath from routing but no completed runs yet
+        setSelectedWorkflowPath(chat.workflowPath)
+      } else {
+        setSelectedWorkflowPath(null)
       }
       // Reset stale state from previous chat
       setFollowUpLabel(null)
+      setChatRoutingProgress(null)
       setCurrentRunIndex(chat?.runs.length ?? 0)
+      setViewMode("chat")
       setMainView("thread")
     },
-    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView, markChatSidebarRunSeen, setFollowUpLabel, setCurrentRunIndex],
+    [chatRegistry, setSelectedChatId, setSelectedWorkflowPath, setMainView, setViewMode, markChatSidebarRunSeen, setFollowUpLabel, setChatRoutingProgress, setCurrentRunIndex],
   )
 
   const removingSelectedDirtyProject =
@@ -791,6 +798,9 @@ export function ProjectSidebar({
                                 })}
                               </div>
                             )}
+                          {projectChats.length > 0 && unclaimedWorkflows.length > 0 && (
+                            <div className="ml-7 my-1 border-t border-hairline" />
+                          )}
                           <SidebarProjectWorkflowList
                             projectPath={projectPath}
                             projectLabel={projectFolderName(projectPath)}

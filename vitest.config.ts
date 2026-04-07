@@ -4,6 +4,7 @@ import { resolve } from "path"
 export default defineConfig({
   test: {
     include: ["src/**/*.test.{ts,tsx}", "packages/**/*.test.{ts,tsx}"],
+    setupFiles: ["./src/vitest-setup.ts"],
     testTimeout: 30_000,
     hookTimeout: 15_000,
     coverage: {
